@@ -98,6 +98,20 @@ project/
 5. 若用户选择 E → 收集用户偏好描述，将偏好传给 Director Agent 生成新的 3 个选项，回到步骤 3
 6. 若用户选择 A/B/C → 将用户选择的主题作为故事输入，继续 Step 1
 
+### Step 0.6: Director 生成输入确认说明（可选）
+
+仅在用户选择"自己提供故事输入"时执行（即未走 Step 0.5）：
+
+1. 使用 Read 读取 `agents/director.md`
+2. 使用 **Agent tool** 调用 Director 子代理，指令：基于用户提供的故事输入，生成一份结构化说明（含主题名称、核心设定、开篇钩子、卖点分析），格式与 Step 0.5 的选项一致
+3. 展示说明给用户，提供以下选择：
+   - **A. 确认** — 以此说明为基础继续 Step 1
+   - **B. 重新生成** — Director 基于同样的用户输入重新诠释
+   - **C. 补充说明** — 用户描述不满意的地方，Director 据此调整后重新生成
+4. 若用户选择 B → 重新调用 Director Agent，回到步骤 3
+5. 若用户选择 C → 收集用户反馈，传给 Director Agent 重新生成，回到步骤 3
+6. 若用户选择 A → 继续 Step 1
+
 ### Step 1: Director 生成剧情大纲
 
 1. 使用 Read 读取 `agents/director.md`
