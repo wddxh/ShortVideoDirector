@@ -94,7 +94,7 @@ your-project/
 
 - **Review mode**：每个关键步骤暂停展示给用户确认，Director 审核 Writer 输出（最多 2 轮）
 - **Fast mode**：跳过大部分确认步骤直通执行，但剧情选项选择和故事输入确认不可跳过
-- **Full-auto mode**：全自动执行，所有决策由 Director 自主做出（自动选择最能吸引观众的剧情方向），无需任何用户交互
+- **Full-auto mode**：全自动执行，所有决策由 Director 自主做出（自动选择最能吸引观众的剧情方向），无需任何用户交互。当 config 默认模式设为 full-auto 时，启动后直接进入该模式，不询问模式选择
 
 ## 工作流程
 
