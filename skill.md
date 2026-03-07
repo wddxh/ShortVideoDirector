@@ -115,4 +115,59 @@ project/
 
 ## Continue Story 工作流
 
-（见下方详细流程）
+### Step 0: 上下文收集
+
+1. 使用 Read 读取 `story/outline.md`
+2. 使用 Glob 匹配 `story/episodes/ep*/` 检测最新集数 N
+3. 使用 Read 读取 `config.md`，获取 `上下文集数` 配置值 M
+4. 使用 Read 读取最近 M 集的 `novel.md`（如 `ep{N-2}/novel.md`、`ep{N-1}/novel.md`、`ep{N}/novel.md`）
+5. 使用 Glob 列出 `assets/` 下所有已有资产文件
+6. 使用 Bash 创建新集目录 `story/episodes/ep{N+1}/`
+7. 询问用户选择 **review mode** 或 **fast mode**
+
+### Step 1: Director 生成新集大纲
+
+1. 使用 Read 读取 `agents/director.md`
+2. 使用 **Agent tool** 调用 Director 子代理，prompt 中包含：
+   - 用户的新输入
+   - `story/outline.md` 的内容
+   - 最近 M 集的 `novel.md` 内容
+   - `config.md` 的配置内容
+   - 指令：生成 EP{N+1} 剧情大纲，保持与前文的剧情连续性
+3. 使用 Write 写入 `story/episodes/ep{N+1}/outline.md`
+4. 使用 Edit 工具 **追加** 新内容到 `story/outline.md`（append-only，不修改已有内容）
+5. **[仅 review mode]** 展示大纲给用户确认；若用户不满意，根据反馈重新调用 Director Agent 修改
+
+### Step 2: Writer 生成小说原文
+
+1. 使用 Read 读取 `agents/writer.md`、`story/episodes/ep{N+1}/outline.md`、`story/outline.md`
+2. 使用 **Agent tool** 调用 Writer 子代理，提供本集大纲 + 整体大纲
+3. 使用 Write 将输出写入 `story/episodes/ep{N+1}/novel.md`
+4. **[仅 review mode]** 使用 Agent tool 调用 Director Agent 审核 `novel.md`，将修改意见反馈给 Writer Agent 进行修改（最多 2 轮）
+
+### Step 3: Director 生成分镜 + Creator 生成资产
+
+**Director Agent — 生成分镜：**
+1. 使用 Read 读取 `story/episodes/ep{N+1}/novel.md`
+2. 使用 Agent tool 调用 Director 子代理，指令：根据 novel.md 生成分镜提示词，同时判断是否需要新资产
+3. 使用 Write 将分镜写入 `story/episodes/ep{N+1}/storyboard.md`
+
+**Creator Agent — 仅在需要新资产时调用：**
+1. 使用 Read 读取 `assets/` 下所有已有资产文件，确保与已有资产一致
+2. 使用 Agent tool 调用 Creator 子代理，指令：仅创建新资产文件，不修改已有资产的核心内容
+3. 对已出场的已有角色/资产，仅使用 Edit 工具追加"出场记录"条目
+4. 使用 Write 在 `assets/` 对应子目录下创建新资产的 `.md` 文件
+5. 如果不需要新资产，跳过 Creator
+
+**[仅 review mode]** 展示分镜内容和新资产列表给用户确认
+
+### Step 4: 完成
+
+1. 输出本集摘要：集数编号、场景数（分镜数量）、新建资产列表（如有）
+2. 提示用户可以继续使用 `/short-video` 创作下一集
+
+### 与 New Story 的关键差异
+
+- `story/outline.md` 严格遵守 **append-only** 规则，只追加不修改已有内容
+- Director 读取最近 M 集 `novel.md` 提供剧情连续性上下文
+- Creator 必须检查已有资产避免重复创建，已有资产只追加出场记录
