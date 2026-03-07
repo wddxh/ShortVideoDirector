@@ -156,6 +156,17 @@ project/
    - 指令：根据 novel.md 生成分镜提示词，资产引用必须且只能使用上述文件列表中的实际路径
 4. 使用 Write 将分镜写入 `story/episodes/ep01/storyboard.md`
 
+**3d. Director 台词密度自检与补充（最多 3 轮）：**
+1. Director 自检每个分镜的台词数量（含对白、自白、旁白）
+2. 如果所有分镜均达到 5-8 句 → 通过，进入下一步
+3. 如果有分镜台词不足 5-8 句：
+   a. 将不足的分镜列表和对应的小说原文段落传给 Writer Agent，请求补充对白/自白
+   b. Writer Agent 返回补充的台词
+   c. Director 将补充的台词融入对应分镜，重新生成这些分镜的画面与声音描述
+   d. 使用 Write 更新 `story/episodes/ep01/storyboard.md`
+   e. 回到步骤 1 重新自检
+4. 如果已循环 3 轮仍有不足，接受当前结果，不再继续循环
+
 **[仅 review mode]** 展示分镜内容和新建资产列表给用户确认
 
 ### Step 4: 完成
@@ -255,6 +266,17 @@ project/
    - `assets/` 下所有实际文件的完整路径列表
    - 指令：根据 novel.md 生成分镜提示词，资产引用必须且只能使用上述文件列表中的实际路径
 4. 使用 Write 将分镜写入 `story/episodes/ep{N+1}/storyboard.md`
+
+**3d. Director 台词密度自检与补充（最多 3 轮）：**
+1. Director 自检每个分镜的台词数量（含对白、自白、旁白）
+2. 如果所有分镜均达到 5-8 句 → 通过，进入下一步
+3. 如果有分镜台词不足 5-8 句：
+   a. 将不足的分镜列表和对应的小说原文段落传给 Writer Agent，请求补充对白/自白
+   b. Writer Agent 返回补充的台词
+   c. Director 将补充的台词融入对应分镜，重新生成这些分镜的画面与声音描述
+   d. 使用 Write 更新 `story/episodes/ep{N+1}/storyboard.md`
+   e. 回到步骤 1 重新自检
+4. 如果已循环 3 轮仍有不足，接受当前结果，不再继续循环
 
 **[仅 review mode]** 展示分镜内容和新资产列表给用户确认
 
