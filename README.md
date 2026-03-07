@@ -80,14 +80,14 @@ your-project/
 
 | 配置 | 默认值 | 说明 |
 |------|--------|------|
-| 视频模型 | generic | generic / kling / runway / pika / 自定义 |
-| 图像模型 | generic | generic / midjourney / flux / dall-e / 自定义 |
+| 视频模型 | generic | generic / kling / runway / seedance2.0 / 自定义 |
+| 图像模型 | generic | generic / midjourney / flux / nanobanana / 自定义 |
 | 视频风格 | 3D写实 | 2D动漫 / 3D动漫 / 3D写实 / 2D手绘 / 自定义 |
-| 语言 | auto | auto / zh / en |
+| 语言 | auto | auto / zh / en / 自定义 |
 | 每集分镜数 | 15 | 建议 10-20 |
 | 每集时长目标 | 1-2分钟 | — |
 | 单镜头时长范围 | 5-10秒 | 视频 AI 模型的硬性限制 |
-| 上下文集数 | 3 | 续写时 Director 回顾的历史集数 |
+| 上下文集数 | 1 | 续写时 Director 读取前 N 集 novel.md |
 | 默认模式 | review | review（逐步确认）/ fast（直通执行） |
 
 ## 工作模式
