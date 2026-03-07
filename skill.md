@@ -67,7 +67,51 @@ project/
 
 ## New Story 工作流
 
-（见下方详细流程）
+### Step 0: 初始化
+
+1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
+2. 使用 Glob 检查 `config.md` 是否存在，若不存在则用 Read 读取 `templates/config.md` 并用 Write 写入项目根目录
+3. 询问用户选择 **review mode** 或 **fast mode**（展示 config 中 `默认模式` 的值作为默认选项）
+
+### Step 1: Director 生成剧情大纲
+
+1. 使用 Read 读取 `agents/director.md`
+2. 使用 **Agent tool** 调用 Director 子代理，prompt 中包含：
+   - `agents/director.md` 的内容
+   - 用户的故事输入
+   - `config.md` 的配置内容
+   - 指令：生成 EP01 剧情大纲
+3. 使用 Write 将本集大纲写入 `story/episodes/ep01/outline.md`
+4. 使用 Write 将整体故事大纲写入 `story/outline.md`
+5. **[仅 review mode]** 展示大纲给用户确认；若用户不满意，根据反馈重新调用 Director Agent 修改
+
+### Step 2: Writer 生成小说原文
+
+1. 使用 Read 读取 `agents/writer.md`、`story/episodes/ep01/outline.md`、`story/outline.md`
+2. 使用 **Agent tool** 调用 Writer 子代理，提供本集大纲 + 整体大纲
+3. 使用 Write 将输出写入 `story/episodes/ep01/novel.md`
+4. **[仅 review mode]** 使用 Agent tool 调用 Director Agent 审核 `novel.md`，将修改意见反馈给 Writer Agent 进行修改（最多 2 轮）
+
+### Step 3: Director 生成分镜 + Creator 生成资产（并行）
+
+以下两个子任务可通过同时发起两个 Agent tool 调用并行执行：
+
+**Director Agent — 生成分镜：**
+1. 使用 Read 读取 `story/episodes/ep01/novel.md`
+2. 使用 Agent tool 调用 Director 子代理，指令：根据 novel.md 生成分镜提示词，同时输出资产清单
+3. 使用 Write 将分镜写入 `story/episodes/ep01/storyboard.md`
+
+**Creator Agent — 生成资产：**
+1. 使用 Read 读取 `story/episodes/ep01/novel.md` + Director 输出的资产清单
+2. 使用 Agent tool 调用 Creator 子代理，指令：为每个资产生成描述文件
+3. 使用 Write 在 `assets/` 对应子目录（`characters/`、`items/`、`locations/`、`buildings/`）下创建每个资产的 `.md` 文件
+
+**[仅 review mode]** 展示分镜内容和新建资产列表给用户确认
+
+### Step 4: 完成
+
+1. 输出本集摘要：集数编号、场景数（分镜数量）、新建资产列表
+2. 提示用户可以使用 `/short-video` 继续创作下一集
 
 ## Continue Story 工作流
 
