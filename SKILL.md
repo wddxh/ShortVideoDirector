@@ -89,7 +89,7 @@ project/
 
 1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
 2. 执行**配置加载**流程（见上方"配置加载"章节）：若 `config.md` 不存在则进入交互式配置引导，逐项询问用户
-3. 询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示 config 中 `默认模式` 的值作为默认选项）
+3. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
 
 ### Step 0.5: Director 生成主题选项（可选）
 
@@ -189,7 +189,7 @@ project/
 4. 使用 Read 读取最近 M 集的 `novel.md`（如 `ep{N-2}/novel.md`、`ep{N-1}/novel.md`、`ep{N}/novel.md`）
 5. 使用 Glob 列出 `assets/` 下所有已有资产文件
 6. 使用 Bash 创建新集目录 `story/episodes/ep{N+1}/`
-7. 询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**
+7. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
 
 ### Step 0.5: Director 生成剧情走向选项（可选）
 
