@@ -119,7 +119,7 @@ project/
 1. 使用 Read 读取 `agents/director.md`
 2. 使用 **Agent tool** 调用 Director 子代理，prompt 中包含：
    - `agents/director.md` 的内容
-   - 用户的故事输入（或 Step 0.5 中用户选择的主题）
+   - 用户的故事输入（或 Step 0.5 中用户选择的主题，或 Step 0.6 中用户确认的结构化说明）
    - `config.md` 的配置内容
    - 指令：生成 EP01 剧情大纲
 3. 使用 Write 将本集大纲写入 `story/episodes/ep01/outline.md`
@@ -216,7 +216,7 @@ project/
 
 1. 使用 Read 读取 `agents/director.md`
 2. 使用 **Agent tool** 调用 Director 子代理，prompt 中包含：
-   - 用户的新输入（或 Step 0.5 中用户选择的剧情走向）
+   - 用户的新输入（或 Step 0.5 中用户选择的剧情走向，或 Step 0.6 中用户确认的结构化说明）
    - `story/outline.md` 的内容
    - 最近 M 集的 `novel.md` 内容
    - `config.md` 的配置内容
