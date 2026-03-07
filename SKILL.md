@@ -117,19 +117,28 @@ project/
 3. 使用 Write 将输出写入 `story/episodes/ep01/novel.md`
 4. **[仅 review mode]** 使用 Agent tool 调用 Director Agent 审核 `novel.md`，将修改意见反馈给 Writer Agent 进行修改（最多 2 轮）
 
-### Step 3: Director 生成分镜 + Creator 生成资产（并行）
+### Step 3: Creator 生成资产 → Director 生成分镜（串行）
 
-以下两个子任务可通过同时发起两个 Agent tool 调用并行执行：
+**注意：以下子任务必须串行执行，Creator 先完成资产创建，Director 再基于实际资产文件生成分镜。**
 
-**Director Agent — 生成分镜：**
+**3a. Director Agent — 输出资产清单：**
 1. 使用 Read 读取 `story/episodes/ep01/novel.md`
-2. 使用 Agent tool 调用 Director 子代理，指令：根据 novel.md 生成分镜提示词，同时输出资产清单
-3. 使用 Write 将分镜写入 `story/episodes/ep01/storyboard.md`
+2. 使用 Agent tool 调用 Director 子代理，指令：根据 novel.md 分析需要新建的资产（包括角色造型变体），输出资产清单
+3. 将资产清单传递给 Creator
 
-**Creator Agent — 生成资产：**
+**3b. Creator Agent — 生成资产：**
 1. 使用 Read 读取 `story/episodes/ep01/novel.md` + Director 输出的资产清单
-2. 使用 Agent tool 调用 Creator 子代理，指令：为每个资产生成描述文件
+2. 使用 Agent tool 调用 Creator 子代理，指令：为每个资产生成描述文件（包括角色造型变体文件）
 3. 使用 Write 在 `assets/` 对应子目录（`characters/`、`items/`、`locations/`、`buildings/`）下创建每个资产的 `.md` 文件
+
+**3c. Director Agent — 生成分镜：**
+1. 使用 Glob 读取 `assets/` 目录下所有实际存在的 `.md` 文件列表
+2. 使用 Read 读取 `story/episodes/ep01/novel.md`
+3. 使用 Agent tool 调用 Director 子代理，prompt 中包含：
+   - novel.md 的内容
+   - `assets/` 下所有实际文件的完整路径列表
+   - 指令：根据 novel.md 生成分镜提示词，资产引用必须且只能使用上述文件列表中的实际路径
+4. 使用 Write 将分镜写入 `story/episodes/ep01/storyboard.md`
 
 **[仅 review mode]** 展示分镜内容和新建资产列表给用户确认
 
