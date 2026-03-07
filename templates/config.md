@@ -3,6 +3,7 @@
 ## 模型配置
 - 视频模型: generic          # generic / kling / runway / pika
 - 图像模型: generic          # generic / midjourney / flux / dall-e
+- 视频风格: 3D写实            # 2D动漫 / 3D动漫 / 3D写实 / 2D手绘
 
 ## 创作配置
 - 语言: auto                 # auto(跟随输入语言) / zh / en
