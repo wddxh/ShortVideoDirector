@@ -88,20 +88,21 @@ your-project/
 | 每集时长目标 | 1-2分钟 | — |
 | 单镜头时长范围 | 5-10秒 | 视频 AI 模型的硬性限制 |
 | 上下文集数 | 1 | 续写时 Director 读取前 N 集 novel.md |
-| 默认模式 | review | review（逐步确认）/ fast（直通执行） |
+| 默认模式 | review | review（逐步确认）/ fast（直通执行）/ full-auto（全自动） |
 
 ## 工作模式
 
 - **Review mode**：每个关键步骤暂停展示给用户确认，Director 审核 Writer 输出（最多 2 轮）
 - **Fast mode**：跳过大部分确认步骤直通执行，但剧情选项选择和故事输入确认不可跳过
+- **Full-auto mode**：全自动执行，所有决策由 Director 自主做出（自动选择最能吸引观众的剧情方向），无需任何用户交互
 
 ## 工作流程
 
 ### New Story（新故事）
 
 1. 创建目录结构 + 交互式配置引导
-2. 用户提供输入或让 Director 生成主题选项（不满意可重新生成/提供偏好）
-3. Director 生成结构化确认说明供用户确认（即使 fast mode 也必须确认）
+2. 用户提供输入或让 Director 生成主题选项（不满意可重新生成/提供偏好；full-auto 下 Director 自动选择）
+3. Director 生成结构化确认说明供用户确认（即使 fast mode 也必须确认；full-auto 下自动确认）
 4. Director 生成本集剧情大纲（基于用户确认的说明）
 5. Writer 生成小说原文（Review mode 下 Director 审核）
 6. Creator 生成资产（含造型变体、声音特征）→ Director 基于实际资产生成分镜
@@ -110,8 +111,8 @@ your-project/
 ### Continue Story（续写）
 
 1. 收集上下文（大纲 + 最近 N 集内容 + 已有资产）
-2. 用户提供输入或让 Director 生成剧情走向选项（不满意可重新生成/提供偏好）
-3. Director 生成结构化确认说明供用户确认（即使 fast mode 也必须确认）
+2. 用户提供输入或让 Director 生成剧情走向选项（不满意可重新生成/提供偏好；full-auto 下 Director 自动选择）
+3. Director 生成结构化确认说明供用户确认（即使 fast mode 也必须确认；full-auto 下自动确认）
 4. Director 生成新集大纲（append-only 追加到总大纲）
 5. Writer 生成小说原文
 6. Creator 创建新资产（如需要）→ Director 基于实际资产生成分镜

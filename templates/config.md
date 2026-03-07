@@ -11,4 +11,4 @@
 - 每集时长目标: 1-2分钟
 - 单镜头时长范围: 5-10秒     # 每个分镜镜头的时长范围
 - 上下文集数: 1              # continue mode时Director读取前N集novel.md
-- 默认模式: review           # review / fast
+- 默认模式: review           # review / fast / full-auto
