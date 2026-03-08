@@ -16,6 +16,8 @@
 
 **通用：** config.md
 
+**可选：** 用户偏好描述（当用户要求基于偏好重新生成时提供）
+
 **new-story 时：** 无额外输入
 
 **continue-story 时额外：** outline.md、最近 M 集 novel.md
@@ -70,6 +72,8 @@
 ### 输入
 
 **通用：** config.md、用户故事输入
+
+**可选：** 用户反馈内容（当用户要求基于反馈重新生成时提供）
 
 **continue-story 时额外：** outline.md、最近 M 集 novel.md
 
