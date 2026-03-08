@@ -45,7 +45,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Agent
    e. 询问每集分镜数（默认 15，建议 10-20）
    f. 询问上下文集数（默认 1，建议 1-5；说明：续写时 Director 读取前 N 集 novel.md 作为剧情上下文）
    g. 询问默认模式：review / fast / full-auto
-   h. 告知用户其余配置使用默认值（每集时长目标: 1-2分钟、单镜头时长范围: 10-15秒、单镜头资产上限: 5），可通过 `/short-video config` 随时修改
+   h. 告知用户其余配置使用默认值（详见 config.md 模板），可通过 `/short-video config` 随时修改
    i. 根据用户选择生成 [config.md](config.md) 写入项目根目录
 4. 解析以下配置值：
    - **视频模型**：用于生成视频的 AI 模型
