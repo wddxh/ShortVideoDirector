@@ -55,39 +55,50 @@
 3. 使用 Write 将输出写入 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
 4. **[仅 review mode]** 使用 Agent tool 调用 Director Agent 审核 [novel.md](story/episodes/ep01/novel.md)，将修改意见反馈给 Writer Agent 进行修改（最多 2 轮）
 
-### 阶段 5: Creator 生成资产 → Director 生成分镜（串行）
+### 阶段 5: Creator 生成资产 → Storyboarder 生成分镜（串行）
 
-**注意：以下子任务必须串行执行，Creator 先完成资产创建，Director 再基于实际资产文件生成分镜。**
+**注意：以下子任务必须串行执行，Creator 先完成资产创建，Storyboarder 再基于实际资产文件生成分镜。**
 
-**5a. Director Agent — 输出资产清单：**
-1. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
-2. 使用 Agent tool 调用 Director 子代理，指令：根据 novel.md 分析需要新建的资产（包括角色造型变体），输出资产清单
-3. 将资产清单传递给 Creator
+**5a. Storyboarder Agent — 生成资产清单：**
+1. 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
+2. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+3. 使用 Agent tool 调用 Storyboarder 子代理，指令：根据 novel.md 分析需要新建的资产（包括角色造型变体），输出资产清单
+4. 将资产清单传递给 Creator
 
 **5b. Creator Agent — 生成资产：**
-1. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md) + Director 输出的资产清单
+1. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md) + Storyboarder 输出的资产清单
 2. 使用 Agent tool 调用 Creator 子代理，指令：为每个资产生成描述文件（包括角色造型变体文件）
 3. 使用 Write 在 [assets/](assets/) 对应子目录（[characters/](assets/characters/)、[items/](assets/items/)、[locations/](assets/locations/)、[buildings/](assets/buildings/)）下创建每个资产的 `.md` 文件
 
-**5c. Director Agent — 生成分镜：**
+**5c. Storyboarder Agent — 生成分镜提示词：**
 1. 使用 Glob 读取 [assets/](assets/) 目录下所有实际存在的 `.md` 文件列表
-2. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
-3. 使用 Agent tool 调用 Director 子代理，prompt 中包含：
+2. 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
+3. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+4. 使用 Agent tool 调用 Storyboarder 子代理，prompt 中包含：
    - novel.md 的内容
    - [assets/](assets/) 下所有实际文件的完整路径列表
    - 指令：根据 novel.md 生成分镜提示词，资产引用必须且只能使用上述文件列表中的实际路径
-4. 使用 Write 将分镜写入 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
+5. 使用 Write 将分镜写入 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
 
-**5d. Director 台词密度自检与补充（最多 3 轮）：**
-1. Director 自检每个分镜的台词数量（含对白、自白、旁白、角色声音反应），并检查是否存在超过 2 秒无声音（角色声音或环境音效）的空窗
+**5d. Storyboarder 台词密度自检与补充（最多 3 轮）：**
+1. Storyboarder 自检每个分镜的台词数量（含对白、自白、旁白、角色声音反应），并检查是否存在超过 2 秒无声音（角色声音或环境音效）的空窗
 2. 如果所有分镜均达到 5-8 句 → 通过，进入下一步
 3. 如果有分镜台词不足 5-8 句：
    a. 将不足的分镜列表和对应的小说原文段落传给 Writer Agent，请求补充对白/自白
    b. Writer Agent 返回补充的台词
-   c. Director 将补充的台词融入对应分镜，重新生成这些分镜的画面与声音描述
+   c. Storyboarder 将补充的台词融入对应分镜，重新生成这些分镜的画面与声音描述
    d. 使用 Write 更新 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
    e. 回到步骤 1 重新自检
 4. 如果已循环 3 轮仍有不足，接受当前结果，不再继续循环
+
+**5e. Director Agent — 审核分镜：**
+1. 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)、[story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)、[story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
+3. 使用 Agent tool 调用 Director 子代理，指令：执行职责 4 场景 B — 审核 Storyboarder 分镜，检查分镜与大纲/原文的一致性
+4. 如果审核结果为"需修改"：
+   a. 将 Director 的修改意见传给 Storyboarder Agent 进行修正
+   b. Storyboarder 修正后重新提交给 Director 审核（最多 2 轮）
+5. 使用 Write 更新 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
 
 **[仅 review mode]** 展示分镜内容和新建资产列表给用户确认
 
