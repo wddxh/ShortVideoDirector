@@ -70,9 +70,10 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Agent
 根据用户输入 `args` 的内容进行分流：
 
 1. **`args` 为 `"config"`**：使用 Read 工具打开当前目录下的 [config.md](config.md)，展示给用户，询问是否需要编辑。
-2. **`args` 看起来像文件路径**（以 `.txt` 或 `.md` 结尾）：使用 Read 工具读取该文件内容，作为故事输入。
-3. **`args` 包含内联文本**：直接将该文本作为故事输入。
-4. **无 `args`**：
+2. **`args` 为纯数字**（如 `30`）：解析为总集数参数。仅在 full-auto mode 下有效；若非 full-auto mode 则提示用户总集数参数仅支持 full-auto 模式，忽略该参数。将总集数传递给工作流，同时按照"无 args"逻辑处理故事输入（full-auto 下走 Director 生成剧情选项流程）。
+3. **`args` 看起来像文件路径**（以 `.txt` 或 `.md` 结尾）：使用 Read 工具读取该文件内容，作为故事输入。
+4. **`args` 包含内联文本**：直接将该文本作为故事输入。
+5. **无 `args`**：
    - **[review / fast mode]** 交互式询问用户，提供两个选项：
      - **A. 自己提供故事输入**：用户输入故事点子/原文/概述
      - **B. 让 Director 生成剧情选项**：Director 生成 3 个方向供用户选择（新故事模式下为热门主题，续写模式下为剧情走向）
