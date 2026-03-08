@@ -9,8 +9,9 @@
 3. 使用 Read 读取 [config.md](config.md)，获取 `上下文集数` 配置值 M
 4. 使用 Read 读取最近 M 集的 novel.md
 5. 使用 Glob 列出 [assets/](assets/) 下所有已有资产文件
-6. 使用 Bash 创建新集目录 `story/episodes/ep{N+1}/`
-7. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
+6. 若 [story/arc.md](story/arc.md) 存在，使用 Read 读取
+7. 使用 Bash 创建新集目录 `story/episodes/ep{N+1}/`
+8. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
 
 ## 全局上下文
 
@@ -20,8 +21,31 @@
 - **outline** — story/outline.md 的内容（阶段 1 步骤 1 读取）
 - **recent_novels** — 最近 M 集的 novel.md 内容（阶段 1 步骤 4 读取）
 - **asset_list** — assets/ 下所有文件路径列表（阶段 1 步骤 5 读取）
+- **arc**（可选）— story/arc.md 的内容（阶段 1 步骤 6 读取，仅当文件存在时）
 
 > **注意：** outline 在阶段 3 会被追加新内容，asset_list 在阶段 5b 后会变化。需要最新版本时必须重新读取，不能引用全局上下文。
+
+### 阶段 1.3: 补生成剧情弧线（仅 full-auto 带总集数且 arc.md 不存在时执行）
+
+**1.3.1 Director — 生成剧情弧线（director.md 职责 5）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. **读取输入：**
+   - config（全局上下文）
+   - outline（全局上下文）
+   - recent_novels（全局上下文）
+3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
+   - **职责：** 职责 5 — 生成剧情弧线
+   - **工作流：** continue-story
+   - **输入：**
+     - config（全局上下文）
+     - 总集数
+     - outline（全局上下文）
+     - recent_novels（全局上下文）
+   - **期望输出：** 完整剧情弧线
+4. **文件操作：**
+   - 使用 Write 将剧情弧线写入 [story/arc.md](story/arc.md)
+5. 更新全局上下文 arc
 
 ### 阶段 1.5: 输入分流
 
@@ -87,6 +111,7 @@
      - 选定的剧情方向（来自阶段 2a 或 2b）
      - outline（全局上下文）
      - recent_novels（全局上下文）
+     - **若全局上下文 arc 存在：** arc（剧情弧线，参考当前阶段规划生成本集大纲）
    - **期望输出：** 两段内容 — 本集大纲 + outline.md 追加内容
 4. **文件操作：**
    - 使用 Write 将本集大纲写入 [story/episodes/ep{N+1}/outline.md](story/episodes/ep{N+1}/outline.md)
