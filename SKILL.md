@@ -9,7 +9,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Agent
 本技能将故事创意转化为 AI 视频分镜提示词和资产图像提示词。
 
 工作流程由 4 个子代理协作完成：
-- **Director（总导演）**：统筹全局，生成剧情大纲，审核 Writer 输出
+- **Director（总导演）**：统筹全局，生成剧情大纲，审核 Writer 和 Storyboarder 输出
 - **Writer（小说作家）**：根据剧情大纲生成小说原文，擅长悬念设置和人物描写
 - **Storyboarder（分镜师）**：负责资产清单和分镜提示词生成
 - **Creator（创意总监）**：识别并视觉化人物和资产，生成图像提示词

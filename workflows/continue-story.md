@@ -65,9 +65,10 @@
 ### 阶段 4: Writer 生成小说原文
 
 1. 使用 Read 读取 [agents/writer.md](../agents/writer.md)、[story/episodes/ep{N+1}/outline.md](story/episodes/ep{N+1}/outline.md)、[story/outline.md](story/outline.md)
-2. 使用 **Agent tool** 调用 Writer 子代理，提供本集大纲 + 整体大纲
+2. 使用 Read 读取 [assets/characters/](assets/characters/) 下所有已有角色资产文件
+3. 使用 **Agent tool** 调用 Writer 子代理，提供本集大纲 + 整体大纲 + 已有角色资产文件
 3. 使用 Write 将输出写入 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
-4. **[仅 review mode]** 使用 Agent tool 调用 Director Agent 审核 [novel.md](story/episodes/ep{N+1}/novel.md)，将修改意见反馈给 Writer Agent 进行修改（最多 2 轮）
+5. **[仅 review mode]** 使用 Read 读取 [assets/characters/](assets/characters/) 下所有已有角色资产文件，使用 Agent tool 调用 Director Agent 审核 [novel.md](story/episodes/ep{N+1}/novel.md)（提供大纲 + 小说原文 + 已有角色资产），将修改意见反馈给 Writer Agent 进行修改（最多 2 轮）
 
 ### 阶段 5: Creator 生成资产 → Storyboarder 生成分镜（串行）
 
@@ -88,9 +89,10 @@
 **5c. Storyboarder Agent — 生成分镜提示词：**
 1. 使用 Glob 读取 [assets/](assets/) 目录下所有实际存在的 `.md` 文件列表
 2. 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
-3. 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
+3. 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md) 和 [config.md](config.md)
 4. 使用 Agent tool 调用 Storyboarder 子代理，prompt 中包含：
    - novel.md 的内容
+   - config.md 的配置内容
    - [assets/](assets/) 下所有实际文件的完整路径列表
    - 指令：根据 novel.md 生成分镜提示词，资产引用必须且只能使用上述文件列表中的实际路径
 5. 使用 Write 将分镜写入 [story/episodes/ep{N+1}/storyboard.md](story/episodes/ep{N+1}/storyboard.md)

@@ -73,9 +73,10 @@
 **5c. Storyboarder Agent — 生成分镜提示词：**
 1. 使用 Glob 读取 [assets/](assets/) 目录下所有实际存在的 `.md` 文件列表
 2. 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
-3. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+3. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md) 和 [config.md](config.md)
 4. 使用 Agent tool 调用 Storyboarder 子代理，prompt 中包含：
    - novel.md 的内容
+   - config.md 的配置内容
    - [assets/](assets/) 下所有实际文件的完整路径列表
    - 指令：根据 novel.md 生成分镜提示词，资产引用必须且只能使用上述文件列表中的实际路径
 5. 使用 Write 将分镜写入 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
