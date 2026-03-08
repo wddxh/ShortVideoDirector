@@ -24,7 +24,7 @@
 
 | 子代理 | 角色 | 职责 |
 |--------|------|------|
-| **Director** | 总导演 | 全局统筹、生成剧情大纲、审核 Writer 输出 |
+| **Director** | 总导演 | 全局统筹、生成剧情大纲、审核 Writer 和 Storyboarder 输出 |
 | **Writer** | 网络小说作家 | 根据剧情大纲生成小说原文，擅长悬念设置和人物描写 |
 | **Storyboarder** | 分镜师 | 负责资产清单和分镜提示词生成 |
 | **Creator** | 创意总监 | 识别并视觉化人物和资产，生成图像提示词和声音特征描述 |
@@ -70,7 +70,7 @@ your-project/
 │       └── ep02/
 │           └── ...
 ├── assets/
-│   ├── characters/             # 人物提示词（含声音特征、造型变体）
+│   ├── characters/             # 人物提示词（含性格特征、声音特征、造型变体）
 │   ├── items/                  # 重要物品提示词
 │   ├── locations/              # 场景提示词
 │   └── buildings/              # 建筑提示词
@@ -111,6 +111,7 @@ your-project/
 5. Writer 生成小说原文（Review mode 下 Director 审核）
 6. Storyboarder 生成资产清单 → Creator 生成资产（含造型变体、声音特征）→ Storyboarder 基于实际资产生成分镜
 7. Storyboarder 台词密度自检，不足时向 Writer 咨询补充（最多 3 轮）
+8. Director 审核分镜（最多 2 轮修改反馈）
 
 ### Continue Story（续写）
 
@@ -121,6 +122,7 @@ your-project/
 5. Writer 生成小说原文
 6. Storyboarder 生成资产清单 → Creator 创建新资产（如需要）→ Storyboarder 基于实际资产生成分镜
 7. Storyboarder 台词密度自检，不足时向 Writer 咨询补充（最多 3 轮）
+8. Director 审核分镜（最多 2 轮修改反馈）
 
 ## 分镜格式
 
