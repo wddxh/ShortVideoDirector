@@ -78,10 +78,10 @@
    - **输入：**
      - config（全局上下文）
      - 选定的剧情方向（来自阶段 2a 用户选择的主题，或阶段 2b 用户确认的结构化说明）
-   - **期望输出：** 两段内容 — 本集大纲 + outline.md 追加内容
+   - **期望输出：** 两段内容 — 本集大纲 + outline.md 内容
 4. **文件操作：**
    - 使用 Write 将本集大纲写入 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
-   - 使用 Write 将整体故事大纲写入 [story/outline.md](story/outline.md)
+   - 使用 Write 将整体故事大纲写入 [story/outline.md](story/outline.md)（包含剧名、核心设定、第1集大纲）
 5. **[仅 review mode]** 展示大纲给用户确认；若不满意，根据反馈重新调用同一职责修改
 
 ### 阶段 4: Writer 生成小说原文
