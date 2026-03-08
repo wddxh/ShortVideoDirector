@@ -6,7 +6,7 @@
 
 1. 使用 Read 读取 [story/outline.md](story/outline.md)
 2. 使用 Glob 匹配 `story/episodes/ep*/` 检测最新集数 N
-3. 使用 Read 读取 [config.md](config.md)，获取 `上下文集数` 配置值 M
+3. 使用 Read 读取 [config.json](config.json)，获取 `上下文集数` 配置值 M
 4. 使用 Read 读取最近 M 集的 novel.md
 5. 使用 Glob 列出 [assets/](assets/) 下所有已有资产文件
 6. 使用 Bash 创建新集目录 `story/episodes/ep{N+1}/`
@@ -56,7 +56,7 @@
    - 用户的新输入（或 阶段 2a 中用户选择的剧情走向，或阶段 2b 中用户确认的结构化说明）
    - [story/outline.md](story/outline.md) 的内容
    - 最近 M 集的 novel.md 内容
-   - [config.md](config.md) 的配置内容
+   - [config.json](config.json) 的配置内容
    - 指令：生成 EP{N+1} 剧情大纲，保持与前文的剧情连续性
 3. 使用 Write 写入 [story/episodes/ep{N+1}/outline.md](story/episodes/ep{N+1}/outline.md)
 4. 使用 Edit 工具 **追加** 新内容到 [story/outline.md](story/outline.md)（append-only，不修改已有内容）

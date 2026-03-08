@@ -73,7 +73,7 @@ your-project/
 │   ├── items/                  # 重要物品提示词
 │   ├── locations/              # 场景提示词
 │   └── buildings/              # 建筑提示词
-└── config.md                   # 项目配置
+└── config.json                   # 项目配置
 ```
 
 ## 配置项
