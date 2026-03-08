@@ -5,7 +5,7 @@
 ### 阶段 1: 初始化
 
 1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
-2. 执行**配置加载**流程（见 [SKILL.md](../SKILL.md) "配置加载"章节）：若 [config.json](config.json) 不存在则进入交互式配置引导，逐项询问用户
+2. 执行**配置加载**流程（见 [SKILL.md](../SKILL.md) "配置加载"章节）：若 [config.md](config.md) 不存在则进入交互式配置引导，逐项询问用户
 3. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
 
 ### 阶段 2a: Director 生成主题选项（可选）
@@ -42,7 +42,7 @@
 2. 使用 **Agent tool** 调用 Director 子代理，prompt 中包含：
    - [agents/director.md](../agents/director.md) 的内容
    - 用户的故事输入（或 阶段 2a 中用户选择的主题，或阶段 2b 中用户确认的结构化说明）
-   - [config.json](config.json) 的配置内容
+   - [config.md](config.md) 的配置内容
    - 指令：生成 EP01 剧情大纲
 3. 使用 Write 将本集大纲写入 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
 4. 使用 Write 将整体故事大纲写入 [story/outline.md](story/outline.md)
