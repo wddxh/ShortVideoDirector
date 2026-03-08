@@ -137,7 +137,7 @@
      - 整体大纲（story/outline.md）
      - config（全局上下文）
      - 已有角色资产文件（assets/characters/*.md）
-   - **期望输出：** 小说原文（不低于 3000 字）
+   - **期望输出：** 小说原文（字数遵循 config.md 中的 `小说字数` 设置）
 4. **文件操作：**
    - 使用 Write 将小说原文写入 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
 
