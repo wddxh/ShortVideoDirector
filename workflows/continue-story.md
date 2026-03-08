@@ -25,28 +25,6 @@
 
 > **注意：** outline 在阶段 3 会被追加新内容，asset_list 在阶段 5b 后会变化。需要最新版本时必须重新读取，不能引用全局上下文。
 
-### 阶段 1.3: 补生成剧情弧线（仅 full-auto 带总集数且 arc.md 不存在时执行）
-
-**1.3.1 Director — 生成剧情弧线（director.md 职责 5）：**
-
-1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
-2. **读取输入：**
-   - config（全局上下文）
-   - outline（全局上下文）
-   - recent_novels（全局上下文）
-3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
-   - **职责：** 职责 5 — 生成剧情弧线
-   - **工作流：** continue-story
-   - **输入：**
-     - config（全局上下文）
-     - 总集数
-     - outline（全局上下文）
-     - recent_novels（全局上下文）
-   - **期望输出：** 完整剧情弧线
-4. **文件操作：**
-   - 使用 Write 将剧情弧线写入 [story/arc.md](story/arc.md)
-5. 更新全局上下文 arc
-
 ### 阶段 1.5: 输入分流
 
 根据 SKILL.md 输入解析结果：
@@ -97,6 +75,29 @@
    - **C. 补充说明** — 收集用户反馈，重新调用同一职责，额外输入：用户反馈内容
    - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动确认]**
 6. 用户选择 A → 继续阶段 3
+
+### 阶段 2.5: 补生成剧情弧线（仅 full-auto 带总集数且 arc.md 不存在时执行）
+
+**2.5.1 Director — 生成剧情弧线（director.md 职责 5）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. **读取输入：**
+   - config（全局上下文）
+   - outline（全局上下文）
+   - recent_novels（全局上下文）
+3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
+   - **职责：** 职责 5 — 生成剧情弧线
+   - **工作流：** continue-story
+   - **输入：**
+     - config（全局上下文）
+     - 总集数
+     - 选定的剧情方向（来自阶段 2a 或 2b）
+     - outline（全局上下文）
+     - recent_novels（全局上下文）
+   - **期望输出：** 完整剧情弧线
+4. **文件操作：**
+   - 使用 Write 将剧情弧线写入 [story/arc.md](story/arc.md)
+5. 更新全局上下文 arc
 
 ### 阶段 3: Director 生成新集大纲
 
