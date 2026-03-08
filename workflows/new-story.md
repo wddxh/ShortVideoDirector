@@ -8,98 +8,181 @@
 2. 执行**配置加载**流程（见 [SKILL.md](../SKILL.md) "配置加载"章节）：若 [config.md](config.md) 不存在则进入交互式配置引导，逐项询问用户
 3. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
 
-### 阶段 2a: Director 生成主题选项（可选）
+### 阶段 2a: Director 生成主题选项
 
-仅在用户选择"让 Director 生成剧情选项"时执行：
+**2a.1 Director — 生成剧情选项（director.md 职责 1）：**
 
-1. 使用 Read 读取 [agents/director.md](../agents/director.md)
-2. 使用 **Agent tool** 调用 Director 子代理，指令：生成 3 个经典/热门的网络小说主题方向（含主题名称、核心设定、开篇钩子、卖点分析）
-3. 展示选项给用户，提供以下选择：**[即使 fast mode 也必须等待用户确认，不可跳过；full-auto mode 下 Director 自动选择最能吸引观众的选项，不等待用户]**
-   - **A/B/C** — 选择对应的主题方向
-   - **D. 重新生成** — Director 直接生成全新的 3 个方向
-   - **E. 告诉 Director 你的偏好** — 用户描述偏好方向后，Director 据此生成新的 3 个选项
-4. 若用户选择 D → 重新调用 Director Agent 生成全新 3 个选项，回到步骤 3
-5. 若用户选择 E → 收集用户偏好描述，将偏好传给 Director Agent 生成新的 3 个选项，回到步骤 3
-6. 若用户选择 A/B/C → 将用户选择的主题作为故事输入，继续阶段 3
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. **读取输入：**
+   - 使用 Read 读取 [config.md](config.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
+   - **职责：** 职责 1 — 生成剧情选项
+   - **工作流：** new-story
+   - **输入：**
+     - config.md 的配置内容
+   - **期望输出：** 3 个主题选项（每个含主题名称、核心设定、开篇钩子、卖点分析）
+4. **文件操作：** 无（输出展示给用户选择）
+5. 展示选项给用户：
+   - **A/B/C** — 选择对应主题方向
+   - **D. 重新生成** — 重新调用同一职责，生成全新 3 个方向
+   - **E. 告诉 Director 你的偏好** — 收集用户偏好，重新调用同一职责
+   - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动选择]**
+6. 用户选择 A/B/C → 继续阶段 3
 
-### 阶段 2b: Director 生成输入确认说明（可选）
+### 阶段 2b: Director 生成输入确认说明
 
-仅在用户选择"自己提供故事输入"时执行（即未走阶段 2a）：
+**2b.1 Director — 生成输入确认说明（director.md 职责 2）：**
 
-1. 使用 Read 读取 [agents/director.md](../agents/director.md)
-2. 使用 **Agent tool** 调用 Director 子代理，指令：基于用户提供的故事输入，生成一份结构化说明（含主题名称、核心设定、开篇钩子、卖点分析），格式与 阶段 2a 的选项一致
-3. 展示说明给用户，提供以下选择：**[即使 fast mode 也必须等待用户确认，不可跳过；full-auto mode 下 Director 自动确认，不等待用户]**
-   - **A. 确认** — 以此说明为基础继续阶段 3
-   - **B. 重新生成** — Director 基于同样的用户输入重新诠释
-   - **C. 补充说明** — 用户描述不满意的地方，Director 据此调整后重新生成
-4. 若用户选择 B → 重新调用 Director Agent，回到步骤 3
-5. 若用户选择 C → 收集用户反馈，传给 Director Agent 重新生成，回到步骤 3
-6. 若用户选择 A → 继续阶段 3
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. **读取输入：**
+   - 使用 Read 读取 [config.md](config.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
+   - **职责：** 职责 2 — 生成输入确认说明
+   - **工作流：** new-story
+   - **输入：**
+     - config.md 的配置内容
+     - 用户故事输入
+   - **期望输出：** 结构化说明（含主题名称、核心设定、开篇钩子、卖点分析）
+4. **文件操作：** 无（输出展示给用户确认）
+5. 展示说明给用户：
+   - **A. 确认** — 继续阶段 3
+   - **B. 重新生成** — 重新调用同一职责
+   - **C. 补充说明** — 收集用户反馈，重新调用同一职责
+   - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动确认]**
+6. 用户选择 A → 继续阶段 3
 
 ### 阶段 3: Director 生成剧情大纲
 
-1. 使用 Read 读取 [agents/director.md](../agents/director.md)
-2. 使用 **Agent tool** 调用 Director 子代理，prompt 中包含：
-   - [agents/director.md](../agents/director.md) 的内容
-   - 用户的故事输入（或 阶段 2a 中用户选择的主题，或阶段 2b 中用户确认的结构化说明）
-   - [config.md](config.md) 的配置内容
-   - 指令：生成 EP01 剧情大纲
-3. 使用 Write 将本集大纲写入 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
-4. 使用 Write 将整体故事大纲写入 [story/outline.md](story/outline.md)
-5. **[仅 review mode]** 展示大纲给用户确认；若用户不满意，根据反馈重新调用 Director Agent 修改
+**3.1 Director — 生成剧情大纲（director.md 职责 3）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. **读取输入：**
+   - 使用 Read 读取 [config.md](config.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
+   - **职责：** 职责 3 — 生成剧情大纲
+   - **工作流：** new-story
+   - **输入：**
+     - config.md 的配置内容
+     - 选定的剧情方向（来自阶段 2a 用户选择的主题，或阶段 2b 用户确认的结构化说明）
+   - **期望输出：** 两段内容 — 本集大纲 + outline.md 追加内容
+4. **文件操作：**
+   - 使用 Write 将本集大纲写入 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
+   - 使用 Write 将整体故事大纲写入 [story/outline.md](story/outline.md)
+5. **[仅 review mode]** 展示大纲给用户确认；若不满意，根据反馈重新调用同一职责修改
 
 ### 阶段 4: Writer 生成小说原文
 
-1. 使用 Read 读取 [agents/writer.md](../agents/writer.md)、[story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)、[story/outline.md](story/outline.md)
-2. 使用 **Agent tool** 调用 Writer 子代理，提供本集大纲 + 整体大纲
-3. 使用 Write 将输出写入 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
-4. **[仅 review mode]** 使用 Agent tool 调用 Director Agent 审核 [novel.md](story/episodes/ep01/novel.md)，将修改意见反馈给 Writer Agent 进行修改（最多 2 轮）
+**4.1 Writer — 生成小说原文（writer.md 职责 1）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/writer.md](../agents/writer.md)
+2. **读取输入：**
+   - 使用 Read 读取 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
+   - 使用 Read 读取 [story/outline.md](story/outline.md)
+   - 使用 Read 读取 [config.md](config.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Writer 子代理
+   - **职责：** 职责 1 — 生成小说原文
+   - **工作流：** new-story
+   - **输入：**
+     - 本集大纲（story/episodes/ep01/outline.md）
+     - 整体大纲（story/outline.md）
+     - config.md 的配置内容
+   - **期望输出：** 小说原文（不低于 3000 字）
+4. **文件操作：**
+   - 使用 Write 将小说原文写入 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+
+**4.2 [仅 review mode] Director — 审核 Writer 小说原文（director.md 职责 4 场景 A）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. **读取输入：**
+   - 使用 Read 读取 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
+   - 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
+   - **职责：** 职责 4 场景 A — 审核 Writer 小说原文
+   - **工作流：** new-story
+   - **输入：**
+     - 本集大纲（outline.md）
+     - 小说原文（novel.md）
+   - **期望输出：** 审核结果（通过 / 需修改 + 修改意见列表）
+4. **文件操作：** 无（审核结果传递给 Writer）
+5. 若"需修改"→ 将修改意见反馈给 Writer Agent 修改（最多 2 轮），使用 Write 更新 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
 
 ### 阶段 5: Creator 生成资产 → Storyboarder 生成分镜（串行）
 
-**注意：以下子任务必须串行执行，Creator 先完成资产创建，Storyboarder 再基于实际资产文件生成分镜。**
+**注意：以下子任务必须串行执行。**
 
-**5a. Storyboarder Agent — 生成资产清单：**
-1. 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
-2. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
-3. 使用 Agent tool 调用 Storyboarder 子代理，指令：根据 novel.md 分析需要新建的资产（包括角色造型变体），输出资产清单
-4. 将资产清单传递给 Creator
+**5a. Storyboarder — 生成资产清单（storyboarder.md 职责 1）：**
 
-**5b. Creator Agent — 生成资产：**
-1. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md) + Storyboarder 输出的资产清单
-2. 使用 Agent tool 调用 Creator 子代理，指令：为每个资产生成描述文件（包括角色造型变体文件）
-3. 使用 Write 在 [assets/](assets/) 对应子目录（[characters/](assets/characters/)、[items/](assets/items/)、[locations/](assets/locations/)、[buildings/](assets/buildings/)）下创建每个资产的 `.md` 文件
+1. **读取 agent 文件：** 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
+2. **读取输入：**
+   - 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Storyboarder 子代理
+   - **职责：** 职责 1 — 生成资产清单
+   - **工作流：** new-story
+   - **输入：**
+     - 本集小说原文（novel.md）
+   - **期望输出：** 资产清单（分类列出：新角色/角色造型变体/新物品/新场景/新建筑）
+4. **文件操作：** 无（资产清单传递给 Creator）
 
-**5c. Storyboarder Agent — 生成分镜提示词：**
-1. 使用 Glob 读取 [assets/](assets/) 目录下所有实际存在的 `.md` 文件列表
-2. 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
-3. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md) 和 [config.md](config.md)
-4. 使用 Agent tool 调用 Storyboarder 子代理，prompt 中包含：
-   - novel.md 的内容
-   - config.md 的配置内容
-   - [assets/](assets/) 下所有实际文件的完整路径列表
-   - 指令：根据 novel.md 生成分镜提示词，资产引用必须且只能使用上述文件列表中的实际路径
-5. 使用 Write 将分镜写入 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
+**5b. Creator — 创建新资产（creator.md 职责 1）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/creator.md](../agents/creator.md)
+2. **读取输入：**
+   - 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+   - 使用 Read 读取 [config.md](config.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Creator 子代理
+   - **职责：** 职责 1 — 创建新资产
+   - **工作流：** new-story
+   - **输入：**
+     - Storyboarder 输出的资产清单
+     - 本集小说原文（novel.md）
+     - config.md（目标图像模型）
+   - **期望输出：** 每个资产的完整 Markdown 文件内容（标准资产/造型变体格式）
+4. **文件操作：**
+   - 使用 Write 在 [assets/](assets/) 对应子目录（characters/、items/、locations/、buildings/）下创建每个资产的 `.md` 文件
+
+**5c. Storyboarder — 生成分镜提示词（storyboarder.md 职责 2）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
+2. **读取输入：**
+   - 使用 Glob 读取 [assets/](assets/) 目录下所有 `.md` 文件路径列表
+   - 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+   - 使用 Read 读取 [config.md](config.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Storyboarder 子代理
+   - **职责：** 职责 2 — 生成分镜提示词
+   - **工作流：** new-story
+   - **输入：**
+     - 本集小说原文（novel.md）
+     - config.md 的配置内容
+     - assets/ 下所有实际文件的完整路径列表
+   - **期望输出：** 完整分镜提示词（含视频风格、资产引用、所有镜头）
+4. **文件操作：**
+   - 使用 Write 将分镜写入 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
 
 **5d. Storyboarder 台词密度自检与补充（最多 3 轮）：**
-1. Storyboarder 自检每个分镜的台词数量（含对白、自白、旁白、角色声音反应），并检查是否存在超过 2 秒无声音（角色声音或环境音效）的空窗
-2. 如果所有分镜均达到 5-8 句 → 通过，进入下一步
-3. 如果有分镜台词不足 5-8 句：
-   a. 将不足的分镜列表和对应的小说原文段落传给 Writer Agent，请求补充对白/自白
-   b. Writer Agent 返回补充的台词
-   c. Storyboarder 将补充的台词融入对应分镜，重新生成这些分镜的画面与声音描述
-   d. 使用 Write 更新 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
-   e. 回到步骤 1 重新自检
-4. 如果已循环 3 轮仍有不足，接受当前结果，不再继续循环
 
-**5e. Director Agent — 审核分镜：**
-1. 使用 Read 读取 [agents/director.md](../agents/director.md)
-2. 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)、[story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)、[story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
-3. 使用 Agent tool 调用 Director 子代理，指令：执行职责 4 场景 B — 审核 Storyboarder 分镜，检查分镜与大纲/原文的一致性
-4. 如果审核结果为"需修改"：
-   a. 将 Director 的修改意见传给 Storyboarder Agent 进行修正
-   b. Storyboarder 修正后重新提交给 Director 审核（最多 2 轮）
-5. 使用 Write 更新 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
+Storyboarder 内部自检循环，不单独调用 agent：
+1. 自检每个分镜的台词数量和声音空窗
+2. 全部达标 → 进入 5e
+3. 不达标 → 向 Writer 请求补充对白/自白 → 融入分镜 → 使用 Write 更新 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md) → 重新自检
+4. 3 轮后仍有不足 → 接受当前结果
+
+**5e. Director — 审核分镜（director.md 职责 4 场景 B）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. **读取输入：**
+   - 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+   - 使用 Read 读取 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
+   - 使用 Read 读取 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
+3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
+   - **职责：** 职责 4 场景 B — 审核 Storyboarder 分镜
+   - **工作流：** new-story
+   - **输入：**
+     - 小说原文（novel.md）
+     - 分镜（storyboard.md）
+     - 本集大纲（outline.md）
+   - **期望输出：** 审核结果（通过 / 需修改 + 修改意见列表）
+4. **文件操作：** 无（审核结果传递给 Storyboarder）
+5. 若"需修改"→ 将修改意见传给 Storyboarder 修正，重新提交审核（最多 2 轮），使用 Write 更新 [story/episodes/ep01/storyboard.md](story/episodes/ep01/storyboard.md)
 
 **[仅 review mode]** 展示分镜内容和新建资产列表给用户确认
 
