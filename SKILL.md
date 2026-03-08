@@ -60,10 +60,10 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Agent
 
 ## 阶段 2: 模式检测
 
-使用 Glob 工具检查当前工作目录下是否存在 [story/](story/) 文件夹：
+使用 Bash 工具执行 `ls story/` 检查当前工作目录下是否存在 [story/](story/) 目录：
 
-- **未找到 `story/`** → 进入**新故事模式**
-- **找到 `story/`** → 进入**续写模式**，使用 Glob 匹配 `story/episodes/ep*/` 找到最新集数编号，从下一集继续
+- **目录不存在或为空** → 进入**新故事模式**
+- **目录存在且有内容** → 进入**续写模式**，使用 Glob 匹配 `story/episodes/ep*/outline.md` 找到最新集数编号，从下一集继续
 
 ## 阶段 3: 输入解析
 
