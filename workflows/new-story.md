@@ -65,6 +65,24 @@
    - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动确认]**
 6. 用户选择 A → 继续阶段 3
 
+### 阶段 2.5: 生成剧情弧线（仅 full-auto 带总集数时执行）
+
+**2.5.1 Director — 生成剧情弧线（director.md 职责 5）：**
+
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+2. **读取输入：**
+   - config（全局上下文）
+3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
+   - **职责：** 职责 5 — 生成剧情弧线
+   - **工作流：** new-story
+   - **输入：**
+     - config（全局上下文）
+     - 总集数
+     - 选定的剧情方向（来自阶段 2a 或 2b）
+   - **期望输出：** 完整剧情弧线
+4. **文件操作：**
+   - 使用 Write 将剧情弧线写入 [story/arc.md](story/arc.md)
+
 ### 阶段 3: Director 生成剧情大纲
 
 **3.1 Director — 生成剧情大纲（director.md 职责 3）：**
@@ -78,6 +96,7 @@
    - **输入：**
      - config（全局上下文）
      - 选定的剧情方向（来自阶段 2a 用户选择的主题，或阶段 2b 用户确认的结构化说明）
+     - **若 story/arc.md 存在：** arc.md（剧情弧线，参考当前阶段规划生成第1集大纲）
    - **期望输出：** 两段内容 — 本集大纲 + outline.md 内容
 4. **文件操作：**
    - 使用 Write 将本集大纲写入 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
