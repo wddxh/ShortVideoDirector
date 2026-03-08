@@ -8,18 +8,32 @@
 2. 执行**配置加载**流程（见 [SKILL.md](../SKILL.md) "配置加载"章节）：若 [config.md](config.md) 不存在则进入交互式配置引导，逐项询问用户
 3. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
 
+## 全局上下文
+
+以下内容在阶段 1 中读取，后续阶段直接引用，不再重复读取：
+
+- **config** — config.md 的配置内容（阶段 1 步骤 2 加载）
+
+### 阶段 1.5: 输入分流
+
+根据 SKILL.md 输入解析结果：
+
+- **用户提供了故事输入**（内联文本、文件路径、或交互式输入）→ 进入**阶段 2b**
+- **用户选择让 Director 生成剧情选项**（无 args 时选择 B）→ 进入**阶段 2a**
+- **full-auto mode 且无 args** → 进入**阶段 2a**（Director 自动选择）
+
 ### 阶段 2a: Director 生成主题选项
 
 **2a.1 Director — 生成剧情选项（director.md 职责 1）：**
 
 1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
 2. **读取输入：**
-   - 使用 Read 读取 [config.md](config.md)
+   - config（全局上下文）
 3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
    - **职责：** 职责 1 — 生成剧情选项
    - **工作流：** new-story
    - **输入：**
-     - config.md 的配置内容
+     - config（全局上下文）
    - **期望输出：** 3 个主题选项（每个含主题名称、核心设定、开篇钩子、卖点分析）
 4. **文件操作：** 无（输出展示给用户选择）
 5. 展示选项给用户：
@@ -35,12 +49,12 @@
 
 1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
 2. **读取输入：**
-   - 使用 Read 读取 [config.md](config.md)
+   - config（全局上下文）
 3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
    - **职责：** 职责 2 — 生成输入确认说明
    - **工作流：** new-story
    - **输入：**
-     - config.md 的配置内容
+     - config（全局上下文）
      - 用户故事输入
    - **期望输出：** 结构化说明（含主题名称、核心设定、开篇钩子、卖点分析）
 4. **文件操作：** 无（输出展示给用户确认）
@@ -57,12 +71,12 @@
 
 1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
 2. **读取输入：**
-   - 使用 Read 读取 [config.md](config.md)
+   - config（全局上下文）
 3. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
    - **职责：** 职责 3 — 生成剧情大纲
    - **工作流：** new-story
    - **输入：**
-     - config.md 的配置内容
+     - config（全局上下文）
      - 选定的剧情方向（来自阶段 2a 用户选择的主题，或阶段 2b 用户确认的结构化说明）
    - **期望输出：** 两段内容 — 本集大纲 + outline.md 追加内容
 4. **文件操作：**
@@ -78,14 +92,14 @@
 2. **读取输入：**
    - 使用 Read 读取 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)
    - 使用 Read 读取 [story/outline.md](story/outline.md)
-   - 使用 Read 读取 [config.md](config.md)
+   - config（全局上下文）
 3. **调用 Agent：** 使用 Agent tool 调用 Writer 子代理
    - **职责：** 职责 1 — 生成小说原文
    - **工作流：** new-story
    - **输入：**
      - 本集大纲（story/episodes/ep01/outline.md）
      - 整体大纲（story/outline.md）
-     - config.md 的配置内容
+     - config（全局上下文）
    - **期望输出：** 小说原文（不低于 3000 字）
 4. **文件操作：**
    - 使用 Write 将小说原文写入 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
@@ -128,14 +142,14 @@
 1. **读取 agent 文件：** 使用 Read 读取 [agents/creator.md](../agents/creator.md)
 2. **读取输入：**
    - 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
-   - 使用 Read 读取 [config.md](config.md)
+   - config（全局上下文）
 3. **调用 Agent：** 使用 Agent tool 调用 Creator 子代理
    - **职责：** 职责 1 — 创建新资产
    - **工作流：** new-story
    - **输入：**
      - Storyboarder 输出的资产清单
      - 本集小说原文（novel.md）
-     - config.md（目标图像模型）
+     - config（全局上下文）
    - **期望输出：** 每个资产的完整 Markdown 文件内容（标准资产/造型变体格式）
 4. **文件操作：**
    - 使用 Write 在 [assets/](assets/) 对应子目录（characters/、items/、locations/、buildings/）下创建每个资产的 `.md` 文件
@@ -146,13 +160,13 @@
 2. **读取输入：**
    - 使用 Glob 读取 [assets/](assets/) 目录下所有 `.md` 文件路径列表
    - 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
-   - 使用 Read 读取 [config.md](config.md)
+   - config（全局上下文）
 3. **调用 Agent：** 使用 Agent tool 调用 Storyboarder 子代理
    - **职责：** 职责 2 — 生成分镜提示词
    - **工作流：** new-story
    - **输入：**
      - 本集小说原文（novel.md）
-     - config.md 的配置内容
+     - config（全局上下文）
      - assets/ 下所有实际文件的完整路径列表
    - **期望输出：** 完整分镜提示词（含视频风格、资产引用、所有镜头）
 4. **文件操作：**
