@@ -34,6 +34,8 @@ argument-hint: "[总集数] [故事材料|文件路径]"
    - 新故事 → [workflows/new-story.md](workflows/new-story.md)
    - 续写 → [workflows/continue-story.md](workflows/continue-story.md)
 
+**版权规避：所有生成内容（大纲、小说、分镜、资产提示词等）不得出现现实中的明星或公众人物名字、真实地名、商标名或其他受版权/商标保护的名称，必要时使用虚构替代名称。**
+
 **硬性约束：每次调用 `/short-video` 仅生成一集内容。** 无论任何模式（review/fast/full-auto），对于大纲、原文、分镜、资产的生成都仅生成本集内容。生成完毕后 skill 结束，不得自动循环生成多集或全集内容。带总集数参数时仅额外生成 arc 文件，不改变单集生成的约束。
 
 ## 阶段 1: 配置加载
