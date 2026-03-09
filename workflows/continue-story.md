@@ -27,11 +27,10 @@
 
 ### 阶段 1.5: 输入分流
 
-根据 SKILL.md 输入解析结果：
+根据阶段 3 解析结果：
 
-- **用户提供了故事输入**（内联文本、文件路径、或交互式输入）→ 进入**阶段 2b**
-- **用户选择让 Director 生成剧情选项**（无 args 时选择 B）→ 进入**阶段 2a**
-- **full-auto mode 且无 args** → 进入**阶段 2a**（Director 自动选择）
+- **有 story_input** → 进入**阶段 2b**
+- **无 story_input** → 进入**阶段 2a**
 
 ### 阶段 2a: Director 生成剧情走向选项
 
@@ -78,7 +77,7 @@
    - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动确认]**
 6. 用户选择 A → 继续阶段 3
 
-### 阶段 2.5: 补生成剧情弧线（仅 full-auto 带总集数且 arc.md 不存在时执行）
+### 阶段 2.5: 补生成剧情弧线（仅当 total_episodes 存在且 arc.md 不存在时执行）
 
 **2.5.1 Director — 生成剧情弧线（director.md 职责 5）：**
 
