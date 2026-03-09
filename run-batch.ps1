@@ -98,7 +98,7 @@ while ($true) {
         --output-format stream-json `
         --verbose `
         --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent" |
-        jq -rj "select(.type == ""content_block_delta"") | .delta.text // empty"
+        jq -rj 'select(.type == "content_block_delta") | .delta.text // empty'
 
     Write-Host ""
     Write-Host ""
