@@ -98,7 +98,14 @@ while ($true) {
         --output-format stream-json `
         --verbose `
         --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent" |
-        jq -rj 'select(.type == "content_block_delta") | .delta.text // empty'
+        ForEach-Object {
+            try {
+                $obj = $_ | ConvertFrom-Json -ErrorAction SilentlyContinue
+                if ($obj.type -eq "content_block_delta" -and $obj.delta.text) {
+                    Write-Host -NoNewline $obj.delta.text
+                }
+            } catch {}
+        }
 
     Write-Host ""
     Write-Host ""
