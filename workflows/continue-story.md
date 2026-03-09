@@ -36,7 +36,7 @@
 
 **2a.1 Director — 生成剧情选项（director.md 职责 1）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director/director.md](../agents/director/director.md) 和 [agents/director/duty-1-plot-options.md](../agents/director/duty-1-plot-options.md)
 2. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
    - **职责：** 职责 1 — 生成剧情选项
    - **工作流：** continue-story
@@ -58,7 +58,7 @@
 
 **2b.1 Director — 生成输入确认说明（director.md 职责 2）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director/director.md](../agents/director/director.md) 和 [agents/director/duty-2-input-confirm.md](../agents/director/duty-2-input-confirm.md)
 2. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
    - **职责：** 职责 2 — 生成输入确认说明
    - **工作流：** continue-story
@@ -81,7 +81,7 @@
 
 **2.5.1 Director — 生成剧情弧线（director.md 职责 5）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director/director.md](../agents/director/director.md) 和 [agents/director/duty-5-arc.md](../agents/director/duty-5-arc.md)
 2. **读取输入：**
    - config（全局上下文）
    - outline（全局上下文）
@@ -104,7 +104,7 @@
 
 **3.1 Director — 生成剧情大纲（director.md 职责 3）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director/director.md](../agents/director/director.md) 和 [agents/director/duty-3-outline.md](../agents/director/duty-3-outline.md)
 2. **调用 Agent：** 使用 Agent tool 调用 Director 子代理
    - **职责：** 职责 3 — 生成剧情大纲
    - **工作流：** continue-story
@@ -124,7 +124,7 @@
 
 **4.1 Writer — 生成小说原文（writer.md 职责 1）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/writer.md](../agents/writer.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/writer/writer.md](../agents/writer/writer.md) 和 [agents/writer/duty-1-novel.md](../agents/writer/duty-1-novel.md)
 2. **读取输入：**
    - 使用 Read 读取 [story/episodes/ep{N+1}/outline.md](story/episodes/ep{N+1}/outline.md)
    - 使用 Read 读取 [story/outline.md](story/outline.md)
@@ -144,7 +144,7 @@
 
 **4.2 [仅 review mode] Director — 审核 Writer 小说原文（director.md 职责 4 场景 A）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director/director.md](../agents/director/director.md) 和 [agents/director/duty-4a-review-novel.md](../agents/director/duty-4a-review-novel.md)
 2. **读取输入：**
    - 使用 Read 读取 [story/episodes/ep{N+1}/outline.md](story/episodes/ep{N+1}/outline.md)
    - 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
@@ -166,7 +166,7 @@
 
 **5a. Storyboarder — 生成资产清单（storyboarder.md 职责 1）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/storyboarder/storyboarder.md](../agents/storyboarder/storyboarder.md) 和 [agents/storyboarder/duty-1-asset-list.md](../agents/storyboarder/duty-1-asset-list.md)
 2. **读取输入：**
    - 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
 3. **调用 Agent：** 使用 Agent tool 调用 Storyboarder 子代理
@@ -181,7 +181,7 @@
 
 仅在资产清单中有新资产或已有资产出场时调用。
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/creator.md](../agents/creator.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/creator/creator.md](../agents/creator/creator.md) 和 [agents/creator/duty-1-create-assets.md](../agents/creator/duty-1-create-assets.md) 和 [agents/creator/duty-2-update-records.md](../agents/creator/duty-2-update-records.md)
 2. **读取输入：**
    - 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
    - 使用 Read 读取 [assets/](assets/) 下所有已有资产文件
@@ -202,7 +202,7 @@
 
 **5c. Storyboarder — 生成分镜提示词（storyboarder.md 职责 2）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/storyboarder.md](../agents/storyboarder.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/storyboarder/storyboarder.md](../agents/storyboarder/storyboarder.md) 和 [agents/storyboarder/duty-2-storyboard.md](../agents/storyboarder/duty-2-storyboard.md)
 2. **读取输入：**
    - 使用 Glob 读取 [assets/](assets/) 目录下所有 `.md` 文件路径列表
    - 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
@@ -228,7 +228,7 @@ Storyboarder 内部自检循环，不单独调用 agent：
 
 **5e. Director — 审核分镜（director.md 职责 4 场景 B）：**
 
-1. **读取 agent 文件：** 使用 Read 读取 [agents/director.md](../agents/director.md)
+1. **读取 agent 文件：** 使用 Read 读取 [agents/director/director.md](../agents/director/director.md) 和 [agents/director/duty-4b-review-storyboard.md](../agents/director/duty-4b-review-storyboard.md)
 2. **读取输入：**
    - 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
    - 使用 Read 读取 [story/episodes/ep{N+1}/storyboard.md](story/episodes/ep{N+1}/storyboard.md)
