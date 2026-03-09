@@ -20,6 +20,8 @@
 - 支持角色旁白快速补充背景知识（人物介绍、世界观等），加速观众理解
 - 丰富的环境音效设计，2 秒内必须有声音（台词或音效）
 - 角色声音特征一致性保障
+- 版权规避：不使用现实中的明星/公众人物名字、真实地名、商标名
+- 支持 full-auto 批量生成脚本（`run-batch.ps1`），流式输出 + 自动 git push
 
 ## 四个子代理
 
@@ -177,3 +179,60 @@ your-project/
 - 角色换装通过独立造型变体文件实现（`角色名-造型名.md`）
 - 角色说话时声音特征必须与资产文件中的描述一致
 - Director 只规划当前集，不预设后续剧情
+- 不使用现实中的明星/公众人物名字、真实地名、商标名，必要时使用虚构替代
+
+## 批量生成
+
+使用 `run-batch.ps1` 在 full-auto 模式下批量生成多集内容，支持流式输出和自动 git push：
+
+```powershell
+# 新故事，30集规划，本次生成5集
+./run-batch.ps1 -WorkDir "C:\projects\my-story" -TotalEpisodes 30 -NewEpisodes 5 -StoryInput "一个外卖小哥穿越到古代的故事"
+
+# 续写10集（arc已存在时不再传总集数给claude）
+./run-batch.ps1 -WorkDir "C:\projects\my-story" -TotalEpisodes 30 -NewEpisodes 10
+
+# 纯续写3集，无arc规划
+./run-batch.ps1 -WorkDir "C:\projects\my-story" -NewEpisodes 3
+```
+
+**参数：**
+- `-WorkDir`（必填）— 项目工作目录
+- `-TotalEpisodes`（可选）— 总集数，仅当 arc.md 不存在时传给 claude
+- `-NewEpisodes`（必填）— 本次新增集数
+- `-StoryInput`（可选）— 故事材料（文本或文件路径），仅第一集传入
+
+**退出条件（满足任一）：** 新增集数达标 或 总集数达标
+
+## 项目结构
+
+```
+ShortVideoDirector/
+├── SKILL.md                    # Skill 入口（配置加载、模式检测、输入解析）
+├── workflows/
+│   ├── new-story.md            # 新故事工作流
+│   └── continue-story.md      # 续写工作流
+├── agents/
+│   ├── director/               # Director（总导演）
+│   │   ├── director.md         # 角色定义 + 全局规则
+│   │   ├── duty-1-plot-options.md
+│   │   ├── duty-2-input-confirm.md
+│   │   ├── duty-3-outline.md
+│   │   ├── duty-4a-review-novel.md
+│   │   ├── duty-4b-review-storyboard.md
+│   │   └── duty-5-arc.md
+│   ├── writer/                 # Writer（小说作家）
+│   │   ├── writer.md
+│   │   └── duty-1-novel.md
+│   ├── storyboarder/           # Storyboarder（分镜师）
+│   │   ├── storyboarder.md
+│   │   ├── duty-1-asset-list.md
+│   │   └── duty-2-storyboard.md
+│   └── creator/                # Creator（创意总监）
+│       ├── creator.md
+│       ├── duty-1-create-assets.md
+│       └── duty-2-update-records.md
+├── templates/
+│   └── config.md               # 配置模板
+└── run-batch.ps1               # 批量生成脚本
+```
