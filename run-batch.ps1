@@ -94,8 +94,14 @@ while ($true) {
     Write-Host "--- Round $($generated + 1)/$NewEpisodes | Generating EP$('{0:D2}' -f $nextEp) ---" -ForegroundColor Yellow
     Write-Host ""
 
-    $jqFilter = '.event.delta.text? // empty'
-    claude -p $prompt --output-format stream-json --verbose --include-partial-messages --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent" | jq -j $jqFilter
+    claude -p $prompt --output-format stream-json --verbose --include-partial-messages --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent" | ForEach-Object {
+        try {
+            $obj = $_ | ConvertFrom-Json -ErrorAction SilentlyContinue
+            if ($obj.type -eq 'stream_event' -and $obj.event.type -eq 'content_block_delta') {
+                Write-Host -NoNewline $obj.event.delta.text
+            }
+        } catch {}
+    }
 
     Write-Host ""
 
