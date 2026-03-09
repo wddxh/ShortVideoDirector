@@ -12,7 +12,8 @@
 - 首次运行交互式引导配置，支持自定义模型和风格输入
 - 支持 Director 自动生成剧情选项供选择，不满意可重新生成或提供偏好
 - 用户自行输入时 Director 生成结构化确认说明（即使 fast mode 也不跳过）
-- 支持角色换装（独立造型变体文件）
+- 支持角色换装（独立造型变体文件，需对剧情有实质影响的视觉区分）
+- 人物基础资产基于角色气质和世界观设定，剥离职业/场景特定装束
 - 分镜采用时间线连贯叙事格式，画面动作、对白、音效自然融合
 - 每集开场强力钩子 + 结尾悬念钩子，最大化观众留存
 - 高角色台词密度（对白、自白、旁白、角色声音反应），丰富短视频内容表现力
@@ -46,6 +47,13 @@ cp -r ShortVideoDirector ~/.claude/skills/short-video-director
 # 开始新故事（从文件读取）
 /short-video story-idea.txt
 
+# 开始新故事（指定总集数 + 故事材料，自动生成剧情弧线）
+/short-video 30 一个穿越到异世界的少年...
+/short-video 30 story-idea.txt
+
+# 开始新故事（仅指定总集数，交互式选择剧情方向）
+/short-video 30
+
 # 开始新故事（交互式，可让 Director 生成主题选项）
 /short-video
 
@@ -62,6 +70,7 @@ cp -r ShortVideoDirector ~/.claude/skills/short-video-director
 your-project/
 ├── story/
 │   ├── outline.md              # 整体故事大纲（append-only）
+│   ├── arc.md                  # 剧情弧线（可选，指定总集数时生成）
 │   └── episodes/
 │       ├── ep01/
 │       │   ├── outline.md      # 本集剧情大纲
@@ -96,33 +105,35 @@ your-project/
 
 ## 工作模式
 
-- **Review mode**：每个关键步骤暂停展示给用户确认，Director 审核 Writer 输出（最多 2 轮）
-- **Fast mode**：跳过大部分确认步骤直通执行，但剧情选项选择和故事输入确认不可跳过
-- **Full-auto mode**：全自动执行，所有决策由 Director 自主做出（自动选择最能吸引观众的剧情方向），无需任何用户交互。当 config 默认模式设为 full-auto 时，启动后直接进入该模式，不询问模式选择
+- **Review mode**：用户审核关键产出（大纲、分镜），Director 审核小说原文（最多 2 轮），Director 始终审核分镜
+- **Fast mode**：用户仅在阶段 2a/2b 选择剧情方向和确认输入，其余步骤自动执行，Director 始终审核分镜
+- **Full-auto mode**：全自动执行，所有决策由 Director 自主做出（自动选择最能吸引观众的剧情方向），无需任何用户交互。Director 始终审核分镜
 
 ## 工作流程
 
 ### New Story（新故事）
 
 1. 创建目录结构 + 交互式配置引导
-2. 用户提供输入或让 Director 生成主题选项（不满意可重新生成/提供偏好；full-auto 下 Director 自动选择）
-3. Director 生成结构化确认说明供用户确认（即使 fast mode 也必须确认；full-auto 下自动确认）
-4. Director 生成本集剧情大纲（基于用户确认的说明）
-5. Writer 生成小说原文（Review mode 下 Director 审核）
-6. Storyboarder 生成资产清单 → Creator 生成资产（含造型变体、声音特征）→ Storyboarder 基于实际资产生成分镜
-7. Storyboarder 台词密度自检，不足时向 Writer 咨询补充（最多 3 轮）
-8. Director 审核分镜（最多 2 轮修改反馈）
+2. 用户提供输入或让 Director 生成主题选项（review/fast 下用户选择；full-auto 下 Director 自动选择）
+3. Director 生成结构化确认说明供用户确认（review/fast 下用户确认；full-auto 下自动确认）
+4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
+5. Director 生成本集剧情大纲（参考 arc 如有）
+6. Writer 生成小说原文（review mode 下 Director 审核）
+7. Storyboarder 生成资产清单 → Creator 生成资产（含造型变体、声音特征）→ Storyboarder 基于实际资产生成分镜
+8. Storyboarder 台词密度自检，不足时向 Writer 咨询补充（最多 3 轮）
+9. Director 审核分镜（最多 2 轮修改反馈）
 
 ### Continue Story（续写）
 
-1. 收集上下文（大纲 + 最近 N 集内容 + 已有资产）
-2. 用户提供输入或让 Director 生成剧情走向选项（不满意可重新生成/提供偏好；full-auto 下 Director 自动选择）
-3. Director 生成结构化确认说明供用户确认（即使 fast mode 也必须确认；full-auto 下自动确认）
-4. Director 生成新集大纲（append-only 追加到总大纲）
-5. Writer 生成小说原文
-6. Storyboarder 生成资产清单 → Creator 创建新资产（如需要）→ Storyboarder 基于实际资产生成分镜
-7. Storyboarder 台词密度自检，不足时向 Writer 咨询补充（最多 3 轮）
-8. Director 审核分镜（最多 2 轮修改反馈）
+1. 收集上下文（大纲 + 最近 N 集内容 + 已有资产 + arc 如有）
+2. 用户提供输入或让 Director 生成剧情走向选项（review/fast 下用户选择；full-auto 下 Director 自动选择）
+3. Director 生成结构化确认说明供用户确认（review/fast 下用户确认；full-auto 下自动确认）
+4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
+5. Director 生成新集大纲（append-only 追加到总大纲，参考 arc 如有）
+6. Writer 生成小说原文
+7. Storyboarder 生成资产清单 → Creator 创建新资产（如需要）→ Storyboarder 基于实际资产生成分镜
+8. Storyboarder 台词密度自检，不足时向 Writer 咨询补充（最多 3 轮）
+9. Director 审核分镜（最多 2 轮修改反馈）
 
 ## 分镜格式
 
