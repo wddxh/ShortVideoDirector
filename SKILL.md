@@ -33,6 +33,8 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Agent
    - 新故事 → [workflows/new-story.md](workflows/new-story.md)
    - 续写 → [workflows/continue-story.md](workflows/continue-story.md)
 
+**硬性约束：每次调用 `/short-video` 仅生成一集内容。** 无论任何模式（review/fast/full-auto），对于大纲、原文、分镜、资产的生成都仅生成本集内容。生成完毕后 skill 结束，不得自动循环生成多集或全集内容。带集数参数的 full-auto 模式仅额外生成 arc 文件，不改变单集生成的约束。
+
 ## 阶段 1: 配置加载
 
 1. 使用 Read 工具检查当前工作目录下是否存在 [config.md](config.md)
