@@ -94,7 +94,7 @@ while ($true) {
     Write-Host "--- Round $($generated + 1)/$NewEpisodes | Generating EP$('{0:D2}' -f $nextEp) ---" -ForegroundColor Yellow
     Write-Host ""
 
-    claude -p $prompt --output-format stream-json --verbose --include-partial-messages --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent" | jq -j '.event.delta.text? // empty'
+    claude -p $prompt --verbose --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent"
 
     Write-Host ""
 
