@@ -65,7 +65,7 @@ if ($TotalEpisodes -gt 0) {
 Write-Host "New episodes to generate: $NewEpisodes"
 Write-Host "Starting episode count: $startCount"
 if ($StoryInput) { Write-Host "Story input: $StoryInput" }
-Write-Host "Press Ctrl+C to stop at any time."
+Write-Host "Close terminal to stop."
 Write-Host "====================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -97,17 +97,18 @@ while ($true) {
     claude -p $prompt `
         --output-format stream-json `
         --verbose `
+        --include-partial-messages `
         --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent" |
-        ForEach-Object {
-            try {
-                $obj = $_ | ConvertFrom-Json -ErrorAction SilentlyContinue
-                if ($obj.type -eq "content_block_delta" -and $obj.delta.text) {
-                    Write-Host -NoNewline $obj.delta.text
-                }
-            } catch {}
-        }
+        jq -j '.event.delta.text? // empty'
 
     Write-Host ""
+
+    # Auto commit and push after each episode
+    $epLabel = "EP$('{0:D2}' -f $nextEp)"
+    Write-Host "--- Pushing $epLabel to GitHub ---" -ForegroundColor Cyan
+    git add -A
+    git commit -m "$($epLabel): auto-generated"
+    git push
     Write-Host ""
 }
 
