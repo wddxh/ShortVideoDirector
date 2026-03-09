@@ -12,6 +12,10 @@ param(
     [string]$StoryInput
 )
 
+# Set UTF-8 encoding for Chinese output
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$env:PYTHONIOENCODING = "utf-8"
+
 # Change to work directory
 if (-not (Test-Path $WorkDir)) {
     Write-Host "Error: WorkDir '$WorkDir' does not exist." -ForegroundColor Red
