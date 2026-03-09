@@ -1,6 +1,9 @@
 param(
     [Parameter(Mandatory=$true)]
-    [int]$TotalEpisodes,
+    [string]$WorkDir,
+
+    [Parameter(Mandatory=$false)]
+    [int]$TotalEpisodes = 0,
 
     [Parameter(Mandatory=$true)]
     [int]$NewEpisodes,
@@ -8,6 +11,13 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$StoryInput
 )
+
+# Change to work directory
+if (-not (Test-Path $WorkDir)) {
+    Write-Host "Error: WorkDir '$WorkDir' does not exist." -ForegroundColor Red
+    exit 1
+}
+Set-Location $WorkDir
 
 function Get-EpisodeCount {
     $dirs = Get-ChildItem -Path "story/episodes" -Directory -ErrorAction SilentlyContinue |
@@ -21,8 +31,8 @@ function Build-Prompt {
     $parts = @()
     $arcExists = Test-Path "story/arc.md"
 
-    # total episodes only when no arc
-    if (-not $arcExists) {
+    # total episodes only when no arc and TotalEpisodes is specified
+    if (-not $arcExists -and $TotalEpisodes -gt 0) {
         $parts += "$TotalEpisodes"
     }
 
@@ -46,7 +56,12 @@ $startCount = Get-EpisodeCount
 $generated = 0
 
 Write-Host "=== ShortVideoDirector Batch Run ===" -ForegroundColor Cyan
-Write-Host "Total episodes target: $TotalEpisodes"
+Write-Host "Work directory: $WorkDir"
+if ($TotalEpisodes -gt 0) {
+    Write-Host "Total episodes target: $TotalEpisodes"
+} else {
+    Write-Host "Total episodes target: (none)"
+}
 Write-Host "New episodes to generate: $NewEpisodes"
 Write-Host "Starting episode count: $startCount"
 if ($StoryInput) { Write-Host "Story input: $StoryInput" }
@@ -65,8 +80,8 @@ while ($true) {
         break
     }
 
-    # Exit condition 2: total episodes target reached
-    if ($currentCount -ge $TotalEpisodes) {
+    # Exit condition 2: total episodes target reached (only when specified)
+    if ($TotalEpisodes -gt 0 -and $currentCount -ge $TotalEpisodes) {
         Write-Host ""
         Write-Host "=== Done: reached $currentCount total episodes (target: $TotalEpisodes) ===" -ForegroundColor Green
         break
