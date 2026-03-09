@@ -28,7 +28,7 @@ function Get-EpisodeCount {
 function Build-Prompt {
     param([bool]$IsFirstRound)
 
-    $parts = @()
+    $parts = @("/short-video")
     $arcExists = Test-Path "story/arc.md"
 
     # total episodes only when no arc and TotalEpisodes is specified
@@ -41,13 +41,7 @@ function Build-Prompt {
         $parts += $StoryInput
     }
 
-    $args_str = ($parts -join " ").Trim()
-
-    if ($args_str) {
-        return "Read SKILL.md and follow its workflow. Arguments: $args_str. Use full-auto mode."
-    } else {
-        return "Read SKILL.md and follow its workflow. No arguments. Use full-auto mode."
-    }
+    return ($parts -join " ")
 }
 
 # --- Main ---
