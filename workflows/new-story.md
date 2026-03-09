@@ -6,14 +6,15 @@
 
 1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
 2. 执行**配置加载**流程（见 [SKILL.md](../SKILL.md) "配置加载"章节）：若 [config.md](config.md) 不存在则进入交互式配置引导，逐项询问用户
-3. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
+3. 若 [story/arc.md](story/arc.md) 存在，使用 Read 读取
+4. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
 
 ## 全局上下文
 
 以下内容在阶段 1 中读取，后续阶段直接引用，不再重复读取：
 
 - **config** — config.md 的配置内容（阶段 1 步骤 2 加载）
-- **arc**（可选）— story/arc.md 的内容（阶段 2.5 生成，仅 full-auto 带总集数时存在）
+- **arc**（可选）— story/arc.md 的内容（阶段 1 步骤 3 读取，仅当文件存在时；或阶段 2.5 生成）
 
 ### 阶段 1.5: 输入分流
 
@@ -35,6 +36,7 @@
    - **工作流：** new-story
    - **输入：**
      - config（全局上下文）
+     - **若全局上下文 arc 存在：** arc（剧情弧线，参考弧线规划生成符合整体走向的选项）
    - **期望输出：** 3 个主题选项（每个含主题名称、核心设定、开篇钩子、卖点分析）
 4. **文件操作：** 无（输出展示给用户选择）
 5. 展示选项给用户：
@@ -57,6 +59,7 @@
    - **输入：**
      - config（全局上下文）
      - 用户故事输入
+     - **若全局上下文 arc 存在：** arc（剧情弧线，参考弧线规划生成符合整体走向的确认说明）
    - **期望输出：** 结构化说明（含主题名称、核心设定、开篇钩子、卖点分析）
 4. **文件操作：** 无（输出展示给用户确认）
 5. 展示说明给用户：
