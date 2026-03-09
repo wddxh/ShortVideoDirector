@@ -3,6 +3,8 @@ name: short-video
 description: 将故事创意转化为AI视频分镜提示词和资产图像提示词。支持持续创作，自动检测新故事/续写模式。输入故事点子、原文或概述，输出完整的分镜和资产提示词。使用 /short-video 启动，/short-video config 编辑配置。
 allowed-tools: Read, Write, Edit, Glob, Bash, Agent
 argument-hint: "[总集数] [故事材料|文件路径]"
+context: fork
+agent: general-purpose
 ---
 
 ## 概述
