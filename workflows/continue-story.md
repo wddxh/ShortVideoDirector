@@ -209,6 +209,7 @@
 2. **读取输入：**
    - 使用 Glob 读取 [assets/](assets/) 目录下所有 `.md` 文件路径列表
    - 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
+   - 使用 Read 读取 [story/episodes/ep{N+1}/outline.md](story/episodes/ep{N+1}/outline.md)（本集大纲）
    - 使用 Read 读取 [story/episodes/ep{N}/outline.md](story/episodes/ep{N}/outline.md)（上一集大纲）
    - 使用 Read 读取 [story/episodes/ep{N}/storyboard.md](story/episodes/ep{N}/storyboard.md) 的最后 2-3 个镜头（上一集分镜末尾）
    - config（全局上下文）
@@ -217,6 +218,7 @@
    - **工作流：** continue-story
    - **输入：**
      - 本集小说原文（novel.md）
+     - 本集大纲（outline.md）
      - config（全局上下文）
      - assets/ 下所有实际文件的完整路径列表
      - 上一集大纲（outline.md）

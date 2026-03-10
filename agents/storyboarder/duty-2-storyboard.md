@@ -7,6 +7,7 @@
 ### 输入
 
 - 本集小说原文（novel.md）
+- 本集大纲（story/episodes/ep{N+1}/outline.md）
 - config.md
 - assets/ 目录下所有 .md 文件路径列表
 - 上一集大纲（story/episodes/ep{N}/outline.md）（仅 continue-story 工作流）

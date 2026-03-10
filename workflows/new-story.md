@@ -184,12 +184,14 @@
 2. **读取输入：**
    - 使用 Glob 读取 [assets/](assets/) 目录下所有 `.md` 文件路径列表
    - 使用 Read 读取 [story/episodes/ep01/novel.md](story/episodes/ep01/novel.md)
+   - 使用 Read 读取 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md)（本集大纲）
    - config（全局上下文）
 3. **调用 Agent：** 使用 Agent tool 调用 Storyboarder 子代理
    - **职责：** 职责 2 — 生成分镜提示词
    - **工作流：** new-story
    - **输入：**
      - 本集小说原文（novel.md）
+     - 本集大纲（outline.md）
      - config（全局上下文）
      - assets/ 下所有实际文件的完整路径列表
    - **期望输出：** 完整分镜提示词（含视频风格、资产引用、所有镜头）
