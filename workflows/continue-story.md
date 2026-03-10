@@ -169,11 +169,13 @@
 1. **读取 agent 文件：** 使用 Read 读取 [agents/storyboarder/storyboarder.md](../agents/storyboarder/storyboarder.md) 和 [agents/storyboarder/duty-1-asset-list.md](../agents/storyboarder/duty-1-asset-list.md)
 2. **读取输入：**
    - 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
+   - 使用 Read 读取 [story/episodes/ep{N}/outline.md](story/episodes/ep{N}/outline.md)（上一集大纲）
 3. **调用 Agent：** 使用 Agent tool 调用 Storyboarder 子代理
    - **职责：** 职责 1 — 生成资产清单
    - **工作流：** continue-story
    - **输入：**
      - 本集小说原文（novel.md）
+     - 上一集大纲（outline.md）
    - **期望输出：** 资产清单（分类列出：新角色/角色造型变体/新物品/新场景/新建筑）
 4. **文件操作：** 无（资产清单传递给 Creator）
 
@@ -199,6 +201,7 @@
 4. **文件操作：**
    - 使用 Write 在 [assets/](assets/) 对应子目录下创建新资产的 `.md` 文件
    - 使用 Edit 对已有资产文件追加出场记录条目
+5. **追加资产记录：** 使用 Edit 在 [story/episodes/ep{N+1}/outline.md](story/episodes/ep{N+1}/outline.md) 末尾追加 `## 本集新增资产` 小节，列出本集新创建的所有资产名称、类型和所属分类（characters/items/locations/buildings）
 
 **5c. Storyboarder — 生成分镜提示词（storyboarder.md 职责 2）：**
 
@@ -206,6 +209,8 @@
 2. **读取输入：**
    - 使用 Glob 读取 [assets/](assets/) 目录下所有 `.md` 文件路径列表
    - 使用 Read 读取 [story/episodes/ep{N+1}/novel.md](story/episodes/ep{N+1}/novel.md)
+   - 使用 Read 读取 [story/episodes/ep{N}/outline.md](story/episodes/ep{N}/outline.md)（上一集大纲）
+   - 使用 Read 读取 [story/episodes/ep{N}/storyboard.md](story/episodes/ep{N}/storyboard.md) 的最后 2-3 个镜头（上一集分镜末尾）
    - config（全局上下文）
 3. **调用 Agent：** 使用 Agent tool 调用 Storyboarder 子代理
    - **职责：** 职责 2 — 生成分镜提示词
@@ -214,6 +219,8 @@
      - 本集小说原文（novel.md）
      - config（全局上下文）
      - assets/ 下所有实际文件的完整路径列表
+     - 上一集大纲（outline.md）
+     - 上一集最后 2-3 个镜头
    - **期望输出：** 完整分镜提示词（含视频风格、资产引用、所有镜头）
 4. **文件操作：**
    - 使用 Write 将分镜写入 [story/episodes/ep{N+1}/storyboard.md](story/episodes/ep{N+1}/storyboard.md)

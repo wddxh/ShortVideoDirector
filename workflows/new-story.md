@@ -176,6 +176,7 @@
    - **期望输出：** 每个资产的完整 Markdown 文件内容（标准资产/造型变体格式）
 4. **文件操作：**
    - 使用 Write 在 [assets/](assets/) 对应子目录（characters/、items/、locations/、buildings/）下创建每个资产的 `.md` 文件
+5. **追加资产记录：** 使用 Edit 在 [story/episodes/ep01/outline.md](story/episodes/ep01/outline.md) 末尾追加 `## 本集新增资产` 小节，列出本集新创建的所有资产名称、类型和所属分类（characters/items/locations/buildings）
 
 **5c. Storyboarder — 生成分镜提示词（storyboarder.md 职责 2）：**
 

@@ -7,6 +7,7 @@
 ### 输入
 
 - 本集小说原文（novel.md）
+- 上一集大纲（story/episodes/ep{N}/outline.md）（仅 continue-story 工作流）
 
 ### 输出格式
 
