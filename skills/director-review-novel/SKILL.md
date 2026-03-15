@@ -1,0 +1,41 @@
+---
+name: director-review-novel
+description: Director审核Writer小说原文，检查与大纲一致性、角色塑造和叙事质量。
+user-invocable: false
+context: fork
+agent: director
+allowed-tools: Read, Write, Edit, Glob, Grep
+---
+
+## 输入文件读取
+
+- `story/episodes/{当前集数}/outline.md` — 必须读取
+- `story/episodes/{当前集数}/novel.md` — 必须读取
+- `assets/characters/*.md` — 若存在则读取（角色一致性审核）
+
+## 动态参数
+
+通过 $ARGUMENTS 接收：当前集数（如 ep01）
+
+## 职责描述
+
+审核 Writer 生成的小说原文，检查与大纲的一致性、角色塑造和叙事质量。
+
+## 输出格式
+
+通过时：
+```markdown
+## 审核结果：通过
+```
+
+不通过时：
+```markdown
+## 审核结果：需修改
+
+1. **{位置}：** {问题描述} → {修改建议}
+2. **{位置}：** {问题描述} → {修改建议}
+```
+
+## 规则
+
+最多 2 轮反馈。审核时需检查是否存在现实中的明星或公众人物名字、真实地名、商标名，发现则要求替换为虚构名称。
