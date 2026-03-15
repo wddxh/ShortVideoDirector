@@ -10,12 +10,12 @@ allowed-tools: Read, Write, Edit, Glob
 ## 输入
 
 ### 文件读取
-- `story/episodes/{当前集数}/outline.md` — 必须读取（从「本集资产清单」的「已有资产（本集出场）」部分获取资产列表）
-- `story/episodes/{当前集数}/novel.md` — 必须读取（获取出场细节）
+- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（从「本集资产清单」的「已有资产（本集出场）」部分获取资产列表）
+- `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取（获取出场细节）
 - 对应已有资产文件 — 读取 `assets/` 下每个需要更新的资产 `.md` 文件
 
 ### 动态参数（$ARGUMENTS）
-- `当前集数` — 如 ep01（必须）
+- `$ARGUMENTS[0]` — 当前集数（如 ep01）
 
 ## 职责描述
 

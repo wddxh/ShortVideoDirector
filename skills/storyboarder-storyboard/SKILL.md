@@ -11,14 +11,14 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 ### 文件读取
 - `assets/**/*.md` — 使用 Glob 获取所有文件路径列表
-- `story/episodes/{当前集数}/novel.md` — 必须读取
-- `story/episodes/{当前集数}/outline.md` — 必须读取（含资产清单）
+- `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取
+- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（含资产清单）
 - `config.md` — 必须读取
-- `story/episodes/{上一集}/outline.md` — 若上一集存在则读取
+- 根据 $ARGUMENTS[0] 计算上一集集数（如 $ARGUMENTS[0] 为 ep02 则上一集为 ep01），读取 `story/episodes/{上一集}/outline.md` — 若上一集存在则读取
 - `story/episodes/{上一集}/storyboard.md` — 若存在则读取末尾 2-3 个镜头
 
 ### 动态参数（$ARGUMENTS）
-- `当前集数` — 如 ep01（必须）
+- `$ARGUMENTS[0]` — 当前集数（如 ep01）
 
 ## 职责描述
 
@@ -101,4 +101,4 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 ## 输出
 
 ### 文件操作
-- 使用 Write 将分镜写入 `story/episodes/{当前集数}/storyboard.md`
+- 使用 Write 将分镜写入 `story/episodes/$ARGUMENTS[0]/storyboard.md`

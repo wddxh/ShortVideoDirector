@@ -16,8 +16,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 - 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
 
 ### 动态参数（$ARGUMENTS）
-- `选定的剧情方向` — 来自 workflow 阶段 2a/2b 的用户选择（必须）
-- `当前集数` — 如 ep01（必须）
+- `$ARGUMENTS[0]` — 当前集数（如 ep01）
+- `$ARGUMENTS[1]` — 选定的剧情方向（引号包裹的完整文本）
 
 ## 职责描述
 
@@ -27,7 +27,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 输出两段内容：
 
-**第一段 — 本集大纲（写入 story/episodes/{当前集数}/outline.md）：**
+**第一段 — 本集大纲（写入 story/episodes/$ARGUMENTS[0]/outline.md）：**
 
 ```markdown
 # 第{X}集 大纲
@@ -103,6 +103,6 @@ continue-story 时（使用 Edit 追加到 story/outline.md 末尾）：
 ## 输出
 
 ### 文件操作
-- 使用 Write 将本集大纲写入 `story/episodes/{当前集数}/outline.md`
+- 使用 Write 将本集大纲写入 `story/episodes/$ARGUMENTS[0]/outline.md`
 - 若 `story/outline.md` 不存在：使用 Write 创建（new-story 场景）
 - 若 `story/outline.md` 已存在：使用 Edit 在文件末尾追加新集内容（continue-story 场景，append-only）

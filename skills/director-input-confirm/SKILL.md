@@ -16,8 +16,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 - 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
 
 ### 动态参数（$ARGUMENTS）
-- `用户故事输入` — 用户提供的故事材料（必须）
-- `用户反馈内容` — 用户补充说明（可选，重新生成时传入）
+- `$ARGUMENTS[0]` — 用户故事输入或用户反馈内容
 
 ## 职责描述
 

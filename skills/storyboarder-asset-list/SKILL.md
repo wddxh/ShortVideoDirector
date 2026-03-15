@@ -10,11 +10,11 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 ## 输入
 
 ### 文件读取
-- `story/episodes/{当前集数}/novel.md` — 必须读取
+- `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取
 - `assets/**/*.md` — 使用 Glob 获取所有文件路径列表（判断资产新增/已有）
 
 ### 动态参数（$ARGUMENTS）
-- `当前集数` — 如 ep01（必须）
+- `$ARGUMENTS[0]` — 当前集数（如 ep01）
 
 ## 职责描述
 
@@ -58,4 +58,4 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 ## 输出
 
 ### 文件操作
-- 使用 Edit 在 `story/episodes/{当前集数}/outline.md` 末尾追加「本集资产清单」章节
+- 使用 Edit 在 `story/episodes/$ARGUMENTS[0]/outline.md` 末尾追加「本集资产清单」章节

@@ -10,13 +10,13 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 ## 输入
 
 ### 文件读取
-- `story/episodes/{当前集数}/novel.md` — 必须读取
-- `story/episodes/{当前集数}/storyboard.md` — 必须读取
-- `story/episodes/{当前集数}/outline.md` — 必须读取
+- `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取
+- `story/episodes/$ARGUMENTS[0]/storyboard.md` — 必须读取
+- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取
 - `assets/characters/*.md` — 若存在则读取
 
 ### 动态参数（$ARGUMENTS）
-- `当前集数` — 如 ep01（必须）
+- `$ARGUMENTS[0]` — 当前集数（如 ep01）
 
 ## 职责描述
 
