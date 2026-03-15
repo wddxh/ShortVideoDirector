@@ -7,12 +7,14 @@ agent: storyboarder
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
-## 输入文件读取
+## 输入
 
-当前集数由 $ARGUMENTS 传入（如 `ep01`）。
+### 文件读取
+- `story/episodes/{当前集数}/novel.md` — 必须读取
+- `assets/**/*.md` — 使用 Glob 获取所有文件路径列表（判断资产新增/已有）
 
-1. 读取 `story/episodes/{当前集数}/novel.md` — 必须读取
-2. 使用 Glob 获取 `assets/` 下所有 `.md` 文件路径列表 — 用于判断资产是新增还是已有
+### 动态参数（$ARGUMENTS）
+- `当前集数` — 如 ep01（必须）
 
 ## 职责描述
 
@@ -53,6 +55,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 - **变体必要性判断** — 提出造型变体前，先判断该造型变化是否对剧情有实质影响（如身份转变、关键场景需要等）。若服装变化对剧情无实质影响，则不提变体需求，直接使用基础资产。
 - **必须通过 Glob 检查 assets/ 下已有文件来判断资产是新增还是已有** — 在 assets/ 文件路径列表中能找到对应文件的资产列为「已有资产（本集出场）」，否则列为新增资产。
 
-## 输出文件操作
+## 输出
 
-使用 Edit 在 `story/episodes/{当前集数}/outline.md` 末尾追加「本集资产清单」章节。
+### 文件操作
+- 使用 Edit 在 `story/episodes/{当前集数}/outline.md` 末尾追加「本集资产清单」章节

@@ -7,19 +7,16 @@ agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
-## 输入文件读取
+## 输入
 
+### 文件读取
 - `config.md` — 必须读取
 - `story/outline.md` — 若存在则读取
 - 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
 
-## 动态参数
-
-通过 $ARGUMENTS 接收：总集数、选定的剧情方向
-
-## 输出文件操作
-
-- 使用 Write 将剧情弧线写入 `story/arc.md`
+### 动态参数（$ARGUMENTS）
+- `总集数` — 故事总集数（必须）
+- `选定的剧情方向` — 来自 workflow 阶段 2a/2b 的用户选择（必须）
 
 ## 职责描述
 
@@ -57,3 +54,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 - 最后一个阶段必须包含精彩的大结局设计，替换"阶段结尾钩子"为"大结局"
 - 只规划阶段级别的方向，不生成具体每集大纲
 - continue-story 时必须与已有 outline 保持逻辑连贯
+
+## 输出
+
+### 文件操作
+- 使用 Write 将剧情弧线写入 `story/arc.md`

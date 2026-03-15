@@ -7,14 +7,16 @@ agent: creator
 allowed-tools: Read, Write, Edit, Glob
 ---
 
-## 输入文件读取
+## 输入
 
-当前集数由 $ARGUMENTS 传入（如 `ep01`）。
+### 文件读取
+- `story/episodes/{当前集数}/novel.md` — 必须读取
+- `story/episodes/{当前集数}/outline.md` — 必须读取（从「本集资产清单」的「新增资产」部分获取资产列表）
+- `config.md` — 必须读取（目标图像模型）
+- `assets/**/*.md` — 使用 Glob 列出所有已有文件，选择性读取（风格一致性 + 查重）
 
-1. 读取 `story/episodes/{当前集数}/novel.md` — 必须读取
-2. 读取 `story/episodes/{当前集数}/outline.md` — 必须读取（从「本集资产清单」的「新增资产」部分获取需要创建的资产列表）
-3. 读取 `config.md` — 必须读取（目标图像模型）
-4. 使用 Glob 列出 `assets/` 下所有已有 `.md` 文件，并选择性读取（参考风格一致性 + 查重）
+### 动态参数（$ARGUMENTS）
+- `当前集数` — 如 ep01（必须）
 
 ## 职责描述
 
@@ -97,6 +99,7 @@ allowed-tools: Read, Write, Edit, Glob
 7. **文件名与资产名一致** — 资产文件名必须与资产名称完全一致（如资产名为"张三"则文件名为 `张三.md`），不得对资产名称进行翻译或转写。
 8. **严格遵循输出格式** — 每个资产文件必须严格按照上述输出格式模板生成，不得缺少任何字段，不得修改字段名称。人物资产必须包含：基本信息、性格特征、视觉描述、声音特征、图像生成提示词、出场记录。物品/场景/建筑资产必须包含：基本信息、视觉描述、图像生成提示词、出场记录。造型变体必须包含：基本信息、造型描述、图像生成提示词、出场记录。
 
-## 输出文件操作
+## 输出
 
-使用 Write 在 `assets/` 对应子目录（`characters/`、`items/`、`locations/`、`buildings/`）下创建每个资产的 `.md` 文件。
+### 文件操作
+- 使用 Write 在 `assets/` 对应子目录（`characters/`、`items/`、`locations/`、`buildings/`）下创建每个资产的 `.md` 文件

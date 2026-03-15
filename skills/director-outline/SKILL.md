@@ -7,22 +7,17 @@ agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
-## 输入文件读取
+## 输入
 
+### 文件读取
 - `config.md` — 必须读取
 - `story/arc.md` — 若存在则读取
 - `story/outline.md` — 若存在则读取
 - 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
 
-## 动态参数
-
-通过 $ARGUMENTS 接收：选定的剧情方向、当前集数（如 ep01）
-
-## 输出文件操作
-
-- 使用 Write 将本集大纲写入 `story/episodes/{当前集数}/outline.md`
-- 若 `story/outline.md` 不存在：使用 Write 创建（new-story 场景）
-- 若 `story/outline.md` 已存在：使用 Edit 在文件末尾追加新集内容（continue-story 场景，append-only）
+### 动态参数（$ARGUMENTS）
+- `选定的剧情方向` — 来自 workflow 阶段 2a/2b 的用户选择（必须）
+- `当前集数` — 如 ep01（必须）
 
 ## 职责描述
 
@@ -104,3 +99,10 @@ continue-story 时（使用 Edit 追加到 story/outline.md 末尾）：
 - 主角必须在第 1 集至少传达姓名
 - 每个重要出场角色在首次出场时应当安排信息传达，至少包含姓名和身份/关系；但如果剧情需要（如保持神秘感、配合后续剧情揭示等），可以延后
 - 信息传达时机必须合理：只有在主角已认识或正在认识该角色的情境下，才可由主角进行介绍；若主角尚未认识该角色，则必须由其他角色或群演来传达
+
+## 输出
+
+### 文件操作
+- 使用 Write 将本集大纲写入 `story/episodes/{当前集数}/outline.md`
+- 若 `story/outline.md` 不存在：使用 Write 创建（new-story 场景）
+- 若 `story/outline.md` 已存在：使用 Edit 在文件末尾追加新集内容（continue-story 场景，append-only）

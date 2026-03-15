@@ -29,27 +29,36 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 2. 展示选项给用户：
    - **A/B/C** — 选择对应剧情走向
    - **D. 重新生成** — 重新调用 `director-plot-options` skill，生成全新 3 个方向
-   - **E. 告诉 Director 你的偏好** — 收集用户偏好描述，重新调用 `director-plot-options` skill，传递参数：用户偏好描述
+   - **E. 告诉 Director 你的偏好** — 收集用户偏好描述，重新调用 `director-plot-options` skill，传递参数：
+     - `用户偏好描述`: {用户偏好}
    - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动选择]**
 3. 用户选择 A/B/C → 继续阶段 3
 
 ### 阶段 2b: Director 生成输入确认说明
 
-1. 使用 Skill tool 调用 `director-input-confirm` skill，传递参数：用户故事输入
+1. 使用 Skill tool 调用 `director-input-confirm` skill，传递参数：
+   - `用户故事输入`: {用户故事材料}
 2. 展示说明给用户：
    - **A. 确认** — 继续阶段 3
-   - **B. 重新生成** — 重新调用 `director-input-confirm` skill
-   - **C. 补充说明** — 收集用户反馈，重新调用 `director-input-confirm` skill，传递参数：用户反馈内容
+   - **B. 重新生成** — 重新调用 `director-input-confirm` skill，传递参数：
+     - `用户故事输入`: {用户故事材料}
+   - **C. 补充说明** — 收集用户反馈，重新调用 `director-input-confirm` skill，传递参数：
+     - `用户故事输入`: {用户故事材料}
+     - `用户反馈内容`: {用户反馈}
    - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动确认]**
 3. 用户选择 A → 继续阶段 3
 
 ### 阶段 2.5: 生成剧情弧线（仅当 total_episodes 存在且 arc.md 不存在时执行）
 
-1. 使用 Skill tool 调用 `director-arc` skill，传递参数：总集数、选定的剧情方向
+1. 使用 Skill tool 调用 `director-arc` skill，传递参数：
+   - `总集数`: {total_episodes}
+   - `选定的剧情方向`: {用户选择的主题或确认的结构化说明}
 
 ### 阶段 3: Director 生成新集大纲
 
-1. 使用 Skill tool 调用 `director-outline` skill，传递参数：选定的剧情方向、当前集数 ep{N+1}
+1. 使用 Skill tool 调用 `director-outline` skill，传递参数：
+   - `选定的剧情方向`: {用户选择的主题或确认的结构化说明}
+   - `当前集数`: ep{N+1}
    - skill 内部处理 outline.md 的 append-only 追加
 2. **[仅 review mode]** 展示大纲给用户确认；若不满意，提供反馈并重新调用 `director-outline` skill
 
@@ -57,33 +66,40 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 **4.1 Writer — 生成小说原文：**
 
-1. 使用 Skill tool 调用 `writer-novel` skill，传递参数：当前集数 ep{N+1}
+1. 使用 Skill tool 调用 `writer-novel` skill，传递参数：
+   - `当前集数`: ep{N+1}
 
 **4.2 [仅 review mode] Director — 审核小说原文：**
 
-1. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：当前集数 ep{N+1}
+1. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：
+   - `当前集数`: ep{N+1}
 2. 若"需修改"→ 将修改意见反馈给 `writer-novel` skill 修改（最多 2 轮）
 
 ### 阶段 5: 资产创建 + 分镜生成（3-way 并行）
 
 **5a. Storyboarder — 生成资产清单：**
 
-1. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：当前集数 ep{N+1}
+1. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：
+   - `当前集数`: ep{N+1}
    → 将资产清单写入 ep{N+1}/outline.md
 
 **5b. 并行执行三个 skill：**
 
 同时调用以下三个 skill，等待三者均完成后继续：
 
-- 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：当前集数 ep{N+1}
-- 使用 Skill tool 调用 `creator-update-records` skill，传递参数：当前集数 ep{N+1}
-- 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：当前集数 ep{N+1}
+- 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：
+  - `当前集数`: ep{N+1}
+- 使用 Skill tool 调用 `creator-update-records` skill，传递参数：
+  - `当前集数`: ep{N+1}
+- 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：
+  - `当前集数`: ep{N+1}
 
 等待三者均完成。
 
 **5e. [仅 review mode] Director — 审核分镜：**
 
-1. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：当前集数 ep{N+1}
+1. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：
+   - `当前集数`: ep{N+1}
 2. 若"需修改"→ 将修改意见传给 `storyboarder-storyboard` skill 修正（最多 2 轮）
 
 **[仅 review mode]** 展示分镜内容和新资产列表给用户确认

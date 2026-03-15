@@ -7,16 +7,16 @@ agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
-## 输入文件读取
+## 输入
 
+### 文件读取
 - `config.md` — 必须读取
 - `story/arc.md` — 若存在则读取
 - `story/outline.md` — 若存在则读取
 - 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
 
-## 动态参数
-
-通过 $ARGUMENTS 接收：用户偏好描述（可选）
+### 动态参数（$ARGUMENTS）
+- `用户偏好描述` — 用户对剧情方向的偏好（可选，重新生成时传入）
 
 ## 职责描述
 
@@ -67,3 +67,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 - 3 个选项必须有明显差异
 - continue-story 时：稳健（顺延当前剧情线）、激进（大反转/新冲突）、拓展（引入新角色/新势力/新世界观元素）
+
+## 输出
+
+### 返回内容
+- 3 个差异化剧情选项（Markdown 格式） → 返回给 workflow 展示

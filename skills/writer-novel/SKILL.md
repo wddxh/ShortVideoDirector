@@ -7,14 +7,17 @@ agent: writer
 allowed-tools: Read, Write, Edit, Glob
 ---
 
-## 输入文件读取
+## 输入
 
-当前集数由 $ARGUMENTS 传入（如 `ep01`）。
+### 文件读取
+- `story/episodes/{当前集数}/outline.md` — 必须读取
+- `story/outline.md` — 必须读取
+- `config.md` — 必须读取
+- `assets/characters/*.md` — 若 `assets/characters/` 下有文件则全部读取（角色一致性参考）
+- 最近 M 集 novel.md — 若 `assets/characters/` 下有文件（说明非第一集），根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
 
-1. 读取 `story/episodes/{当前集数}/outline.md` — 必须读取
-2. 读取 `story/outline.md` — 必须读取
-3. 读取 `config.md` — 必须读取
-4. 若 `assets/characters/` 下有文件（说明非第一集），读取所有角色资产文件（`assets/characters/*.md`）作为角色一致性参考；同时根据 config.md 中的 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md`，找到最近 M 集并读取
+### 动态参数（$ARGUMENTS）
+- `当前集数` — 如 ep01（必须）
 
 ## 职责描述
 
@@ -47,6 +50,7 @@ allowed-tools: Read, Write, Edit, Glob
 8. **禁止旁白式叙述** — 场景信息应通过角色对话、自白或反应来传达
 9. **主角内心独白** — 多设计主角的内心独白，展现主角的想法、感受和判断，增强观众的代入感
 
-## 输出文件操作
+## 输出
 
-使用 Write 将小说原文写入 `story/episodes/{当前集数}/novel.md`。
+### 文件操作
+- 使用 Write 将小说原文写入 `story/episodes/{当前集数}/novel.md`

@@ -7,16 +7,18 @@ agent: storyboarder
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
-## 输入文件读取
+## 输入
 
-当前集数由 $ARGUMENTS 传入（如 `ep01`）。
+### 文件读取
+- `assets/**/*.md` — 使用 Glob 获取所有文件路径列表
+- `story/episodes/{当前集数}/novel.md` — 必须读取
+- `story/episodes/{当前集数}/outline.md` — 必须读取（含资产清单）
+- `config.md` — 必须读取
+- `story/episodes/{上一集}/outline.md` — 若上一集存在则读取
+- `story/episodes/{上一集}/storyboard.md` — 若存在则读取末尾 2-3 个镜头
 
-1. 使用 Glob 获取 `assets/` 下所有 `.md` 文件路径列表
-2. 读取 `story/episodes/{当前集数}/novel.md` — 必须读取
-3. 读取 `story/episodes/{当前集数}/outline.md` — 必须读取（含资产清单）
-4. 读取 `config.md` — 必须读取
-5. 若存在上一集（如当前是 ep02，则为 ep01），读取上一集 `story/episodes/{上一集}/outline.md`
-6. 若存在上一集 storyboard，读取 `story/episodes/{上一集}/storyboard.md` 末尾 2-3 个镜头
+### 动态参数（$ARGUMENTS）
+- `当前集数` — 如 ep01（必须）
 
 ## 职责描述
 
@@ -96,6 +98,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 7. 不达标 → 修正问题（台词不足向 Writer 请求补充，时长不匹配调整时间段，画面文字改为角色台词，版权问题替换为虚构名称）→ 重新自检
 8. 3 轮后仍有不足 → 接受当前结果
 
-## 输出文件操作
+## 输出
 
-使用 Write 将分镜写入 `story/episodes/{当前集数}/storyboard.md`。
+### 文件操作
+- 使用 Write 将分镜写入 `story/episodes/{当前集数}/storyboard.md`
