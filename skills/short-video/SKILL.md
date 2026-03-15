@@ -126,7 +126,7 @@ argument-hint: "[总集数] [故事材料|文件路径]"
 **特殊命令：** 若 `$ARGUMENTS` 为 `config`，使用 Read 打开 [config.md](config.md) 展示给用户，询问是否编辑。流程结束，不进入阶段 4。
 
 **参数提取规则：**
-1. 若 `$0`（第一个空格分割的词）为纯数字 → 解析为**总集数**，`$1` 及之后的内容作为故事材料候选
+1. 若 `$ARGUMENTS[0]`（第一个空格分割的词）为纯数字 → 解析为**总集数**，`$ARGUMENTS[1]` 及之后的内容作为故事材料候选
 2. 否则 → 无总集数，`$ARGUMENTS` 整体作为故事材料候选
 
 **故事材料识别：**
@@ -142,5 +142,10 @@ argument-hint: "[总集数] [故事材料|文件路径]"
 
 根据模式检测结果，使用 Skill tool 调用对应工作流 skill：
 
-- **新故事模式** → 使用 Skill tool 调用 `new-story` skill，传递参数：total_episodes(可选), story_input(可选), work_mode
-- **续写模式** → 使用 Skill tool 调用 `continue-story` skill，传递参数：total_episodes(可选), story_input(可选), work_mode
+- **新故事模式** → 使用 Skill tool 调用 `new-story` skill，传递参数：`{work_mode} {total_episodes} "{story_input}"`
+- **续写模式** → 使用 Skill tool 调用 `continue-story` skill，传递参数：`{work_mode} {total_episodes} "{story_input}"`
+
+参数说明：
+- `$ARGUMENTS[0]` = work_mode（review / fast / full-auto）
+- `$ARGUMENTS[1]` = total_episodes（总集数，无则传空字符串）
+- `$ARGUMENTS[2]` = story_input（故事材料，引号包裹，无则传空字符串）

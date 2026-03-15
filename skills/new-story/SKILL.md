@@ -9,18 +9,23 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 > **术语说明：** 本文档中"阶段"指工作流的主要阶段（如阶段 1、阶段 2a），"步骤"指阶段内部的执行项（如步骤 1、步骤 2）。
 
+## 输入
+
+### 动态参数（$ARGUMENTS）
+- `$ARGUMENTS[0]` — 工作模式（review / fast / full-auto）
+- `$ARGUMENTS[1]` — 总集数（数字，无则为空）
+- `$ARGUMENTS[2]` — 故事材料（引号包裹，无则为空）
+
 ### 阶段 1: 初始化
 
 1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
 2. 执行**配置加载**流程：使用 Read 读取 config.md，若不存在则进入交互式配置引导，逐项询问用户（参考 short-video skill 的配置加载逻辑）
-3. 若 config 中 `默认模式` 为 `full-auto`，则直接使用 full-auto mode，不询问用户；否则询问用户选择 **review mode**、**fast mode** 或 **full-auto mode**（展示默认值作为默认选项）
+3. 工作模式为 `$ARGUMENTS[0]`（review / fast / full-auto）
 
 ### 阶段 1.5: 输入分流
 
-根据输入解析结果：
-
-- **有 story_input** → 进入**阶段 2b**
-- **无 story_input** → 进入**阶段 2a**
+- **`$ARGUMENTS[2]` 非空** → 进入**阶段 2b**（有故事材料）
+- **`$ARGUMENTS[2]` 为空** → 进入**阶段 2a**（无故事材料）
 
 ### 阶段 2a: Director 生成主题选项
 
@@ -34,7 +39,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 ### 阶段 2b: Director 生成输入确认说明
 
-1. 使用 Skill tool 调用 `director-input-confirm` skill，传递参数：`"{用户故事输入}"`
+1. 使用 Skill tool 调用 `director-input-confirm` skill，传递参数：`"$ARGUMENTS[2]"`
 2. 展示说明给用户：
    - **A. 确认** — 继续阶段 3
    - **B. 重新生成** — 重新调用 `director-input-confirm` skill，传递参数：`"{用户故事输入}"`
@@ -42,9 +47,9 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
    - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动确认]**
 3. 用户选择 A → 继续阶段 3
 
-### 阶段 2.5: 生成剧情弧线（仅当 total_episodes 存在且 arc.md 不存在时执行）
+### 阶段 2.5: 生成剧情弧线（仅当 `$ARGUMENTS[1]` 非空且 story/arc.md 不存在时执行）
 
-1. 使用 Skill tool 调用 `director-arc` skill，传递参数：`{total_episodes} "{选定的剧情方向}"`
+1. 使用 Skill tool 调用 `director-arc` skill，传递参数：`$ARGUMENTS[1] "{选定的剧情方向}"`
 
 ### 阶段 3: Director 生成剧情大纲
 
