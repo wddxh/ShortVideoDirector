@@ -66,6 +66,14 @@ claude --plugin-dir /path/to/ShortVideoDirector
 /short-video config
 ```
 
+```bash
+# 编辑已有内容
+/edit-story ep01大纲的集尾钩子改成更有悬念的
+/edit-story ep02分镜镜头3的台词太少，增加内心独白
+/edit-story ep03主角的外貌描述改成短发
+/edit-story 在ep01的资产清单中增加一个新角色"老王"
+```
+
 ## 生成的目录结构
 
 ```
@@ -167,6 +175,7 @@ your-project/
 - 不使用现实中的明星/公众人物名字、真实地名、商标名，必要时使用虚构替代
 - 资产文件名必须与资产名称完全一致，不得翻译或转写
 - 所有输出内容（含视觉描述提示词）语言严格遵循 config.md 语言设置
+- 编辑场景下 `story/outline.md` 允许修改已有内容（正常生成流程中仍为 append-only）
 
 ## 批量生成
 
@@ -208,6 +217,7 @@ ShortVideoDirector/
 │   ├── short-video/             # 主入口 skill
 │   │   ├── SKILL.md
 │   │   └── config-template.md
+│   ├── edit-story/                # 编辑已有内容（自然语言）
 │   ├── new-story/               # 新故事工作流
 │   │   └── SKILL.md
 │   ├── continue-story/          # 续写工作流
@@ -218,13 +228,15 @@ ShortVideoDirector/
 │   ├── director-arc/            # Director 生成弧线
 │   ├── director-review-novel/   # Director 审核小说
 │   ├── director-review-storyboard/ # Director 审核分镜
+│   ├── director-fix-outline/      # Director 修正大纲
 │   ├── writer-novel/            # Writer 生成小说
 │   ├── storyboarder-asset-list/ # Storyboarder 生成资产清单
 │   ├── storyboarder-storyboard/ # Storyboarder 生成分镜
 │   ├── storyboarder-fix-storyboard/ # Storyboarder 修正分镜
 │   ├── writer-fix-novel/        # Writer 修正小说
 │   ├── creator-create-assets/   # Creator 创建资产
-│   └── creator-update-records/  # Creator 更新出场记录
+│   ├── creator-update-records/  # Creator 更新出场记录
+│   └── creator-fix-asset/         # Creator 修正资产
 ├── scripts/
 │   └── run-batch.ps1            # 批量生成脚本
 └── README.md
