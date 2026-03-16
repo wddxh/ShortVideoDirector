@@ -74,6 +74,12 @@ claude --plugin-dir /path/to/ShortVideoDirector
 /edit-story 在ep01的资产清单中增加一个新角色"老王"
 ```
 
+```bash
+# 修复中断的生成（检测缺失文件，从断点恢复）
+/repair-story ep03
+/repair-story          # 自动检测最新一集
+```
+
 ## 生成的目录结构
 
 ```
@@ -218,6 +224,7 @@ ShortVideoDirector/
 │   │   ├── SKILL.md
 │   │   └── config-template.md
 │   ├── edit-story/                # 编辑已有内容（自然语言）
+│   ├── repair-story/             # 修复中断的生成
 │   ├── new-story/               # 新故事工作流
 │   │   └── SKILL.md
 │   ├── continue-story/          # 续写工作流
