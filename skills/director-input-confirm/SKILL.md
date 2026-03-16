@@ -15,6 +15,10 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 - `story/outline.md` — 若存在则读取
 - 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
 
+### 模式判断
+- 若 `story/outline.md` 不存在 → new-story 模式
+- 若 `story/outline.md` 已存在 → continue-story 模式
+
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 用户故事输入或用户反馈内容
 
