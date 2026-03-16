@@ -61,6 +61,12 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 1. 使用 Skill tool 调用 `writer-novel` skill，传递参数：`ep01`
 
+**4.1b 字数校验：**
+
+1. 使用 Bash 执行 `bash scripts/count-words.sh story/episodes/ep01/novel.md {语言}`（语言从 config.md 读取）
+2. 对比 config.md 中的 `每集小说字数` 范围
+3. 若不在范围内 → 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`ep01 "当前字数为{实际字数}，目标范围为{下限}-{上限}，请调整内容使字数符合要求"`（最多 2 轮，每轮修正后重新统计）
+
 **4.2 Director — 审核小说原文：**
 
 1. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：`ep01`
