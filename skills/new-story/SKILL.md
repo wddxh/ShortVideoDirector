@@ -19,7 +19,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 ### 阶段 1: 初始化
 
 1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
-2. 执行**配置加载**流程：使用 Read 读取 config.md，若不存在则进入交互式配置引导，逐项询问用户（参考 short-video skill 的配置加载逻辑）
+2. 执行**配置加载**流程：使用 Read 读取 config.md，若不存在则报错提示用户先运行 `/short-video` 进行交互式配置引导
 3. 工作模式为 `$ARGUMENTS[0]`（review / fast / full-auto）
 
 ### 阶段 1.5: 输入分流

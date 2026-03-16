@@ -24,9 +24,25 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 ## 输出格式
 
-**new-story 时（story/outline.md 不存在）：** 与职责 1 new-story 单个选项格式一致（无 A/B/C 编号）
+**new-story 时（story/outline.md 不存在）：**
 
-**continue-story 时（story/outline.md 已存在）：** 与职责 1 continue-story 单个选项格式一致（无 A/B/C 编号和稳健/激进/拓展标签）
+```markdown
+## {主题名称}
+- **剧名：** {剧名}
+- **核心设定：** {一句话概括世界观和主角定位}
+- **开篇钩子：** {第一集的核心冲突/悬念}
+- **卖点分析：** {为什么适合短视频}
+```
+
+**continue-story 时（story/outline.md 已存在）：**
+
+```markdown
+## {走向名称}
+- **关键转折：** {本集核心冲突或反转}
+- **涉及角色：** {主要出场角色}
+- **集尾钩子：** {收束方式 — 描述}
+- **对整体剧情的影响：** {如何推动后续剧情}
+```
 
 ## 规则
 
