@@ -19,7 +19,7 @@ argument-hint: "[总集数] [故事材料|文件路径]"
 
 **版权规避：所有生成内容（大纲、小说、分镜、资产提示词等）不得出现现实中的明星或公众人物名字、真实地名、商标名或其他受版权/商标保护的名称，必要时使用虚构替代名称。**
 
-**硬性约束：每次调用 `/short-video` 仅生成一集内容。** 无论任何模式（review/fast/full-auto），对于大纲、原文、分镜、资产的生成都仅生成本集内容。生成完毕后 skill 结束，不得自动循环生成多集或全集内容。带总集数参数时仅额外生成 arc 文件，不改变单集生成的约束。
+**硬性约束：每次调用 `/short-video` 仅生成一集内容。** 无论任何模式（default/full-auto），对于大纲、原文、分镜、资产的生成都仅生成本集内容。生成完毕后 skill 结束，不得自动循环生成多集或全集内容。带总集数参数时仅额外生成 arc 文件，不改变单集生成的约束。
 
 ## 阶段 1: 配置加载
 
@@ -87,9 +87,8 @@ argument-hint: "[总集数] [故事材料|文件路径]"
    - E) 自定义输入
 
    **第 10 项：默认模式**
-   - A) review（逐步确认）
-   - B) fast（跳过大部分确认）
-   - C) full-auto（全自动）
+   - A) default（用户确认剧情方向，其余自动）
+   - B) full-auto（全自动，无需交互）
 
    **第 11 项：每集小说字数**
    - A) 3000-4000
@@ -146,6 +145,6 @@ argument-hint: "[总集数] [故事材料|文件路径]"
 - **续写模式** → 使用 Skill tool 调用 `continue-story` skill，传递参数：`{work_mode} {total_episodes} "{story_input}"`
 
 参数说明：
-- `$ARGUMENTS[0]` = work_mode（review / fast / full-auto）
+- `$ARGUMENTS[0]` = work_mode（default / full-auto）
 - `$ARGUMENTS[1]` = total_episodes（总集数，无则传空字符串）
 - `$ARGUMENTS[2]` = story_input（故事材料，引号包裹，无则传空字符串）
