@@ -11,7 +11,7 @@
 - 可配置视频风格（2D动漫/3D动漫/3D写实/2D手绘/自定义）
 - 首次运行交互式引导配置，支持自定义模型和风格输入
 - 支持 Director 自动生成剧情选项供选择，不满意可重新生成或提供偏好
-- 用户自行输入时 Director 生成结构化确认说明（即使 fast mode 也不跳过）
+- 用户自行输入时 Director 生成结构化确认说明（default mode 下等待用户确认；full-auto mode 下自动确认）
 - 支持角色换装（独立造型变体文件，需对剧情有实质影响的视觉区分）
 - 人物基础资产基于角色气质和世界观设定，剥离职业/场景特定装束
 - 分镜采用时间线连贯叙事格式，画面动作、对白、音效自然融合
@@ -103,42 +103,43 @@ your-project/
 | 单镜头时长范围 | 10-15秒 | 每个分镜镜头的时长范围 |
 | 单镜头资产上限 | 5 | 每个分镜镜头中引用资产的最大数量 |
 | 上下文集数 | 1 | 续写时 Director 读取前 N 集 novel.md |
-| 默认模式 | review | review（逐步确认）/ fast（直通执行）/ full-auto（全自动） |
+| 默认模式 | default | default（用户确认剧情方向）/ full-auto（全自动） |
 | 每集小说字数 | 4000-5000 | 范围格式；单个数字视为上限，下限自动取 80% |
 
 ## 工作模式
 
-- **Review mode**：用户审核关键产出（大纲、分镜），Director 审核小说原文（最多 2 轮），Director 始终审核分镜
-- **Fast mode**：用户仅在阶段 2a/2b 选择剧情方向和确认输入，其余步骤自动执行，Director 始终审核分镜
-- **Full-auto mode**：全自动执行，所有决策由 Director 自主做出（自动选择最能吸引观众的剧情方向），无需任何用户交互。Director 始终审核分镜
+- **Default mode**：用户在剧情方向选择和输入确认阶段参与决策，其余步骤自动执行。Director 审核小说原文和分镜（最多 2 轮修改反馈）
+- **Full-auto mode**：全自动执行，所有决策由 Director 自主做出（自动选择最能吸引观众的剧情方向），无需任何用户交互。Director 审核小说原文和分镜（最多 2 轮修改反馈）
 
 ## 工作流程
 
 ### New Story（新故事）
 
 1. 创建目录结构 + 交互式配置引导
-2. 用户提供输入或让 Director 生成主题选项（review/fast 下用户选择；full-auto 下 Director 自动选择）
-3. Director 生成结构化确认说明供用户确认（review/fast 下用户确认；full-auto 下自动确认）
+2. 用户提供输入或让 Director 生成主题选项（default mode 下用户选择；full-auto mode 下 Director 自动选择）
+3. Director 生成结构化确认说明供用户确认（default mode 下用户确认；full-auto mode 下自动确认）
 4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
 5. Director 生成本集剧情大纲（参考 arc 如有）
-6. Writer 生成小说原文（review mode 下 Director 审核）
-7. Storyboarder 生成资产清单（写入 ep outline.md）
-8. Creator 创建新资产
-9. Storyboarder 生成分镜
-10. Director 审核分镜（最多 2 轮修改反馈）
+6. Writer 生成小说原文
+7. Director 审核小说原文，若需修改则 Writer 定向修正（最多 2 轮）
+8. Storyboarder 生成资产清单（写入 ep outline.md）
+9. Creator 创建新资产
+10. Storyboarder 生成分镜
+11. Director 审核分镜，若需修改则 Storyboarder 定向修正（最多 2 轮）
 
 ### Continue Story（续写）
 
 1. 检测最新集数，创建新集目录
-2. 用户提供输入或让 Director 生成剧情走向选项（review/fast 下用户选择；full-auto 下 Director 自动选择）
-3. Director 生成结构化确认说明供用户确认（review/fast 下用户确认；full-auto 下自动确认）
+2. 用户提供输入或让 Director 生成剧情走向选项（default mode 下用户选择；full-auto mode 下 Director 自动选择）
+3. Director 生成结构化确认说明供用户确认（default mode 下用户确认；full-auto mode 下自动确认）
 4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
 5. Director 生成新集大纲（append-only 追加到总大纲，参考 arc 如有）
 6. Writer 生成小说原文（参考最近 M 集小说和角色资产）
-7. Storyboarder 生成资产清单（写入 ep outline.md，含新增和已有资产）
-8. **并行执行**：Creator 创建新资产 + Creator 更新已有资产出场记录
-9. Storyboarder 生成分镜
-10. Director 审核分镜（最多 2 轮修改反馈）
+7. Director 审核小说原文，若需修改则 Writer 定向修正（最多 2 轮）
+8. Storyboarder 生成资产清单（写入 ep outline.md，含新增和已有资产）
+9. **并行执行**：Creator 创建新资产 + Creator 更新已有资产出场记录
+10. Storyboarder 生成分镜
+11. Director 审核分镜，若需修改则 Storyboarder 定向修正（最多 2 轮）
 
 ## 分镜格式
 
@@ -220,6 +221,8 @@ ShortVideoDirector/
 │   ├── writer-novel/            # Writer 生成小说
 │   ├── storyboarder-asset-list/ # Storyboarder 生成资产清单
 │   ├── storyboarder-storyboard/ # Storyboarder 生成分镜
+│   ├── storyboarder-fix-storyboard/ # Storyboarder 修正分镜
+│   ├── writer-fix-novel/        # Writer 修正小说
 │   ├── creator-create-assets/   # Creator 创建资产
 │   └── creator-update-records/  # Creator 更新出场记录
 ├── scripts/
