@@ -67,7 +67,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 1. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：`ep{N+1}`
 2. 若"需修改"→ 将修改意见反馈给 `writer-novel` skill 修改（最多 2 轮）
 
-### 阶段 5: 资产创建 + 分镜生成（3-way 并行）
+### 阶段 5: 资产创建 + 分镜生成
 
 **5a. Storyboarder — 生成资产清单：**
 
