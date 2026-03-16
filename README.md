@@ -1,6 +1,6 @@
 # ShortVideoDirector
 
-一个 Claude Code Skill 插件，通过 4 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词和资产图像提示词。
+一个 Claude Code Plugin，通过 4 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词和资产图像提示词。
 
 ## 功能
 
@@ -21,7 +21,8 @@
 - 丰富的环境音效设计，2 秒内必须有声音（台词或音效）
 - 角色声音特征一致性保障
 - 版权规避：不使用现实中的明星/公众人物名字、真实地名、商标名
-- 支持 full-auto 批量生成脚本（`run-batch.ps1`），流式输出 + 自动 git push
+- 资产创建与分镜生成并行执行，提升生成效率
+- 支持 full-auto 批量生成脚本（`scripts/run-batch.ps1`）
 
 ## 四个子代理
 
@@ -34,10 +35,9 @@
 
 ## 安装
 
-将本项目目录复制到 Claude Code 的 skills 目录：
-
 ```bash
-cp -r ShortVideoDirector ~/.claude/skills/short-video-director
+# 通过 --plugin-dir 加载（每次启动时指定）
+claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
 ## 使用
@@ -75,7 +75,7 @@ your-project/
 │   ├── arc.md                  # 剧情弧线（可选，指定总集数时生成）
 │   └── episodes/
 │       ├── ep01/
-│       │   ├── outline.md      # 本集剧情大纲
+│       │   ├── outline.md      # 本集剧情大纲（含资产清单）
 │       │   ├── novel.md        # 本集小说原文
 │       │   └── storyboard.md   # 本集分镜提示词
 │       └── ep02/
@@ -104,6 +104,7 @@ your-project/
 | 单镜头资产上限 | 5 | 每个分镜镜头中引用资产的最大数量 |
 | 上下文集数 | 1 | 续写时 Director 读取前 N 集 novel.md |
 | 默认模式 | review | review（逐步确认）/ fast（直通执行）/ full-auto（全自动） |
+| 每集小说字数 | 4000-5000 | 范围格式；单个数字视为上限，下限自动取 80% |
 
 ## 工作模式
 
@@ -121,56 +122,37 @@ your-project/
 4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
 5. Director 生成本集剧情大纲（参考 arc 如有）
 6. Writer 生成小说原文（review mode 下 Director 审核）
-7. Storyboarder 生成资产清单 → Creator 生成资产（含造型变体、声音特征）→ Storyboarder 基于实际资产生成分镜
-8. Storyboarder 台词密度自检，不足时向 Writer 咨询补充（最多 3 轮）
+7. Storyboarder 生成资产清单（写入 ep outline.md）
+8. **并行执行**：Creator 创建新资产 + Storyboarder 生成分镜
 9. Director 审核分镜（最多 2 轮修改反馈）
 
 ### Continue Story（续写）
 
-1. 收集上下文（大纲 + 最近 N 集内容 + 已有资产 + arc 如有）
+1. 检测最新集数，创建新集目录
 2. 用户提供输入或让 Director 生成剧情走向选项（review/fast 下用户选择；full-auto 下 Director 自动选择）
 3. Director 生成结构化确认说明供用户确认（review/fast 下用户确认；full-auto 下自动确认）
 4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
 5. Director 生成新集大纲（append-only 追加到总大纲，参考 arc 如有）
-6. Writer 生成小说原文
-7. Storyboarder 生成资产清单 → Creator 创建新资产（如需要）→ Storyboarder 基于实际资产生成分镜
-8. Storyboarder 台词密度自检，不足时向 Writer 咨询补充（最多 3 轮）
+6. Writer 生成小说原文（参考最近 M 集小说和角色资产）
+7. Storyboarder 生成资产清单（写入 ep outline.md，含新增和已有资产）
+8. **并行执行**：Creator 创建新资产 + Creator 更新已有资产出场记录 + Storyboarder 生成分镜
 9. Director 审核分镜（最多 2 轮修改反馈）
 
 ## 分镜格式
 
-每个镜头包含：引用资产（不超过 config 单镜头资产上限）、镜头类型、镜头运动、视频风格、时长（config 单镜头时长范围内）、转场，以及按时间线组织的连贯叙事描述，画面动作、角色对白/旁白（含声音特征）、环境音效/音乐自然融合：
+每个镜头包含：引用资产、镜头类型、镜头运动、视频风格、时长、转场，以及按时间线组织的连贯叙事描述：
 
 ```
-[0s-5s] 阴暗的石室内，火把在墙上摇曳，低沉的风声回荡，水滴从洞顶滴落发出清脆
-的回响。张三（低沉沙哑男声）站在石门前，眉头紧锁，双手握拳，低声说："这扇门
-后面，就是答案。"他深吸一口气，喃喃道："三年了……终于走到这里。"
-[5s-12s] 张三猛地抬手推开石门，门轴发出刺耳的摩擦声，碎石从门框上簌簌掉落。
-他向前迈出一步，靴底踩在碎石上咔嚓作响，眼睛猛然睁大，嘴角微微颤抖。远处传来
-悠扬的古琴旋律。张三（低沉沙哑男声）旁白道："那一刻我才明白，这里不只是一个
-墓穴——它是一整个被遗忘的世界。"
+[0s-3s] 阴暗的石室内，火把在墙上摇曳，低沉的风声回荡。张三（低沉沙哑男声）站在
+石门前，眉头紧锁，双手握拳，低声说："这扇门后面，就是答案。"
+[3s-9s] 他深吸一口气，猛地抬手推开石门，门轴发出刺耳的摩擦声，碎石从门框上簌簌
+掉落。张三（低沉沙哑男声）旁白道："三年了……终于走到这里。那一刻我才明白，这里
+不只是一个墓穴——它是一整个被遗忘的世界。"
+[9s-12s] 他向前迈出一步，靴底踩在碎石上咔嚓作响，眼睛猛然睁大。远处传来悠扬的
+古琴旋律，画面渐暗。
 ```
 
-## 分镜核心规则（按优先级排列）
-
-> 以下规则由 Storyboarder 执行，Director 负责审核。
-
-1. **开场钩子** — 每集第一个分镜必须在 3 秒内抓住观众
-2. **悬念钩子** — 每集结尾必须设置悬念吸引继续观看
-3. **角色台词密度** — 每个分镜应尽量多地包含角色台词（含旁白），避免长时间无台词或无声音空挡，不足时 Storyboarder 向 Writer 咨询补充（最多 3 轮）
-4. **旁白规则** — 允许以角色口吻旁白补充背景知识（人物介绍、世界观等），Storyboarder 选择最合适的角色
-5. **连贯叙事** — 画面、对白/旁白、环境音效按时间线自然融合，不得超过 2 秒无声音（台词或音效，单独背景音乐不计）
-6. **具象化描述** — 禁止文学比喻，直接描写动作、表情、位置
-7. **风格一致** — 视觉描述匹配配置的视频风格
-8. **时长限制** — 每镜头时长遵循 config 单镜头时长范围
-9. **资产引用上限** — 每镜头资产引用不超过 config 单镜头资产上限
-10. **引用真实** — 禁止编造不存在的资产文件
-11. **输出语言** — 所有内容（含提示词）严格遵循 config 语言设置
-12. **信息传达** — 根据大纲标注，以自然方式向观众传达关键信息（角色身份、世界观、背景知识等），禁止生硬旁白灌输
-13. **主角内心独白** — 多安排主角内心独白，增强观众代入感
-14. **台词时长匹配** — 台词量与时间段时长匹配，根据角色性格和剧情节奏确保语速自然
-15. **避免画面文字** — 不在画面中生成具体文字/数字（招牌、屏幕、信件等），需要时改由角色台词读出
-16. **主角开场自我介绍** — 新故事第 1 集开场安排主角内心独白自我介绍，符合角色性格和世界观
+> 画面动作、角色台词、音效必须融合为连贯叙事段落，禁止分离列举。时间段划分根据叙事节奏灵活调整。
 
 ## 一致性规则
 
@@ -181,59 +163,64 @@ your-project/
 - Director 只规划当前集，不预设后续剧情
 - 不使用现实中的明星/公众人物名字、真实地名、商标名，必要时使用虚构替代
 - 资产文件名必须与资产名称完全一致，不得翻译或转写
+- 所有输出内容（含视觉描述提示词）语言严格遵循 config.md 语言设置
 
 ## 批量生成
 
-使用 `run-batch.ps1` 在 full-auto 模式下批量生成多集内容，支持流式输出和自动 git push：
+使用 `scripts/run-batch.ps1` 在 full-auto 模式下批量生成多集内容：
 
 ```powershell
 # 新故事，30集规划，本次生成5集
-./run-batch.ps1 -WorkDir "C:\projects\my-story" -TotalEpisodes 30 -NewEpisodes 5 -StoryInput "一个外卖小哥穿越到古代的故事"
+.\scripts\run-batch.ps1 -WorkDir "C:\projects\my-story" -PluginDir "C:\path\to\ShortVideoDirector" -TotalEpisodes 30 -NewEpisodes 5 -StoryInput "一个外卖小哥穿越到古代的故事"
 
-# 续写10集（arc已存在时不再传总集数给claude）
-./run-batch.ps1 -WorkDir "C:\projects\my-story" -TotalEpisodes 30 -NewEpisodes 10
+# 续写10集
+.\scripts\run-batch.ps1 -WorkDir "C:\projects\my-story" -PluginDir "C:\path\to\ShortVideoDirector" -TotalEpisodes 30 -NewEpisodes 10
 
-# 纯续写3集，无arc规划
-./run-batch.ps1 -WorkDir "C:\projects\my-story" -NewEpisodes 3
+# 纯续写3集，生成后推送 GitHub
+.\scripts\run-batch.ps1 -WorkDir "C:\projects\my-story" -PluginDir "C:\path\to\ShortVideoDirector" -NewEpisodes 3 -Push
 ```
 
 **参数：**
 - `-WorkDir`（必填）— 项目工作目录
+- `-PluginDir`（必填）— ShortVideoDirector 插件目录路径
 - `-TotalEpisodes`（可选）— 总集数，仅当 arc.md 不存在时传给 claude
 - `-NewEpisodes`（必填）— 本次新增集数
 - `-StoryInput`（可选）— 故事材料（文本或文件路径），仅第一集传入
+- `-Push`（可选）— 每集生成后自动 git commit + push
 
 **退出条件（满足任一）：** 新增集数达标 或 总集数达标
 
-## 项目结构
+## 插件结构
 
 ```
 ShortVideoDirector/
-├── SKILL.md                    # Skill 入口（配置加载、模式检测、输入解析）
-├── workflows/
-│   ├── new-story.md            # 新故事工作流
-│   └── continue-story.md      # 续写工作流
+├── .claude-plugin/
+│   └── plugin.json
 ├── agents/
-│   ├── director/               # Director（总导演）
-│   │   ├── director.md         # 角色定义 + 全局规则
-│   │   ├── duty-1-plot-options.md
-│   │   ├── duty-2-input-confirm.md
-│   │   ├── duty-3-outline.md
-│   │   ├── duty-4a-review-novel.md
-│   │   ├── duty-4b-review-storyboard.md
-│   │   └── duty-5-arc.md
-│   ├── writer/                 # Writer（小说作家）
-│   │   ├── writer.md
-│   │   └── duty-1-novel.md
-│   ├── storyboarder/           # Storyboarder（分镜师）
-│   │   ├── storyboarder.md
-│   │   ├── duty-1-asset-list.md
-│   │   └── duty-2-storyboard.md
-│   └── creator/                # Creator（创意总监）
-│       ├── creator.md
-│       ├── duty-1-create-assets.md
-│       └── duty-2-update-records.md
-├── templates/
-│   └── config.md               # 配置模板
-└── run-batch.ps1               # 批量生成脚本
+│   ├── director.md              # Director（总导演）
+│   ├── writer.md                # Writer（小说作家）
+│   ├── storyboarder.md          # Storyboarder（分镜师）
+│   └── creator.md               # Creator（创意总监）
+├── skills/
+│   ├── short-video/             # 主入口 skill
+│   │   ├── SKILL.md
+│   │   └── config-template.md
+│   ├── new-story/               # 新故事工作流
+│   │   └── SKILL.md
+│   ├── continue-story/          # 续写工作流
+│   │   └── SKILL.md
+│   ├── director-plot-options/   # Director 生成剧情选项
+│   ├── director-input-confirm/  # Director 确认用户输入
+│   ├── director-outline/        # Director 生成大纲
+│   ├── director-arc/            # Director 生成弧线
+│   ├── director-review-novel/   # Director 审核小说
+│   ├── director-review-storyboard/ # Director 审核分镜
+│   ├── writer-novel/            # Writer 生成小说
+│   ├── storyboarder-asset-list/ # Storyboarder 生成资产清单
+│   ├── storyboarder-storyboard/ # Storyboarder 生成分镜
+│   ├── creator-create-assets/   # Creator 创建资产
+│   └── creator-update-records/  # Creator 更新出场记录
+├── scripts/
+│   └── run-batch.ps1            # 批量生成脚本
+└── README.md
 ```
