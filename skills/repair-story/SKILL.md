@@ -36,7 +36,7 @@ argument-hint: "[集数，如 ep03，不填则自动检测最新一集]"
 
 **检查 2 — 小说：** `story/episodes/{集数}/novel.md`
 - 不存在 → 状态：**小说缺失**
-- 存在 → 使用 Bash 执行 `bash scripts/count-words.sh story/episodes/{集数}/novel.md {语言}` 统计字数，若低于 config 字数范围下限的 50% → 状态：**小说不完整**
+- 存在 → 使用 Bash 统计字数（zh 用 `python3 -c "import re; print(len(re.findall(r'[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]', open('story/episodes/{集数}/novel.md', encoding='utf-8').read())))"`，en 用 `wc -w`），若低于 config 字数范围下限的 50% → 状态：**小说不完整**
 - 通过 → 继续检查
 
 **检查 3 — 资产清单：** `story/episodes/{集数}/outline.md` 中的 `## 本集资产清单`
