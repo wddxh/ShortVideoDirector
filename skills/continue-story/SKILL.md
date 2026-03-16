@@ -74,17 +74,20 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 1. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`ep{N+1}`
    → 将资产清单写入 ep{N+1}/outline.md
 
-**5b. 并行执行三个 skill：**
+**5b. 创建和更新资产：**
 
-同时调用以下三个 skill，等待三者均完成后继续：
+同时调用以下两个 skill，等待两者均完成后继续：
 
 - 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep{N+1}`
 - 使用 Skill tool 调用 `creator-update-records` skill，传递参数：`ep{N+1}`
-- 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`ep{N+1}`
 
-等待三者均完成。
+等待两者均完成。
 
-**5e. [仅 review mode] Director — 审核分镜：**
+**5c. 生成分镜：**
+
+1. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`ep{N+1}`
+
+**5d. [仅 review mode] Director — 审核分镜：**
 
 1. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`ep{N+1}`
 2. 若"需修改"→ 将修改意见传给 `storyboarder-storyboard` skill 修正（最多 2 轮）
