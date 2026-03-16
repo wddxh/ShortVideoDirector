@@ -12,7 +12,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 ## 输入
 
 ### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 工作模式（review / fast / full-auto）
+- `$ARGUMENTS[0]` — 工作模式（default / full-auto）
 - `$ARGUMENTS[1]` — 总集数（数字，无则为空）
 - `$ARGUMENTS[2]` — 故事材料（引号包裹，无则为空）
 
@@ -54,7 +54,6 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 ### 阶段 3: Director 生成剧情大纲
 
 1. 使用 Skill tool 调用 `director-outline` skill，传递参数：`ep01 "{选定的剧情方向}"`
-2. **[仅 review mode]** 展示大纲给用户确认；若不满意，提供反馈并重新调用 `director-outline` skill
 
 ### 阶段 4: Writer 生成小说原文
 
@@ -62,10 +61,10 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 1. 使用 Skill tool 调用 `writer-novel` skill，传递参数：`ep01`
 
-**4.2 [仅 review mode] Director — 审核小说原文：**
+**4.2 Director — 审核小说原文：**
 
 1. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：`ep01`
-2. 若"需修改"→ 将修改意见反馈给 `writer-novel` skill 修改（最多 2 轮）
+2. 若"需修改"→ 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 ### 阶段 5: 资产创建 + 分镜生成
 
@@ -82,12 +81,10 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 1. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`ep01`
 
-**5d. [仅 review mode] Director — 审核分镜：**
+**5d. Director — 审核分镜：**
 
 1. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`ep01`
-2. 若"需修改"→ 将修改意见传给 `storyboarder-storyboard` skill 修正（最多 2 轮）
-
-**[仅 review mode]** 展示分镜内容和新建资产列表给用户确认
+2. 若"需修改"→ 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 ### 阶段 6: 完成
 
