@@ -110,11 +110,11 @@ while ($true) {
 
     Write-Host ""
 
-    # Auto commit (and optionally push) after each episode
-    $epLabel = "EP$('{0:D2}' -f $nextEp)"
-    git add -A
-    git commit -m "$($epLabel): auto-generated"
+    # Auto commit and push (only when -Push is specified)
     if ($Push.IsPresent) {
+        $epLabel = "EP$('{0:D2}' -f $nextEp)"
+        git add -A
+        git commit -m "$($epLabel): auto-generated"
         Write-Host "--- Pushing $epLabel to GitHub ---" -ForegroundColor Cyan
         git push
     }
