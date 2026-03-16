@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
 2. 执行**配置加载**流程：使用 Read 读取 config.md，若不存在则报错提示用户先运行 `/short-video` 进行交互式配置引导
-3. 工作模式为 `$ARGUMENTS[0]`（review / fast / full-auto）
+3. 工作模式为 `$ARGUMENTS[0]`（default / full-auto）
 
 ### 阶段 1.5: 输入分流
 
@@ -34,7 +34,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
    - **A/B/C** — 选择对应主题方向
    - **D. 重新生成** — 重新调用 `director-plot-options` skill（无参数），生成全新 3 个方向
    - **E. 告诉 Director 你的偏好** — 收集用户偏好描述，重新调用 `director-plot-options` skill，传递参数：`"{用户偏好描述}"`
-   - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动选择]**
+   - **[default mode 下等待用户确认；full-auto mode 下 Director 自动选择]**
 3. 用户选择 A/B/C → 继续阶段 3
 
 ### 阶段 2b: Director 生成输入确认说明
@@ -44,7 +44,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
    - **A. 确认** — 继续阶段 3
    - **B. 重新生成** — 重新调用 `director-input-confirm` skill，传递参数：`"{用户故事输入}"`
    - **C. 补充说明** — 收集用户反馈，重新调用 `director-input-confirm` skill，传递参数：`"{用户反馈内容}"`
-   - **[即使 fast mode 也必须等待用户确认；full-auto mode 下 Director 自动确认]**
+   - **[default mode 下等待用户确认；full-auto mode 下 Director 自动确认]**
 3. 用户选择 A → 继续阶段 3
 
 ### 阶段 2.5: 生成剧情弧线（仅当 `$ARGUMENTS[1]` 非空且 story/arc.md 不存在时执行）
