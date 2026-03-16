@@ -12,7 +12,10 @@ param(
     [string]$StoryInput,
 
     [Parameter(Mandatory=$false)]
-    [switch]$Push
+    [switch]$Push,
+
+    [Parameter(Mandatory=$true)]
+    [string]$PluginDir
 )
 
 # Set UTF-8 encoding for Chinese output
@@ -96,7 +99,7 @@ while ($true) {
     Write-Host "--- Round $($generated + 1)/$NewEpisodes | Generating EP$('{0:D2}' -f $nextEp) ---" -ForegroundColor Yellow
     Write-Host ""
 
-    claude -p $prompt --output-format stream-json --verbose --include-partial-messages --dangerously-skip-permissions --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent,Skill" | ForEach-Object {
+    claude -p $prompt --output-format stream-json --verbose --include-partial-messages --dangerously-skip-permissions --plugin-dir "$PluginDir" --allowedTools "Read,Write,Edit,Glob,Bash(*),Agent,Skill" | ForEach-Object {
         try {
             $obj = $_ | ConvertFrom-Json -ErrorAction SilentlyContinue
             if ($obj.type -eq 'stream_event' -and $obj.event.type -eq 'content_block_delta') {
