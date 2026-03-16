@@ -21,7 +21,7 @@
 - 丰富的环境音效设计，2 秒内必须有声音（台词或音效）
 - 角色声音特征一致性保障
 - 版权规避：不使用现实中的明星/公众人物名字、真实地名、商标名
-- 资产创建与分镜生成并行执行，提升生成效率
+- 资产创建完成后再生成分镜，确保分镜师可引用完整资产信息
 - 支持 full-auto 批量生成脚本（`scripts/run-batch.ps1`）
 
 ## 四个子代理
@@ -123,8 +123,9 @@ your-project/
 5. Director 生成本集剧情大纲（参考 arc 如有）
 6. Writer 生成小说原文（review mode 下 Director 审核）
 7. Storyboarder 生成资产清单（写入 ep outline.md）
-8. **并行执行**：Creator 创建新资产 + Storyboarder 生成分镜
-9. Director 审核分镜（最多 2 轮修改反馈）
+8. Creator 创建新资产
+9. Storyboarder 生成分镜
+10. Director 审核分镜（最多 2 轮修改反馈）
 
 ### Continue Story（续写）
 
@@ -135,8 +136,9 @@ your-project/
 5. Director 生成新集大纲（append-only 追加到总大纲，参考 arc 如有）
 6. Writer 生成小说原文（参考最近 M 集小说和角色资产）
 7. Storyboarder 生成资产清单（写入 ep outline.md，含新增和已有资产）
-8. **并行执行**：Creator 创建新资产 + Creator 更新已有资产出场记录 + Storyboarder 生成分镜
-9. Director 审核分镜（最多 2 轮修改反馈）
+8. **并行执行**：Creator 创建新资产 + Creator 更新已有资产出场记录
+9. Storyboarder 生成分镜
+10. Director 审核分镜（最多 2 轮修改反馈）
 
 ## 分镜格式
 
