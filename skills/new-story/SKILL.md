@@ -63,10 +63,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 **4.1b 字数校验：**
 
-1. 使用 Bash 统计 `story/episodes/ep01/novel.md` 的字数（语言从 config.md 读取）：
-   - zh：`python3 -c "import re; print(len(re.findall(r'[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]', open('story/episodes/ep01/novel.md', encoding='utf-8').read())))"`
-   - en：`wc -w < story/episodes/ep01/novel.md`
-   - auto：先执行 zh 命令，若结果 > 0 则为中文字数，否则执行 en 命令
+1. 使用 Bash 调用 `python3 scripts/word-count.py story/episodes/ep01/novel.md` 统计字数（自动检测语言）
 2. 对比 config.md 中的 `每集小说字数` 范围
 3. 若不在范围内 → 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`ep01 "当前字数为{实际字数}，目标范围为{下限}-{上限}，请调整内容使字数符合要求"`（最多 2 轮，每轮修正后重新统计）
 
