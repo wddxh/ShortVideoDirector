@@ -38,7 +38,7 @@ function Get-EpisodeCount {
 function Build-Prompt {
     param([bool]$IsFirstRound)
 
-    $parts = @("/short-video")
+    $parts = @("/series-video")
     $arcExists = Test-Path "story/arc.md"
 
     # total episodes only when no arc and TotalEpisodes is specified

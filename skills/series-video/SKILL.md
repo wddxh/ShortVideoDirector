@@ -1,6 +1,6 @@
 ---
-name: short-video
-description: 将故事创意转化为AI视频分镜提示词和资产图像提示词。支持持续创作，自动检测新故事/续写模式。输入故事点子、原文或概述，输出完整的分镜和资产提示词。使用 /short-video 启动，/short-video config 编辑配置。
+name: series-video
+description: 将故事创意转化为AI视频分镜提示词和资产图像提示词。支持持续创作，自动检测新故事/续写模式。输入故事点子、原文或概述，输出完整的分镜和资产提示词。使用 /series-video 启动，/series-video config 编辑配置。
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Bash, Agent, Skill
 argument-hint: "[总集数] [故事材料|文件路径]"
@@ -8,7 +8,7 @@ argument-hint: "[总集数] [故事材料|文件路径]"
 
 ## 总流程
 
-调用 `/short-video` 后，按以下顺序执行：
+调用 `/series-video` 后，按以下顺序执行：
 
 1. **配置加载** — 读取或创建 [config.md](config.md)（首次运行进入交互式引导）
 2. **模式检测** — 检查 [story/](story/) 是否存在，确定新故事模式或续写模式
@@ -19,7 +19,7 @@ argument-hint: "[总集数] [故事材料|文件路径]"
 
 **版权规避：所有生成内容（大纲、小说、分镜、资产提示词等）不得出现现实中的明星或公众人物名字、真实地名、商标名或其他受版权/商标保护的名称，必要时使用虚构替代名称。**
 
-**硬性约束：每次调用 `/short-video` 仅生成一集内容。** 无论任何模式（default/full-auto），对于大纲、原文、分镜、资产的生成都仅生成本集内容。生成完毕后 skill 结束，不得自动循环生成多集或全集内容。带总集数参数时仅额外生成 arc 文件，不改变单集生成的约束。
+**硬性约束：每次调用 `/series-video` 仅生成一集内容。** 无论任何模式（default/full-auto），对于大纲、原文、分镜、资产的生成都仅生成本集内容。生成完毕后 skill 结束，不得自动循环生成多集或全集内容。带总集数参数时仅额外生成 arc 文件，不改变单集生成的约束。
 
 ## 阶段 1: 配置加载
 
@@ -96,7 +96,7 @@ argument-hint: "[总集数] [故事材料|文件路径]"
    - C) 5000-6000
    - D) 自定义输入
 
-   所有配置收集完毕后，根据用户选择生成 [config.md](config.md) 写入项目根目录。告知用户可通过 `/short-video config` 随时修改。
+   所有配置收集完毕后，根据用户选择生成 [config.md](config.md) 写入项目根目录。告知用户可通过 `/series-video config` 随时修改。
 
 4. 解析以下配置值：
    - **视频模型**：用于生成视频的 AI 模型

@@ -19,7 +19,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 ### 阶段 1: 初始化
 
 1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
-2. 执行**配置加载**流程：使用 Read 读取 config.md，若不存在则报错提示用户先运行 `/short-video` 进行交互式配置引导
+2. 执行**配置加载**流程：使用 Read 读取 config.md，若不存在则报错提示用户先运行 `/series-video` 进行交互式配置引导
 3. 工作模式为 `$ARGUMENTS[0]`（default / full-auto）
 
 ### 阶段 1.5: 输入分流
@@ -98,5 +98,5 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 ### 阶段 6: 完成
 
 1. 输出本集摘要：集数编号、镜头数量（分镜数量）、新建资产列表
-2. 提示用户可以使用 `/short-video` 继续创作下一集
+2. 提示用户可以使用 `/series-video` 继续创作下一集
 3. **本次执行到此结束。** 不得自动继续生成下一集或更多集数的内容。

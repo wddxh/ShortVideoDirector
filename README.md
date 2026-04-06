@@ -44,26 +44,26 @@ claude --plugin-dir /path/to/ShortVideoDirector
 
 ```bash
 # 开始新故事（提供输入）
-/short-video 一个穿越到异世界的少年，发现自己拥有操控时间的能力...
+/series-video 一个穿越到异世界的少年，发现自己拥有操控时间的能力...
 
 # 开始新故事（从文件读取）
-/short-video story-idea.txt
+/series-video story-idea.txt
 
 # 开始新故事（指定总集数 + 故事材料，自动生成剧情弧线）
-/short-video 30 一个穿越到异世界的少年...
-/short-video 30 story-idea.txt
+/series-video 30 一个穿越到异世界的少年...
+/series-video 30 story-idea.txt
 
 # 开始新故事（仅指定总集数，交互式选择剧情方向）
-/short-video 30
+/series-video 30
 
 # 开始新故事（交互式，可让 Director 生成主题选项）
-/short-video
+/series-video
 
 # 续写故事（自动检测已有 story/ 目录）
-/short-video 主角发现了隐藏在古城下的秘密通道...
+/series-video 主角发现了隐藏在古城下的秘密通道...
 
 # 编辑配置
-/short-video config
+/series-video config
 ```
 
 ```bash
@@ -220,7 +220,7 @@ ShortVideoDirector/
 │   ├── storyboarder.md          # Storyboarder（分镜师）
 │   └── creator.md               # Creator（创意总监）
 ├── skills/
-│   ├── short-video/             # 主入口 skill
+│   ├── series-video/            # 主入口 skill
 │   │   ├── SKILL.md
 │   │   └── config-template.md
 │   ├── edit-story/                # 编辑已有内容（自然语言）
