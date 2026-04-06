@@ -24,12 +24,13 @@
 - 资产创建完成后再生成分镜，确保分镜师可引用完整资产信息
 - 支持 full-auto 批量生成脚本（`scripts/run-batch.ps1`）
 
-## 四个子代理
+## 五个子代理
 
 | 子代理 | 角色 | 职责 |
 |--------|------|------|
-| **Director** | 总导演 | 全局统筹、生成剧情大纲、审核 Writer 和 Storyboarder 输出 |
+| **Director** | 总导演 | 全局统筹、生成剧情大纲、审核 Writer/Scriptwriter 和 Storyboarder 输出 |
 | **Writer** | 网络小说作家 | 根据剧情大纲生成小说原文，擅长悬念设置和人物描写 |
+| **Scriptwriter** | 短视频编剧 | 将大纲转化为剧本，擅长在极短篇幅内构建完整故事 |
 | **Storyboarder** | 分镜师 | 负责资产清单和分镜提示词生成 |
 | **Creator** | 创意总监 | 识别并视觉化人物和资产，生成图像提示词和声音特征描述 |
 
@@ -64,6 +65,14 @@ claude --plugin-dir /path/to/ShortVideoDirector
 
 # 编辑配置
 /series-video config
+```
+
+```bash
+# 单集短视频（独立完整故事）
+/short-video 一个外卖小哥送错餐发现客户是自己的前女友
+/short-video story-idea.txt
+/short-video
+/short-video config
 ```
 
 ```bash
@@ -217,10 +226,14 @@ ShortVideoDirector/
 ├── agents/
 │   ├── director.md              # Director（总导演）
 │   ├── writer.md                # Writer（小说作家）
+│   ├── scriptwriter.md          # Scriptwriter（短视频编剧）
 │   ├── storyboarder.md          # Storyboarder（分镜师）
 │   └── creator.md               # Creator（创意总监）
 ├── skills/
-│   ├── series-video/            # 主入口 skill
+│   ├── series-video/            # 系列视频入口 skill
+│   │   ├── SKILL.md
+│   │   └── config-template.md
+│   ├── short-video/             # 单集短视频入口 skill
 │   │   ├── SKILL.md
 │   │   └── config-template.md
 │   ├── edit-story/                # 编辑已有内容（自然语言）
@@ -243,7 +256,16 @@ ShortVideoDirector/
 │   ├── writer-fix-novel/        # Writer 修正小说
 │   ├── creator-create-assets/   # Creator 创建资产
 │   ├── creator-update-records/  # Creator 更新出场记录
-│   └── creator-fix-asset/         # Creator 修正资产
+│   ├── creator-fix-asset/         # Creator 修正资产
+│   ├── short-plot-options/      # Director 生成短视频剧情选项
+│   ├── short-input-confirm/     # Director 确认短视频用户输入
+│   ├── short-outline/           # Director 生成短视频大纲
+│   ├── scriptwriter-script/     # Scriptwriter 生成剧本
+│   ├── scriptwriter-fix-script/ # Scriptwriter 修正剧本
+│   ├── director-review-script/  # Director 审核剧本
+│   ├── short-storyboard/        # Storyboarder 生成短视频分镜
+│   ├── short-review-storyboard/ # Director 审核短视频分镜
+│   └── short-fix-storyboard/    # Storyboarder 修正短视频分镜
 ├── scripts/
 │   └── run-batch.ps1            # 批量生成脚本
 └── README.md

@@ -10,7 +10,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 ## 输入
 
 ### 文件读取
-- `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取
+- `story/episodes/$ARGUMENTS[0]/novel.md` 或 `story/episodes/$ARGUMENTS[0]/script.md` — 必须读取（优先 novel.md，若不存在则读取 script.md）
 - `assets/**/*.md` — 使用 Glob 获取所有文件路径列表（判断资产新增/已有）
 
 ### 动态参数（$ARGUMENTS）
@@ -18,7 +18,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 ## 职责描述
 
-阅读本集小说原文，提取本集使用的所有角色、造型变体、物品、场景和建筑，标注每个资产是新增还是已有，生成完整资产清单。
+阅读本集小说原文或剧本，提取本集使用的所有角色、造型变体、物品、场景和建筑，标注每个资产是新增还是已有，生成完整资产清单。
 
 ## 输出格式
 
