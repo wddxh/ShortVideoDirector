@@ -76,17 +76,29 @@ claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
 ```bash
-# 编辑已有内容
-/edit-story ep01大纲的集尾钩子改成更有悬念的
-/edit-story ep02分镜镜头3的台词太少，增加内心独白
-/edit-story ep03主角的外貌描述改成短发
-/edit-story 在ep01的资产清单中增加一个新角色"老王"
+# 编辑系列视频已有内容
+/series-edit-story ep01大纲的集尾钩子改成更有悬念的
+/series-edit-story ep02分镜镜头3的台词太少，增加内心独白
+/series-edit-story ep03主角的外貌描述改成短发
+/series-edit-story 在ep01的资产清单中增加一个新角色"老王"
 ```
 
 ```bash
-# 修复中断的生成（检测缺失文件，从断点恢复）
-/repair-story ep03
-/repair-story          # 自动检测最新一集
+# 编辑单集短视频已有内容
+/short-edit-story 大纲的结局改成开放式结局
+/short-edit-story 剧本场景2的台词太少，增加内心独白
+/short-edit-story 主角的外貌描述改成短发
+```
+
+```bash
+# 修复系列视频中断的生成
+/series-repair-story ep03
+/series-repair-story          # 自动检测最新一集
+```
+
+```bash
+# 修复单集短视频中断的生成
+/short-repair-story
 ```
 
 ## 生成的目录结构
@@ -236,8 +248,8 @@ ShortVideoDirector/
 │   ├── short-video/             # 单集短视频入口 skill
 │   │   ├── SKILL.md
 │   │   └── config-template.md
-│   ├── edit-story/                # 编辑已有内容（自然语言）
-│   ├── repair-story/             # 修复中断的生成
+│   ├── series-edit-story/          # 编辑系列视频已有内容（自然语言）
+│   ├── series-repair-story/       # 修复系列视频中断的生成
 │   ├── new-story/               # 新故事工作流
 │   │   └── SKILL.md
 │   ├── continue-story/          # 续写工作流
@@ -265,7 +277,10 @@ ShortVideoDirector/
 │   ├── director-review-script/  # Director 审核剧本
 │   ├── short-storyboard/        # Storyboarder 生成短视频分镜
 │   ├── short-review-storyboard/ # Director 审核短视频分镜
-│   └── short-fix-storyboard/    # Storyboarder 修正短视频分镜
+│   ├── short-fix-storyboard/    # Storyboarder 修正短视频分镜
+│   ├── short-fix-outline/       # Director 修正短视频大纲
+│   ├── short-edit-story/        # 编辑单集短视频已有内容
+│   └── short-repair-story/      # 修复单集短视频中断的生成
 ├── scripts/
 │   └── run-batch.ps1            # 批量生成脚本
 └── README.md

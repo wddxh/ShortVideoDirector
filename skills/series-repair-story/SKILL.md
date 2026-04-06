@@ -1,5 +1,5 @@
 ---
-name: repair-story
+name: series-repair-story
 description: 检测指定集的文件完整性，从断点处恢复生成。自动识别缺失或不完整的文件，重新执行后续步骤。
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Bash, Skill
@@ -9,8 +9,8 @@ argument-hint: "[集数，如 ep03，不填则自动检测最新一集]"
 ## 使用示例
 
 ```
-/repair-story ep03
-/repair-story
+/series-repair-story ep03
+/series-repair-story
 ```
 
 ## 流程

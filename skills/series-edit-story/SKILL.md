@@ -1,6 +1,6 @@
 ---
-name: edit-story
-description: 对任意一集的任意内容（资产、大纲、小说、分镜）提出修改意见，自动修正并级联更新下游内容。使用 /edit-story 加自然语言描述触发。
+name: series-edit-story
+description: 对任意一集的任意内容（资产、大纲、小说、分镜）提出修改意见，自动修正并级联更新下游内容。使用 /series-edit-story 加自然语言描述触发。
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 argument-hint: "[自然语言修改意见]"
@@ -9,10 +9,10 @@ argument-hint: "[自然语言修改意见]"
 ## 使用示例
 
 ```
-/edit-story ep03的主角外貌描述改成短发
-/edit-story ep01大纲的集尾钩子不够吸引人，改成悬念更强的
-/edit-story ep02分镜镜头5的台词太少，增加内心独白
-/edit-story 在ep01的资产清单中增加一个新角色"老王"
+/series-edit-story ep03的主角外貌描述改成短发
+/series-edit-story ep01大纲的集尾钩子不够吸引人，改成悬念更强的
+/series-edit-story ep02分镜镜头5的台词太少，增加内心独白
+/series-edit-story 在ep01的资产清单中增加一个新角色"老王"
 ```
 
 ## 流程
