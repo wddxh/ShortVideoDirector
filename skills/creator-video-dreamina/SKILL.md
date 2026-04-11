@@ -21,6 +21,10 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 读取分镜，构造 prompt（替换资产链接为图片引用），调用脚本提交视频生成任务，将结果记录到 tasks.json。
 
+## 约束
+
+- **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。所有操作必须通过插件内 `scripts/` 目录下的现有脚本完成。**
+
 ## 流程
 
 ### 阶段 1: 准备
