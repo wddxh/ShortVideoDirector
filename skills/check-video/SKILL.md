@@ -50,13 +50,14 @@ argument-hint: "集数 [--auto]"
 每次失败都重新判断（因为同一个镜头多次失败的原因可能不同）。
 
 **a. 可自动重试的任务：**
-1. 标记为待重试：`bash scripts/task-status.sh update "story/episodes/{集数}/videos/tasks.json" "{submit_id}" "pending_retry"`
-2. 告知用户该镜头因临时原因失败，正在自动重试
-3. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
-4. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
-5. 重新提交：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-6. 记录新任务：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {镜头编号} '{"shot":{N},"submit_id":"{新id}","status":"submitted","prompt":"{完整prompt}","images":"{图片列表}","duration":{时长},"fail_reason":""}'`
-7. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
+1. 告知用户该镜头因临时原因失败，正在自动重试
+2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
+3. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
+4. 重新提交：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
+5. 用 upsert 按 shot 编号更新记录（无论提交成功或失败）：
+   - 成功：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {N} '{"shot":{N},"submit_id":"{新id}","status":"submitted","prompt":"{完整prompt}","images":"{图片列表}","duration":{时长},"fail_reason":""}'`
+   - 失败：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {N} '{"shot":{N},"submit_id":"","status":"failed","prompt":"{完整prompt}","images":"{图片列表}","duration":{时长},"fail_reason":"{失败原因}"}'`
+6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
 
 **b. 需人工介入的任务：**
 
