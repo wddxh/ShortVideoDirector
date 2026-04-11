@@ -34,6 +34,8 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 1. 读取 `story/episodes/{集数}/storyboard.md`，解析所有镜头（`### 镜头 N` 块）
 2. 根据 `$ARGUMENTS[1]` 过滤目标镜头（`all` 则使用全部）
+3. 若为 `all` 模式且 `story/episodes/{集数}/videos/tasks.json` 已存在 → 读取 tasks.json，排除 status 为 `submitted` 或 `done` 的镜头（只提交尚未提交过的镜头）
+4. 若过滤后无需提交的镜头 → 输出"所有镜头已提交，无需重复提交"并结束
 3. 对每个目标镜头，使用 Bash 调用 `bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取替换后的 prompt、图片路径列表和时长
 
 ### 阶段 3: 逐镜头提交
