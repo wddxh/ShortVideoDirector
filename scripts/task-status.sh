@@ -5,6 +5,7 @@
 #   bash scripts/task-status.sh update file.json submit_id new_status
 #   bash scripts/task-status.sh remove file.json submit_id
 #   bash scripts/task-status.sh add    file.json '{"shot":1,"submit_id":"xxx","status":"submitted"}'
+#   bash scripts/task-status.sh upsert file.json shot_number '{"shot":1,"submit_id":"xxx","status":"submitted"}'
 # Exit codes: 0=success, 1=error
 
 if [ $# -lt 2 ]; then
@@ -130,9 +131,56 @@ case "$ACTION" in
     fi
     ;;
 
+  upsert)
+    # Insert or replace entry by shot number (shot is the primary key)
+    SHOT_NUM="$3"
+    ENTRY="$4"
+    if [ -z "$SHOT_NUM" ] || [ -z "$ENTRY" ]; then
+      echo "Usage: bash scripts/task-status.sh upsert file.json shot_number '{\"shot\":1,...}'"
+      exit 1
+    fi
+    if [ ! -f "$JSON_FILE" ]; then
+      # File doesn't exist, create with single entry
+      echo "[$ENTRY]" > "$JSON_FILE"
+    else
+      # Check if shot already exists
+      if grep -q "\"shot\"[[:space:]]*:[[:space:]]*$SHOT_NUM[^0-9]" "$JSON_FILE"; then
+        # Remove existing entry for this shot, then add new one
+        awk -v shot="$SHOT_NUM" '
+          BEGIN { skip=0; buf="" }
+          /{/ { buf=$0; skip=0 }
+          { if (buf != "" && $0 !~ /}/) { buf=buf "\n" $0 } }
+          /}/ {
+            if (buf != "") { buf=buf "\n" $0 }
+            else { buf=$0 }
+            if (buf ~ ("\"shot\"[[:space:]]*:[[:space:]]*" shot "[^0-9]")) { skip=1 }
+            if (!skip) { print buf }
+            buf=""; skip=0
+          }
+          buf == "" && !/[{}]/ { print }
+        ' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+        # Now add the new entry
+        sed -i 's/][[:space:]]*$//' "$JSON_FILE"
+        if grep -q '{' "$JSON_FILE"; then
+          echo ",$ENTRY]" >> "$JSON_FILE"
+        else
+          echo "$ENTRY]" >> "$JSON_FILE"
+        fi
+      else
+        # Shot doesn't exist, just append
+        sed -i 's/][[:space:]]*$//' "$JSON_FILE"
+        if grep -q '{' "$JSON_FILE"; then
+          echo ",$ENTRY]" >> "$JSON_FILE"
+        else
+          echo "$ENTRY]" >> "$JSON_FILE"
+        fi
+      fi
+    fi
+    ;;
+
   *)
     echo "Unknown action: $ACTION"
-    echo "Usage: bash scripts/task-status.sh {query|update|remove|add} file.json [args...]"
+    echo "Usage: bash scripts/task-status.sh {query|update|remove|add|upsert} file.json [args...]"
     exit 1
     ;;
 esac

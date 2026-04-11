@@ -45,7 +45,7 @@ argument-hint: "集数"
    - 涉及资产/图片修改 → 读取 `config.md` 获取图像模型值，调用 `creator-fix-asset` skill + `creator-image-{图像模型值}` skill
 4. **用户选择自动修复** → skill 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
 5. 修改完后，读取 `config.md` 获取视频模型值，使用 Skill tool 调用 `creator-video-{视频模型值}` skill 重新提交该镜头
-6. 更新 tasks.json 中该条目为新的 submit_id 和 status `submitted`
+6. 使用 Bash 调用 `bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {镜头编号} '{新的JSON条目}'` 以新的 submit_id 和 status `submitted` 替换该镜头的记录
 7. 提示用户稍后再次使用 `/check-video {集数}` 查询
 
 ## 输出
