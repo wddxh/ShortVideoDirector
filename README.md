@@ -1,13 +1,14 @@
 # ShortVideoDirector
 
-一个 Claude Code Plugin，通过 4 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词和资产图像提示词。
+一个 Claude Code Plugin，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词和资产图像提示词。
 
 ## 功能
 
 - 将故事点子/原文/概述转化为短视频分镜提示词（1-2 分钟/集）
 - 自动生成人物、物品、场景、建筑的图像提示词
 - 支持持续创作，保持人物、资产和声音在整个故事中的一致性
-- 可配置目标 AI 模型（视频模型：Kling/Runway/Pika，图像模型：Midjourney/FLUX/DALL-E）
+- 支持即梦CLI（Dreamina）自动生成资产参考图片，与分镜流程并行执行
+- 可配置图像模型（none / dreamina），选择 dreamina 后可配置模型版本、图片比例、分辨率
 - 可配置视频风格（2D动漫/3D动漫/3D写实/2D手绘/自定义）
 - 首次运行交互式引导配置，支持自定义模型和风格输入
 - 支持 Director 自动生成剧情选项供选择，不满意可重新生成或提供偏好
@@ -22,6 +23,7 @@
 - 角色声音特征一致性保障
 - 版权规避：不使用现实中的明星/公众人物名字、真实地名、商标名
 - 资产创建完成后再生成分镜，确保分镜师可引用完整资产信息
+- 剧情弧线（arc）支持每集剧情规划，outline 严格遵循 arc 分集规划
 - 支持 full-auto 批量生成脚本（`scripts/run-batch.ps1`）
 
 ## 五个子代理
@@ -81,6 +83,8 @@ claude --plugin-dir /path/to/ShortVideoDirector
 /series-edit-story ep02分镜镜头3的台词太少，增加内心独白
 /series-edit-story ep03主角的外貌描述改成短发
 /series-edit-story 在ep01的资产清单中增加一个新角色"老王"
+/series-edit-story 重新生成张三的参考图片
+/series-edit-story 张三的头发改成红色，重新生成图片
 ```
 
 ```bash
@@ -88,6 +92,7 @@ claude --plugin-dir /path/to/ShortVideoDirector
 /short-edit-story 大纲的结局改成开放式结局
 /short-edit-story 剧本场景2的台词太少，增加内心独白
 /short-edit-story 主角的外貌描述改成短发
+/short-edit-story 重新生成张三和李四的参考图片
 ```
 
 ```bash
@@ -111,7 +116,8 @@ your-project/
 │   └── episodes/
 │       ├── ep01/
 │       │   ├── outline.md      # 本集剧情大纲（含资产清单）
-│       │   ├── novel.md        # 本集小说原文
+│       │   ├── novel.md        # 本集小说原文（系列视频）
+│       │   ├── script.md       # 本集剧本（单集短视频）
 │       │   └── storyboard.md   # 本集分镜提示词
 │       └── ep02/
 │           └── ...
@@ -119,7 +125,12 @@ your-project/
 │   ├── characters/             # 人物提示词（含性格特征、声音特征、造型变体）
 │   ├── items/                  # 重要物品提示词
 │   ├── locations/              # 场景提示词
-│   └── buildings/              # 建筑提示词
+│   ├── buildings/              # 建筑提示词
+│   └── images/                 # 生成的参考图片（按类型分子目录）
+│       ├── characters/
+│       ├── items/
+│       ├── locations/
+│       └── buildings/
 └── config.md                   # 项目配置
 ```
 
@@ -129,8 +140,7 @@ your-project/
 
 | 配置 | 默认值 | 说明 |
 |------|--------|------|
-| 视频模型 | generic | generic / kling / runway / seedance2.0 / 自定义 |
-| 图像模型 | generic | generic / midjourney / flux / nanobanana / 自定义 |
+| 图像模型 | none | none / dreamina |
 | 视频风格 | 3D写实 | 2D动漫 / 3D动漫 / 3D写实 / 2D手绘 / 自定义 |
 | 语言 | auto | auto / zh / en / 自定义 |
 | 每集分镜数 | 15 | 建议 10-20 |
@@ -140,6 +150,9 @@ your-project/
 | 上下文集数 | 1 | 续写时 Director 读取前 N 集 novel.md |
 | 默认模式 | default | default（用户确认剧情方向）/ full-auto（全自动） |
 | 每集小说字数 | 4000-5000 | 范围格式；单个数字视为上限，下限自动取 80% |
+| 即梦模型版本 | 4.0 | 3.0-5.0（仅图像模型为 dreamina 时） |
+| 图片比例 | 1:1 | 1:1 / 3:4 / 16:9 等（仅图像模型为 dreamina 时） |
+| 图片分辨率 | 2k | 2k / 4k（仅图像模型为 dreamina 时） |
 
 ## 工作模式
 
@@ -159,7 +172,7 @@ your-project/
 7. Director 审核小说原文，若需修改则 Writer 定向修正（最多 2 轮）
 8. Storyboarder 生成资产清单（写入 ep outline.md）
 9. Creator 创建新资产
-10. Storyboarder 生成分镜
+10. **并行执行**：Creator 生成资产参考图片（若配置了图像模型）+ Storyboarder 生成分镜
 11. Director 审核分镜，若需修改则 Storyboarder 定向修正（最多 2 轮）
 
 ### Continue Story（续写）
@@ -173,7 +186,7 @@ your-project/
 7. Director 审核小说原文，若需修改则 Writer 定向修正（最多 2 轮）
 8. Storyboarder 生成资产清单（写入 ep outline.md，含新增和已有资产）
 9. **并行执行**：Creator 创建新资产 + Creator 更新已有资产出场记录
-10. Storyboarder 生成分镜
+10. **并行执行**：Creator 生成资产参考图片（若配置了图像模型）+ Storyboarder 生成分镜
 11. Director 审核分镜，若需修改则 Storyboarder 定向修正（最多 2 轮）
 
 ## 分镜格式
@@ -267,6 +280,8 @@ ShortVideoDirector/
 │   ├── storyboarder-fix-storyboard/ # Storyboarder 修正分镜
 │   ├── writer-fix-novel/        # Writer 修正小说
 │   ├── creator-create-assets/   # Creator 创建资产
+│   ├── creator-generate-images/ # Creator 批量生成资产参考图片（路由层）
+│   ├── creator-image-dreamina/  # Creator 即梦图片生成（模型编排层）
 │   ├── creator-update-records/  # Creator 更新出场记录
 │   ├── creator-fix-asset/         # Creator 修正资产
 │   ├── short-plot-options/      # Director 生成短视频剧情选项
@@ -282,6 +297,9 @@ ShortVideoDirector/
 │   ├── short-edit-story/        # 编辑单集短视频已有内容
 │   └── short-repair-story/      # 修复单集短视频中断的生成
 ├── scripts/
-│   └── run-batch.ps1            # 批量生成脚本
+│   ├── run-batch.ps1            # 批量生成脚本
+│   ├── image-gen-dreamina.sh    # 即梦单张图片生成脚本
+│   ├── word-count.sh            # 字数统计脚本
+│   └── speech-rate.sh           # 台词语速检查脚本
 └── README.md
 ```
