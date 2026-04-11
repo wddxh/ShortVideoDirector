@@ -24,6 +24,8 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 ## 约束
 
 - **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。所有操作必须通过插件内 `scripts/` 目录下的现有脚本完成。**
+- **读取 tasks.json 中的字段值（如 prompt、images、duration）时，使用 Read 工具读取文件后直接从 JSON 中提取，不要编写脚本解析。**
+- **调用插件脚本时，如果相对路径 `scripts/xxx.sh` 找不到，使用 Glob 工具搜索 `**/scripts/xxx.sh` 找到插件目录下的脚本绝对路径。**
 
 ## 流程
 
