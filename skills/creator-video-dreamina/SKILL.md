@@ -48,7 +48,12 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 ### 阶段 4: 写入 tasks.json
 
-1. 对每个已提交的镜头，使用 Bash 调用 `bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {镜头编号} '{JSON条目}'` 记录任务（以 shot 编号为主键，存在则替换，不存在则追加）
+1. 对每个已提交的镜头，使用 Bash 调用 `bash scripts/task-status.sh upsert` 记录任务（以 shot 编号为主键，存在则替换，不存在则追加）
+
+**完整调用示例（第 4 个参数必须是完整 JSON 对象，不能只传 submit_id）：**
+```bash
+bash scripts/task-status.sh upsert "story/episodes/ep01/videos/tasks.json" 3 '{"shot":3,"submit_id":"abc123","status":"submitted","prompt":"替换后的完整prompt","images":"img1.png,img2.png","duration":15,"fail_reason":""}'
+```
 
 ### 阶段 5: 摘要
 

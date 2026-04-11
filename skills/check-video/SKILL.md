@@ -55,7 +55,7 @@ argument-hint: "集数 [--auto]"
 2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
 3. 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"` 获取配置
 4. 使用 Bash 调用 `bash scripts/video-gen-dreamina.sh "{prompt}" "{输出路径}" "{images}" "{duration}" "{比例}" "{模型版本}"` 重新提交
-5. 使用 Bash 调用 `bash scripts/task-status.sh upsert` 更新为新 submit_id + status `submitted`
+5. 使用 Bash 调用 `bash scripts/task-status.sh upsert` 更新为新 submit_id + status `submitted`（第 4 个参数必须是完整 JSON 对象，示例：`'{"shot":3,"submit_id":"新id","status":"submitted","prompt":"完整prompt","images":"图片列表","duration":15,"fail_reason":""}'`）
 6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
 
 **b. 需人工介入的任务：**
@@ -72,7 +72,7 @@ argument-hint: "集数 [--auto]"
 5. 修改完后，需要重新生成该镜头的 prompt（因为分镜内容已改变）：使用 Bash 调用 `bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取新 prompt
 6. 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"` 获取配置
 7. 使用 Bash 调用 `bash scripts/video-gen-dreamina.sh` 重新提交
-8. 使用 Bash 调用 `bash scripts/task-status.sh upsert` 更新记录（含新 prompt）
+8. 使用 Bash 调用 `bash scripts/task-status.sh upsert` 更新记录（第 4 个参数必须是完整 JSON 对象，含新 prompt）
 9. 提示用户稍后再次使用 `/check-video {集数}` 查询
 
 ## 输出
