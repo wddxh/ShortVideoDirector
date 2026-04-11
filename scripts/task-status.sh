@@ -19,6 +19,7 @@ JSON_FILE="$2"
 case "$ACTION" in
   query)
     # Query all "submitted" tasks via dreamina query_result
+    # Output format: shot:submit_id:gen_status[:detail]
     if [ ! -f "$JSON_FILE" ]; then
       echo "FAIL file not found: $JSON_FILE"
       exit 1
@@ -26,17 +27,19 @@ case "$ACTION" in
     DOWNLOAD_DIR="${3:-/tmp/dreamina-task-query}"
     mkdir -p "$DOWNLOAD_DIR"
 
-    # Extract submit_ids with "submitted" status
-    # Simple grep-based parsing for our fixed JSON format
-    grep -oE '"submit_id"[[:space:]]*:[[:space:]]*"[^"]*"' "$JSON_FILE" | while read -r match; do
-      SUBMIT_ID=$(echo "$match" | sed 's/.*"submit_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-      [ -z "$SUBMIT_ID" ] && continue
+    # Flatten JSON to one object per line, find submitted entries
+    FLAT=$(tr -d '\n' < "$JSON_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
+    while IFS= read -r obj; do
+      [ -z "$obj" ] && continue
+      # Check if this object has status "submitted"
+      echo "$obj" | grep -q '"status"[[:space:]]*:[[:space:]]*"submitted"' || continue
 
-      # Check if this entry has status "submitted"
-      # Look for submit_id followed by status:submitted in the same JSON object
-      if ! grep -A5 "\"$SUBMIT_ID\"" "$JSON_FILE" | grep -q '"status"[[:space:]]*:[[:space:]]*"submitted"'; then
-        continue
-      fi
+      # Extract shot number
+      SHOT=$(echo "$obj" | grep -oE '"shot"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+')
+      # Extract submit_id
+      SUBMIT_ID=$(echo "$obj" | grep -oE '"submit_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+      [ -z "$SUBMIT_ID" ] && continue
+      [ -z "$SHOT" ] && continue
 
       # Query dreamina
       RESULT=$(dreamina query_result --submit_id="$SUBMIT_ID" --download_dir="$DOWNLOAD_DIR" 2>&1)
@@ -44,19 +47,18 @@ case "$ACTION" in
 
       case "$STATUS" in
         success)
-          # Find downloaded file
           DL_FILE=$(ls "$DOWNLOAD_DIR"/${SUBMIT_ID}_* 2>/dev/null | head -1)
-          echo "${SUBMIT_ID}:success:${DL_FILE}"
+          echo "${SHOT}:${SUBMIT_ID}:success:${DL_FILE}"
           ;;
         fail)
           REASON=$(printf '%s' "$RESULT" | grep -o '"fail_reason"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"fail_reason"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-          echo "${SUBMIT_ID}:fail:${REASON:-unknown}"
+          echo "${SHOT}:${SUBMIT_ID}:fail:${REASON:-unknown}"
           ;;
         *)
-          echo "${SUBMIT_ID}:querying"
+          echo "${SHOT}:${SUBMIT_ID}:querying"
           ;;
       esac
-    done
+    done <<< "$FLAT"
     ;;
 
   update)

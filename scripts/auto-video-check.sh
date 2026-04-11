@@ -48,15 +48,16 @@ for TASK_FILE in $TASK_FILES; do
   # Step 2: Query submitted tasks
   QUERY_OUTPUT=$(bash scripts/task-status.sh query "$TASK_FILE" "$TMP_DIR" 2>/dev/null)
 
+  # Output format from task-status.sh query: shot:submit_id:gen_status[:detail]
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    SUBMIT_ID=$(echo "$line" | cut -d: -f1)
-    STATUS=$(echo "$line" | cut -d: -f2)
-    DETAIL=$(echo "$line" | cut -d: -f3-)
+    SHOT_NUM=$(echo "$line" | cut -d: -f1)
+    SUBMIT_ID=$(echo "$line" | cut -d: -f2)
+    STATUS=$(echo "$line" | cut -d: -f3)
+    DETAIL=$(echo "$line" | cut -d: -f4-)
 
     case "$STATUS" in
       success)
-        SHOT_NUM=$(grep -B5 "\"$SUBMIT_ID\"" "$TASK_FILE" | grep -oE '"shot"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1)
         if [ -n "$SHOT_NUM" ] && [ -n "$DETAIL" ]; then
           SHOT_PADDED=$(printf "shot%02d.mp4" "$SHOT_NUM")
           mv "$DETAIL" "$VIDEO_DIR/$SHOT_PADDED" 2>/dev/null
@@ -65,15 +66,29 @@ for TASK_FILE in $TASK_FILES; do
         fi
         ;;
       fail)
-        SHOT_NUM=$(grep -B5 "\"$SUBMIT_ID\"" "$TASK_FILE" | grep -oE '"shot"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1)
-        # Update status to failed and record fail_reason via sed
         bash scripts/task-status.sh update "$TASK_FILE" "$SUBMIT_ID" "failed"
-        # Write fail_reason into the entry
-        sed -i "/${SUBMIT_ID}/,/\"fail_reason\"/{s/\"fail_reason\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"fail_reason\": \"${DETAIL}\"/}" "$TASK_FILE"
+        # Write fail_reason: flatten, replace in matching object, rebuild
+        FLAT=$(tr -d '\n' < "$TASK_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
+        {
+          echo "["
+          FIRST=true
+          while IFS= read -r obj; do
+            [ -z "$obj" ] && continue
+            if echo "$obj" | grep -q "\"$SUBMIT_ID\""; then
+              obj=$(echo "$obj" | sed "s/\"fail_reason\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"fail_reason\":\"${DETAIL}\"/")
+            fi
+            if [ "$FIRST" = true ]; then
+              echo "$obj"
+              FIRST=false
+            else
+              echo ",$obj"
+            fi
+          done <<< "$FLAT"
+          echo "]"
+        } > "${TASK_FILE}.tmp" && mv "${TASK_FILE}.tmp" "$TASK_FILE"
         echo "FAILED:shot${SHOT_NUM}:${DETAIL}"
         ;;
       querying)
-        SHOT_NUM=$(grep -B5 "\"$SUBMIT_ID\"" "$TASK_FILE" | grep -oE '"shot"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1)
         echo "QUERYING:shot${SHOT_NUM}"
         ;;
     esac
