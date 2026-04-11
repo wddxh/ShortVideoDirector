@@ -55,6 +55,8 @@ argument-hint: "[集数|all] [检查间隔秒数]"
    - 使用 CronList 找到本定时任务，使用 CronDelete 删除
    - 提示用户可用 `/check-video {集数}` 手动处理 failed 任务
 4. 否则等待下次触发
+
+严禁：不要以任何理由（包括测试、验证、调试）自行调用 dreamina CLI 提交视频/图片生成任务。视频生成成本很高，只有 check-video skill 内的重试流程才允许提交。
 ```
 
 2. 记录返回的 cron job ID

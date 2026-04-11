@@ -60,14 +60,26 @@ for TASK_FILE in $TASK_FILES; do
       success)
         if [ -n "$SHOT_NUM" ] && [ -n "$DETAIL" ]; then
           SHOT_PADDED=$(printf "shot%02d.mp4" "$SHOT_NUM")
-          mv "$DETAIL" "$VIDEO_DIR/$SHOT_PADDED" 2>/dev/null
-          bash scripts/task-status.sh update "$TASK_FILE" "$SUBMIT_ID" "done"
-          echo "DONE:shot${SHOT_NUM}"
+          MOVE_OK=false
+          for _retry in 1 2 3; do
+            if mv "$DETAIL" "$VIDEO_DIR/$SHOT_PADDED" 2>/dev/null && [ -f "$VIDEO_DIR/$SHOT_PADDED" ]; then
+              MOVE_OK=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$MOVE_OK" = true ]; then
+            bash scripts/task-status.sh update "$TASK_FILE" "$SUBMIT_ID" "done"
+            echo "DONE:shot${SHOT_NUM}"
+          else
+            echo "MOVE_FAILED:shot${SHOT_NUM}:${DETAIL}"
+          fi
         fi
         ;;
       fail)
         bash scripts/task-status.sh update "$TASK_FILE" "$SUBMIT_ID" "failed"
         # Write fail_reason: flatten, replace in matching object, rebuild
+        ESCAPED_DETAIL=$(printf '%s' "$DETAIL" | sed 's/[\/&\\]/\\&/g')
         FLAT=$(tr -d '\n' < "$TASK_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
         {
           echo "["
@@ -75,7 +87,7 @@ for TASK_FILE in $TASK_FILES; do
           while IFS= read -r obj; do
             [ -z "$obj" ] && continue
             if echo "$obj" | grep -q "\"$SUBMIT_ID\""; then
-              obj=$(echo "$obj" | sed "s/\"fail_reason\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"fail_reason\":\"${DETAIL}\"/")
+              obj=$(echo "$obj" | sed "s/\"fail_reason\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"fail_reason\":\"${ESCAPED_DETAIL}\"/")
             fi
             if [ "$FIRST" = true ]; then
               echo "$obj"
@@ -105,15 +117,16 @@ for TASK_FILE in $TASK_FILES; do
     # Find entries with submit_id but empty prompt
     SID=$(echo "$obj" | grep -oE '"submit_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
     [ -z "$SID" ] && continue
-    PROMPT_VAL=$(echo "$obj" | grep -oE '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+    PROMPT_VAL=$(echo "$obj" | sed -n 's/.*"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     if [ -z "$PROMPT_VAL" ] && [ -n "$SID" ]; then
       # Query dreamina for the prompt
       QR=$(dreamina query_result --submit_id="$SID" 2>&1)
       FETCHED_PROMPT=$(printf '%s' "$QR" | grep -oE '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
       if [ -n "$FETCHED_PROMPT" ]; then
         SHOT=$(echo "$obj" | grep -oE '"shot"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+')
-        # Rebuild this object with the fetched prompt
-        UPDATED_OBJ=$(echo "$obj" | sed "s/\"prompt\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"prompt\":\"${FETCHED_PROMPT}\"/")
+        # Rebuild this object with the fetched prompt (escape sed special chars)
+        ESCAPED_PROMPT=$(printf '%s' "$FETCHED_PROMPT" | sed 's/[\/&\\]/\\&/g')
+        UPDATED_OBJ=$(echo "$obj" | sed "s/\"prompt\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"prompt\":\"${ESCAPED_PROMPT}\"/")
         bash scripts/task-status.sh upsert "$TASK_FILE" "$SHOT" "$UPDATED_OBJ"
         NEEDS_BACKFILL=true
         echo "BACKFILL:shot${SHOT}:prompt"
