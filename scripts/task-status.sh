@@ -71,9 +71,26 @@ case "$ACTION" in
       echo "Usage: bash scripts/task-status.sh update file.json submit_id new_status"
       exit 1
     fi
-    # Replace status value for the matching submit_id entry
-    # Find the line with this submit_id, then find the next "status" line and replace
-    sed -i "/${SUBMIT_ID}/,/\"status\"/{s/\"status\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"status\": \"${NEW_STATUS}\"/}" "$JSON_FILE"
+    # Flatten, find matching object by submit_id, replace status, rebuild
+    FLAT=$(tr -d '\n' < "$JSON_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
+    {
+      echo "["
+      FIRST=true
+      while IFS= read -r obj; do
+        [ -z "$obj" ] && continue
+        if echo "$obj" | grep -q "\"$SUBMIT_ID\""; then
+          # Replace status in this object
+          obj=$(echo "$obj" | sed "s/\"status\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"status\":\"${NEW_STATUS}\"/")
+        fi
+        if [ "$FIRST" = true ]; then
+          echo "$obj"
+          FIRST=false
+        else
+          echo ",$obj"
+        fi
+      done <<< "$FLAT"
+      echo "]"
+    } > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
     ;;
 
   remove)
@@ -87,21 +104,25 @@ case "$ACTION" in
       echo "Usage: bash scripts/task-status.sh remove file.json submit_id"
       exit 1
     fi
-    # Remove the JSON object containing this submit_id
-    # This handles the simple array-of-objects format we use
-    awk -v id="$SUBMIT_ID" '
-      BEGIN { skip=0; buf="" }
-      /{/ { buf=$0; skip=0 }
-      { if (buf != "" && $0 !~ /}/) { buf=buf "\n" $0 } }
-      /}/ {
-        if (buf != "") { buf=buf "\n" $0 }
-        else { buf=$0 }
-        if (buf ~ id) { skip=1 }
-        if (!skip) { print buf }
-        buf=""; skip=0
-      }
-      buf == "" && !/[{}]/ { print }
-    ' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+    # Flatten, filter out matching object, rebuild
+    FLAT=$(tr -d '\n' < "$JSON_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
+    {
+      echo "["
+      FIRST=true
+      while IFS= read -r obj; do
+        [ -z "$obj" ] && continue
+        if echo "$obj" | grep -q "\"$SUBMIT_ID\""; then
+          continue
+        fi
+        if [ "$FIRST" = true ]; then
+          echo "$obj"
+          FIRST=false
+        else
+          echo ",$obj"
+        fi
+      done <<< "$FLAT"
+      echo "]"
+    } > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
 
     # Clean up: if file is just [] or empty, remove it
     CONTENT=$(tr -d '[:space:]' < "$JSON_FILE")
