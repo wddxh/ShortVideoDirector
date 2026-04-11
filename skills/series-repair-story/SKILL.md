@@ -18,54 +18,27 @@ argument-hint: "[集数，如 ep03，不填则自动检测最新一集]"
 ### 阶段 1: 确定目标集数
 
 1. 若 `$ARGUMENTS[0]` 非空 → 使用指定集数
-2. 若 `$ARGUMENTS[0]` 为空 → 使用 Glob 匹配 `story/episodes/ep*/` 找到最新集数
+2. 若 `$ARGUMENTS[0]` 为空 → 使用 Bash 调用 `bash scripts/latest-episode.sh` 找到最新集数
 3. 若无任何集目录 → 提示用户先用 `/series-video` 开始新故事，流程结束
 
 ### 阶段 2: 读取配置
 
-1. 读取 `config.md` 获取配置（每集小说字数、每集分镜数等）
+1. 使用 Bash 调用 `bash scripts/read-config.sh "每集分镜数"` 等获取所需配置值
 
 ### 阶段 3: 逐项检测完整性
 
-按生成顺序检查目标集目录下的文件：
+使用 Bash 调用 `bash scripts/check-episode.sh {集数}` 一次性检查所有项目。
 
-**检查 1 — 大纲：** `story/episodes/{集数}/outline.md`
-- 不存在 → 状态：**大纲缺失**
-- 存在但不包含 `## 集尾钩子` → 状态：**大纲不完整**
-- 通过 → 继续检查
+脚本输出每行一项检查结果，格式为 `{检查项}:{状态}[:详情]`：
+- `outline:ok` / `outline:missing` / `outline:incomplete`
+- `novel:ok` / `novel:missing` / `novel:incomplete:{实际字数}/{目标下限}`
+- `script:ok` / `script:missing` / `script:incomplete`
+- `asset-list:ok` / `asset-list:missing`
+- `assets:ok` / `assets:missing:{缺失资产名}`
+- `images:ok` / `images:missing:{缺失资产名}` / `images:skipped`
+- `storyboard:ok` / `storyboard:missing` / `storyboard:incomplete:{实际数}/{目标数}`
 
-**检查 2 — 小说：** `story/episodes/{集数}/novel.md`
-- 不存在 → 状态：**小说缺失**
-- 存在 → 使用 Bash 调用 `bash scripts/word-count.sh story/episodes/{集数}/novel.md` 统计字数，若低于 config 字数范围下限的 50% → 状态：**小说不完整**
-- 通过 → 继续检查
-
-**检查 3 — 资产清单：** `story/episodes/{集数}/outline.md` 中的 `## 本集资产清单`
-- outline.md 中不包含 `## 本集资产清单` → 状态：**资产清单缺失**
-- 通过 → 继续检查
-
-**检查 4 — 资产文件：** 资产清单中「新增资产」列出的每个资产
-- 使用 Glob 检查 `assets/**/*.md`，对照清单中的新增资产名称
-- 有缺失的资产文件 → 状态：**资产文件缺失**
-- 通过 → 继续检查
-
-**检查 4b — 资产图片待查任务（仅图像模型非 none 时）：**
-- 读取 `config.md`，若图像模型为 `none` → 跳过检查 4b 和 4c
-- 检查 `assets/images/pending.json` 是否存在且非空
-- 若存在 → 逐个使用 Bash 调用 `dreamina query_result --submit_id={id} --download_dir=/tmp/dreamina-pending` 查询
-  - `success` → 使用 Bash 将下载的图片 mv 到 `output_path`，从列表移除
-  - `fail` → 从列表移除，记入缺失列表
-  - `querying` → 保留（仍在排队）
-- 更新或删除 `assets/images/pending.json`
-
-**检查 4c — 资产图片完整性（仅图像模型非 none 时）：**
-- 对照已有资产文件（使用 Glob 匹配 `assets/**/*.md`），检查对应的 `assets/images/{category}/{name}.png` 是否存在
-- 有缺失的图片 → 状态：**资产图片缺失**
-- 通过 → 继续检查
-
-**检查 5 — 分镜：** `story/episodes/{集数}/storyboard.md`
-- 不存在 → 状态：**分镜缺失**
-- 存在但镜头数明显不足（低于 config 每集分镜数的 50%）→ 状态：**分镜不完整**
-- 通过 → 所有检查通过
+根据输出判断第一个非 ok 状态的检查项，确定从哪个步骤开始恢复。
 
 ### 阶段 4: 报告 + 确认
 
