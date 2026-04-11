@@ -37,16 +37,28 @@ argument-hint: "集数"
 
 ### 阶段 4: 失败处理（仅当有 failed 任务时）
 
-对每个 status 为 `failed` 的任务：
+对每个 status 为 `failed` 的任务，先判断 `fail_reason` 属于哪种类型：
+
+**a. 可自动重试（并行限制/频率限制/服务端临时错误）：**
+1. 告知用户该镜头因临时原因失败，正在自动重试
+2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
+3. 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"` 获取配置
+4. 使用 Bash 调用 `bash scripts/video-gen-dreamina.sh "{prompt}" "{输出路径}" "{images}" "{duration}" "{比例}" "{模型版本}"` 重新提交
+5. 使用 Bash 调用 `bash scripts/task-status.sh upsert` 更新为新 submit_id + status `submitted`
+6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
+
+**b. 需人工介入（内容安全/合规拒绝/参数错误/其他）：**
 1. 显示镜头编号和 `fail_reason` 原文
 2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
 3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
    - 涉及分镜/画面描述修改 → 检查是否存在 `story/episodes/{集数}/script.md`（短视频）或 `story/episodes/{集数}/novel.md`（系列视频），使用对应的 fix-storyboard skill（`short-fix-storyboard` 或 `storyboarder-fix-storyboard`）
-   - 涉及资产/图片修改 → 读取 `config.md` 获取图像模型值，调用 `creator-fix-asset` skill + `creator-image-{图像模型值}` skill
-4. **用户选择自动修复** → skill 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
-5. 修改完后，读取 `config.md` 获取视频模型值，使用 Skill tool 调用 `creator-video-{视频模型值}` skill 重新提交该镜头
-6. 使用 Bash 调用 `bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {镜头编号} '{新的JSON条目}'` 以新的 submit_id 和 status `submitted` 替换该镜头的记录
-7. 提示用户稍后再次使用 `/check-video {集数}` 查询
+   - 涉及资产/图片修改 → 使用 Bash 调用 `bash scripts/read-config.sh "图像模型"` 获取图像模型值，调用 `creator-fix-asset` skill + `creator-image-{图像模型值}` skill
+4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
+5. 修改完后，需要重新生成该镜头的 prompt（因为分镜内容已改变）：使用 Bash 调用 `bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取新 prompt
+6. 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"` 获取配置
+7. 使用 Bash 调用 `bash scripts/video-gen-dreamina.sh` 重新提交
+8. 使用 Bash 调用 `bash scripts/task-status.sh upsert` 更新记录（含新 prompt）
+9. 提示用户稍后再次使用 `/check-video {集数}` 查询
 
 ## 输出
 
