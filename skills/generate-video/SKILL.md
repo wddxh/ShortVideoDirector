@@ -18,7 +18,7 @@ argument-hint: "集数 [镜头N ...]"
 
 ### 阶段 1: 配置检查
 
-1. 读取 `config.md`，获取 `视频模型` 值
+1. 使用 Bash 调用 `bash scripts/read-config.sh "视频模型"` 获取视频模型值
 2. 若视频模型为 `none` → 进入视频模型交互式配置流程：
    a. 询问视频模型：A) none B) dreamina
    b. 若选择 none → 提示"已取消"并结束
@@ -39,7 +39,7 @@ argument-hint: "集数 [镜头N ...]"
 ### 阶段 3: 前置检查
 
 1. 从每个目标镜头的 `**引用资产：**` 行提取所有资产链接
-2. 将链接路径（如 `../../../assets/characters/张三.md`）转换为图片路径（如 `assets/images/characters/张三.png`）
+2. 使用 Bash 调用 `bash scripts/asset-to-image-path.sh "{资产路径}"` 转换为图片路径
 3. 使用 Glob 检查每个图片是否存在
 4. 若有缺失 → 列出缺失清单，提示用户先生成图片（使用 `/series-edit-story 重新生成XXX的参考图片` 或确保图像模型已配置），结束
 5. 全部存在 → 继续

@@ -18,7 +18,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 
 ### 阶段 1: 上下文检测
 
-1. 使用 Glob 匹配 `story/episodes/ep*/` 检测最新集数 N
+1. 使用 Bash 调用 `bash scripts/latest-episode.sh` 检测最新集数 N
 2. 使用 Bash 创建新集目录 `story/episodes/ep{N+1}/`
 3. 工作模式为 `$ARGUMENTS[0]`（default / full-auto）
 
