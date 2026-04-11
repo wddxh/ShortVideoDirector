@@ -23,17 +23,11 @@ argument-hint: "集数"
 
 ### 阶段 2: 逐个查询
 
-对每个 status 为 `submitted` 的任务：
-1. 使用 Bash 执行 `dreamina query_result --submit_id={submit_id} --download_dir=story/episodes/{集数}/videos/tmp`
-2. 解析返回 JSON 中的 `gen_status`：
-   - `success` → 找到下载的视频文件，使用 Bash 执行 `mv "story/episodes/{集数}/videos/tmp/{submit_id}_video_1.mp4" "story/episodes/{集数}/videos/shot{NN}.mp4"`，更新 tasks.json 中该条目 status 为 `done`
-   - `querying` → 保持 status 为 `submitted`（仍在排队/生成中）
-   - `fail` → 提取 `fail_reason`，更新 tasks.json 中该条目 status 为 `failed`，记录 `fail_reason`
-3. 清理临时目录：`rm -rf story/episodes/{集数}/videos/tmp`
+使用 Bash 调用 `bash scripts/task-status.sh query "story/episodes/{集数}/videos/tasks.json" "story/episodes/{集数}/videos/tmp"` 批量查询所有 submitted 任务
 
 ### 阶段 3: 更新 tasks.json
 
-1. 使用 Write 写入更新后的 tasks.json
+1. 使用 Bash 调用 `bash scripts/task-status.sh update "story/episodes/{集数}/videos/tasks.json" {submit_id} done`
 
 ### 阶段 4: 输出进度摘要
 

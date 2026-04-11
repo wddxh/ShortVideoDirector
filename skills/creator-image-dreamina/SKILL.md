@@ -24,10 +24,7 @@ allowed-tools: Read, Write, Glob, Bash
 
 ### 阶段 1: 准备
 
-1. 读取 `config.md` 中 `## 图像生成配置`，获取：
-   - `即梦模型版本`（如 `4.0`）
-   - `图片比例`（如 `1:1`）
-   - `图片分辨率`（如 `2k`）
+1. 使用 Bash 调用 `bash scripts/read-config.sh "即梦模型版本"` 等获取配置值（即梦模型版本、图片比例、图片分辨率）
 2. 若模型版本非 `4.0`（即使用付费模型），计算预估积分消耗（资产数 × 3），提醒用户并等待确认
 3. 使用 Bash 执行 `dreamina user_credit`，检查返回是否成功
    - 失败 → 输出"即梦CLI未登录，请先执行 `dreamina login` 完成登录"并结束
@@ -44,7 +41,7 @@ allowed-tools: Read, Write, Glob, Bash
 
 对每个资产路径（先基础资产，后造型变体）：
 1. 读取资产文件中 `## 图像生成提示词` 部分的内容
-2. 根据资产路径推导输出图片路径：`assets/{category}/{name}.md` → `assets/images/{category}/{name}.png`
+2. 根据资产路径推导输出图片路径（使用 Bash 调用 `bash scripts/asset-to-image-path.sh "{资产路径}"` 推导图片路径）
 3. 判断是否为造型变体资产（资产文件中 `## 基本信息` 包含 `类型：造型变体`）：
    - 若是造型变体 → 从 `## 基本信息` 中的 `基础角色` 链接提取基础角色名，推导基础角色图片路径 `assets/images/characters/{基础角色名}.png`，确认该图片存在后作为参考图
    - 若基础角色图片不存在 → 记录失败（"基础角色图片缺失，无法生成变装图"），跳过该资产
@@ -65,9 +62,7 @@ allowed-tools: Read, Write, Glob, Bash
    - `fail` → 记录失败，从待查列表移除
    - `querying` → 保留在待查列表
 4. 若待查列表仍非空，重复步骤 1-3（最多 5 轮，共约 2.5 分钟额外等待）
-5. 5 轮后仍有 pending → 写入 `assets/images/pending.json`：
-   - 若文件已存在，先读取现有内容，合并去重（按 `submit_id`）
-   - 使用 Write 写入 JSON 数组，每项包含 `submit_id`、`asset_path`、`output_path`
+5. 5 轮后仍有 pending → 使用 Bash 调用 `bash scripts/task-status.sh add assets/images/pending.json '{JSON条目}'` 写入超时任务
 
 ### 阶段 5: 摘要
 

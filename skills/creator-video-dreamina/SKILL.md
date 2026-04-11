@@ -25,10 +25,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 ### 阶段 1: 准备
 
-1. 读取 `config.md` 中 `## 视频生成配置`，获取：
-   - `即梦视频模型版本`（如 `seedance2.0fast`）
-   - `视频比例`（如 `16:9`）
-   - `视频分辨率`（如 `720p`）
+1. 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 等获取配置值（即梦视频模型版本、视频比例、视频分辨率）
 2. 使用 Bash 执行 `dreamina user_credit` 检查登录状态并显示当前积分余额
    - 失败 → 输出"即梦CLI未登录，请先执行 `dreamina login` 完成登录"并结束
 3. 使用 Bash 确保输出目录存在：`mkdir -p story/episodes/{集数}/videos`
@@ -37,11 +34,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 1. 读取 `story/episodes/{集数}/storyboard.md`，解析所有镜头（`### 镜头 N` 块）
 2. 根据 `$ARGUMENTS[1]` 过滤目标镜头（`all` 则使用全部）
-3. 对每个目标镜头：
-   a. 提取 `**引用资产：**` 行中的所有资产链接，按顺序编号
-   b. 将每个 `[资产名](../../../assets/{category}/{name}.md)` 替换为 `[资产名:{图片N}]`（N 从 1 开始）
-   c. 收集对应的图片文件路径列表（逗号分隔）：`assets/images/{category}/{name}.png`
-   d. 从 `**时长：**` 行提取秒数（如 `15s` → `15`）
+3. 对每个目标镜头，使用 Bash 调用 `bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取替换后的 prompt、图片路径列表和时长
 
 ### 阶段 3: 逐镜头提交
 
@@ -53,8 +46,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 ### 阶段 4: 写入 tasks.json
 
-1. 若 `story/episodes/{集数}/videos/tasks.json` 已存在 → 读取现有内容，合并（按 shot 编号更新或追加）
-2. 使用 Write 写入更新后的 tasks.json
+1. 使用 Bash 调用 `bash scripts/task-status.sh add "story/episodes/{集数}/videos/tasks.json" '{JSON条目}'` 记录任务
 
 ### 阶段 5: 摘要
 
