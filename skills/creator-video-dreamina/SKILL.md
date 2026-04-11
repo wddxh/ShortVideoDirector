@@ -43,8 +43,8 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 对每个目标镜头：
 1. 使用 Bash 调用：`bash scripts/video-gen-dreamina.sh "{替换后的prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{图片路径列表}" "{时长}" "{比例}" "{模型版本}"`
 3. 根据退出码处理：
-   - exit 0，stdout 以 `SUBMITTED` 开头 → 提取 `submit_id`，记录 `{"shot": N, "submit_id": "xxx", "status": "submitted"}`
-   - exit 1，stdout 以 `FAIL` 开头 → 记录 `{"shot": N, "submit_id": "", "status": "failed", "fail_reason": "..."}`
+   - exit 0，stdout 以 `SUBMITTED` 开头 → 提取 `submit_id`，记录 `{"shot": N, "submit_id": "xxx", "status": "submitted", "prompt": "替换后的完整prompt", "images": "图片路径列表", "duration": 时长, "fail_reason": ""}`
+   - exit 1，stdout 以 `FAIL` 开头 → 记录 `{"shot": N, "submit_id": "", "status": "failed", "prompt": "替换后的完整prompt", "images": "图片路径列表", "duration": 时长, "fail_reason": "..."}`
 
 ### 阶段 4: 写入 tasks.json
 

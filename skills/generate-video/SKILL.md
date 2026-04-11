@@ -49,7 +49,10 @@ argument-hint: "集数 [镜头N ...]"
 1. 读取 `config.md` 获取视频模型值
 2. 使用 Skill tool 调用 `creator-video-{视频模型值}` skill，传递参数：`{集数} {目标镜头编号列表，如 "1 3 5" 或 "all"}`
 
-### 阶段 5: 完成
+### 阶段 5: 启动自动监控
+
+1. 使用 Skill tool 调用 `auto-video` skill，传递参数：`{集数} 1200`
+
+### 阶段 6: 完成
 
 1. 输出提交摘要
-2. 提示用户稍后使用 `/check-video {集数}` 查询结果
