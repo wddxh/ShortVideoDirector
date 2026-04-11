@@ -138,9 +138,17 @@ argument-hint: "[故事材料|文件路径]"
 
 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
 
-**4.6 Storyboarder — 生成分镜：**
+**4.6 生成分镜 + 生成资产图片（并行）：**
 
-使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
+若 config 中图像模型非 `none`，以下两条线并行执行（分镜流程不等待图片完成）：
+
+**图片生成线（后台）：**
+使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
+
+**分镜流程线（前台，正常推进）：**
+1. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
+
+若 config 中图像模型为 `none`，仅执行分镜流程线。
 
 **4.7 Director — 审核分镜：**
 
