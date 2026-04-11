@@ -1,6 +1,6 @@
 # ShortVideoDirector
 
-一个 Claude Code Plugin，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词和资产图像提示词。
+一个 Claude Code Plugin，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词、资产参考图片和视频片段。
 
 ## 功能
 
@@ -8,8 +8,10 @@
 - 自动生成人物、物品、场景、建筑的图像提示词
 - 支持持续创作，保持人物、资产和声音在整个故事中的一致性
 - 支持即梦CLI（Dreamina）自动生成资产参考图片，与分镜流程并行执行
-- 支持即梦CLI（Dreamina）异步生成视频片段，分镜自动转化为 multimodal2video prompt
-- 可配置图像模型（none / dreamina），选择 dreamina 后可配置模型版本、图片比例、分辨率
+- 支持即梦CLI（Dreamina）异步生成视频片段，分镜自动转化为 multimodal2video prompt，资产图片作为全能参考
+- 视频生成定时任务（`/auto-video`），自动查询状态、下载完成视频、重试因并行限制失败的任务
+- 视频生成失败智能判断：LLM 分析 fail_reason，可重试的自动重试，需人工介入的交互修复
+- 可配置图像模型（none / dreamina）和视频模型（none / dreamina），选择 dreamina 后可配置模型版本、比例、分辨率
 - 可配置视频风格（2D动漫/3D动漫/3D写实/2D手绘/自定义）
 - 首次运行交互式引导配置，支持自定义模型和风格输入
 - 支持 Director 自动生成剧情选项供选择，不满意可重新生成或提供偏好
@@ -108,12 +110,19 @@ claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
 ```bash
-# 提交视频生成任务
+# 提交视频生成任务（异步，提交后自动启动定时监控）
 /generate-video ep01                    # 整集所有镜头
 /generate-video ep01 镜头3 镜头5        # 指定镜头
 
-# 查询视频生成结果
+# 查询视频生成结果（交互模式，可处理失败任务）
 /check-video ep01
+/check-video ep01 --auto                # 自动模式，只重试可重试的失败
+/check-video all --auto                 # 检查所有集
+
+# 启动/管理视频生成定时监控
+/auto-video ep01                        # 监控 ep01，默认每 20 分钟检查
+/auto-video ep01 300                    # 自定义间隔（秒）
+/auto-video all                         # 监控所有集
 ```
 
 ## 生成的目录结构
@@ -302,6 +311,7 @@ ShortVideoDirector/
 │   ├── creator-image-dreamina/  # Creator 即梦图片生成（模型编排层）
 │   ├── generate-video/          # 提交视频生成任务（用户可调用）
 │   ├── check-video/             # 查询视频生成结果（用户可调用）
+│   ├── auto-video/              # 视频生成定时监控（用户可调用）
 │   ├── creator-video-dreamina/  # 即梦视频生成（模型编排层）
 │   ├── creator-update-records/  # Creator 更新出场记录
 │   ├── creator-fix-asset/         # Creator 修正资产
@@ -319,8 +329,15 @@ ShortVideoDirector/
 │   └── short-repair-story/      # 修复单集短视频中断的生成
 ├── scripts/
 │   ├── run-batch.ps1            # 批量生成脚本
-│   ├── image-gen-dreamina.sh    # 即梦单张图片生成脚本
-│   ├── video-gen-dreamina.sh    # 即梦单镜头视频提交脚本
+│   ├── image-gen-dreamina.sh    # 即梦单张图片生成脚本（支持参考图）
+│   ├── video-gen-dreamina.sh    # 即梦单镜头视频提交脚本（异步）
+│   ├── auto-video-check.sh      # 视频生成状态检查脚本（定时任务用）
+│   ├── read-config.sh           # config.md 键值提取
+│   ├── check-episode.sh         # 集文件完整性检查
+│   ├── storyboard-to-prompt.sh  # 分镜资产链接替换为图片引用
+│   ├── asset-to-image-path.sh   # 资产路径转图片路径
+│   ├── latest-episode.sh        # 最新集数检测
+│   ├── task-status.sh           # JSON 任务文件操作（query/update/remove/add/upsert）
 │   ├── word-count.sh            # 字数统计脚本
 │   └── speech-rate.sh           # 台词语速检查脚本
 └── README.md
