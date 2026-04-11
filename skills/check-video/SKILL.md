@@ -43,9 +43,14 @@ argument-hint: "集数 [--auto]"
 
 ### 阶段 4: 失败处理（仅当有 failed 任务时）
 
-对每个 status 为 `failed` 的任务，先判断 `fail_reason` 属于哪种类型：
+对每个 status 为 `failed` 的任务：
+1. 若 `retriable` 字段尚未设置 → 判断 `fail_reason` 属于哪种类型并设置 `retriable`：
+   - 并行限制/频率限制/服务端临时错误 → `retriable: true`
+   - 内容安全/合规拒绝/参数错误/其他 → `retriable: false`
+   - 使用 Bash 调用 `bash scripts/task-status.sh update` 将 `retriable` 写入 tasks.json
+2. 若 `retriable` 已设置 → 直接使用记录的值
 
-**a. 可自动重试（并行限制/频率限制/服务端临时错误）：**
+**a. `retriable: true` 的任务：**
 1. 告知用户该镜头因临时原因失败，正在自动重试
 2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
 3. 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"` 获取配置
@@ -53,7 +58,7 @@ argument-hint: "集数 [--auto]"
 5. 使用 Bash 调用 `bash scripts/task-status.sh upsert` 更新为新 submit_id + status `submitted`
 6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
 
-**b. 需人工介入（内容安全/合规拒绝/参数错误/其他）：**
+**b. `retriable: false` 的任务：**
 
 **自动模式（`--auto`）：** 仅输出失败镜头和原因，提示用户可用 `/check-video {集数}` 手动处理，不询问用户。
 

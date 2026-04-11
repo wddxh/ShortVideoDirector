@@ -43,8 +43,9 @@
 - `images` — 逗号分隔的图片路径列表（与 `--image` 传入顺序一致）
 - `duration` — 镜头时长秒数
 - `fail_reason` — 失败原因（仅 failed 状态时有值）
+- `retriable` — 是否可自动重试（布尔值，由 LLM 判断 fail_reason 后设置。true = 并行限制/服务端临时错误，false = 需人工介入，默认 false）
 
-**status 值域：** `submitted` / `done` / `failed` / `pending_retry`
+**status 值域：** `submitted` / `done` / `failed`
 
 ## 3. 对 creator-video-dreamina 的修改
 
