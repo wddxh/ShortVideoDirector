@@ -71,6 +71,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 - 3 个选项必须有明显差异
 - continue-story 时：稳健（顺延当前剧情线）、激进（大反转/新冲突）、拓展（引入新角色/新势力/新世界观元素）
+- continue-story 时若 `story/arc.md` 存在：3 个选项必须围绕 arc 中为下一集分配的剧情规划展开，不得偏离 arc 的整体方向和阶段目标。选项的差异体现在具体的演绎方式和细节处理上，而非剧情走向本身
 
 ## 输出
 
