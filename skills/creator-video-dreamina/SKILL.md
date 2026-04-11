@@ -38,24 +38,18 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 4. 若过滤后无需提交的镜头 → 输出"所有镜头已提交，无需重复提交"并结束
 3. 对每个目标镜头，使用 Bash 调用 `bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取替换后的 prompt、图片路径列表和时长
 
-### 阶段 3: 逐镜头提交
+### 阶段 3: 逐镜头提交并记录
 
 对每个目标镜头：
-1. 使用 Bash 调用：`bash scripts/video-gen-dreamina.sh "{替换后的prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{图片路径列表}" "{时长}" "{比例}" "{模型版本}"`
-3. 根据退出码处理：
-   - exit 0，stdout 以 `SUBMITTED` 开头 → 提取 `submit_id`，记录 `{"shot": N, "submit_id": "xxx", "status": "submitted", "prompt": "替换后的完整prompt", "images": "图片路径列表", "duration": 时长, "fail_reason": ""}`
-   - exit 1，stdout 以 `FAIL` 开头 → 记录 `{"shot": N, "submit_id": "", "status": "failed", "prompt": "替换后的完整prompt", "images": "图片路径列表", "duration": 时长, "fail_reason": "..."}`
+1. 提交视频生成：`bash scripts/video-gen-dreamina.sh "{替换后的prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{图片路径列表}" "{时长}" "{比例}" "{模型版本}"`
+2. 根据退出码处理：
+   - exit 0，stdout 以 `SUBMITTED` 开头 → 提取 `submit_id`
+   - exit 1，stdout 以 `FAIL` 开头 → 提取失败原因
+3. 写入 tasks.json（以 shot 编号为主键，存在则替换，不存在则追加）：
+   - 成功：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {N} '{"shot":{N},"submit_id":"{提取的submit_id}","status":"submitted","prompt":"{替换后的完整prompt}","images":"{图片路径列表}","duration":{时长},"fail_reason":""}'`
+   - 失败：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {N} '{"shot":{N},"submit_id":"","status":"failed","prompt":"{替换后的完整prompt}","images":"{图片路径列表}","duration":{时长},"fail_reason":"{失败原因}"}'`
 
-### 阶段 4: 写入 tasks.json
-
-1. 对每个已提交的镜头，使用 Bash 调用 `bash scripts/task-status.sh upsert` 记录任务（以 shot 编号为主键，存在则替换，不存在则追加）
-
-**完整调用示例（第 4 个参数必须是完整 JSON 对象，不能只传 submit_id）：**
-```bash
-bash scripts/task-status.sh upsert "story/episodes/ep01/videos/tasks.json" 3 '{"shot":3,"submit_id":"abc123","status":"submitted","prompt":"替换后的完整prompt","images":"img1.png,img2.png","duration":15,"fail_reason":""}'
-```
-
-### 阶段 5: 摘要
+### 阶段 4: 摘要
 
 1. 使用 Bash 执行 `dreamina user_credit`，显示提交后的积分余额
 2. 输出提交摘要：成功提交 N 个、提交失败 N 个
