@@ -32,9 +32,17 @@ allowed-tools: Read, Write, Glob, Bash
 3. 使用 Bash 执行 `dreamina user_credit`，检查返回是否成功
    - 失败 → 输出"即梦CLI未登录，请先执行 `dreamina login` 完成登录"并结束
 
-### 阶段 2: 逐个生成
+### 阶段 2: 分类排序
 
-对每个资产路径：
+遍历所有资产路径，读取每个资产文件的 `## 基本信息`，按类型分为两组：
+- **基础资产**（类型非「造型变体」）— 先生成
+- **造型变体**（类型为「造型变体」）— 后生成，依赖基础角色图片作为参考
+
+先处理全部基础资产（包括等待 pending），确保基础角色图片就绪后，再处理造型变体。
+
+### 阶段 3: 逐个生成
+
+对每个资产路径（先基础资产，后造型变体）：
 1. 读取资产文件中 `## 图像生成提示词` 部分的内容
 2. 根据资产路径推导输出图片路径：`assets/{category}/{name}.md` → `assets/images/{category}/{name}.png`
 3. 判断是否为造型变体资产（资产文件中 `## 基本信息` 包含 `类型：造型变体`）：
@@ -47,7 +55,7 @@ allowed-tools: Read, Write, Glob, Bash
    - exit 1，stdout 以 `FAIL` 开头 → 记录失败，记下失败原因
    - exit 2，stdout 以 `PENDING` 开头 → 提取 `submit_id`，连同 `asset_path` 和 `output_path` 加入待查列表
 
-### 阶段 3: 轮询 pending 任务
+### 阶段 4: 轮询 pending 任务
 
 若待查列表非空：
 1. 等待 30 秒
@@ -61,7 +69,7 @@ allowed-tools: Read, Write, Glob, Bash
    - 若文件已存在，先读取现有内容，合并去重（按 `submit_id`）
    - 使用 Write 写入 JSON 数组，每项包含 `submit_id`、`asset_path`、`output_path`
 
-### 阶段 4: 摘要
+### 阶段 5: 摘要
 
 输出结果摘要：
 - 成功：N 张图片已生成
