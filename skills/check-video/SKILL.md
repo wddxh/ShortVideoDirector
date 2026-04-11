@@ -21,20 +21,21 @@ argument-hint: "集数"
 3. 若文件不存在 → 提示"未找到视频生成任务，请先使用 `/generate-video {集数}` 提交任务"，结束
 4. 过滤出 status 为 `submitted` 的任务（跳过已 `done` 的）
 
-### 阶段 2: 逐个查询
+### 阶段 2: 批量查询 + 更新
 
-使用 Bash 调用 `bash scripts/task-status.sh query "story/episodes/{集数}/videos/tasks.json" "story/episodes/{集数}/videos/tmp"` 批量查询所有 submitted 任务
+1. 使用 Bash 调用 `bash scripts/task-status.sh query "story/episodes/{集数}/videos/tasks.json" "story/episodes/{集数}/videos/tmp"` 批量查询所有 submitted 任务
+2. 解析脚本输出（每行 `{submit_id}:{gen_status}:{详情}`），对每个结果：
+   - `success` → 使用 Bash 将下载的文件 mv 到目标路径：`mv "story/episodes/{集数}/videos/tmp/{submit_id}_video_1.mp4" "story/episodes/{集数}/videos/shot{NN}.mp4"`，然后调用 `bash scripts/task-status.sh update "story/episodes/{集数}/videos/tasks.json" {submit_id} done`
+   - `fail` → 调用 `bash scripts/task-status.sh update "story/episodes/{集数}/videos/tasks.json" {submit_id} failed`，记录 fail_reason
+   - `querying` → 不更新，保持 submitted 状态
+3. 清理临时目录：`rm -rf story/episodes/{集数}/videos/tmp`
 
-### 阶段 3: 更新 tasks.json
-
-1. 使用 Bash 调用 `bash scripts/task-status.sh update "story/episodes/{集数}/videos/tasks.json" {submit_id} done`
-
-### 阶段 4: 输出进度摘要
+### 阶段 3: 输出进度摘要
 
 1. 统计各状态数量：done / submitted / failed
 2. 输出摘要：完成 N 个 / 排队中 N 个 / 失败 N 个
 
-### 阶段 5: 失败处理（仅当有 failed 任务时）
+### 阶段 4: 失败处理（仅当有 failed 任务时）
 
 对每个 status 为 `failed` 的任务：
 1. 显示镜头编号和 `fail_reason` 原文
