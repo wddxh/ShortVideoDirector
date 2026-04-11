@@ -48,6 +48,20 @@ argument-hint: "[集数，如 ep03，不填则自动检测最新一集]"
 - 有缺失的资产文件 → 状态：**资产文件缺失**
 - 通过 → 继续检查
 
+**检查 4b — 资产图片待查任务（仅图像模型非 none 时）：**
+- 读取 `config.md`，若图像模型为 `none` → 跳过检查 4b 和 4c
+- 检查 `assets/images/pending.json` 是否存在且非空
+- 若存在 → 逐个使用 Bash 调用 `dreamina query_result --submit_id={id} --download_dir=/tmp/dreamina-pending` 查询
+  - `success` → 使用 Bash 将下载的图片 mv 到 `output_path`，从列表移除
+  - `fail` → 从列表移除，记入缺失列表
+  - `querying` → 保留（仍在排队）
+- 更新或删除 `assets/images/pending.json`
+
+**检查 4c — 资产图片完整性（仅图像模型非 none 时）：**
+- 对照已有资产文件（使用 Glob 匹配 `assets/**/*.md`），检查对应的 `assets/images/{category}/{name}.png` 是否存在
+- 有缺失的图片 → 状态：**资产图片缺失**
+- 通过 → 继续检查
+
 **检查 5 — 分镜：** `story/episodes/{集数}/storyboard.md`
 - 不存在 → 状态：**分镜缺失**
 - 存在但镜头数明显不足（低于 config 每集分镜数的 50%）→ 状态：**分镜不完整**
@@ -77,7 +91,12 @@ argument-hint: "[集数，如 ep03，不填则自动检测最新一集]"
 **从资产文件开始恢复：**
 1. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`{集数}`
 2. 若非 ep01：使用 Skill tool 调用 `creator-update-records` skill，传递参数：`{集数}`
-3. 继续执行"从分镜开始恢复"
+3. 若图像模型非 `none`：使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
+4. 继续执行"从分镜开始恢复"
+
+**从资产图片开始恢复（仅图像模型非 none 时）：**
+1. 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
+2. 继续执行"从分镜开始恢复"
 
 **从分镜开始恢复：**
 1. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`{集数}`
