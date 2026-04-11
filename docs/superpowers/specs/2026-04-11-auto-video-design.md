@@ -42,10 +42,9 @@
 - `prompt` — 完整的替换后镜头 markdown 块（含 `[名称:{图片N}]` 格式）
 - `images` — 逗号分隔的图片路径列表（与 `--image` 传入顺序一致）
 - `duration` — 镜头时长秒数
-- `fail_reason` — 失败原因（仅 failed 状态时有值）
-- `retriable` — 是否可自动重试（布尔值，由 LLM 判断 fail_reason 后设置。true = 并行限制/服务端临时错误，false = 需人工介入，默认 false）
+- `fail_reason` — 失败原因（仅 failed/pending_retry 状态时有值）
 
-**status 值域：** `submitted` / `done` / `failed`
+**status 值域：** `submitted` / `done` / `failed` / `pending_retry`
 
 ## 3. 对 creator-video-dreamina 的修改
 
