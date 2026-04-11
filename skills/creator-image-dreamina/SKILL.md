@@ -62,7 +62,19 @@ allowed-tools: Read, Write, Glob, Bash
    - `fail` → 记录失败，从待查列表移除
    - `querying` → 保留在待查列表
 4. 若待查列表仍非空，重复步骤 1-3（最多 5 轮，共约 2.5 分钟额外等待）
-5. 5 轮后仍有 pending → 用 Read 读取 `assets/images/pending.json`（不存在则视为 `[]`），追加超时任务条目，用 Write 写回
+5. 5 轮后仍有 pending → 用 Read 读取 `assets/images/pending.json`（不存在则视为 `[]`），追加超时任务条目，用 Write 写回。pending.json 格式如下：
+
+```json
+[
+  {"submit_id": "abc123", "output_path": "assets/images/characters/林知意.png", "asset_name": "林知意"}
+]
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| submit_id | string | dreamina 返回的任务 ID |
+| output_path | string | 图片应保存的目标路径 |
+| asset_name | string | 资产名称 |
 
 ### 阶段 5: 摘要
 

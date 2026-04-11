@@ -29,13 +29,33 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 ## tasks.json 格式
 
+文件路径：`story/episodes/{集数}/videos/tasks.json`
+
+每条记录包含以下字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| shot | number | 镜头编号（主键，从 1 开始） |
+| submit_id | string | dreamina 返回的任务 ID（未提交时为 `""`） |
+| status | string | `submitted`（等待结果）/ `done`（视频已下载）/ `failed`（生成失败） |
+| prompt | string | 提交时使用的完整 prompt 文本 |
+| images | string | 逗号分隔的参考图片路径列表 |
+| duration | number | 视频时长（秒） |
+| fail_reason | string | 失败原因（成功时为 `""`） |
+
+完整示例：
+
 ```json
 [
-  {"shot": 1, "submit_id": "abc123", "status": "submitted", "prompt": "...", "images": "a.png,b.png", "duration": 15, "fail_reason": ""}
+  {"shot": 1, "submit_id": "0a7fdfa1711442ee", "status": "submitted", "prompt": "### 镜头 1\n- **镜头类型：** 特写\n...", "images": "assets/images/characters/林知意.png,assets/images/locations/郊外泥地.png", "duration": 15, "fail_reason": ""},
+  {"shot": 2, "submit_id": "", "status": "failed", "prompt": "### 镜头 2\n...", "images": "assets/images/characters/林知意.png", "duration": 15, "fail_reason": "ExceedConcurrencyLimit"}
 ]
 ```
 
-status 取值：`submitted`（已提交等待结果）、`done`（视频已下载）、`failed`（生成失败）
+写入规则：
+- 每个 shot 编号只能有一条记录，更新时替换已有条目
+- 写入完整 JSON 数组，不要追加或部分修改
+- 必须用 Read 读取最新内容后再修改，避免覆盖其他 shot 的变更
 
 ## 流程
 
