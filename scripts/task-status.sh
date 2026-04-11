@@ -140,6 +140,11 @@ case "$ACTION" in
       echo "Usage: bash scripts/task-status.sh add file.json '{\"shot\":1,...}'"
       exit 1
     fi
+    # Validate ENTRY is a JSON object
+    if ! echo "$ENTRY" | grep -q '^{.*}$'; then
+      echo "FAIL: ENTRY must be a JSON object starting with { and ending with }, got: $ENTRY"
+      exit 1
+    fi
     if [ ! -f "$JSON_FILE" ]; then
       echo "[$ENTRY]" > "$JSON_FILE"
     else
@@ -173,6 +178,11 @@ case "$ACTION" in
     ENTRY="$4"
     if [ -z "$SHOT_NUM" ] || [ -z "$ENTRY" ]; then
       echo "Usage: bash scripts/task-status.sh upsert file.json shot_number '{\"shot\":1,...}'"
+      exit 1
+    fi
+    # Validate ENTRY is a JSON object
+    if ! echo "$ENTRY" | grep -q '^{.*}$'; then
+      echo "FAIL: ENTRY must be a JSON object starting with { and ending with }, got: $ENTRY"
       exit 1
     fi
     if [ ! -f "$JSON_FILE" ]; then
