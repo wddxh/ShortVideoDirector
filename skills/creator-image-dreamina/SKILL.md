@@ -37,7 +37,11 @@ allowed-tools: Read, Write, Glob, Bash
 对每个资产路径：
 1. 读取资产文件中 `## 图像生成提示词` 部分的内容
 2. 根据资产路径推导输出图片路径：`assets/{category}/{name}.md` → `assets/images/{category}/{name}.png`
-3. 使用 Bash 执行：`bash scripts/image-gen-dreamina.sh "{提示词}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}"`
+3. 判断是否为造型变体资产（资产文件中 `## 基本信息` 包含 `类型：造型变体`）：
+   - 若是造型变体 → 从 `## 基本信息` 中的 `基础角色` 链接提取基础角色名，推导基础角色图片路径 `assets/images/characters/{基础角色名}.png`，确认该图片存在后作为参考图
+   - 若基础角色图片不存在 → 记录失败（"基础角色图片缺失，无法生成变装图"），跳过该资产
+   - 若不是造型变体 → 无参考图
+4. 使用 Bash 执行：`bash scripts/image-gen-dreamina.sh "{提示词}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" "{参考图路径或空}"`
 4. 根据退出码和 stdout 处理：
    - exit 0，stdout 以 `OK` 开头 → 记录成功
    - exit 1，stdout 以 `FAIL` 开头 → 记录失败，记下失败原因
