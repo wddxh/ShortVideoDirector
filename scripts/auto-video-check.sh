@@ -96,6 +96,30 @@ for TASK_FILE in $TASK_FILES; do
 
   # Clean up tmp dir
   rm -rf "$TMP_DIR"
+
+  # Step 3: Backfill missing prompts from dreamina query_result
+  FLAT=$(tr -d '\n' < "$TASK_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
+  NEEDS_BACKFILL=false
+  while IFS= read -r obj; do
+    [ -z "$obj" ] && continue
+    # Find entries with submit_id but empty prompt
+    SID=$(echo "$obj" | grep -oE '"submit_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+    [ -z "$SID" ] && continue
+    PROMPT_VAL=$(echo "$obj" | grep -oE '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+    if [ -z "$PROMPT_VAL" ] && [ -n "$SID" ]; then
+      # Query dreamina for the prompt
+      QR=$(dreamina query_result --submit_id="$SID" 2>&1)
+      FETCHED_PROMPT=$(printf '%s' "$QR" | grep -oE '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+      if [ -n "$FETCHED_PROMPT" ]; then
+        SHOT=$(echo "$obj" | grep -oE '"shot"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+')
+        # Rebuild this object with the fetched prompt
+        UPDATED_OBJ=$(echo "$obj" | sed "s/\"prompt\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"prompt\":\"${FETCHED_PROMPT}\"/")
+        bash scripts/task-status.sh upsert "$TASK_FILE" "$SHOT" "$UPDATED_OBJ"
+        NEEDS_BACKFILL=true
+        echo "BACKFILL:shot${SHOT}:prompt"
+      fi
+    fi
+  done <<< "$FLAT"
 done
 
 # Final summary: count across all files
