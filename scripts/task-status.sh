@@ -75,9 +75,9 @@ case "$ACTION" in
     fi
     # Validate NEW_STATUS is a simple string (no JSON objects or quotes)
     case "$NEW_STATUS" in
-      submitted|done|failed|pending_retry) ;;
+      submitted|done|failed) ;;
       *)
-        echo "FAIL: status must be one of: submitted, done, failed, pending_retry. Got: $NEW_STATUS"
+        echo "FAIL: status must be one of: submitted, done, failed. Got: $NEW_STATUS"
         exit 1
         ;;
     esac

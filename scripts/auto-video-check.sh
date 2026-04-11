@@ -3,7 +3,7 @@
 # Does NOT judge fail reasons or retry — that's the LLM's job.
 # Usage: bash scripts/auto-video-check.sh {ep01|all}
 # Output: structured status per task file, then summary line
-# Exit codes: 0=all tasks done/failed (no submitted/pending_retry), 1=tasks still in progress
+# Exit codes: 0=all tasks done/failed (no submitted), 1=tasks still in progress
 
 if [ $# -lt 1 ]; then
   echo "Usage: bash scripts/auto-video-check.sh {ep01|all}"
@@ -139,21 +139,19 @@ done
 FINAL_DONE=0
 FINAL_SUBMITTED=0
 FINAL_FAILED=0
-FINAL_PENDING=0
 
 for TASK_FILE in $TASK_FILES; do
   [ ! -f "$TASK_FILE" ] && continue
   FINAL_DONE=$((FINAL_DONE + $(grep -c '"done"' "$TASK_FILE" 2>/dev/null)))
   FINAL_SUBMITTED=$((FINAL_SUBMITTED + $(grep -c '"submitted"' "$TASK_FILE" 2>/dev/null)))
   FINAL_FAILED=$((FINAL_FAILED + $(grep -c '"failed"' "$TASK_FILE" 2>/dev/null)))
-  FINAL_PENDING=$((FINAL_PENDING + $(grep -c '"pending_retry"' "$TASK_FILE" 2>/dev/null)))
 done
 
 echo "---"
-echo "SUMMARY DONE:$FINAL_DONE SUBMITTED:$FINAL_SUBMITTED FAILED:$FINAL_FAILED PENDING_RETRY:$FINAL_PENDING"
+echo "SUMMARY DONE:$FINAL_DONE SUBMITTED:$FINAL_SUBMITTED FAILED:$FINAL_FAILED"
 
-# Exit 0 if no submitted or pending_retry remaining
-if [ "$FINAL_SUBMITTED" -eq 0 ] && [ "$FINAL_PENDING" -eq 0 ]; then
+# Exit 0 if no submitted remaining
+if [ "$FINAL_SUBMITTED" -eq 0 ]; then
   exit 0
 else
   exit 1

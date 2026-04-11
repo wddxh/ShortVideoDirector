@@ -294,7 +294,7 @@ cd "$PROJ"
 cat > story/episodes/ep01/videos/tasks.json << 'EOF'
 [{"shot":1,"submit_id":"sub_101","status":"done","prompt":"done prompt","images":"","duration":15,"fail_reason":""}
 ,{"shot":2,"submit_id":"sub_102","status":"submitted","prompt":"","images":"","duration":15,"fail_reason":""}
-,{"shot":3,"submit_id":"","status":"pending_retry","prompt":"","images":"","duration":15,"fail_reason":"ExceedConcurrencyLimit"}]
+,{"shot":3,"submit_id":"","status":"failed","prompt":"","images":"","duration":15,"fail_reason":"ExceedConcurrencyLimit"}]
 EOF
 
 # Mock dreamina: shot 2 returns success with download
@@ -319,7 +319,7 @@ chmod +x "$MOCK_DIR/dreamina"
 OUTPUT=$(bash "$SCRIPT_DIR/scripts/auto-video-check.sh" ep01 2>&1)
 assert_contains "shot 2 done" "DONE:shot2" "$OUTPUT"
 assert_contains "summary has DONE:2" "DONE:2" "$OUTPUT"
-assert_contains "summary has PENDING_RETRY:1" "PENDING_RETRY:1" "$OUTPUT"
+assert_contains "summary has FAILED:1" "FAILED:1" "$OUTPUT"
 assert_file_exists "shot02.mp4 downloaded" "story/episodes/ep01/videos/shot02.mp4"
 
 # shot 1 should still be done, not re-queried (it's not submitted)

@@ -37,7 +37,7 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 ### 阶段 4: 先执行一次检查
 
 1. 使用 Skill tool 调用 `check-video` skill，传递参数：`{目标} --auto`
-2. 若所有任务已完成（无 submitted/pending_retry）→ 输出最终摘要，结束（无需创建定时任务）
+2. 若所有任务已完成（无 submitted）→ 输出最终摘要，结束（无需创建定时任务）
 
 ### 阶段 5: 创建定时任务
 
@@ -51,7 +51,7 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 自动视频检查任务触发。请执行以下步骤：
 1. 使用 Skill tool 调用 `check-video` skill，传递参数：`{目标} --auto`
 2. check-video 会自动查询状态、下载完成视频、自动重试可重试的失败任务
-3. 若 check-video 报告所有任务已完成（无 submitted/pending_retry）：
+3. 若 check-video 报告所有任务已完成（无 submitted）：
    - 使用 CronList 找到本定时任务，使用 CronDelete 删除
    - 提示用户可用 `/check-video {集数}` 手动处理 failed 任务
 4. 否则等待下次触发
