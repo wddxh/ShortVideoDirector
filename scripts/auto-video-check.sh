@@ -88,7 +88,26 @@ for TASK_FILE in $TASK_FILES; do
     esac
   done <<< "$QUERY_OUTPUT"
 
-  # Step 3: Retry pending_retry tasks
+  # Step 3: Scan failed tasks for rate-limit errors, convert to pending_retry
+  # This catches tasks that failed on first submission (never were "submitted")
+  FAILED_IDS=$(grep -B2 '"failed"' "$TASK_FILE" 2>/dev/null | grep -oE '"submit_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+  for FID in $FAILED_IDS; do
+    [ -z "$FID" ] && continue
+    # Check fail_reason for this entry
+    FR=$(awk -v id="$FID" '
+      $0 ~ id { found=1 }
+      found && /\"fail_reason\"/ {
+        match($0, /"fail_reason"[[:space:]]*:[[:space:]]*"([^"]*)"/, arr)
+        if (arr[1] != "") print arr[1]
+        found=0
+      }
+    ' "$TASK_FILE")
+    if echo "$FR" | grep -qiE 'rate_limit|concurrent|too_many_requests|queue_full|throttl'; then
+      bash scripts/task-status.sh update "$TASK_FILE" "$FID" "pending_retry"
+    fi
+  done
+
+  # Step 4: Retry pending_retry tasks
   # Extract pending_retry entries and try to resubmit
   PENDING_IDS=$(grep -B2 '"pending_retry"' "$TASK_FILE" 2>/dev/null | grep -oE '"submit_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
 
@@ -158,7 +177,7 @@ for TASK_FILE in $TASK_FILES; do
   rm -rf "$TMP_DIR"
 done
 
-# Step 5: Count final status across all files
+# Step 6: Count final status across all files
 FINAL_DONE=0
 FINAL_SUBMITTED=0
 FINAL_FAILED=0
