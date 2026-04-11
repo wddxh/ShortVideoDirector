@@ -8,6 +8,7 @@
 - 自动生成人物、物品、场景、建筑的图像提示词
 - 支持持续创作，保持人物、资产和声音在整个故事中的一致性
 - 支持即梦CLI（Dreamina）自动生成资产参考图片，与分镜流程并行执行
+- 支持即梦CLI（Dreamina）异步生成视频片段，分镜自动转化为 multimodal2video prompt
 - 可配置图像模型（none / dreamina），选择 dreamina 后可配置模型版本、图片比例、分辨率
 - 可配置视频风格（2D动漫/3D动漫/3D写实/2D手绘/自定义）
 - 首次运行交互式引导配置，支持自定义模型和风格输入
@@ -106,6 +107,15 @@ claude --plugin-dir /path/to/ShortVideoDirector
 /short-repair-story
 ```
 
+```bash
+# 提交视频生成任务
+/generate-video ep01                    # 整集所有镜头
+/generate-video ep01 镜头3 镜头5        # 指定镜头
+
+# 查询视频生成结果
+/check-video ep01
+```
+
 ## 生成的目录结构
 
 ```
@@ -118,7 +128,11 @@ your-project/
 │       │   ├── outline.md      # 本集剧情大纲（含资产清单）
 │       │   ├── novel.md        # 本集小说原文（系列视频）
 │       │   ├── script.md       # 本集剧本（单集短视频）
-│       │   └── storyboard.md   # 本集分镜提示词
+│       │   ├── storyboard.md   # 本集分镜提示词
+│       │   ├── videos/
+│       │   │   ├── tasks.json    # 视频生成任务跟踪
+│       │   │   ├── shot01.mp4
+│       │   │   └── ...
 │       └── ep02/
 │           └── ...
 ├── assets/
@@ -140,6 +154,7 @@ your-project/
 
 | 配置 | 默认值 | 说明 |
 |------|--------|------|
+| 视频模型 | none | none / dreamina |
 | 图像模型 | none | none / dreamina |
 | 视频风格 | 3D写实 | 2D动漫 / 3D动漫 / 3D写实 / 2D手绘 / 自定义 |
 | 语言 | auto | auto / zh / en / 自定义 |
@@ -153,6 +168,9 @@ your-project/
 | 即梦模型版本 | 4.0 | 3.0-5.0（仅图像模型为 dreamina 时） |
 | 图片比例 | 1:1 | 1:1 / 3:4 / 16:9 等（仅图像模型为 dreamina 时） |
 | 图片分辨率 | 2k | 2k / 4k（仅图像模型为 dreamina 时） |
+| 即梦视频模型版本 | seedance2.0fast | seedance2.0 / seedance2.0fast / seedance2.0_vip / seedance2.0fast_vip（仅视频模型为 dreamina 时） |
+| 视频比例 | 16:9 | 16:9 / 9:16 / 1:1 等（仅视频模型为 dreamina 时） |
+| 视频分辨率 | 720p | 当前仅支持 720p（仅视频模型为 dreamina 时） |
 
 ## 工作模式
 
@@ -282,6 +300,9 @@ ShortVideoDirector/
 │   ├── creator-create-assets/   # Creator 创建资产
 │   ├── creator-generate-images/ # Creator 批量生成资产参考图片（路由层）
 │   ├── creator-image-dreamina/  # Creator 即梦图片生成（模型编排层）
+│   ├── generate-video/          # 提交视频生成任务（用户可调用）
+│   ├── check-video/             # 查询视频生成结果（用户可调用）
+│   ├── creator-video-dreamina/  # 即梦视频生成（模型编排层）
 │   ├── creator-update-records/  # Creator 更新出场记录
 │   ├── creator-fix-asset/         # Creator 修正资产
 │   ├── short-plot-options/      # Director 生成短视频剧情选项
@@ -299,6 +320,7 @@ ShortVideoDirector/
 ├── scripts/
 │   ├── run-batch.ps1            # 批量生成脚本
 │   ├── image-gen-dreamina.sh    # 即梦单张图片生成脚本
+│   ├── video-gen-dreamina.sh    # 即梦单镜头视频提交脚本
 │   ├── word-count.sh            # 字数统计脚本
 │   └── speech-rate.sh           # 台词语速检查脚本
 └── README.md
