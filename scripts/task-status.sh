@@ -111,7 +111,7 @@ case "$ACTION" in
     ;;
 
   add)
-    # Add entry to JSON array
+    # Add entry to JSON array (no dedup, use upsert for dedup)
     ENTRY="$3"
     if [ -z "$ENTRY" ]; then
       echo "Usage: bash scripts/task-status.sh add file.json '{\"shot\":1,...}'"
@@ -120,14 +120,27 @@ case "$ACTION" in
     if [ ! -f "$JSON_FILE" ]; then
       echo "[$ENTRY]" > "$JSON_FILE"
     else
-      # Remove trailing ] , add comma + new entry + ]
-      sed -i 's/][[:space:]]*$//' "$JSON_FILE"
-      # Check if file has existing entries
-      if grep -q '{' "$JSON_FILE"; then
-        echo ",$ENTRY]" >> "$JSON_FILE"
-      else
-        echo "$ENTRY]" >> "$JSON_FILE"
-      fi
+      # Read existing, append new entry, rewrite cleanly
+      FLAT=$(tr -d '\n' < "$JSON_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
+      {
+        echo "["
+        FIRST=true
+        while IFS= read -r obj; do
+          [ -z "$obj" ] && continue
+          if [ "$FIRST" = true ]; then
+            echo "$obj"
+            FIRST=false
+          else
+            echo ",$obj"
+          fi
+        done <<< "$FLAT"
+        if [ "$FIRST" = true ]; then
+          echo "$ENTRY"
+        else
+          echo ",$ENTRY"
+        fi
+        echo "]"
+      } > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
     fi
     ;;
 
@@ -140,41 +153,46 @@ case "$ACTION" in
       exit 1
     fi
     if [ ! -f "$JSON_FILE" ]; then
-      # File doesn't exist, create with single entry
       echo "[$ENTRY]" > "$JSON_FILE"
     else
-      # Check if shot already exists
-      if grep -q "\"shot\"[[:space:]]*:[[:space:]]*$SHOT_NUM[^0-9]" "$JSON_FILE"; then
-        # Remove existing entry for this shot, then add new one
-        awk -v shot="$SHOT_NUM" '
-          BEGIN { skip=0; buf="" }
-          /{/ { buf=$0; skip=0 }
-          { if (buf != "" && $0 !~ /}/) { buf=buf "\n" $0 } }
-          /}/ {
-            if (buf != "") { buf=buf "\n" $0 }
-            else { buf=$0 }
-            if (buf ~ ("\"shot\"[[:space:]]*:[[:space:]]*" shot "[^0-9]")) { skip=1 }
-            if (!skip) { print buf }
-            buf=""; skip=0
-          }
-          buf == "" && !/[{}]/ { print }
-        ' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
-        # Now add the new entry
-        sed -i 's/][[:space:]]*$//' "$JSON_FILE"
-        if grep -q '{' "$JSON_FILE"; then
-          echo ",$ENTRY]" >> "$JSON_FILE"
-        else
-          echo "$ENTRY]" >> "$JSON_FILE"
+      # Read file, flatten to one line per JSON object, filter out matching shot, rebuild
+      # Step 1: Flatten file to extract individual JSON objects
+      FLAT=$(tr -d '\n' < "$JSON_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
+      # Step 2: Filter out entries matching this shot number
+      FILTERED=""
+      while IFS= read -r obj; do
+        [ -z "$obj" ] && continue
+        # Check if this object contains "shot": N (exact match)
+        if echo "$obj" | grep -qE "\"shot\"[[:space:]]*:[[:space:]]*${SHOT_NUM}[^0-9]|\"shot\"[[:space:]]*:[[:space:]]*${SHOT_NUM}\$|\"shot\":${SHOT_NUM}[^0-9]|\"shot\":${SHOT_NUM}\$"; then
+          continue
         fi
-      else
-        # Shot doesn't exist, just append
-        sed -i 's/][[:space:]]*$//' "$JSON_FILE"
-        if grep -q '{' "$JSON_FILE"; then
-          echo ",$ENTRY]" >> "$JSON_FILE"
+        if [ -z "$FILTERED" ]; then
+          FILTERED="$obj"
         else
-          echo "$ENTRY]" >> "$JSON_FILE"
+          FILTERED="${FILTERED}
+${obj}"
         fi
-      fi
+      done <<< "$FLAT"
+      # Step 3: Rebuild JSON array with filtered entries + new entry
+      {
+        echo "["
+        FIRST=true
+        while IFS= read -r obj; do
+          [ -z "$obj" ] && continue
+          if [ "$FIRST" = true ]; then
+            echo "$obj"
+            FIRST=false
+          else
+            echo ",$obj"
+          fi
+        done <<< "$FILTERED"
+        if [ "$FIRST" = true ]; then
+          echo "$ENTRY"
+        else
+          echo ",$ENTRY"
+        fi
+        echo "]"
+      } > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
     fi
     ;;
 
