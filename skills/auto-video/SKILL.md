@@ -36,10 +36,8 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 
 ### 阶段 4: 先执行一次检查
 
-1. 使用 Bash 调用 `bash scripts/auto-video-check.sh {目标}`
-2. 解析输出摘要（`DONE:N SUBMITTED:N FAILED:N PENDING_RETRY:N RETRIED:N`）
-3. 显示当前状态
-4. 若退出码为 0（全部完成）→ 输出最终摘要，结束（无需创建定时任务）
+1. 使用 Skill tool 调用 `check-video` skill，传递参数：`{目标} --auto`
+2. 若所有任务已完成（无 submitted/pending_retry）→ 输出最终摘要，结束（无需创建定时任务）
 
 ### 阶段 5: 创建定时任务
 
@@ -51,35 +49,12 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 **Cron prompt 内容：**
 ```
 自动视频检查任务触发。请执行以下步骤：
-
-1. 使用 Bash 调用 `bash scripts/auto-video-check.sh {目标}`
-2. 解析输出，显示进度摘要给用户
-
-3. 对输出中的每个 FAILED 行（格式 `FAILED:shot{N}:{fail_reason}`）：
-   判断 fail_reason 属于哪种类型：
-   a. **并行限制/频率限制**（如 API 并发数满、请求过于频繁等）→ 标记为可自动重试
-   b. **内容安全/合规拒绝** → 标记为需人工处理
-   c. **参数错误** → 标记为需人工处理
-   d. **服务端临时错误**（如超时、内部错误等）→ 标记为可自动重试
-   e. **其他/无法判断** → 标记为需人工处理
-
-4. 对标记为"可自动重试"的失败任务：
-   - 读取 tasks.json 中该 shot 的 prompt、images、duration 字段
-   - 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"` 获取配置
-   - 逐个调用 `bash scripts/video-gen-dreamina.sh "{prompt}" "{输出路径}" "{images}" "{duration}" "{比例}" "{模型版本}"`
-   - 提交成功 → 使用 Bash 调用 `bash scripts/task-status.sh upsert` 更新为新 submit_id + status submitted
-   - 提交失败 → 若判断仍为并行限制则停止提交剩余任务，否则保持 failed
-
-5. 对标记为"需人工处理"的失败任务：
-   - 输出失败原因，提示用户可用 `/check-video {集数}` 手动处理
-
-6. 若退出码为 0 且无可自动重试的任务（所有任务已完成或需人工处理）：
-   - 输出最终摘要
+1. 使用 Skill tool 调用 `check-video` skill，传递参数：`{目标} --auto`
+2. check-video 会自动查询状态、下载完成视频、自动重试可重试的失败任务
+3. 若 check-video 报告所有任务已完成（无 submitted/pending_retry）：
    - 使用 CronList 找到本定时任务，使用 CronDelete 删除
    - 提示用户可用 `/check-video {集数}` 手动处理 failed 任务
-
-7. 若退出码为 1 或有任务被重新提交：
-   - 输出进度摘要，等待下次触发
+4. 否则等待下次触发
 ```
 
 2. 记录返回的 cron job ID

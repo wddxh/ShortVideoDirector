@@ -3,32 +3,38 @@ name: check-video
 description: 查询视频生成任务的状态，下载已完成的视频，处理失败的任务。使用 /check-video ep01 查询。
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Bash, Skill
-argument-hint: "集数"
+argument-hint: "集数 [--auto]"
 ---
 
 ## 使用示例
 
 ```
-/check-video ep01
+/check-video ep01              # 交互模式，失败任务询问用户
+/check-video ep01 --auto       # 自动模式，只处理可自动重试的失败，跳过需人工介入的
+/check-video all --auto        # 自动模式，检查所有集
 ```
+
+## 模式
+
+- **交互模式**（默认）：失败任务分为可自动重试和需人工介入两类，人工介入的会询问用户
+- **自动模式**（`--auto`）：只处理可自动重试的失败任务，需人工介入的仅输出提示，不询问用户。由 `auto-video` 定时调用
 
 ## 流程
 
-### 阶段 1: 读取任务状态
+### 阶段 1: 解析参数 + 读取任务状态
 
-1. 从 `$ARGUMENTS[0]` 获取集数（如 `ep01`）
+1. 从 `$ARGUMENTS` 中解析集数（如 `ep01` 或 `all`）和模式（是否有 `--auto`）
+2. 若为 `all` → 扫描 `story/episodes/*/videos/tasks.json`；否则读取指定集的 tasks.json
+3. 若文件不存在 → 提示"未找到视频生成任务"，结束
 2. 读取 `story/episodes/{集数}/videos/tasks.json`
 3. 若文件不存在 → 提示"未找到视频生成任务，请先使用 `/generate-video {集数}` 提交任务"，结束
 4. 过滤出 status 为 `submitted` 的任务（跳过已 `done` 的）
 
 ### 阶段 2: 批量查询 + 更新
 
-1. 使用 Bash 调用 `bash scripts/task-status.sh query "story/episodes/{集数}/videos/tasks.json" "story/episodes/{集数}/videos/tmp"` 批量查询所有 submitted 任务
-2. 解析脚本输出（每行 `{submit_id}:{gen_status}:{详情}`），对每个结果：
-   - `success` → 使用 Bash 将下载的文件 mv 到目标路径：`mv "story/episodes/{集数}/videos/tmp/{submit_id}_video_1.mp4" "story/episodes/{集数}/videos/shot{NN}.mp4"`，然后调用 `bash scripts/task-status.sh update "story/episodes/{集数}/videos/tasks.json" {submit_id} done`
-   - `fail` → 调用 `bash scripts/task-status.sh update "story/episodes/{集数}/videos/tasks.json" {submit_id} failed`，记录 fail_reason
-   - `querying` → 不更新，保持 submitted 状态
-3. 清理临时目录：`rm -rf story/episodes/{集数}/videos/tmp`
+对每个目标 tasks.json：
+1. 使用 Bash 调用 `bash scripts/auto-video-check.sh {集数或all}` 执行机械操作（查询状态、下载完成视频、同步已有文件、更新 tasks.json）
+2. 解析脚本输出中的 `DONE`/`FAILED`/`QUERYING` 行
 
 ### 阶段 3: 输出进度摘要
 
@@ -48,6 +54,10 @@ argument-hint: "集数"
 6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
 
 **b. 需人工介入（内容安全/合规拒绝/参数错误/其他）：**
+
+**自动模式（`--auto`）：** 仅输出失败镜头和原因，提示用户可用 `/check-video {集数}` 手动处理，不询问用户。
+
+**交互模式（默认）：**
 1. 显示镜头编号和 `fail_reason` 原文
 2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
 3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
