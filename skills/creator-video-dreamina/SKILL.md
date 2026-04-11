@@ -23,9 +23,19 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 ## 约束
 
-- **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。所有操作必须通过插件内 `scripts/` 目录下的现有脚本完成。**
-- **读取 tasks.json 中的字段值（如 prompt、images、duration）时，使用 Read 工具读取文件后直接从 JSON 中提取，不要编写脚本解析。**
+- **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。只能调用插件内 `scripts/` 目录下的现有脚本。**
+- **tasks.json 的读取和写入由你（LLM）直接完成：用 Read 工具读取，用 Write 工具写入。不要用脚本操作 tasks.json。**
 - **调用插件脚本时，如果相对路径 `scripts/xxx.sh` 找不到，使用 Glob 工具搜索 `**/scripts/xxx.sh` 找到插件目录下的脚本绝对路径。**
+
+## tasks.json 格式
+
+```json
+[
+  {"shot": 1, "submit_id": "abc123", "status": "submitted", "prompt": "...", "images": "a.png,b.png", "duration": 15, "fail_reason": ""}
+]
+```
+
+status 取值：`submitted`（已提交等待结果）、`done`（视频已下载）、`failed`（生成失败）
 
 ## 流程
 
@@ -40,9 +50,9 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 1. 读取 `story/episodes/{集数}/storyboard.md`，解析所有镜头（`### 镜头 N` 块）
 2. 根据 `$ARGUMENTS[1]` 过滤目标镜头（`all` 则使用全部）
-3. 若为 `all` 模式且 `story/episodes/{集数}/videos/tasks.json` 已存在 → 读取 tasks.json，排除 status 为 `submitted` 或 `done` 的镜头（只提交尚未提交过的镜头）
+3. 若为 `all` 模式且 `story/episodes/{集数}/videos/tasks.json` 已存在 → 用 Read 读取 tasks.json，排除 status 为 `submitted` 或 `done` 的镜头（只提交尚未提交过的镜头）
 4. 若过滤后无需提交的镜头 → 输出"所有镜头已提交，无需重复提交"并结束
-3. 对每个目标镜头，使用 Bash 调用 `bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取替换后的 prompt、图片路径列表和时长
+5. 对每个目标镜头，使用 Bash 调用 `bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取替换后的 prompt、图片路径列表和时长
 
 ### 阶段 3: 逐镜头提交并记录
 
@@ -51,9 +61,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 2. 根据退出码处理：
    - exit 0，stdout 以 `SUBMITTED` 开头 → 提取 `submit_id`
    - exit 1，stdout 以 `FAIL` 开头 → 提取失败原因
-3. 写入 tasks.json（以 shot 编号为主键，存在则替换，不存在则追加）：
-   - 成功：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {N} '{"shot":{N},"submit_id":"{提取的submit_id}","status":"submitted","prompt":"{替换后的完整prompt}","images":"{图片路径列表}","duration":{时长},"fail_reason":""}'`
-   - 失败：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {N} '{"shot":{N},"submit_id":"","status":"failed","prompt":"{替换后的完整prompt}","images":"{图片路径列表}","duration":{时长},"fail_reason":"{失败原因}"}'`
+3. 用 Read 读取 tasks.json 最新内容（如果文件不存在则视为空数组 `[]`），按 shot 编号找到对应条目并更新（不存在则添加），然后用 Write 写回完整 JSON
 
 ### 阶段 4: 摘要
 

@@ -16,8 +16,8 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 
 ## 约束
 
-- **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。所有操作必须通过插件内 `scripts/` 目录下的现有脚本完成。**
-- **读取 tasks.json 中的字段值（如 prompt、images、duration）时，使用 Read 工具读取文件后直接从 JSON 中提取，不要编写脚本解析。**
+- **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。只能调用插件内 `scripts/` 目录下的现有脚本。**
+- **tasks.json 的读取和写入由你（LLM）直接完成：用 Read 工具读取，用 Write 工具写入。不要用脚本操作 tasks.json。**
 - **调用插件脚本时，如果相对路径 `scripts/xxx.sh` 找不到，使用 Glob 工具搜索 `**/scripts/xxx.sh` 找到插件目录下的脚本绝对路径。**
 
 ## 流程
@@ -36,7 +36,7 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 ### 阶段 3: 检查是否已有同目标定时任务
 
 1. 使用 CronList 列出所有定时任务
-2. 检查是否已有 prompt 中包含 `auto-video-check.sh {目标}` 的任务
+2. 检查是否已有 prompt 中包含 `check-video` 和 `{目标}` 的任务
 3. 若已存在 → 输出"已有针对 {目标} 的自动监控任务在运行，无需重复创建"，结束
 4. 若不存在 → 继续
 

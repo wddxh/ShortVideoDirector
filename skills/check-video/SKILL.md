@@ -21,33 +21,50 @@ argument-hint: "集数 [--auto]"
 
 ## 约束
 
-- **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。所有操作必须通过插件内 `scripts/` 目录下的现有脚本完成。**
-- **读取 tasks.json 中的字段值（如 prompt、images、duration）时，使用 Read 工具读取文件后直接从 JSON 中提取，不要编写脚本解析。**
+- **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。只能调用插件内 `scripts/` 目录下的现有脚本。**
+- **tasks.json 的读取和写入由你（LLM）直接完成：用 Read 工具读取，用 Write 工具写入。不要用脚本操作 tasks.json。**
 - **调用插件脚本时，如果相对路径 `scripts/xxx.sh` 找不到，使用 Glob 工具搜索 `**/scripts/xxx.sh` 找到插件目录下的脚本绝对路径。**
+
+## tasks.json 格式
+
+```json
+[
+  {"shot": 1, "submit_id": "abc123", "status": "submitted", "prompt": "...", "images": "a.png,b.png", "duration": 15, "fail_reason": ""}
+]
+```
+
+status 取值：`submitted`（已提交等待结果）、`done`（视频已下载）、`failed`（生成失败）
 
 ## 流程
 
-### 阶段 1: 解析参数 + 读取任务状态
+### 阶段 1: 读取任务状态
 
 1. 从 `$ARGUMENTS` 中解析集数（如 `ep01` 或 `all`）和模式（是否有 `--auto`）
-2. 若为 `all` → 扫描 `story/episodes/*/videos/tasks.json`；否则读取指定集的 tasks.json
-3. 若文件不存在 → 提示"未找到视频生成任务"，结束
-2. 读取 `story/episodes/{集数}/videos/tasks.json`
+2. 若为 `all` → 使用 Glob 扫描 `story/episodes/*/videos/tasks.json`；否则读取指定集的 tasks.json
 3. 若文件不存在 → 提示"未找到视频生成任务，请先使用 `/generate-video {集数}` 提交任务"，结束
-4. 过滤出 status 为 `submitted` 的任务（跳过已 `done` 的）
+4. 使用 Read 工具读取 tasks.json，解析 JSON 内容
 
-### 阶段 2: 批量查询 + 更新
+### 阶段 2: 逐个查询 submitted 任务
 
-对每个目标 tasks.json：
-1. 使用 Bash 调用 `bash scripts/auto-video-check.sh {集数或all}` 执行机械操作（查询状态、下载完成视频、同步已有文件、更新 tasks.json）
-2. 解析脚本输出中的 `DONE`/`FAILED`/`QUERYING` 行
+对每个 status 为 `submitted` 且 submit_id 非空的任务：
+1. 查询状态：`bash scripts/video-check-dreamina.sh "{submit_id}" "story/episodes/{集数}/videos/shot{NN}.mp4"`
+2. 根据输出更新 tasks.json 中该 shot 的记录（用 Read 读取最新内容，修改后用 Write 写回）：
+   - `success` → 将 status 改为 `done`
+   - `fail:{原因}` → 将 status 改为 `failed`，将 fail_reason 改为 `{原因}`
+   - `querying` → 不修改，仍为 submitted
 
-### 阶段 3: 输出进度摘要
+### 阶段 3: 同步已有视频文件
+
+1. 使用 Bash `ls story/episodes/{集数}/videos/shot*.mp4` 列出已有视频文件
+2. 对比 tasks.json，如果某个 shot 有视频文件但 status 不是 `done` → 将 status 改为 `done`
+3. 如果某个 shot 有视频文件但不在 tasks.json 中 → 添加一条 done 记录
+
+### 阶段 4: 输出进度摘要
 
 1. 统计各状态数量：done / submitted / failed
 2. 输出摘要：完成 N 个 / 排队中 N 个 / 失败 N 个
 
-### 阶段 4: 失败处理（仅当有 failed 任务时）
+### 阶段 5: 失败处理（仅当有 failed 任务时）
 
 对每个 status 为 `failed` 的任务，判断 `fail_reason` 属于哪种类型：
 - 并行限制/频率限制/服务端临时错误 → 可自动重试
@@ -60,9 +77,9 @@ argument-hint: "集数 [--auto]"
 2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
 3. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
 4. 重新提交：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-5. 用 upsert 按 shot 编号更新记录（无论提交成功或失败）：
-   - 成功：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {N} '{"shot":{N},"submit_id":"{新id}","status":"submitted","prompt":"{完整prompt}","images":"{图片列表}","duration":{时长},"fail_reason":""}'`
-   - 失败：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {N} '{"shot":{N},"submit_id":"","status":"failed","prompt":"{完整prompt}","images":"{图片列表}","duration":{时长},"fail_reason":"{失败原因}"}'`
+5. 根据提交结果，用 Read 读取 tasks.json 最新内容，修改该 shot 的记录后用 Write 写回：
+   - 成功 → 更新 submit_id、status 改为 `submitted`、清空 fail_reason
+   - 失败 → status 保持 `failed`、更新 fail_reason
 6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
 
 **b. 需人工介入的任务：**
@@ -79,7 +96,7 @@ argument-hint: "集数 [--auto]"
 5. 重新生成 prompt：`bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`
 6. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
 7. 重新提交：`bash scripts/video-gen-dreamina.sh "{新prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-8. 记录新任务：`bash scripts/task-status.sh upsert "story/episodes/{集数}/videos/tasks.json" {镜头编号} '{"shot":{N},"submit_id":"{新id}","status":"submitted","prompt":"{新prompt}","images":"{图片列表}","duration":{时长},"fail_reason":""}'`
+8. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt），用 Write 写回
 9. 提示用户稍后再次使用 `/check-video {集数}` 查询
 
 ## 输出
