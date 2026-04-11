@@ -1,8 +1,8 @@
 # ShortVideoDirector 配置（单集短视频）
 
 ## 模型配置
-- 视频模型: generic          # generic / kling / runway / seedance2.0 / 自定义
-- 图像模型: generic          # generic / midjourney / flux / nanobanana / 自定义
+# - 视频模型: generic          # 暂不可选，待接入视频生成后启用
+- 图像模型: none              # none / dreamina
 - 视频风格: 3D写实            # 2D动漫 / 3D动漫 / 3D写实 / 2D手绘 / 自定义
 
 ## 创作配置
