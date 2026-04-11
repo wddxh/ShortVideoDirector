@@ -50,7 +50,7 @@ argument-hint: "集数 [--auto]"
 每次失败都重新判断（因为同一个镜头多次失败的原因可能不同）。
 
 **a. 可自动重试的任务：**
-1. 使用 Bash 调用 `bash scripts/task-status.sh update` 将 status 改为 `pending_retry`
+1. 使用 Bash 调用 `bash scripts/task-status.sh update` 将 status 改为 `pending_retry`（第 4 个参数只能是简单字符串，不能是 JSON 对象。示例：`bash scripts/task-status.sh update "story/episodes/ep01/videos/tasks.json" "submit_id值" "pending_retry"`）
 1. 告知用户该镜头因临时原因失败，正在自动重试
 2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
 3. 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"` 获取配置

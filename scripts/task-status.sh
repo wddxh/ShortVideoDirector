@@ -73,6 +73,14 @@ case "$ACTION" in
       echo "Usage: bash scripts/task-status.sh update file.json submit_id new_status"
       exit 1
     fi
+    # Validate NEW_STATUS is a simple string (no JSON objects or quotes)
+    case "$NEW_STATUS" in
+      submitted|done|failed|pending_retry) ;;
+      *)
+        echo "FAIL: status must be one of: submitted, done, failed, pending_retry. Got: $NEW_STATUS"
+        exit 1
+        ;;
+    esac
     # Flatten, find matching object by submit_id, replace status, rebuild
     FLAT=$(tr -d '\n' < "$JSON_FILE" | sed 's/^\[//' | sed 's/\]$//' | sed 's/},{/}\n{/g')
     {
