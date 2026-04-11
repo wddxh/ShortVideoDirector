@@ -27,14 +27,21 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 1. 确认目标 tasks.json 存在（若为 `all`，至少有一个 `story/episodes/*/videos/tasks.json`）
 2. 若不存在 → 提示"未找到视频生成任务，请先使用 `/generate-video` 提交任务"，结束
 
-### 阶段 3: 先执行一次检查
+### 阶段 3: 检查是否已有同目标定时任务
+
+1. 使用 CronList 列出所有定时任务
+2. 检查是否已有 prompt 中包含 `auto-video-check.sh {目标}` 的任务
+3. 若已存在 → 输出"已有针对 {目标} 的自动监控任务在运行，无需重复创建"，结束
+4. 若不存在 → 继续
+
+### 阶段 4: 先执行一次检查
 
 1. 使用 Bash 调用 `bash scripts/auto-video-check.sh {目标}`
 2. 解析输出摘要（`DONE:N SUBMITTED:N FAILED:N PENDING_RETRY:N RETRIED:N`）
 3. 显示当前状态
 4. 若退出码为 0（全部完成）→ 输出最终摘要，结束（无需创建定时任务）
 
-### 阶段 4: 创建定时任务
+### 阶段 5: 创建定时任务
 
 1. 使用 CronCreate 创建定时任务：
    - `cron`: `*/{分钟数} * * * *`（如 20 分钟 → `*/20 * * * *`）
