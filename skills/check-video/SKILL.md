@@ -163,6 +163,35 @@ argument-hint: "集数 [--auto]"
 - `human_needed` 在阶段 5 `--auto` 分支完成分类后填充
 - JSON 必须是**单行有效 JSON**（无注释、无多余换行），作为 skill 输出的最后一行
 
+### 异常时的 JSON 输出（仅 `--auto` 模式）
+
+skill 在 `--auto` 模式下遇到任何异常（文件不存在、Glob 无匹配、tasks.json 格式损坏、脚本偶发失败等），**仍必须输出 JSON 摘要**，字段：
+
+- `target`：原样
+- `done` / `submitted` / `failed`：已统计到的填数字，完全无法统计的填字符串 `"unknown"`
+- `all_complete`：`false`（强制）
+- `human_needed`：`[]`
+- `error`：简短错误描述（≤100 字，不要 dump 堆栈）
+- `recoverable`：bool。按错误性质判断：
+  - **可恢复**（临时性、外部环境性）：某个 shot 查询脚本偶发失败、临时文件锁、dreamina API 抖动等；后续调用有机会成功
+  - **不可恢复**（根因性、配置性）：目标集数对应 tasks.json 不存在、Glob 无匹配（`all` 模式下没有任何 ep 目录）、tasks.json 格式彻底损坏需人工修复；后续调用仍会同样失败
+
+**判定原则：** LLM 按语义判断，不硬编码关键词。不确定时偏向 `recoverable=true`（保守）。
+
+示例（tasks.json 不存在）：
+
+```json
+{"target":"ep99","done":"unknown","submitted":"unknown","failed":"unknown","all_complete":false,"human_needed":[],"error":"tasks.json 不存在：story/episodes/ep99/videos/tasks.json","recoverable":false}
+```
+
+示例（某 shot 查询脚本偶发失败，但其他 shot 已统计）：
+
+```json
+{"target":"ep01","done":10,"submitted":2,"failed":1,"all_complete":false,"human_needed":[],"error":"shot 3 查询脚本返回非预期输出","recoverable":true}
+```
+
+**不得因异常跳过 JSON 输出**——自动化调用方依赖它判断 cron 生命周期。
+
 ## 输出
 
 ### 返回内容
