@@ -72,15 +72,22 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 
 **Cron prompt 内容：**
 ```
-自动视频检查任务触发。请执行以下步骤：
-1. 使用 Skill tool 调用 `check-video` skill，传递参数：`{目标} --auto`
-2. check-video 会自动查询状态、下载完成视频、自动重试可重试的失败任务
-3. 若 check-video 报告所有任务已完成（无 submitted）：
-   - 使用 CronList 找到本定时任务，使用 CronDelete 删除
-   - 提示用户可用 `/check-video {集数}` 手动处理 failed 任务
-4. 否则等待下次触发
+自动视频检查任务触发。目标：{目标}。
 
-严禁：不要以任何理由（包括测试、验证、调试）自行调用 dreamina CLI 提交视频/图片生成任务。视频生成成本很高，只有 check-video skill 内的重试流程才允许提交。
+1. 使用 Agent 工具发起一个 general-purpose sub-agent，prompt 为：
+   "调用 Skill('short-video-director:check-video', '{目标} --auto')，完整返回 skill 的输出。不要自行调用 dreamina CLI 或视频生成脚本，不要绕过 skill 做查询/重试。"
+
+2. 从 Agent 返回文本中提取 JSON 摘要（LLM 理解，不固定最后一行规则）。解析失败或无 JSON 时，基于整段返回文本语义推断 all_complete 与 recoverable（不确定偏向 all_complete=false / recoverable=true）。
+
+3. 按 JSON（或推断结果）决定：
+   - all_complete == true → 使用 CronList 找到本定时任务 → 使用 CronDelete 删除自己；输出摘要 + human_needed 详情 + "可用 /check-video {目标} 手动处理"提示
+   - 含 error 字段且 recoverable == false → 使用 CronList 找到本定时任务 → 使用 CronDelete 删除自己（防止反复空转浪费资源）；输出 error 描述给用户
+   - 其他情况（recoverable=true 或无异常，且未全完成） → 输出一行简短进度（完成 X / 排队 Y / 失败 Z），等待下次触发
+
+严禁：
+- 不要以任何理由（包括测试、验证、调试）自行调用 dreamina CLI 提交视频/图片生成任务。视频生成成本很高，只有 check-video skill 内的重试流程才允许提交
+- 不要绕过 Agent → Skill(check-video) 路径直接执行查询/重试/生成
+- 不要在主会话（cron 触发会话）里直接调 check-video skill——必须通过 Agent 隔离上下文
 ```
 
 2. 记录返回的 cron job ID
