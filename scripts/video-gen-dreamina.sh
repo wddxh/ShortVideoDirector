@@ -33,17 +33,17 @@ RESULT=$(eval dreamina multimodal2video \
   --model_version="$MODEL" 2>&1)
 
 # Parse gen_status
-STATUS=$(printf '%s' "$RESULT" | grep -o '"gen_status"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"gen_status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+STATUS=$(printf '%s' "$RESULT" | grep -oP '"gen_status"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"gen_status"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
 
 case "$STATUS" in
   fail)
-    REASON=$(printf '%s' "$RESULT" | grep -o '"fail_reason"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"fail_reason"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+    REASON=$(printf '%s' "$RESULT" | grep -oP '"fail_reason"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"fail_reason"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
     echo "FAIL ${REASON:-unknown error}"
     exit 1
     ;;
   *)
     # Any non-fail status (querying, success, etc.) means submission succeeded
-    SUBMIT_ID=$(printf '%s' "$RESULT" | grep -o '"submit_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"submit_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+    SUBMIT_ID=$(printf '%s' "$RESULT" | grep -oP '"submit_id"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"submit_id"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
     if [ -z "$SUBMIT_ID" ]; then
       echo "FAIL no submit_id in response"
       echo "$RESULT" >&2
