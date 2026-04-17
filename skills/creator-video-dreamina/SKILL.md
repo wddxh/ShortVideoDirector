@@ -26,6 +26,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 - **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。只能调用插件内 `scripts/` 目录下的现有脚本。**
 - **tasks.json 的读取和写入由你（LLM）直接完成：用 Read 工具读取，用 Write 工具写入。不要用脚本操作 tasks.json。**
 - **调用插件脚本时，如果相对路径 `scripts/xxx.sh` 找不到，使用 Glob 工具搜索 `**/scripts/xxx.sh` 找到插件目录下的脚本绝对路径。**
+- **严禁以任何理由（包括测试、验证、调试）自行增加或删除参考图片后重新提交视频生成。重试时必须使用 tasks.json 中记录的原始 prompt 和 images，不得修改。只有用户明确要求修改时才可变更。**
 
 ## tasks.json 格式
 
