@@ -48,34 +48,48 @@ argument-hint: "[自然语言修改意见]"
 3. 若用户附带了修改建议（如"头发改成红色"）→ 使用 Skill tool 调用 `creator-fix-asset` skill，传递参数：`{资产文件路径} "{修改建议，请更新图像生成提示词}"`
 4. 读取 `config.md` 获取图像模型值，使用 Skill tool 调用 `creator-image-{图像模型值}` skill，传递参数：资产路径列表（覆盖已有图片）
 5. 若用户附带了修改建议 → 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "资产 {资产名} 的描述已更新，请根据最新资产文件更新分镜中引用该资产的所有相关描述"`
+6. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`{集数}`
+7. 若"需修改"→ 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
 
 #### 修改分镜（无下游）
 
 1. 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "{修改意见}"`
+2. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`{集数}`
+3. 若"需修改"→ 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
 
 #### 修改小说（级联资产清单 + 资产 + 分镜）
 
 1. 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`{集数} "{修改意见}"`
-2. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`{集数}`
-3. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`{集数}`
-4. 若 config 图像模型非 `none` → 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
-5. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`{集数}`
+2. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：`{集数}`
+3. 若"需修改"→ 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
+4. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`{集数}`
+5. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`{集数}`
+6. 若 config 图像模型非 `none` → 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
+7. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`{集数}`
+8. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`{集数}`
+9. 若"需修改"→ 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
 
 #### 修改大纲（级联小说 + 资产清单 + 资产 + 分镜）
 
 1. 使用 Skill tool 调用 `director-fix-outline` skill，传递参数：`{集数} "{修改意见}"`
 2. 使用 Skill tool 调用 `writer-novel` skill，传递参数：`{集数}`
-3. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`{集数}`
-4. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`{集数}`
-5. 若非 ep01：使用 Skill tool 调用 `creator-update-records` skill，传递参数：`{集数}`
-6. 若 config 图像模型非 `none` → 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
-7. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`{集数}`
+3. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：`{集数}`
+4. 若"需修改"→ 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
+5. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`{集数}`
+6. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`{集数}`
+7. 若非 ep01：使用 Skill tool 调用 `creator-update-records` skill，传递参数：`{集数}`
+8. 若 config 图像模型非 `none` → 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
+9. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`{集数}`
+10. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`{集数}`
+11. 若"需修改"→ 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
 
 #### 修改资产文件（级联分镜中该资产描述 + 重新生成图片）
 
 1. 使用 Skill tool 调用 `creator-fix-asset` skill，传递参数：`{资产文件路径} "{修改意见}"`
 2. 若 config 图像模型非 `none` → 读取 `config.md` 获取图像模型值，使用 Skill tool 调用 `creator-image-{图像模型值}` skill，传递参数：`"{资产文件路径}"`
 3. 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "资产 {资产名} 的描述已更新，请根据最新资产文件更新分镜中引用该资产的所有相关描述"`
+4. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`{集数}`
+5. 若"需修改"→ 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
 
 #### 修改资产清单
 
