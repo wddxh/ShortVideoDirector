@@ -40,10 +40,28 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 3. 若已存在 → 输出"已有针对 {目标} 的自动监控任务在运行，无需重复创建"，结束
 4. 若不存在 → 继续
 
-### 阶段 4: 先执行一次检查
+### 阶段 4: 先执行一次检查（通过 sub-agent 隔离上下文）
 
-1. 使用 Skill tool 调用 `check-video` skill，传递参数：`{目标} --auto`
-2. 若所有任务已完成（无 submitted）→ 输出最终摘要，结束（无需创建定时任务）
+为避免重活积压到主会话上下文，首次检查也用 Agent 工具起一个 general-purpose sub-agent 执行。sub-agent 的唯一职责是调用 check-video skill 并返回输出，主会话只处理返回的 JSON 摘要。
+
+1. 使用 Agent 工具发起调用：
+   - `subagent_type`: `general-purpose`
+   - `description`: `check-video run for {目标}`
+   - `prompt`（就两行）：
+     ```
+     调用 Skill("short-video-director:check-video", "{目标} --auto")，完整返回 skill 的输出。
+     不要自行调用 dreamina CLI 或视频生成脚本，不要绕过 skill 做查询/重试。
+     ```
+
+2. 从 Agent 返回文本中提取 JSON 摘要：
+   - 优先找结构化 JSON（通常在末尾，但**不固定**为最后一非空行——用 LLM 语义理解定位）
+   - 解析 JSON 成功 → 进入下一步按字段决策
+   - 解析失败 / 文本中找不到 JSON → 基于整段返回文本的语义推断 `all_complete`、`recoverable` 两个值（不确定时偏向 `all_complete=false`、`recoverable=true`）
+
+3. 按 JSON（或推断结果）决定流程：
+   - **`all_complete == true`** → 输出最终摘要（done/submitted/failed 数量 + `human_needed` 详情）+ 提示"可用 `/check-video {目标}` 手动处理 human_needed"，**跳过阶段 5**（不建 cron），整个 skill 结束
+   - **含 `error` 字段且 `recoverable == false`** → 报错输出 `error` 内容 + 建议用户检查目标配置（集数是否正确、tasks.json 是否存在），**跳过阶段 5**（不建 cron）
+   - **其他情况**（含 `recoverable=true` 或无异常） → 输出简短进度 "完成 X / 排队 Y / 失败 Z"，继续进入阶段 5 建 cron
 
 ### 阶段 5: 创建定时任务
 
