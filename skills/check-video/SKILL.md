@@ -63,7 +63,9 @@ argument-hint: "集数 [--auto]"
 
 1. 从 `$ARGUMENTS` 中解析集数（如 `ep01` 或 `all`）和模式（是否有 `--auto`）
 2. 若为 `all` → 使用 Glob 扫描 `story/episodes/*/videos/tasks.json`；否则读取指定集的 tasks.json
-3. 若文件不存在 → 提示"未找到视频生成任务，请先使用 `/generate-video {集数}` 提交任务"，结束
+3. 若文件不存在（或 `all` 模式下 Glob 无匹配）：
+   - **交互模式**：提示"未找到视频生成任务，请先使用 `/generate-video {集数}` 提交任务"，结束
+   - **`--auto` 模式**：按"异常时的 JSON 输出"章节要求输出 JSON 摘要（`recoverable=false`，`error` 描述文件缺失），然后结束。不要仅输出人类可读的提示而跳过 JSON
 4. 使用 Read 工具读取 tasks.json，解析 JSON 内容
 
 ### 阶段 2: 逐个查询 submitted 任务
