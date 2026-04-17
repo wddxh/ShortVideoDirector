@@ -83,8 +83,50 @@ argument-hint: "集数 [--auto]"
 
 ### 阶段 4: 输出进度摘要
 
-1. 统计各状态数量：done / submitted / failed
-2. 输出摘要：完成 N 个 / 排队中 N 个 / 失败 N 个
+1. 统计各状态数量：done / submitted / failed（`all` 模式下跨所有集合计）
+2. 输出人类可读摘要：完成 N 个 / 排队中 N 个 / 失败 N 个
+
+**`--auto` 模式额外要求**：在本 skill 所有输出的**最后一行**追加一行 JSON 摘要，供自动化调用方（如 auto-video 的 sub-agent）解析。字段与填充规则见下方"JSON 摘要契约"章节。human_needed 列表在阶段 5 收集完毕后并入本 JSON。
+
+交互模式（非 `--auto`）不输出 JSON，保持现状。
+
+## JSON 摘要契约（仅 `--auto` 模式）
+
+### 正常 JSON 格式
+
+```json
+{
+  "target": "ep01",
+  "done": 12,
+  "submitted": 3,
+  "failed": 2,
+  "all_complete": false,
+  "human_needed": [
+    {"ep": "ep01", "shot": 5, "reason": "内容安全拦截"},
+    {"ep": "ep01", "shot": 9, "reason": "参数错误"}
+  ]
+}
+```
+
+### 字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| target | string | 原样回传（`epNN` 或 `all`） |
+| done | number \| `"unknown"` | done 数量，all 模式下跨所有集合计 |
+| submitted | number \| `"unknown"` | 仍在排队的数量 |
+| failed | number \| `"unknown"` | 最终仍 failed（含需人工介入类） |
+| all_complete | bool | `(submitted == 0) && (failed == human_needed.length)` |
+| human_needed | array | 阶段 5 分类为"需人工介入"的 failed；每条 `{"ep": "...", "shot": N, "reason": "fail_reason 原文"}` |
+| error | string | *仅异常时*；简短错误描述（≤100 字） |
+| recoverable | bool | *仅异常时*；错误性质（见"异常时的 JSON 输出"） |
+
+### 规则
+
+- 数值字段无法统计时填字符串 `"unknown"`（不要填 0）
+- 异常场景下 `all_complete` 强制为 `false`
+- `human_needed` 在阶段 5 `--auto` 分支完成分类后填充
+- JSON 必须是**单行有效 JSON**（无注释、无多余换行），作为 skill 输出的最后一行
 
 ### 阶段 5: 失败处理（仅当有 failed 任务时）
 
