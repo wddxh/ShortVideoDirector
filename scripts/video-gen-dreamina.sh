@@ -4,6 +4,10 @@
 # Usage: bash scripts/video-gen-dreamina.sh "prompt" "output_path" "img1,img2,..." "duration" [ratio] [model_version]
 # Exit codes: 0=SUBMITTED (stdout has "SUBMITTED submit_id"), 1=FAIL
 
+# grep -P (PCRE) requires a UTF-8 or C locale. Force it to avoid silent
+# "grep: -P supports only unibyte and UTF-8 locales" on systems with legacy locale.
+export LC_ALL=C.UTF-8
+
 if [ $# -lt 4 ]; then
   echo "Usage: bash scripts/video-gen-dreamina.sh \"prompt\" \"output_path\" \"img1,img2,...\" \"duration\" [ratio] [model_version]"
   exit 1

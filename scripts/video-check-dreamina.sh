@@ -7,6 +7,10 @@
 #   fail:{reason} — generation failed
 # Exit codes: 0=success/fail (terminal), 1=querying (still in progress), 2=error
 
+# grep -P (PCRE) requires a UTF-8 or C locale. Force it to avoid silent
+# "grep: -P supports only unibyte and UTF-8 locales" on systems with legacy locale.
+export LC_ALL=C.UTF-8
+
 if [ $# -lt 2 ]; then
   echo "Usage: bash scripts/video-check-dreamina.sh {submit_id} {output_path}"
   exit 2
