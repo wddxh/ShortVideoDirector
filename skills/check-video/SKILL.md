@@ -90,6 +90,37 @@ argument-hint: "集数 [--auto]"
 
 交互模式（非 `--auto`）不输出 JSON，保持现状。
 
+### 阶段 5: 失败处理（仅当有 failed 任务时）
+
+对每个 status 为 `failed` 的任务，按 `skills/check-video/failure-classification.md` 中的规则分类为"可自动重试"或"需人工介入"。每次失败都重新分类（同一镜头多次失败原因可能不同）。
+
+**a. 可自动重试的任务：**
+1. 告知用户该镜头因临时原因失败，正在自动重试
+2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
+3. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
+4. 重新提交：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
+5. 根据提交结果，用 Read 读取 tasks.json 最新内容，修改该 shot 的记录后用 Write 写回：
+   - 成功 → 更新 submit_id、status 改为 `submitted`、清空 fail_reason
+   - 失败 → status 保持 `failed`、更新 fail_reason
+6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
+
+**b. 需人工介入的任务：**
+
+**自动模式（`--auto`）：** 仅输出失败镜头和原因，提示用户可用 `/check-video {集数}` 手动处理，不询问用户。
+
+**交互模式（默认）：**
+1. 显示镜头编号和 `fail_reason` 原文
+2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
+3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
+   - 涉及分镜/画面描述修改 → 检查是否存在 `story/episodes/{集数}/script.md`（短视频）或 `story/episodes/{集数}/novel.md`（系列视频），使用对应的 fix-storyboard skill（`short-fix-storyboard` 或 `storyboarder-fix-storyboard`）
+   - 涉及资产/图片修改 → 使用 Bash 调用 `bash scripts/read-config.sh "图像模型"` 获取图像模型值，调用 `creator-fix-asset` skill + `creator-image-{图像模型值}` skill
+4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
+5. 重新生成 prompt：`bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`
+6. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
+7. 重新提交：`bash scripts/video-gen-dreamina.sh "{新prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
+8. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt），用 Write 写回
+9. 提示用户稍后再次使用 `/check-video {集数}` 查询
+
 ## JSON 摘要契约（仅 `--auto` 模式）
 
 ### 正常 JSON 格式
@@ -127,37 +158,6 @@ argument-hint: "集数 [--auto]"
 - 异常场景下 `all_complete` 强制为 `false`
 - `human_needed` 在阶段 5 `--auto` 分支完成分类后填充
 - JSON 必须是**单行有效 JSON**（无注释、无多余换行），作为 skill 输出的最后一行
-
-### 阶段 5: 失败处理（仅当有 failed 任务时）
-
-对每个 status 为 `failed` 的任务，按 `skills/check-video/failure-classification.md` 中的规则分类为"可自动重试"或"需人工介入"。每次失败都重新分类（同一镜头多次失败原因可能不同）。
-
-**a. 可自动重试的任务：**
-1. 告知用户该镜头因临时原因失败，正在自动重试
-2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
-3. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
-4. 重新提交：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-5. 根据提交结果，用 Read 读取 tasks.json 最新内容，修改该 shot 的记录后用 Write 写回：
-   - 成功 → 更新 submit_id、status 改为 `submitted`、清空 fail_reason
-   - 失败 → status 保持 `failed`、更新 fail_reason
-6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
-
-**b. 需人工介入的任务：**
-
-**自动模式（`--auto`）：** 仅输出失败镜头和原因，提示用户可用 `/check-video {集数}` 手动处理，不询问用户。
-
-**交互模式（默认）：**
-1. 显示镜头编号和 `fail_reason` 原文
-2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
-3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
-   - 涉及分镜/画面描述修改 → 检查是否存在 `story/episodes/{集数}/script.md`（短视频）或 `story/episodes/{集数}/novel.md`（系列视频），使用对应的 fix-storyboard skill（`short-fix-storyboard` 或 `storyboarder-fix-storyboard`）
-   - 涉及资产/图片修改 → 使用 Bash 调用 `bash scripts/read-config.sh "图像模型"` 获取图像模型值，调用 `creator-fix-asset` skill + `creator-image-{图像模型值}` skill
-4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
-5. 重新生成 prompt：`bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`
-6. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
-7. 重新提交：`bash scripts/video-gen-dreamina.sh "{新prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-8. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt），用 Write 写回
-9. 提示用户稍后再次使用 `/check-video {集数}` 查询
 
 ## 输出
 
