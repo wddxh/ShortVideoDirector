@@ -77,6 +77,8 @@ argument-hint: "集数 [--auto]"
    - `fail:{原因}` → 将 status 改为 `failed`，将 fail_reason 改为 `{原因}`
    - `querying` → 不修改，仍为 submitted
 
+**`--auto` 模式异常处理：** 若 `scripts/video-check-dreamina.sh` 返回非预期输出或非零退出码，按"JSON 摘要契约 → 异常时的 JSON 输出"章节规则处理——记录 `error`（说明哪个 shot 查询失败），继续处理其他 shot，最终输出时标记 `recoverable=true`。不要因单个 shot 查询失败就跳出整个流程。
+
 ### 阶段 3: 同步已有视频文件
 
 1. 使用 Bash `ls story/episodes/{集数}/videos/shot*.mp4` 列出已有视频文件
@@ -164,6 +166,7 @@ argument-hint: "集数 [--auto]"
 - 异常场景下 `all_complete` 强制为 `false`
 - `human_needed` 在阶段 5 `--auto` 分支完成分类后填充
 - JSON 必须是**单行有效 JSON**（无注释、无多余换行），作为 skill 输出的最后一行
+- `all_complete` 仅当 `done`/`submitted`/`failed` 均为数字时才按公式计算；任一字段为 `"unknown"` 时强制 `false`
 
 ### 异常时的 JSON 输出（仅 `--auto` 模式）
 
