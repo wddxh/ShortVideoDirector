@@ -89,8 +89,8 @@ argument-hint: "集数 [--auto]"
 
 ### 阶段 4: 输出进度摘要
 
-1. 统计各状态数量：done / submitted / failed（`all` 模式下跨所有集合计）
-2. 输出人类可读摘要：完成 N 个 / 排队中 N 个 / 失败 N 个
+1. 统计各状态数量：pending / done / submitted / failed（`all` 模式下跨所有集合计）
+2. 输出人类可读摘要：已登记未提交 N 个 / 完成 N 个 / 排队中 N 个 / 失败 N 个
 
 **`--auto` 模式额外要求**：在本 skill 所有输出的**最后一行**追加一行 JSON 摘要，供自动化调用方（如 auto-video 的 sub-agent）解析。字段与填充规则见下方"JSON 摘要契约"章节。human_needed 列表在阶段 5 收集完毕后并入本 JSON。
 
