@@ -1,6 +1,6 @@
 ---
 name: creator-video-dreamina
-description: 使用即梦CLI multimodal2video为分镜提交视频生成任务，构造prompt并记录任务到tasks.json。
+description: 使用即梦CLI multimodal2video 执行已登记 pending 镜头的状态转移（pending → submitted/failed），更新 tasks.json。
 user-invocable: false
 context: fork
 agent: creator
@@ -26,7 +26,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 - **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。只能调用插件内 `scripts/` 目录下的现有脚本。**
 - **tasks.json 的读取和写入由你（LLM）直接完成：用 Read 工具读取，用 Write 工具写入。不要用脚本操作 tasks.json。**
 - **调用插件脚本时，如果相对路径 `scripts/xxx.sh` 找不到，使用 Glob 工具搜索 `**/scripts/xxx.sh` 找到插件目录下的脚本绝对路径。**
-- **本 skill 只做 `pending → submitted / failed` 状态转移。严禁：(a) 处理 tasks.json 中不存在的 shot（视为上游 bug，输出错误提示并停止，不得尝试提交）；(b) 处理 status ≠ pending 的 shot（submitted/done/failed 由 check-video 处理）；(c) 以测试、验证、调试名义提交任何任务；(d) 修改 tasks.json 的 prompt / images / duration（本 skill 仅更新 submit_id / status / fail_reason）。视频生成成本高，任何灰色操作直接烧钱。**
+- **本 skill 只做 `pending → submitted / failed` 状态转移。严禁：(a) 处理 tasks.json 中不存在的 shot（视为上游 bug，输出错误提示并跳过该 shot 继续下一个，不得尝试提交）；(b) 处理 status ≠ pending 的 shot（submitted/done/failed 由 check-video 处理）；(c) 以测试、验证、调试名义提交任何任务；(d) 修改 tasks.json 的 prompt / images / duration（本 skill 仅更新 submit_id / status / fail_reason）。视频生成成本高，任何灰色操作直接烧钱。**
 
 ## tasks.json 格式
 
