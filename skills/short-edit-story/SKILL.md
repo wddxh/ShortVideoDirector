@@ -48,18 +48,26 @@ argument-hint: "[自然语言修改意见]"
 3. 若用户附带了修改建议（如"头发改成红色"）→ 使用 Skill tool 调用 `creator-fix-asset` skill，传递参数：`{资产文件路径} "{修改建议，请更新图像生成提示词}"`
 4. 读取 `config.md` 获取图像模型值，使用 Skill tool 调用 `creator-image-{图像模型值}` skill，传递参数：资产路径列表（覆盖已有图片）
 5. 若用户附带了修改建议 → 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "资产 {资产名} 的描述已更新，请根据最新资产文件更新分镜中引用该资产的所有相关描述"`
+6. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
+7. 若"需修改" → 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 #### 修改分镜（无下游）
 
 1. 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`
+2. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
+3. 若"需修改" → 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 #### 修改剧本（级联资产清单 + 资产 + 分镜）
 
 1. 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`
-2. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`ep01`
-3. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
-4. 若 config 图像模型非 `none` → 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
-5. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
+2. 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01`
+3. 若"需修改" → 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+4. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`ep01`
+5. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
+6. 若 config 图像模型非 `none` → 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
+7. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
+8. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
+9. 若"需修改" → 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 #### 修改大纲（级联剧本 + 审核 + 资产清单 + 资产 + 分镜）
 
@@ -71,12 +79,16 @@ argument-hint: "[自然语言修改意见]"
 6. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
 7. 若 config 图像模型非 `none` → 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
 8. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
+9. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
+10. 若"需修改" → 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 #### 修改资产文件（级联分镜中该资产描述 + 重新生成图片）
 
 1. 使用 Skill tool 调用 `creator-fix-asset` skill，传递参数：`{资产文件路径} "{修改意见}"`
 2. 若 config 图像模型非 `none` → 读取 `config.md` 获取图像模型值，使用 Skill tool 调用 `creator-image-{图像模型值}` skill，传递参数：`"{资产文件路径}"`
 3. 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "资产 {资产名} 的描述已更新，请根据最新资产文件更新分镜中引用该资产的所有相关描述"`
+4. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
+5. 若"需修改" → 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 #### 修改资产清单
 
