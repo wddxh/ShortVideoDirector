@@ -2,7 +2,7 @@
 name: auto-video
 description: 创建定时任务自动监控视频生成状态，下载完成视频，重试因并行限制失败的任务。使用 /auto-video ep01 启动，任务全部完成后自动停止。
 user-invocable: true
-allowed-tools: Read, Write, Glob, Bash, CronCreate, CronDelete, CronList
+allowed-tools: Read, Write, Glob, Bash, CronCreate, CronDelete, CronList, Agent
 argument-hint: "[集数|all] [检查间隔秒数]"
 ---
 
