@@ -19,7 +19,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash
 
 ## 职责描述
 
-读取分镜，构造 prompt（替换资产链接为图片引用），调用脚本提交视频生成任务，将结果记录到 tasks.json。
+从 tasks.json 加载 pending 镜头，读取其 prompt / images / duration，调用脚本提交视频生成任务，将结果（submit_id / status / fail_reason）写回 tasks.json。
 
 ## 约束
 
