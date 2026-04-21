@@ -1,6 +1,68 @@
 # ShortVideoDirector
 
-一个 Claude Code Plugin，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词、资产参考图片和视频片段。
+一个面向 AI 视频创作的 plugin，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词、资产参考图片和视频片段。
+
+本仓库采用**单仓双 runtime**设计：以 [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) 为首发平台，并兼容 [opencode](https://opencode.ai/)。两端用户入口、命令与行为保持一致；底层只在加载机制上有差异。详见 [CLAUDE.md](CLAUDE.md)。
+
+## 快速开始（双端）
+
+仓库内同时维护了 Claude Code 与 opencode 两份等价产物（分别位于 `.claude/` 与 `.opencode/`），两端的 `/series-video`、`/short-video` 等用户命令完全一致。请按你使用的 runtime 选择安装方式。
+
+### Claude Code
+
+通过 `--plugin-dir` 加载（每次启动时指定路径）：
+
+```bash
+# 在你的项目工作目录中启动 Claude Code，并加载本仓库为 plugin
+claude --plugin-dir /path/to/ShortVideoDirector
+```
+
+启动后即可在斜杠菜单中调用：
+
+```bash
+/series-video 一个穿越到异世界的少年，发现自己拥有操控时间的能力...
+```
+
+Claude Code 会在会话启动时自动加载仓库根的 [CLAUDE.md](CLAUDE.md)，无需额外操作。
+
+### opencode
+
+opencode 在当前工作目录下会自动读取 `.opencode/opencode.json` 与 `.opencode/{commands,skills,agents}/`。最简方式是把仓库目录作为工作目录（或将 `.opencode/` 拷贝/软链到你的项目根）：
+
+```bash
+# 方式一：在 ShortVideoDirector 仓库根目录下直接启动 opencode
+cd /path/to/ShortVideoDirector
+opencode
+
+# 方式二：在你自己的项目目录下创建到 .opencode 的软链，再启动 opencode
+cd /path/to/your-project
+ln -s /path/to/ShortVideoDirector/.opencode .opencode
+opencode
+```
+
+启动后调用方式与 Claude Code 一致：
+
+```bash
+/series-video 一个穿越到异世界的少年，发现自己拥有操控时间的能力...
+```
+
+> opencode 不会自动加载仓库根的 [CLAUDE.md](CLAUDE.md)。如需把项目背景注入首轮 prompt，可在会话开始时手动执行 `cat CLAUDE.md`，或在 system prompt 中粘贴关键章节。详见 [CLAUDE.md — opencode 章节](CLAUDE.md#opencode)。
+
+### 双端能力对照
+
+| 用户命令 | Claude Code | opencode |
+| --- | --- | --- |
+| `/series-video` | 可用 | 可用 |
+| `/short-video` | 可用 | 可用 |
+| `/series-edit-story` | 可用 | 可用 |
+| `/short-edit-story` | 可用 | 可用 |
+| `/series-repair-story` | 可用 | 可用 |
+| `/short-repair-story` | 可用 | 可用 |
+| `/generate-video` | 可用 | 可用 |
+| `/check-video` | 可用 | 可用 |
+| `/auto-video` | 原生支持（in-session sleep-loop） | 原生支持（in-session sleep-loop） |
+
+> `/auto-video` 通过 LLM 会话内的 sleep-loop 实现，不再依赖宿主级调度（Cron / launchd / Task Scheduler）。轮询在当前会话内进行，关闭会话即终止；内置安全上限（最多 24 轮 / 8 小时）。如需脱离会话长时间后台运行，可改用 OS 级 cron 周期性触发 `/check-video --auto`，参见 [OS 调度（可选 advanced）](#os-调度可选-advanced)。
 
 ## 功能
 
@@ -39,14 +101,9 @@
 | **Storyboarder** | 分镜师 | 负责资产清单和分镜提示词生成 |
 | **Creator** | 创意总监 | 识别并视觉化人物和资产，生成图像提示词和声音特征描述 |
 
-## 安装
-
-```bash
-# 通过 --plugin-dir 加载（每次启动时指定）
-claude --plugin-dir /path/to/ShortVideoDirector
-```
-
 ## 使用
+
+下列所有命令在 Claude Code 与 opencode 端调用方式与行为一致。
 
 ```bash
 # 开始新故事（提供输入）
@@ -119,11 +176,23 @@ claude --plugin-dir /path/to/ShortVideoDirector
 /check-video ep01 --auto                # 自动模式，只重试可重试的失败
 /check-video all --auto                 # 检查所有集
 
-# 启动/管理视频生成定时监控
+# 启动/管理视频生成在会话内自动监控（两端均原生支持）
 /auto-video ep01                        # 监控 ep01，默认每 20 分钟检查
 /auto-video ep01 300                    # 自定义间隔（秒）
 /auto-video all                         # 监控所有集
 ```
+
+> `/auto-video` 在两端都通过当前 LLM 会话内的 sleep-loop 实现自动轮询：每隔指定间隔起一个 sub-agent 调 `/check-video --auto`，全部完成或不可恢复错误时自动停止；内置安全上限 24 轮 / 8 小时。**关闭会话即终止**。如需脱离会话长时间运行，参考 [OS 调度（可选 advanced）](#os-调度可选-advanced)。
+
+### OS 调度（可选 advanced）
+
+`/auto-video` 已通过 in-session sleep-loop 在两端原生可用；**绝大多数场景下不需要 OS 级调度**。仅在以下情形可考虑用 OS 级 cron 直接周期性触发 `/check-video <ep> --auto`：
+
+- 需要长时间（>8 小时）后台轮询，且不希望保持 LLM 会话窗口开启
+- 无人值守批量处理多个项目目录
+- CI / 服务器环境，无法保留 interactive 会话
+
+完整 cron / launchd / Task Scheduler 示例见 [CLAUDE.md — 可选：OS 级周期触发](CLAUDE.md#可选os-级周期触发)。注意 OS 调度无法替代 `/auto-video` 的"全部完成自动停止"语义，需自己根据 `/check-video --auto` 输出的 JSON 摘要（`all_complete=true`）判断停止条件并手动 disable。
 
 ## 生成的目录结构
 
@@ -269,76 +338,76 @@ your-project/
 
 **退出条件（满足任一）：** 新增集数达标 或 总集数达标
 
-## 插件结构
+## 仓库结构
+
+仓库采用「**源 + 产物**」分离布局。**唯一手工编辑的目录是 `src/` 与 `tools/`**；`.claude/` 与 `.opencode/` 是构建产物，由 `tools/build.py` 自动生成，不应手动修改。
 
 ```
 ShortVideoDirector/
+├── src/                            # ★ canonical 源（唯一手工编辑目录）
+│   ├── skills/                     # 28 个业务 skill 源（按 skill 名分目录）
+│   ├── agents/                     # 5 个角色 agent 源
+│   └── workflows/                  # 11 个 workflow 源（含用户入口与 internal）
+├── tools/                          # ★ 构建与校验工具
+│   ├── build.py                    # 从 src/ 编译生成 .claude/ 与 .opencode/
+│   ├── check-structure.py          # 结构与一致性校验
+│   ├── runtime-config.yml          # owner 映射、双端变换规则、invoke 模板
+│   └── tests/                      # pytest 测试
+├── .claude/                        # Claude Code 产物（构建生成，勿手改）
+│   ├── skills/
+│   └── agents/
 ├── .claude-plugin/
-│   └── plugin.json
-├── agents/
-│   ├── director.md              # Director（总导演）
-│   ├── writer.md                # Writer（小说作家）
-│   ├── scriptwriter.md          # Scriptwriter（短视频编剧）
-│   ├── storyboarder.md          # Storyboarder（分镜师）
-│   └── creator.md               # Creator（创意总监）
-├── skills/
-│   ├── series-video/            # 系列视频入口 skill
-│   │   ├── SKILL.md
-│   │   └── config-template.md
-│   ├── short-video/             # 单集短视频入口 skill
-│   │   ├── SKILL.md
-│   │   └── config-template.md
-│   ├── series-edit-story/          # 编辑系列视频已有内容（自然语言）
-│   ├── series-repair-story/       # 修复系列视频中断的生成
-│   ├── new-story/               # 新故事工作流
-│   │   └── SKILL.md
-│   ├── continue-story/          # 续写工作流
-│   │   └── SKILL.md
-│   ├── director-plot-options/   # Director 生成剧情选项
-│   ├── director-input-confirm/  # Director 确认用户输入
-│   ├── director-outline/        # Director 生成大纲
-│   ├── director-arc/            # Director 生成弧线
-│   ├── director-review-novel/   # Director 审核小说
-│   ├── director-review-storyboard/ # Director 审核分镜
-│   ├── director-fix-outline/      # Director 修正大纲
-│   ├── writer-novel/            # Writer 生成小说
-│   ├── storyboarder-asset-list/ # Storyboarder 生成资产清单
-│   ├── storyboarder-storyboard/ # Storyboarder 生成分镜
-│   ├── storyboarder-fix-storyboard/ # Storyboarder 修正分镜
-│   ├── writer-fix-novel/        # Writer 修正小说
-│   ├── creator-create-assets/   # Creator 创建资产
-│   ├── creator-generate-images/ # Creator 批量生成资产参考图片（路由层）
-│   ├── creator-image-dreamina/  # Creator 即梦图片生成（模型编排层）
-│   ├── generate-video/          # 提交视频生成任务（用户可调用）
-│   ├── check-video/             # 查询视频生成结果（用户可调用）
-│   ├── auto-video/              # 视频生成定时监控（用户可调用）
-│   ├── creator-video-dreamina/  # 即梦视频生成（模型编排层）
-│   ├── creator-update-records/  # Creator 更新出场记录
-│   ├── creator-fix-asset/         # Creator 修正资产
-│   ├── short-plot-options/      # Director 生成短视频剧情选项
-│   ├── short-input-confirm/     # Director 确认短视频用户输入
-│   ├── short-outline/           # Director 生成短视频大纲
-│   ├── scriptwriter-script/     # Scriptwriter 生成剧本
-│   ├── scriptwriter-fix-script/ # Scriptwriter 修正剧本
-│   ├── director-review-script/  # Director 审核剧本
-│   ├── short-storyboard/        # Storyboarder 生成短视频分镜
-│   ├── short-review-storyboard/ # Director 审核短视频分镜
-│   ├── short-fix-storyboard/    # Storyboarder 修正短视频分镜
-│   ├── short-fix-outline/       # Director 修正短视频大纲
-│   ├── short-edit-story/        # 编辑单集短视频已有内容
-│   └── short-repair-story/      # 修复单集短视频中断的生成
-├── scripts/
-│   ├── run-batch.ps1            # 批量生成脚本
-│   ├── image-gen-dreamina.sh    # 即梦单张图片生成脚本（支持参考图）
-│   ├── video-gen-dreamina.sh    # 即梦单镜头视频提交脚本（异步）
-│   ├── auto-video-check.sh      # 视频生成状态检查脚本（定时任务用）
-│   ├── read-config.sh           # config.md 键值提取
-│   ├── check-episode.sh         # 集文件完整性检查
-│   ├── storyboard-to-prompt.sh  # 分镜资产链接替换为图片引用
-│   ├── asset-to-image-path.sh   # 资产路径转图片路径
-│   ├── latest-episode.sh        # 最新集数检测
-│   ├── task-status.sh           # JSON 任务文件操作（query/update/remove/add/upsert）
-│   ├── word-count.sh            # 字数统计脚本
-│   └── speech-rate.sh           # 台词语速检查脚本
-└── README.md
+│   └── plugin.json                 # Claude Code plugin 描述（构建生成）
+├── .opencode/                      # opencode 产物（构建生成，勿手改）
+│   ├── skills/
+│   ├── commands/                   # opencode 端用户入口 workflow
+│   ├── agents/
+│   └── opencode.json               # opencode 配置
+├── scripts/                        # 通用脚本（批量生成、即梦 CLI 包装等）
+├── docs/
+│   └── plans/2026-04-20-16-32/     # 双 runtime 改造的设计与实施文档
+├── .github/
+│   ├── pull_request_template.md
+│   └── workflows/build-check.yml   # CI：跑 build.py 并 diff 产物
+├── CLAUDE.md                       # 项目权威指令文档（双 runtime 架构、ADR、贡献流程）
+├── README.md                       # 本文件
+├── .gitattributes                  # 把构建产物标记为 linguist-generated，减少 PR diff 噪音
+└── LICENCE
 ```
+
+## 贡献者快速指南
+
+1. **fork & clone** 本仓库，新建 feature 分支。
+2. **只在 `src/` 与 `tools/runtime-config.yml` 中编辑源文件**。**不要直接改 `.claude/` 或 `.opencode/`**——这两个目录是构建产物，手改会在 CI 中被覆盖并导致 PR 报错。
+3. **重新生成产物：**
+
+   ```bash
+   uv run tools/build.py
+   ```
+
+4. **跑结构与一致性校验：**
+
+   ```bash
+   uv run tools/check-structure.py
+   ```
+
+5. **跑测试：**
+
+   ```bash
+   uv run pytest tools/tests
+   ```
+
+6. **提交并发起 PR**：commit 必须同时包含**源**（`src/`、`tools/`）与**产物**（`.claude/`、`.opencode/`、`.claude-plugin/plugin.json`）双端变更。
+
+   - 仓库的 [`.gitattributes`](.gitattributes) 已把产物目录标为 `linguist-generated`，PR diff 视图会默认折叠，减少 review 噪音。
+   - 仓库提供 [`.github/pull_request_template.md`](.github/pull_request_template.md) 模板，按项填写即可。
+   - CI（`.github/workflows/build-check.yml`）会重新跑 `build.py` 并对比 `.claude/`、`.opencode/` 的 git diff，**不一致直接拒绝**。
+
+更详细的贡献规范、双 runtime 架构与 ADR 列表，请阅读 [CLAUDE.md](CLAUDE.md)。
+
+## 进一步阅读
+
+- [CLAUDE.md](CLAUDE.md) — 项目权威指令文档：双 runtime 架构、用户入口、内部 workflow、跨 runtime 调用约定、auto-video sleep-loop 与可选 OS 级周期触发、贡献规范、常见问题。
+- [docs/plans/2026-04-20-16-32/opencode-compat-technical-design.md](docs/plans/2026-04-20-16-32/opencode-compat-technical-design.md) — 双 runtime 改造的完整技术设计与 ADR 列表。
+- [docs/plans/2026-04-20-16-32/opencode-compat-implementation-plan.md](docs/plans/2026-04-20-16-32/opencode-compat-implementation-plan.md) — 实施计划与 task 拆分。
+- [tools/runtime-config.yml](tools/runtime-config.yml) — owner 映射、双端变换规则、invoke 模板的权威配置。

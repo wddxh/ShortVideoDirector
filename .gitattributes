@@ -1,0 +1,7 @@
+.claude/skills/** linguist-generated=true
+.claude/agents/** linguist-generated=true
+.claude-plugin/plugin.json linguist-generated=true
+.opencode/skills/** linguist-generated=true
+.opencode/commands/** linguist-generated=true
+.opencode/agents/** linguist-generated=true
+.opencode/opencode.json linguist-generated=true

@@ -1,2 +1,14 @@
+# 项目本地工作目录（不入 git）
 docs/
-.claude/
+.cursor/
+
+# Python build / test artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 操作系统文件
+.DS_Store
+
+story/
+assets/

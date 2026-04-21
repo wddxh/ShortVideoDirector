@@ -2,5 +2,6 @@
   "name": "short-video-director",
   "version": "1.0.0",
   "description": "将故事创意转化为AI视频分镜提示词和资产图像提示词的多Agent协作系统",
-  "skills": "./skills/"
+  "skills": "./.claude/skills/",
+  "agents": "./.claude/agents/"
 }

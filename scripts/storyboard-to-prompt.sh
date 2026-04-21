@@ -25,8 +25,11 @@ fi
 SHOT_BLOCK=$(awk -v n="$SHOT_NUM" '
   /^### 镜头 / {
     if (found) exit
-    match($0, /镜头 ([0-9]+)/, arr)
-    if (arr[1] == n) found=1
+    line = $0
+    if (match(line, /[0-9]+/)) {
+      num = substr(line, RSTART, RLENGTH)
+      if (num == n) found=1
+    }
   }
   found { print }
 ' "$STORYBOARD")

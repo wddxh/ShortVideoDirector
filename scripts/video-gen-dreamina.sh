@@ -36,18 +36,39 @@ RESULT=$(eval dreamina multimodal2video \
   --video_resolution=720p \
   --model_version="$MODEL" 2>&1)
 
-# Parse gen_status
-STATUS=$(printf '%s' "$RESULT" | grep -oP '"gen_status"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"gen_status"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
+# Parse gen_status using python3 for cross-platform JSON parsing
+STATUS=$(printf '%s' "$RESULT" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('gen_status', ''))
+except Exception:
+    print('')
+" 2>/dev/null)
 
 case "$STATUS" in
   fail)
-    REASON=$(printf '%s' "$RESULT" | grep -oP '"fail_reason"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"fail_reason"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
+    REASON=$(printf '%s' "$RESULT" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('fail_reason', 'unknown error'))
+except Exception:
+    print('unknown error')
+" 2>/dev/null)
     echo "FAIL ${REASON:-unknown error}"
     exit 1
     ;;
   *)
     # Any non-fail status (querying, success, etc.) means submission succeeded
-    SUBMIT_ID=$(printf '%s' "$RESULT" | grep -oP '"submit_id"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"submit_id"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
+    SUBMIT_ID=$(printf '%s' "$RESULT" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('submit_id', ''))
+except Exception:
+    print('')
+" 2>/dev/null)
     if [ -z "$SUBMIT_ID" ]; then
       echo "FAIL no submit_id in response"
       echo "$RESULT" >&2

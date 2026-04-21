@@ -1,0 +1,58 @@
+---
+name: director-review-script
+description: Director审核Scriptwriter剧本，检查故事完整性、节奏、人物一致性和结局执行。
+user-invocable: false
+context: fork
+agent: director
+---
+
+## 输入
+
+### 文件读取
+- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取
+- `story/episodes/$ARGUMENTS[0]/script.md` — 必须读取
+- `assets/characters/*.md` — 若存在则读取（角色一致性审核）
+
+### 动态参数（$ARGUMENTS）
+- `$ARGUMENTS[0]` — 当前集数（如 ep01）
+
+## 职责描述
+
+审核 Scriptwriter 生成的剧本，检查与大纲的一致性、故事完整性、节奏、人物一致性和结局执行质量。
+
+## 输出格式
+
+通过时：
+```markdown
+## 审核结果：通过
+```
+
+不通过时：
+```markdown
+## 审核结果：需修改
+
+1. **{位置}：** {问题描述} → {修改建议}
+2. **{位置}：** {问题描述} → {修改建议}
+```
+
+## 规则参考
+
+- `skills/scriptwriter-script/rules.md` — 必须读取，按照其中的规则逐条审核
+
+## 导演专属审核重点
+
+除 rules.md 中的规则外，重点审核以下叙事层面的问题：
+
+- **故事完整性** — 剧本是否覆盖了大纲的完整弧线（铺垫、冲突、高潮、收束）？
+- **节奏** — 节奏是否合适，有无过于仓促或拖沓的段落？
+- **人物一致性** — 动作和台词是否符合已建立的性格特征？
+- **结局执行** — 结局是否匹配设计的类型并产生预期效果？
+
+## 规则
+
+最多 2 轮反馈。审核时需检查是否存在现实中的明星或公众人物名字、真实地名、商标名，发现则要求替换为虚构名称。
+
+## 输出
+
+### 返回内容
+- 审核结果（通过 / 需修改 + 修改意见列表） → 返回给 workflow

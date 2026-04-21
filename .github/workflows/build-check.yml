@@ -1,0 +1,32 @@
+name: build-check
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Layer 1 — build idempotent
+        run: |
+          uv run tools/build.py --clean
+          if ! git diff --exit-code .claude .opencode .claude-plugin; then
+            echo "::error::Build artifacts drifted from source. Run 'uv run tools/build.py' locally and commit the result."
+            exit 1
+          fi
+
+      - name: Layer 2 — structure check
+        run: uv run tools/check-structure.py
+
+      - name: Layer 3 — pytest
+        run: uv run --with pytest --with python-frontmatter --with PyYAML pytest tools/tests/ -v
