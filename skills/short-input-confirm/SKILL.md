@@ -5,6 +5,7 @@ user-invocable: false
 context: fork
 agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep
+model: sonnet
 ---
 
 ## 输入

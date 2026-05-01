@@ -3,6 +3,7 @@ name: continue-story
 description: 续写工作流。基于已有故事继续创作下一集：上下文收集→剧情选项→大纲→小说→资产→分镜。
 user-invocable: false
 allowed-tools: Read, Write, Edit, Glob, Bash, Skill
+model: opus
 ---
 
 # Continue Story 工作流

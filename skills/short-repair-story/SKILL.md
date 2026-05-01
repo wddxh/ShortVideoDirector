@@ -3,6 +3,7 @@ name: short-repair-story
 description: 检测单集短视频的文件完整性，从断点处恢复生成。自动识别缺失或不完整的文件，重新执行后续步骤。
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Bash, Skill
+model: opus
 ---
 
 ## 使用示例

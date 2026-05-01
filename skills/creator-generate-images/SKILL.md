@@ -5,6 +5,7 @@ user-invocable: false
 context: fork
 agent: creator
 allowed-tools: Read, Glob, Skill
+model: sonnet
 ---
 
 ## 输入

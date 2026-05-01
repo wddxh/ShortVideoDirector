@@ -3,6 +3,7 @@ name: new-story
 description: 新故事工作流。从零开始创建第一集：剧情选项→大纲→小说→资产→分镜，完整的单集生成流程。
 user-invocable: false
 allowed-tools: Read, Write, Edit, Glob, Bash, Skill
+model: opus
 ---
 
 # New Story 工作流

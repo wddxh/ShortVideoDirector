@@ -46,6 +46,23 @@
 claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
+## 模型要求
+
+本插件按任务复杂度分配模型：
+
+- Opus（编排、Director 审核）：15 个 skill
+- Sonnet（内容生成、机械执行）：24 个 skill
+
+**前置条件**：账号需同时有 Opus 和 Sonnet 访问权限。
+
+只有 Sonnet 配额时，可全局降级：
+
+```bash
+CLAUDE_CODE_SUBAGENT_MODEL=sonnet claude ...
+```
+
+env var 优先级最高，会覆盖所有 frontmatter 的 `model`，整个 session 全跑 Sonnet（编排稳定性可能受影响）。
+
 ## 使用
 
 ```bash
