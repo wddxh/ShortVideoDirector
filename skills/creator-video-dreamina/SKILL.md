@@ -91,7 +91,9 @@ model: sonnet
    - exit 1，stdout 以 `FAIL` 开头 → 提取失败原因，状态转移 pending → failed
 4. 用 Read 读取 tasks.json 最新内容，按 shot 编号找到对应条目，**只更新 `submit_id` / `status` / `fail_reason` 三个字段**（prompt / images / duration 保持不变），然后用 Write 写回完整 JSON
 5. 提交失败 → 写入 failed + fail_reason → 继续下一个 shot，本次运行中不得再次尝试该 shot
-6. 若提交失败原因为并发限制 → 可提前停止本次提交剩余 pending，输出"已达并发上限，剩余 pending 镜头将在下次运行时重试"
+6. 若提交失败原因为并发限制 → 立即停止本次提交，且把所有剩余 pending shot（status==pending 且尚未在本次 run 中提交过的）在 tasks.json 中状态转移 pending → failed，fail_reason 设为 `ExceedConcurrencyLimit`，submit_id 保持 `""`。已在本次 run 中标为 submitted 或 failed 的 shot 不动。批量标记规则：用 Read 读取 tasks.json 最新内容，批量更新后用 Write 写回完整 JSON。输出"已达并发上限，剩余 N 个 pending 镜头已标为 failed (ExceedConcurrencyLimit)，将由 auto-video cron 自动重试"。
+
+   设计意图：把"剩余 pending"转移到"failed-retryable"，复用 check-video phase 5a auto-retry 机制把它们逐步推进。failure-classification.md 已规定并发限制为 retryable，无需修改分类逻辑。
 
 ### 阶段 4: 摘要
 

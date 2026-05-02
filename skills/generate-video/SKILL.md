@@ -62,7 +62,7 @@ model: opus
    b. 查找 tasks.json 中是否存在该 shot 记录：
       - **不存在** → 添加 `{shot: N, submit_id: "", status: "pending", prompt, images, duration, fail_reason: ""}`
       - **status == pending** → 用新值刷新 prompt / images / duration（保持 status 为 pending）
-      - **status ∈ {submitted, done, failed}** → 用新值刷新 prompt / images / duration，保持 status 不变。若 prompt / images / duration 中任一与原值不同 → 输出警告行：`⚠️ shot {N}：storyboard 已变更，tasks.json 中 prompt/images/duration 已刷新，但视频状态仍为 {status}，未自动重提。如需用新 prompt 重新生成：若 status=done 请手动删除 shot{NN}.mp4 + tasks.json 该条记录；若 status=failed 请手动删除 tasks.json 该条记录；若 status=submitted 请先等待任务查询完成再处理。然后重跑 /generate-video。`
+      - **status ∈ {submitted, done, failed}** → 用新值刷新 prompt / images / duration，保持 status 不变。若 prompt / images / duration 中任一与原值不同 → 输出警告行：`⚠️ shot {N}：storyboard 已变更，tasks.json 中 prompt/images/duration 已刷新，但视频状态仍为 {status}，未自动重提。后续行为按 status 不同：若 status=submitted，当前用旧 prompt 在 dreamina 排队，最终成功则视频丢失编辑（强制重生成需等查询完成后手删 mp4 + tasks.json 条目重跑 /generate-video），最终失败则下次 /check-video --auto 用新 prompt 重提；若 status=done，不会自动重提（需手删 shot{NN}.mp4 + tasks.json 条目后重跑 /generate-video）；若 status=failed，下次 /check-video --auto 若分类为 retryable（如并发限制、临时网络错误）则自动用新 prompt 重试无需手删，若分类为 human-needed（如内容安全、参数错误）则需 /check-video 交互模式介入或手删条目重跑。`
 4. 使用 Write 把完整 JSON 数组写回 tasks.json（保留非目标 shot 的记录不动）
 5. 统计本次需要提交的镜头 = 此时 status 为 pending 的目标镜头。若为空 → 输出"无 pending 镜头，无需提交"并跳到阶段 7
 
