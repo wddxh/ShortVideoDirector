@@ -2,13 +2,25 @@
 
 Codex support is provided through `.codex-plugin/plugin.json`.
 
-Claude Code and Codex both load the same source skills from `skills/`.
+Claude Code loads the source skills from `skills/`. Codex loads generated thin wrappers from `.codex/skills/`.
 
 ## Single Skill Source
 
-`skills/` is the only human-edited skill directory. Do not create or edit a second generated copy under `.codex/skills/`.
+`skills/` is the only human-edited skill directory. Do not edit generated wrappers under `.codex/skills/` by hand.
 
-When running in Codex, apply the runtime compatibility notes in `.codex/tool-mapping.md`. They explain how to interpret Claude-oriented terms such as `Read`, `Write`, `Edit`, `Bash`, `Agent`, `CronCreate`, `allowed-tools`, and `model`.
+Wrappers only contain Codex-safe metadata, `.codex/tool-mapping.md`, and a pointer back to the source `skills/<name>/SKILL.md`. They do not copy the source skill body.
+
+After changing `.codex/tool-mapping.md` or source skill frontmatter, regenerate wrappers:
+
+```bash
+python3 .codex/build-codex-skills.py
+```
+
+To verify wrappers without writing:
+
+```bash
+python3 .codex/build-codex-skills.py --check
+```
 
 ## User-facing workflows
 
@@ -24,6 +36,6 @@ When running in Codex, apply the runtime compatibility notes in `.codex/tool-map
 
 ## Notes
 
-- All skills live under `skills/`, including internal workflow and role-owned skills, because user-facing workflows call them by skill name.
-- Claude-only frontmatter such as `allowed-tools` and `model` remains in the shared source files for Claude Code. Codex treats those fields as advisory metadata.
-- `/auto-video` still describes Claude Cron behavior. In Codex, prefer Codex automation support when available; otherwise use `/check-video <target> --auto` periodically.
+- All source skills live under `skills/`, including internal workflow and role-owned skills, because user-facing workflows call them by skill name.
+- Claude-only frontmatter such as `allowed-tools` and `model` remains in the source files for Claude Code. Codex wrapper frontmatter keeps only portable discovery metadata.
+- `/auto-video` still describes Claude Cron behavior in the source skill. Codex interprets it through `.codex/tool-mapping.md`.

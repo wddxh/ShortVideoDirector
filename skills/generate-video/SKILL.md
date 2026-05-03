@@ -69,11 +69,11 @@ model: opus
 ### 阶段 5: 提交任务
 
 1. 读取 `config.md` 获取视频模型值
-2. 调用或执行 `creator-video-{视频模型值}` skill，传递参数：`{集数} {目标 pending 镜头编号列表，如 "1 3 5" 或 "all"}`
+2. 使用 Skill tool 调用 `creator-video-{视频模型值}` skill，传递参数：`{集数} {目标 pending 镜头编号列表，如 "1 3 5" 或 "all"}`
 
 ### 阶段 6: 启动自动监控
 
-1. 调用或执行 `auto-video` skill，传递参数：`{集数} 1200`
+1. 使用 Skill tool 调用 `auto-video` skill，传递参数：`{集数} 1200`
 
 ### 阶段 7: 完成
 
