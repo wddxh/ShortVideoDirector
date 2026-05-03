@@ -119,10 +119,14 @@ for ((i=1; i<=max; i++)); do
 done
 
 if [ ${#missing[@]} -gt 0 ]; then
+  missing_str=""
+  for m in "${missing[@]}"; do
+    if [ -z "$missing_str" ]; then missing_str="$m"; else missing_str="$missing_str, $m"; fi
+  done
   if [ "$ALLOW_GAPS" -eq 1 ]; then
-    echo "WARN: missing shots: ${missing[*]} (--allow-gaps in effect, continuing)"
+    echo "WARN: missing shots: $missing_str (--allow-gaps in effect, continuing)"
   else
-    echo "Error: missing shots: ${missing[*]} (use --allow-gaps to skip)" >&2
+    echo "Error: missing shots: $missing_str (use --allow-gaps to skip)" >&2
     exit 1
   fi
 fi
@@ -139,12 +143,6 @@ for f in "${shot_files[@]}"; do
   esc="${abs//\'/\'\\\'\'}"
   printf "file '%s'\n" "$esc" >> "$LIST"
 done
-
-# Ensure output directory exists
-out_dir="$(dirname "$OUTPUT")"
-if [ -n "$out_dir" ] && [ "$out_dir" != "." ]; then
-  mkdir -p "$out_dir"
-fi
 
 # Run ffmpeg
 FFMPEG_FORCE=()
