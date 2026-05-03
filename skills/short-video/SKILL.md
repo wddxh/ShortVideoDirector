@@ -134,8 +134,8 @@ model: opus
 1. 使用 Bash 创建目录结构：`story/`、`story/episodes/ep01/`、`assets/characters/`、`assets/items/`、`assets/locations/`、`assets/buildings/`
 
 2. 根据故事材料进行输入分流：
-   - **有故事材料** → 使用 Skill tool 调用 `short-input-confirm` skill，传递参数：`"{story_input}"`，等待用户确认
-   - **无故事材料** → 使用 Skill tool 调用 `short-plot-options` skill，等待用户选择
+   - **有故事材料** → 调用或执行 `short-input-confirm` skill，传递参数：`"{story_input}"`，等待用户确认
+   - **无故事材料** → 调用或执行 `short-plot-options` skill，等待用户选择
 
 ## 阶段 4: 执行工作流
 
@@ -143,41 +143,41 @@ model: opus
 
 **4.1 Director — 生成大纲：**
 
-使用 Skill tool 调用 `short-outline` skill，传递参数：`"{用户确认的剧情方向文本}"`
+调用或执行 `short-outline` skill，传递参数：`"{用户确认的剧情方向文本}"`
 
 **4.2 Scriptwriter — 写剧本：**
 
-使用 Skill tool 调用 `scriptwriter-script` skill，传递参数：`ep01`
+调用或执行 `scriptwriter-script` skill，传递参数：`ep01`
 
 **4.3 Director — 审核剧本：**
 
-1. 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01`
-2. 若"需修改"→ 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+1. 调用或执行 `director-review-script` skill，传递参数：`ep01`
+2. 若"需修改"→ 调用或执行 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 **4.4 Storyboarder — 提取资产清单：**
 
-使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`ep01`
+调用或执行 `storyboarder-asset-list` skill，传递参数：`ep01`
 
 **4.5 Creator — 创建资产：**
 
-使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
+调用或执行 `creator-create-assets` skill，传递参数：`ep01`
 
 **4.6 生成分镜 + 生成资产图片（并行）：**
 
 若 config 中图像模型非 `none`，以下两条线并行执行（分镜流程不等待图片完成）：
 
 **图片生成线（后台）：**
-使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
+调用或执行 `creator-generate-images` skill，传递参数：`ep01`
 
 **分镜流程线（前台，正常推进）：**
-1. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
+1. 调用或执行 `short-storyboard` skill，传递参数：`ep01`
 
 若 config 中图像模型为 `none`，仅执行分镜流程线。
 
 **4.7 Director — 审核分镜：**
 
-1. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
-2. 若"需修改"→ 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+1. 调用或执行 `short-review-storyboard` skill，传递参数：`ep01`
+2. 若"需修改"→ 调用或执行 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 **4.8 完成：**
 

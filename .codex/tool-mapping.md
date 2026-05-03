@@ -1,6 +1,6 @@
 # Codex Runtime Mapping
 
-This skill was authored for the Claude Code plugin runtime. When executing it in Codex, apply the following mapping.
+This repository keeps one shared `skills/` directory for both Claude Code and Codex. When executing these skills in Codex, apply the following mapping to Claude-oriented runtime terms.
 
 ## File and shell tools
 
@@ -13,8 +13,8 @@ This skill was authored for the Claude Code plugin runtime. When executing it in
 
 ## Skill calls
 
-- `使用 Skill tool 调用 <skill-name> skill` means invoke or follow the generated Codex skill named `<skill-name>`.
-- If direct skill invocation is unavailable, read `.codex/skills/<skill-name>/SKILL.md` and execute that skill's instructions with the supplied arguments.
+- `调用或执行 <skill-name> skill` means invoke or follow the repository skill named `<skill-name>`.
+- If direct skill invocation is unavailable, read `skills/<skill-name>/SKILL.md` and execute that skill's instructions with the supplied arguments.
 - Preserve the source skill's `$ARGUMENTS` contract when passing arguments.
 
 ## Agent calls
@@ -37,5 +37,5 @@ This skill was authored for the Claude Code plugin runtime. When executing it in
 
 ## Tool allowlists
 
-- Claude `allowed-tools` metadata is advisory only in generated Codex skills.
+- Claude `allowed-tools` metadata is advisory only in Codex.
 - If a named Claude tool is unavailable in Codex, apply this mapping instead of failing solely because the tool name differs.

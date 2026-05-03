@@ -51,28 +51,28 @@ model: opus
 根据检测到的第一个缺失/不完整步骤，依次执行后续所有步骤：
 
 **从剧本开始恢复：**
-1. 使用 Skill tool 调用 `scriptwriter-script` skill，传递参数：`ep01`
-2. 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01`
-3. 若"需修改"→ 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+1. 调用或执行 `scriptwriter-script` skill，传递参数：`ep01`
+2. 调用或执行 `director-review-script` skill，传递参数：`ep01`
+3. 若"需修改"→ 调用或执行 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 4. 继续执行"从资产清单开始恢复"
 
 **从资产清单开始恢复：**
-1. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`ep01`
+1. 调用或执行 `storyboarder-asset-list` skill，传递参数：`ep01`
 2. 继续执行"从资产文件开始恢复"
 
 **从资产文件开始恢复：**
-1. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
-2. 若图像模型非 `none`：使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
+1. 调用或执行 `creator-create-assets` skill，传递参数：`ep01`
+2. 若图像模型非 `none`：调用或执行 `creator-generate-images` skill，传递参数：`ep01`
 3. 继续执行"从分镜开始恢复"
 
 **从资产图片开始恢复（仅图像模型非 none 时）：**
-1. 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
+1. 调用或执行 `creator-generate-images` skill，传递参数：`ep01`
 2. 继续执行"从分镜开始恢复"
 
 **从分镜开始恢复：**
-1. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
-2. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
-3. 若"需修改"→ 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+1. 调用或执行 `short-storyboard` skill，传递参数：`ep01`
+2. 调用或执行 `short-review-storyboard` skill，传递参数：`ep01`
+3. 若"需修改"→ 调用或执行 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 ### 阶段 6: 完成
 

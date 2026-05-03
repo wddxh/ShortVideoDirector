@@ -2,17 +2,13 @@
 
 Codex support is provided through `.codex-plugin/plugin.json`.
 
-Claude Code continues to use `.claude-plugin/plugin.json` and the source `skills/` directory directly. Codex uses generated skills under `.codex/skills/`, which inject `.codex/tool-mapping.md` before the original skill instructions.
+Claude Code and Codex both load the same source skills from `skills/`.
 
-## Generate Codex skills
+## Single Skill Source
 
-After editing any source skill under `skills/`, regenerate the Codex artifacts:
+`skills/` is the only human-edited skill directory. Do not create or edit a second generated copy under `.codex/skills/`.
 
-```bash
-python3 .codex/build-codex-skills.py
-```
-
-Generated files under `.codex/skills/` should not be edited by hand.
+When running in Codex, apply the runtime compatibility notes in `.codex/tool-mapping.md`. They explain how to interpret Claude-oriented terms such as `Read`, `Write`, `Edit`, `Bash`, `Agent`, `CronCreate`, `allowed-tools`, and `model`.
 
 ## User-facing workflows
 
@@ -28,6 +24,6 @@ Generated files under `.codex/skills/` should not be edited by hand.
 
 ## Notes
 
-- All 39 source skills are generated, including internal workflow and role-owned skills, because user-facing workflows call them by skill name.
-- Claude-only frontmatter such as `allowed-tools` and `model` is removed from generated Codex skill frontmatter.
-- `/auto-video` is generated for completeness, but this first compatibility pass does not add a dedicated Codex override for Claude Cron behavior. In Codex, use `/check-video <target> --auto` periodically until that override is implemented.
+- All skills live under `skills/`, including internal workflow and role-owned skills, because user-facing workflows call them by skill name.
+- Claude-only frontmatter such as `allowed-tools` and `model` remains in the shared source files for Claude Code. Codex treats those fields as advisory metadata.
+- `/auto-video` still describes Claude Cron behavior. In Codex, prefer Codex automation support when available; otherwise use `/check-video <target> --auto` periodically.
