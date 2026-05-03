@@ -1,0 +1,94 @@
+---
+name: short-outline
+description: Director为单集短视频生成详细大纲。自动读取config.md，写入ep01 outline。
+user-invocable: false
+---
+
+<!-- BEGIN CODEX RUNTIME MAPPING: generated from .codex/tool-mapping.md -->
+
+# Codex Runtime Mapping
+
+This skill was authored for the Claude Code plugin runtime. When executing it in Codex, apply the following mapping.
+
+## File and shell tools
+
+- Claude `Read` means read a local file from the current workspace.
+- Claude `Write` means create or overwrite a local file in the current workspace.
+- Claude `Edit` means apply a targeted local file edit.
+- Claude `Glob` means find files by pattern.
+- Claude `Grep` means search file contents, preferably with `rg`.
+- Claude `Bash` means run a local shell command when it is necessary for the skill.
+
+## Skill calls
+
+- `使用 Skill tool 调用 <skill-name> skill` means invoke or follow the generated Codex skill named `<skill-name>`.
+- If direct skill invocation is unavailable, read `.codex/skills/<skill-name>/SKILL.md` and execute that skill's instructions with the supplied arguments.
+- Preserve the source skill's `$ARGUMENTS` contract when passing arguments.
+
+## Agent calls
+
+- Claude `Agent` means delegate to a Codex sub-agent when available.
+- If a matching role exists, use the corresponding role intent from `agents/<role>.md`.
+- If custom role injection is unavailable, execute the delegated task in the current Codex session while following the relevant role prompt.
+
+## Cron and automation
+
+- Claude `CronCreate`, `CronList`, and `CronDelete` are not literal Codex tools.
+- This first Codex compatibility pass does not implement a dedicated `/auto-video` override.
+- Until that override exists, prefer manual or external periodic calls to `/check-video <target> --auto` when running in Codex.
+- Never bypass the safety rules in `check-video` or `creator-video-dreamina`.
+
+## Model hints
+
+- Claude `model: opus` and `model: sonnet` are advisory only in Codex.
+- In Codex, use the active model unless the user explicitly asks for a different model.
+
+## Tool allowlists
+
+- Claude `allowed-tools` metadata is advisory only in generated Codex skills.
+- If a named Claude tool is unavailable in Codex, apply this mapping instead of failing solely because the tool name differs.
+
+<!-- END CODEX RUNTIME MAPPING -->
+
+<!-- BEGIN ORIGINAL SKILL: skills/short-outline/SKILL.md -->
+
+## 输入
+
+### 文件读取
+- `config.md` — 必须读取
+- `skills/short-outline/rules.md` — 必须读取并严格遵循
+
+### 动态参数（$ARGUMENTS）
+- `$ARGUMENTS[0]` — 用户选择的剧情方向（完整引用文本）
+
+## 职责描述
+
+### 核心使命
+
+为单集短视频生成完整的故事弧线大纲（铺垫→冲突→高潮→收束），下游消费者是 scriptwriter（写剧本）和 short-storyboard（拆分镜）。和系列剧不同，短视频只有这一集——所有铺垫、矛盾建立、转折、结局都必须在 config 时长目标内一次完成。下游最依赖的是「主要事件」结构（按铺垫/冲突/高潮分布）和「结局设计」——它们决定剧本的节奏分配和分镜的镜头预算。
+
+### 工作思路
+
+1. 先确定故事类型（搞笑反转/温馨治愈/悬疑烧脑/...），故事类型决定开场策略和结局类型的取向
+2. 根据 config 时长反推「主要事件」的事件数和复杂度——时长越短，事件数越少、每条越精炼、转折越快
+3. 「开场策略」单独想：前几秒要让观众停下滑动的手指，按故事类型选最合适的钩子
+4. 「结局设计」必须有力度，结局类型与故事类型匹配，描述要具体到画面/动作/台词层面，而非抽象的"反转"二字
+5. 主角姓名在故事内传达，每个重要角色首次出场要有姓名+身份/关系——这些在大纲层面就要规划
+
+### 常见误区
+
+- **写成"长剧第一集"** — 只规划铺垫和冲突，结局留白或潦草；模型受系列剧训练影响，自然把"高潮和结局留给后续" — 短视频只有这一集，结局必须落地
+- **结局类型与描述脱节** — 结局类型选「反转」但描述里只有"主角揭露真相"，没真反转 — 写完结局描述后回头检查"真的反了吗？反点是什么？"
+- **开场策略空话** — 写"用紧张刺激的场景吸引观众"，下游不知道是什么场景 — 开场策略要具体到可拍的画面或对白
+- **遗漏角色姓名传达** — rules 已规定但易忘，因为大纲层面没专门字段提示 — 列「角色出场」时每个重要角色后追问"姓名怎么传达？"
+
+## 规则参考
+
+- `skills/short-outline/rules.md` — 必须读取并严格遵循
+
+## 输出
+
+### 文件操作
+- 使用 Write 将大纲写入 `story/episodes/ep01/outline.md`
+
+<!-- END ORIGINAL SKILL -->

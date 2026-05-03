@@ -46,6 +46,18 @@
 claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
+## Codex
+
+Codex support is provided through `.codex-plugin/plugin.json`.
+
+Claude Code continues to use `.claude-plugin/plugin.json` and `skills/` directly. Codex uses generated skills under `.codex/skills/`, which inject Codex runtime mapping before the original skill instructions.
+
+Regenerate Codex skills after editing `skills/`:
+
+```bash
+python3 .codex/build-codex-skills.py
+```
+
 ## 模型要求
 
 本插件按任务复杂度分配模型：
