@@ -92,12 +92,18 @@ fi
 # Sort by version (handles shot1.mp4 vs shot10.mp4 numerically)
 readarray -t shot_files < <(printf '%s\n' "${shot_files[@]}" | sort -V)
 
-# Extract trailing number from each filename for gap check
+# Extract trailing number from each filename for gap check.
+# Validate first: glob shot[0-9]*.mp4 only enforces one leading digit, so
+# shot1abc.mp4 would slip through and crash $((10#$num)) below.
 nums=()
 for f in "${shot_files[@]}"; do
   base="${f##*/}"            # shot07.mp4
   num="${base#shot}"          # 07.mp4
   num="${num%.mp4}"           # 07
+  if [[ ! "$num" =~ ^[0-9]+$ ]]; then
+    echo "Error: unexpected filename (non-numeric shot index): $base" >&2
+    exit 1
+  fi
   num=$((10#$num))            # 7 (force decimal, strip leading zeros)
   nums+=( "$num" )
 done
@@ -135,6 +141,9 @@ fi
 LIST="$(mktemp)"
 trap 'rm -f "$LIST"' EXIT
 
+# pwd -W: emit a Windows-native path (C:/...). ffmpeg.exe is a native Windows
+# binary and won't resolve Git Bash's /c/Users/... MSYS paths inside the
+# concat list. Do not "fix" this back to bare pwd.
 videos_abs="$(cd "$VIDEOS_DIR" && pwd -W)"
 for f in "${shot_files[@]}"; do
   base="${f##*/}"
