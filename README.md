@@ -1,6 +1,8 @@
 # ShortVideoDirector
 
-一个 Claude Code / Codex Plugin，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词、资产参考图片和视频片段。
+一个以 Claude Code 为主体的插件，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词、资产参考图片和视频片段。Codex 支持以兼容层形式提供。
+
+本仓库只维护一套事实上的 skill 内容层：`skills/`。Claude Code 直接加载这套源 skills；Codex 通过 `.codex/` 下生成的轻量适配层执行同一套 skill 内容。
 
 ## 功能
 
@@ -48,11 +50,11 @@ claude --plugin-dir /path/to/ShortVideoDirector
 
 ## Codex
 
-Codex 支持由 `.codex-plugin/plugin.json` 提供。
+Codex 支持是对 Claude Code plugin 的兼容层，由 `.codex-plugin/plugin.json` 提供。
 
-Claude Code 从 `skills/` 加载源 skills。Codex 从 `.codex/skills/` 加载生成的轻量适配层；每个适配层会应用 `.codex/tool-mapping.md`，并执行原始源 skill。
+Claude Code 是主要运行目标，直接从 `skills/` 加载源 skills。Codex 从 `.codex/skills/` 加载生成的轻量适配层；每个适配层会应用 `.codex/tool-mapping.md`，并执行原始源 skill。
 
-只在 `skills/` 中修改 skill 行为。修改源 skill 头部元数据或 Codex 映射后，重新生成 Codex 适配层：
+只维护 `skills/` 这一套事实上的 skill 内容层。修改 skill 行为时只改 `skills/`；修改源 skill 头部元数据或 Codex 映射后，重新生成 Codex 适配层：
 
 ```bash
 python3 .codex/build-codex-skills.py
