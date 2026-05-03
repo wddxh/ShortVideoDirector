@@ -4,8 +4,8 @@
   "description": "将故事创意转化为 AI 视频分镜提示词和资产图像提示词的多 Agent 协作系统",
   "skills": "./.codex/skills/",
   "interface": {
-    "displayName": "Short Video Director",
-    "shortDescription": "Story-to-video planning workflows for Codex",
+    "displayName": "短视频导演",
+    "shortDescription": "面向 Codex 的故事转视频规划工作流",
     "developerName": "Hikaru518",
     "category": "Creative",
     "capabilities": ["Interactive", "Read", "Write"]

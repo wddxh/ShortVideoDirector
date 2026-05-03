@@ -48,11 +48,11 @@ claude --plugin-dir /path/to/ShortVideoDirector
 
 ## Codex
 
-Codex support is provided through `.codex-plugin/plugin.json`.
+Codex 支持由 `.codex-plugin/plugin.json` 提供。
 
-Claude Code loads source skills from `skills/`. Codex loads generated thin wrappers from `.codex/skills/`; each wrapper applies `.codex/tool-mapping.md` and executes the original source skill.
+Claude Code 从 `skills/` 加载源 skills。Codex 从 `.codex/skills/` 加载生成的轻量适配层；每个适配层会应用 `.codex/tool-mapping.md`，并执行原始源 skill。
 
-Edit skill behavior only in `skills/`. Regenerate Codex wrappers after source frontmatter or Codex mapping changes:
+只在 `skills/` 中修改 skill 行为。修改源 skill 头部元数据或 Codex 映射后，重新生成 Codex 适配层：
 
 ```bash
 python3 .codex/build-codex-skills.py
@@ -310,7 +310,7 @@ ShortVideoDirector/
 │   ├── INSTALL.md
 │   ├── CODEX_COMPAT_IMPLEMENTATION_PLAN.md
 │   ├── build-codex-skills.py
-│   ├── skills/                  # Codex wrapper skills
+│   ├── skills/                  # Codex 适配层 skills
 │   └── tool-mapping.md
 ├── agents/
 │   ├── director.md              # Director（总导演）

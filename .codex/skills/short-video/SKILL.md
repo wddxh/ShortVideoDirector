@@ -5,59 +5,59 @@ user-invocable: true
 argument-hint: "[故事材料|文件路径]"
 ---
 
-# Codex Adapter
+# Codex 适配器
 
-This is a generated Codex wrapper. The source skill remains the single source of truth at `skills/short-video/SKILL.md`.
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/short-video/SKILL.md`。
 
-Do not edit this wrapper by hand. Update the source skill only when you intentionally want to change Claude behavior, then regenerate wrappers with `python3 .codex/build-codex-skills.py`.
+不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
-## Runtime Mapping
+## 运行时映射
 
-# Codex Runtime Mapping
+# Codex 运行时映射
 
-This repository keeps Claude Code skills unchanged under `skills/`. Codex loads generated wrapper skills under `.codex/skills/`; each wrapper applies this mapping and then executes the original source skill.
+本仓库保持 `skills/` 下的 Claude Code skill 不变。Codex 加载 `.codex/skills/` 下生成的适配层；每个适配层会应用本映射，然后执行原始源 skill。
 
-## File and shell tools
+## 文件和 Shell 工具
 
-- Claude `Read` means read a local file from the current workspace.
-- Claude `Write` means create or overwrite a local file in the current workspace.
-- Claude `Edit` means apply a targeted local file edit.
-- Claude `Glob` means find files by pattern.
-- Claude `Grep` means search file contents, preferably with `rg`.
-- Claude `Bash` means run a local shell command when it is necessary for the skill.
+- Claude `Read` 表示读取当前工作区中的本地文件。
+- Claude `Write` 表示在当前工作区创建或覆盖本地文件。
+- Claude `Edit` 表示对本地文件进行定向修改。
+- Claude `Glob` 表示按模式查找文件。
+- Claude `Grep` 表示搜索文件内容，优先使用 `rg`。
+- Claude `Bash` 表示在 skill 必要时执行本地 shell 命令。
 
-## Skill calls
+## Skill 调用
 
-- `使用 Skill tool 调用 <skill-name> skill` means invoke or follow the Codex wrapper skill named `<skill-name>`.
-- If direct skill invocation is unavailable, read `skills/<skill-name>/SKILL.md` and execute that skill's instructions with the supplied arguments.
-- Preserve the source skill's `$ARGUMENTS` contract when passing arguments.
+- `使用 Skill tool 调用 <skill-name> skill` 表示调用或执行名为 `<skill-name>` 的 Codex 适配层 skill。
+- 如果不能直接调用 skill，则读取 `skills/<skill-name>/SKILL.md`，并带着原始参数执行其中的说明。
+- 传递参数时保留源 skill 的 `$ARGUMENTS` 约定。
 
-## Agent calls
+## Agent 调用
 
-- Claude `Agent` means delegate to a Codex sub-agent when available.
-- If a matching role exists, use the corresponding role intent from `agents/<role>.md`.
-- If custom role injection is unavailable, execute the delegated task in the current Codex session while following the relevant role prompt.
+- Claude `Agent` 表示在可用时委托给 Codex sub-agent。
+- 如果存在匹配的角色，则使用 `agents/<role>.md` 中的角色意图。
+- 如果当前环境不支持自定义角色注入，则在当前 Codex 会话中执行委托任务，并遵循对应角色提示词。
 
-## Cron and automation
+## 定时任务和自动化
 
-- Claude `CronCreate`, `CronList`, and `CronDelete` are not literal Codex tools.
-- For `/auto-video`, prefer Codex automation support when available.
-- If Codex automation is unavailable, use manual or external periodic calls to `/check-video <target> --auto`.
-- Never bypass the safety rules in `check-video` or `creator-video-dreamina`.
+- Claude `CronCreate`、`CronList` 和 `CronDelete` 不是 Codex 中的字面工具名。
+- 对于 `/auto-video`，优先使用 Codex automation 能力。
+- 如果当前环境没有 Codex automation 能力，则使用手动或外部周期性调用 `/check-video <target> --auto`。
+- 不得绕过 `check-video` 或 `creator-video-dreamina` 中的安全规则。
 
-## Model hints
+## 模型提示
 
-- Claude `model: opus` and `model: sonnet` are advisory only in Codex.
-- In Codex, use the active model unless the user explicitly asks for a different model.
+- Claude `model: opus` 和 `model: sonnet` 在 Codex 中仅作为提示信息。
+- 在 Codex 中，除非用户明确要求切换模型，否则使用当前活动模型。
 
-## Tool allowlists
+## 工具白名单
 
-- Claude `allowed-tools` metadata from the source skill is advisory only in Codex.
-- If a named Claude tool is unavailable in Codex, apply this mapping instead of failing solely because the tool name differs.
+- 源 skill 中的 Claude `allowed-tools` 元数据在 Codex 中仅作为提示信息。
+- 如果某个 Claude 工具名在 Codex 中不可用，不要仅因为工具名不同而失败，应按本映射执行。
 
-## Execute Source Skill
+## 执行源 Skill
 
-1. Read `skills/short-video/SKILL.md` and execute that skill's instructions with the user's original arguments.
-2. Treat `skills/short-video/` as the source skill directory. When the source skill references sibling files such as `rules.md` or `config-template.md`, resolve them relative to that directory.
-3. Treat repository-root paths such as `scripts/`, `agents/`, `story/`, `assets/`, and `config.md` as paths relative to the current workspace root.
-4. Do not copy or edit source skill instructions while executing this wrapper.
+1. 读取 `skills/short-video/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/short-video/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
+4. 执行本适配层时，不要复制或修改源 skill 说明。
