@@ -72,13 +72,16 @@ model: sonnet
 1. 使用 Bash 调用 `bash scripts/keyframe-to-prompt.sh "{关键帧 .md 路径}"`
    - 退出码非 0 → 记录失败（"keyframe-to-prompt 失败：{stdout 第 1 行}"），跳过该关键帧
    - 退出码 0 → 解析 stdout：第 1 行 `IMAGES:逗号分隔图片路径`、`---` 之后是最终 prompt（含头部 `**引用资产：**` 行 + 空行 + 正文）
-2. 依赖图存在性校验：用 Glob 检查 `IMAGES:` 行里每个 .png 是否存在
+2. 依赖图存在性校验：用 Bash `test -f "{png}"` 逐张检查 `IMAGES:` 行里每个 .png 是否存在
    - 任一缺失 → 记录失败（"依赖资产图缺失：{第一个缺失的 png}"），跳过该关键帧（不阻塞其他关键帧）
 3. 推导输出路径：`bash scripts/asset-to-image-path.sh "{关键帧 .md 路径}"` → `assets/images/keyframes/{集数}/{KF-id}.png`
 4. 使用 Bash 执行：`bash scripts/image-gen-dreamina.sh "{prompt 文本}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" "{IMAGES 逗号分隔字符串}"`
+   - 第 1 参数 `{prompt 文本}` 是 step 1 中 `---` 之后的整段（从 `**引用资产：**` 行到末尾），原样传递，**不要剥离头部**——dreamina 需要看到 `[name:{图片N}]` 头部才能把名字对应到参考图槽位
 5. 按三态处理结果。**注意**：dreamina CLI 一次最多 10 张参考图，超出会 FAIL；本档不在脚本层兜底，超出由 dreamina 报错→记 FAIL→由 `creator-fix-keyframe-image` 阶段判断是 director 拆帧还是减资产
 
 ### 阶段 4: 轮询 pending 任务
+
+**调用时机：每档结束时调用一次（不是全局一次）。本档 pending 全部处理完成后回到阶段 3 继续下一档。**
 
 若待查列表非空：
 1. 等待 30 秒
