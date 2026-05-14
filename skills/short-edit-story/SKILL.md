@@ -77,6 +77,8 @@ LLM 在给出方案前必须读以下文件：
 1. **定位入口**：基于"新内容的语义源头在哪个节点"的判断：
    - 新增剧情/角色 → script 层
    - 角色/物品/场景的全局属性变更（外貌、衣着、身份）→ assets 层
+   - 关键帧叙事（剧情节奏、视觉节点编排）→ keyframes 层
+   - 关键帧图片本身不满意但描述/prompt 不变 → keyframe-images 层（仅重生 + visual review）
    - 纯视觉/构图/节奏 → storyboard 层
    - 剧情走向（幕结构、钩子）→ outline 层
    - 清单遗漏补齐（剧本已有但清单漏写）→ asset-list 层
@@ -134,11 +136,16 @@ LLM 在给出方案前必须读以下文件：
 | 写 script | `scriptwriter-script`（`ep01`） |
 | 修 script | `scriptwriter-fix-script`（`ep01 "{修改意见}"`） |
 | review script | `director-review-script`（`ep01`） |
-| Edit asset-list 清单 | 直接用 Edit 改 `story/episodes/ep01/outline.md` 的「本集资产清单」部分（依据方案中的新增/删除条目；不调用 `storyboarder-asset-list`） |
+| Edit asset-list 清单 | 直接用 Edit 改 `story/episodes/ep01/outline.md` 的「本集资产清单」部分（依据方案中的新增/删除条目；不调用 `director-keyframes`，仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframes 节点） |
+| 修 keyframes | `director-keyframes`（`ep01 incremental "{修改意见}"`） |
+| review keyframes 叙事 | `director-review-keyframes-narrative`（`ep01`） |
 | 创建资产文件 | `creator-create-assets`（`ep01`） |
 | 修资产文件 | `creator-fix-asset`（`{资产文件路径} "{修改意见}"`） |
+| 重生成关键帧 .md | `creator-keyframe-prompts`（`ep01 incremental "{dirty list}"`） |
 | 覆盖单张资产图（已知资产路径）| `creator-image-{config 图像模型}`（`"{资产文件路径}"`） |
-| 批量生成新增资产图 | `creator-generate-images`（`ep01`） |
+| 批量生成新增资产图 + 关键帧图 | `creator-generate-images`（`ep01`） |
+| 修关键帧图（含 prompt 调整 + 重抽）| `creator-fix-keyframe-image`（`ep01 "{dirty list}" "{意见列表}"`） |
+| review keyframes 画面 | `director-review-keyframes-visual`（`ep01`） |
 | 修 storyboard | `short-fix-storyboard`（`ep01 "{修改意见}"`） |
 | review storyboard | `short-review-storyboard`（`ep01`） |
 
@@ -171,11 +178,15 @@ outline（大纲）
    ↓
 script（剧本）  ← [若改动则 director-review-script + ≤2 轮 fix]
    ↓
-asset-list（资产清单，嵌在 outline.md）
+keyframes（关键帧描述 + 资产清单）  ← [若改动则 director-review-keyframes-narrative + ≤2 轮 fix]
+   ↓
+asset-list（资产清单，嵌在 outline.md；可独立 Edit 局部补漏）
    ↓
 assets（资产 .md 文件）
    ↓
-images（资产 .png 图片）
+keyframe-mds（关键帧 .md：assets/keyframes/{ep}/）
+   ↓
+images（资产 .png 图片 + 关键帧 .png 图片）  ← [keyframe 图变动则 director-review-keyframes-visual + ≤2 轮 creator-fix-keyframe-image]
    ↓
 storyboard（分镜）  ← [若改动则 short-review-storyboard + ≤2 轮 fix]
 ```
@@ -184,9 +195,11 @@ storyboard（分镜）  ← [若改动则 short-review-storyboard + ≤2 轮 fix
 
 | 入口节点 | 最上游动作 | 下游候选（按需触发） |
 |---------|-----------|---------------------|
-| outline | `short-fix-outline` | scriptwriter-script → review+fix → asset-list → create-assets → images → storyboard → review+fix |
-| script | `scriptwriter-fix-script` | review+fix → asset-list → create-assets → images → storyboard → review+fix |
+| outline | `short-fix-outline` | scriptwriter-script → review+fix → keyframes → review+fix → create-assets → keyframe-prompts → images → keyframes-visual review+fix → storyboard → review+fix |
+| script | `scriptwriter-fix-script` | review+fix → keyframes → review+fix → create-assets → keyframe-prompts → images → keyframes-visual review+fix → storyboard → review+fix |
+| keyframes | `director-keyframes incremental` | review+fix → keyframe-prompts (incremental, dirty list) → images → keyframes-visual review+fix → storyboard → review+fix（若 keyframes 编排变化引入了新资产则同步触发 create-assets） |
 | asset-list | 直接 Edit `outline.md` 清单 | create-assets → images |
 | assets（文字变动）| `creator-fix-asset` | images → short-fix-storyboard（仅引用此资产的镜头）→ review+fix |
+| keyframe-images（仅重生 + 审）| `creator-fix-keyframe-image` | keyframes-visual review（≤2 轮 fix loop 内置）→ short-fix-storyboard（仅引用此 keyframe 的镜头）→ review+fix |
 | images（仅重生）| `creator-image-{模型}` | 无 |
 | storyboard | `short-fix-storyboard` | review+fix |

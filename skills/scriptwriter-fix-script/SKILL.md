@@ -4,7 +4,7 @@ description: Scriptwriter根据Director修改意见定向修正剧本。读取�
 user-invocable: false
 context: fork
 agent: scriptwriter
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 

@@ -33,11 +33,13 @@ model: opus
 - `novel:ok` / `novel:missing` / `novel:incomplete:{实际字数}/{目标下限}`
 - `script:ok` / `script:missing` / `script:incomplete`
 - `asset-list:ok` / `asset-list:missing`
+- `keyframes:ok` / `keyframes:missing` / `keyframes:incomplete:{原因}`（原因可能为 `json-empty`、`md-dir-missing`、`md-count-mismatch:{md数}/{json数}`）
 - `assets:ok` / `assets:missing:{缺失资产名}`
 - `images:ok` / `images:missing:{缺失资产名}` / `images:skipped`
+- `keyframe-images:ok` / `keyframe-images:missing:{缺失KF-id}` / `keyframe-images:skipped`
 - `storyboard:ok` / `storyboard:missing` / `storyboard:incomplete:{实际数}/{目标数}`
 
-根据输出判断第一个非 ok 状态的检查项，确定从哪个步骤开始恢复。
+根据输出判断第一个非 ok 状态的检查项，确定从哪个步骤开始恢复。注意：`asset-list:missing` 与 `keyframes:missing/incomplete` 应合并处理——资产清单由 `director-keyframes` 写入 outline，缺资产清单等同于缺 keyframes，统一从"从关键帧开始恢复"路径走。
 
 ### 阶段 4: 报告 + 确认
 
@@ -54,20 +56,31 @@ model: opus
 1. 使用 Skill tool 调用 `scriptwriter-script` skill，传递参数：`ep01`
 2. 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01`
 3. 若"需修改"→ 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
-4. 继续执行"从资产清单开始恢复"
+4. 继续执行"从关键帧开始恢复"
 
-**从资产清单开始恢复：**
-1. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`ep01`
-2. 继续执行"从资产文件开始恢复"
+**从关键帧开始恢复（含资产清单/资产文件/图片/分镜全套重生成）：**
+1. 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01`
+2. 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`ep01`
+3. 若"需修改"→ 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental "{修改意见}"`（最多 2 轮）
+4. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
+5. 使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`ep01`
+6. 若图像模型非 `none`：
+   - 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
+   - 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01`
+   - 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"`（最多 2 轮）
+7. 继续执行"从分镜开始恢复"
 
-**从资产文件开始恢复：**
+**从资产文件开始恢复（keyframes 完整但 assets 缺失）：**
 1. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
 2. 若图像模型非 `none`：使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
 3. 继续执行"从分镜开始恢复"
 
-**从资产图片开始恢复（仅图像模型非 none 时）：**
+**从资产图片开始恢复（仅图像模型非 none 时；assets / keyframe .md 完整但图片缺失）：**
 1. 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
-2. 继续执行"从分镜开始恢复"
+2. 若本次有 keyframe 图被生成（`keyframe-images:missing` 命中）：
+   - 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01`
+   - 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"`（最多 2 轮）
+3. 继续执行"从分镜开始恢复"
 
 **从分镜开始恢复：**
 1. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`

@@ -4,7 +4,7 @@ description: Director审核Scriptwriter剧本，检查故事完整性、节奏�
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
 ---
 

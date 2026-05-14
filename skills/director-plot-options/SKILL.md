@@ -4,7 +4,7 @@ description: Director生成3个差异化剧情走向选项。自动读取config.
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 

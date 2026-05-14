@@ -73,36 +73,49 @@ model: opus
 1. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：`ep01`
 2. 若"需修改"→ 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
-### 阶段 5: 资产创建 + 分镜生成
+### 阶段 5: 关键帧规划 + 资产创建 + 分镜生成
 
-**5a. Storyboarder — 生成资产清单：**
+**5a. Director — 规划关键帧 + 资产清单：**
 
-1. 使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`ep01`
-   → 将资产清单写入 ep01/outline.md
+1. 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01`
+   → 写入 `story/episodes/ep01/keyframes.json` 并将本集资产清单追加到 `ep01/outline.md`
 
-**5b. 创建资产：**
+**5b. Director — 审核关键帧叙事：**
+
+1. 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`ep01`
+2. 若"需修改"→ 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental "{修改意见}"`（最多 2 轮）
+
+**5c. 创建资产：**
 
 1. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
 
-**5c. 生成分镜 + 生成资产图片（并行）：**
+**5d. Creator — 生成关键帧 .md 文件：**
 
-若 config 中图像模型非 `none`，以下两条线并行执行（分镜流程不等待图片完成）：
+1. 使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`ep01`
+   → 写入 `assets/keyframes/ep01/{KF-id}.md`
 
-**图片生成线（后台）：**
-使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
+**5e. Creator — 批量出图（资产 + 关键帧）：**
 
-**分镜流程线（前台，正常推进）：**
+若 config 中图像模型非 `none`：使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`（自动扫描资产 .md 与关键帧 .md，统一出图）。
+
+若 config 中图像模型为 `none`，跳过此步及 5f。
+
+**5f. Director — 审核关键帧画面：**
+
+1. 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01`
+2. 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"`（最多 2 轮）
+
+**5g. Storyboarder — 生成分镜：**
+
 1. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`ep01`
 
-若 config 中图像模型为 `none`，仅执行分镜流程线。
-
-**5d. Director — 审核分镜：**
+**5h. Director — 审核分镜：**
 
 1. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`ep01`
 2. 若"需修改"→ 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
 ### 阶段 6: 完成
 
-1. 输出本集摘要：集数编号、镜头数量（分镜数量）、新建资产列表
+1. 输出本集摘要：集数编号、镜头数量（分镜数量）、关键帧数量、新建资产列表
 2. 提示用户可以使用 `/series-video` 继续创作下一集
 3. **本次执行到此结束。** 不得自动继续生成下一集或更多集数的内容。

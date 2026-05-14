@@ -154,31 +154,45 @@ model: opus
 1. 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01`
 2. 若"需修改"→ 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
-**4.4 Storyboarder — 提取资产清单：**
+**4.4 Director — 规划关键帧 + 资产清单：**
 
-使用 Skill tool 调用 `storyboarder-asset-list` skill，传递参数：`ep01`
+使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01`
+→ 写入 `story/episodes/ep01/keyframes.json` 并将本集资产清单追加到 `ep01/outline.md`
 
-**4.5 Creator — 创建资产：**
+**4.5 Director — 审核关键帧叙事：**
+
+1. 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`ep01`
+2. 若"需修改"→ 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental "{修改意见}"`（最多 2 轮）
+
+**4.6 Creator — 创建资产：**
 
 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
 
-**4.6 生成分镜 + 生成资产图片（并行）：**
+**4.7 Creator — 生成关键帧 .md 文件：**
 
-若 config 中图像模型非 `none`，以下两条线并行执行（分镜流程不等待图片完成）：
+使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`ep01`
+→ 写入 `assets/keyframes/ep01/{KF-id}.md`
 
-**图片生成线（后台）：**
-使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
+**4.8 Creator — 批量出图（资产 + 关键帧）：**
 
-**分镜流程线（前台，正常推进）：**
-1. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
+若 config 中图像模型非 `none`：使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`（自动扫描资产 .md 与关键帧 .md，统一出图）。
 
-若 config 中图像模型为 `none`，仅执行分镜流程线。
+若 config 中图像模型为 `none`，跳过此步及 4.9。
 
-**4.7 Director — 审核分镜：**
+**4.9 Director — 审核关键帧画面：**
+
+1. 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01`
+2. 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"`（最多 2 轮）
+
+**4.10 Storyboarder — 生成分镜：**
+
+使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
+
+**4.11 Director — 审核分镜：**
 
 1. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
 2. 若"需修改"→ 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
 
-**4.8 完成：**
+**4.12 完成：**
 
-输出摘要：剧名、镜头数量（分镜数量）、新建资产列表。
+输出摘要：剧名、镜头数量（分镜数量）、关键帧数量、新建资产列表。

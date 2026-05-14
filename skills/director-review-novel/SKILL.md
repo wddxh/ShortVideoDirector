@@ -4,7 +4,7 @@ description: Director审核Writer小说原文，检查与大纲一致性、角�
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
 ---
 

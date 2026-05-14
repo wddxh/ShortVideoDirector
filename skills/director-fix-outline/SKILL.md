@@ -4,7 +4,7 @@ description: Director根据修改意见定向修正本集大纲。同步更新st
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 

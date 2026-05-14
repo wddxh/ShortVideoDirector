@@ -4,7 +4,7 @@ description: Scriptwriter根据大纲生成具有画面感和紧凑叙事节奏�
 user-invocable: false
 context: fork
 agent: scriptwriter
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 

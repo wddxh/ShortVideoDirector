@@ -4,7 +4,7 @@ description: Writer根据Director修改意见定向修正小说原文。读取�
 user-invocable: false
 context: fork
 agent: writer
-allowed-tools: Read, Write, Edit, Glob
+allowed-tools: Read, Write, Edit, Glob, Bash
 model: sonnet
 ---
 

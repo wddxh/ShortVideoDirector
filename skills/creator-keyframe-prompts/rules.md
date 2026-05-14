@@ -1,0 +1,86 @@
+## 输出格式（每张关键帧的 .md 文件）
+
+文件路径：`assets/keyframes/{集数}/{KF-id}.md`（如 `assets/keyframes/ep01/KF-EP01-001.md`）
+
+```markdown
+# {KF-id}
+
+## 基本信息
+- 所属集数：{集数}
+- 类型：关键帧
+- 剧情功能：{narrative_purpose 字段原文}
+
+## 视觉描述
+{composition 字段原文，保留 <资产名> 标签}
+
+镜头：{shot_size}，{camera_position}
+光线：{lighting_tone}
+情绪：{emotion}
+动作：{action}
+
+## 图像生成提示词
+{融合后的 prompt，详见下方"prompt 翻译规则"}
+```
+
+## prompt 翻译规则
+
+prompt 必须按以下顺序拼接（用空格或合适的标点分隔，不要换行）：
+
+1. **镜头语言段**：`{shot_size}，{camera_position}` → 比如 "中景，侧面齐胸平视，主体居左"
+2. **画面段**：composition 内容，但把每个 `<资产名>` 标签替换为实际资产引用语法 `[资产名]({资产 .md 相对路径})`
+   - 相对路径以本 keyframe .md 文件所在位置为起点计算
+   - 示例：`assets/keyframes/ep01/KF-EP01-001.md` 引用 `assets/characters/张三.md` → 相对路径 `../../characters/张三.md`
+   - 示例：`<张三>站在栏杆前` → `[张三](../../characters/张三.md)站在栏杆前`
+3. **光线段**：`光线：{lighting_tone}` 或自然融入画面段
+4. **动作段**：`{action}` 或自然融入画面段（动作和 composition 描述若重复，优先 composition）
+5. **风格 suffix**：从 config.md 读取"视频风格"，追加到末尾（"3D写实风格"、"2D动漫风格"等）
+
+完整 prompt 示例：
+> 中景，侧面齐胸平视，主体居左。雨中天台夜景，[张三](../../characters/张三.md)站在栏杆前侧脸朝向镜头，右手举着[黑色翻盖手机](../../items/黑色翻盖手机.md)贴近耳侧，屏幕亮着冷蓝色光打亮他下巴。远处城市霓虹模糊在雨幕中。冷蓝雨夜，3D写实风格。
+
+## 字段约束
+
+- **prompt 语言** — 严格遵循 config.md 中 `语言` 设置（auto 跟随小说原文，zh 全中文，en 全英文）
+- **资产引用语法** — 每个出场资产必须用 `[资产名]({资产 .md 相对路径})` 包裹（与现有 storyboard.md 资产引用语法完全一致，下游 `storyboard-to-prompt.sh` 可直接处理）
+- **不出现具体文字数字** — 招牌、屏幕内容、车牌等具体文字数字不要写进 prompt
+- **不写不可感知信息** — 气味、温度、触感、味道不写进 prompt
+- **不写运镜过程** — 推/拉/摇/移不写（关键帧是静态）
+- **风格 suffix 必加** — 每条 prompt 末尾必须包含 config 视频风格描述
+
+## 资产引用解析规则
+
+1. 解析 composition 中每个 `<资产名>` 标签
+2. 在 Glob 出的 `assets/**/*.md` 列表中查找文件名 = `{资产名}.md` 的文件
+3. 找到 → 计算从当前 keyframe .md 文件到该资产 .md 的相对路径，替换为 `[资产名]({相对路径})`
+4. 找不到 → 报错"资产 '{资产名}' 在 assets/ 中未找到对应 .md 文件，请检查 outline 资产清单"，跳过该 keyframe（不影响其他 keyframe），记录到失败列表
+
+## 增量模式工作流
+
+当 `$ARGUMENTS[1] == "incremental"` 时：
+
+1. 解析 `$ARGUMENTS[2]` dirty 列表（空格分隔的 KF id）
+2. 仅处理列表中的 KF id，其他保持原 .md 文件不动
+3. 列表为空 → 输出"无需处理"并结束
+4. 对列表中的每个 KF id：
+   - 在 keyframes.json 中存在 → 重新生成 .md（覆写）
+   - 在 keyframes.json 中不存在 → 该关键帧已被 director 删除，使用 Bash 删除 `assets/keyframes/{集数}/{id}.md`
+
+## 全量模式工作流
+
+当 `$ARGUMENTS[1] == "full"` 或缺省时：
+
+1. 处理 keyframes.json 中所有 keyframes（已存在的 .md 文件覆写）
+2. 清理孤儿 .md：使用 Glob 列出 `assets/keyframes/{集数}/*.md`，对每个文件，若其 KF-id 不在 keyframes.json 的 keyframes 数组中，则使用 Bash 删除该文件
+
+## 摘要输出格式
+
+```
+## creator-keyframe-prompts 摘要
+
+- 模式：{full|incremental}
+- 处理：N 张
+- 成功：N 张（写入 assets/keyframes/{集数}/）
+- 删除：N 张（孤儿 .md 文件）
+- 失败：N 张
+  - {KF-id}：{失败原因}
+```

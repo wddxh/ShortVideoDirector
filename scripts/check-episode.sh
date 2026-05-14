@@ -78,6 +78,32 @@ else
   HAS_ISSUE=1
 fi
 
+# 3.5 Check keyframes (json + .md consistency)
+KF_JSON="$EP_DIR/keyframes.json"
+KF_MD_DIR="assets/keyframes/$EP"
+if [ ! -f "$KF_JSON" ]; then
+  echo "keyframes:missing"
+  HAS_ISSUE=1
+else
+  # Count keyframes in json (count "id":"KF-... entries)
+  JSON_COUNT=$(grep -oE '"id"[[:space:]]*:[[:space:]]*"KF-[^"]+"' "$KF_JSON" | wc -l | tr -d ' ')
+  if [ "$JSON_COUNT" -eq 0 ]; then
+    echo "keyframes:incomplete:json-empty"
+    HAS_ISSUE=1
+  elif [ ! -d "$KF_MD_DIR" ]; then
+    echo "keyframes:incomplete:md-dir-missing"
+    HAS_ISSUE=1
+  else
+    MD_COUNT=$(ls "$KF_MD_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$MD_COUNT" != "$JSON_COUNT" ]; then
+      echo "keyframes:incomplete:md-count-mismatch:${MD_COUNT}/${JSON_COUNT}"
+      HAS_ISSUE=1
+    else
+      echo "keyframes:ok"
+    fi
+  fi
+fi
+
 # 4. Check asset files
 if [ -f "$OUTLINE" ] && grep -q '## 本集资产清单' "$OUTLINE"; then
   # Extract new asset names from "新增资产" section
@@ -123,6 +149,7 @@ fi
 IMAGE_MODEL=$(read_config "图像模型")
 if [ "$IMAGE_MODEL" = "none" ] || [ -z "$IMAGE_MODEL" ]; then
   echo "images:skipped"
+  echo "keyframe-images:skipped"
 else
   MISSING_IMAGES=""
   for md_file in assets/characters/*.md assets/items/*.md assets/locations/*.md assets/buildings/*.md; do
@@ -143,6 +170,31 @@ else
     HAS_ISSUE=1
   else
     echo "images:ok"
+  fi
+
+  # Check keyframe images (only when keyframe .md files exist)
+  if [ -d "$KF_MD_DIR" ]; then
+    MISSING_KF_IMAGES=""
+    for kf_md in "$KF_MD_DIR"/*.md; do
+      [ ! -f "$kf_md" ] && continue
+      KF_IMG=$(bash scripts/asset-to-image-path.sh "$kf_md")
+      if [ ! -f "$KF_IMG" ]; then
+        KF_NAME=$(basename "$kf_md" .md)
+        if [ -z "$MISSING_KF_IMAGES" ]; then
+          MISSING_KF_IMAGES="$KF_NAME"
+        else
+          MISSING_KF_IMAGES="$MISSING_KF_IMAGES,$KF_NAME"
+        fi
+      fi
+    done
+    if [ -n "$MISSING_KF_IMAGES" ]; then
+      echo "keyframe-images:missing:$MISSING_KF_IMAGES"
+      HAS_ISSUE=1
+    else
+      echo "keyframe-images:ok"
+    fi
+  else
+    echo "keyframe-images:skipped"
   fi
 fi
 

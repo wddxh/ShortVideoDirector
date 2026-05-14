@@ -4,7 +4,7 @@ description: Director生成本集详细大纲和outline.md内容。自动读取c
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 
