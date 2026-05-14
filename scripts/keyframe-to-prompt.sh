@@ -22,7 +22,7 @@
 # - Does NOT cap to 10 images; dreamina CLI will fail on >10 and the caller
 #   (creator-image-dreamina) records the failure for the fix layer to handle.
 
-# grep -P (PCRE) requires a UTF-8 or C locale.
+# Force UTF-8 locale for consistent CJK handling in awk/sed (matches video-gen-dreamina.sh).
 export LC_ALL=C.UTF-8
 
 if [ $# -lt 1 ]; then
@@ -67,6 +67,10 @@ while IFS= read -r link; do
   # Normalize to repo-root-relative: prepend KF_DIR, resolve ".." segments,
   # then strip everything before "assets/".
   combined="$KF_DIR/$rel_path"
+  # Manual ../. resolution: combined path like
+  # "assets/keyframes/ep01/../../characters/X.md" must collapse to
+  # "assets/characters/X.md" before the assets/ strip below. A bare
+  # sed 's|.*assets/|assets/|' alone would leave the ".." segments embedded.
   resolved=$(printf '%s' "$combined" | awk '
     {
       n = split($0, parts, "/")
@@ -107,7 +111,6 @@ PROMPT_BODY=$(awk '
 
 # Trim leading/trailing blank lines from PROMPT_BODY.
 PROMPT_BODY=$(printf '%s\n' "$PROMPT_BODY" | awk '
-  NR == 1 && NF == 0 { next }
   { lines[++n] = $0 }
   END {
     # find last non-blank
