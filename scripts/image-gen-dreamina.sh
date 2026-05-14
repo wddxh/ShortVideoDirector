@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Generate a single image using Dreamina CLI.
-# Usage: bash scripts/image-gen-dreamina.sh "prompt" "output_path" [ratio] [resolution] [model_version] [ref_image]
-# Without ref_image: uses text2image (text-to-image)
-# With ref_image: uses image2image (reference image + prompt)
+# Usage: bash scripts/image-gen-dreamina.sh "prompt" "output_path" [ratio] [resolution] [model_version] [ref_images]
+# Without ref_images: uses text2image (text-to-image)
+# With ref_images: uses image2image (1-10 reference images + prompt)
+#   - Pass single path or comma-separated list (e.g. "a.png,b.png,c.png")
+#   - dreamina CLI accepts up to 10 images per request; exceeding fails the task
 # Exit codes: 0=OK, 1=FAIL, 2=PENDING (stdout has "PENDING submit_id")
 
 if [ $# -lt 2 ]; then
-  echo "Usage: bash scripts/image-gen-dreamina.sh \"prompt\" \"output_path\" [ratio] [resolution] [model_version] [ref_image]"
+  echo "Usage: bash scripts/image-gen-dreamina.sh \"prompt\" \"output_path\" [ratio] [resolution] [model_version] [ref_images]"
   exit 1
 fi
 
@@ -15,13 +17,13 @@ OUTPUT="$2"
 RATIO="${3:-1:1}"
 RESOLUTION="${4:-2k}"
 MODEL="${5:-4.0}"
-REF_IMAGE="$6"
+REF_IMAGES="$6"
 
 # Generate image
-if [ -n "$REF_IMAGE" ]; then
-  # image2image mode: use reference image
+if [ -n "$REF_IMAGES" ]; then
+  # image2image mode: use 1-10 reference images (comma-separated)
   RESULT=$(dreamina image2image \
-    --images "$REF_IMAGE" \
+    --images "$REF_IMAGES" \
     --prompt="$PROMPT" \
     --ratio="$RATIO" \
     --resolution_type="$RESOLUTION" \
@@ -42,15 +44,12 @@ STATUS=$(printf '%s' "$RESULT" | grep -o '"gen_status"[[:space:]]*:[[:space:]]*"
 
 case "$STATUS" in
   success)
-    # Extract image_url
     URL=$(printf '%s' "$RESULT" | grep -o '"image_url"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"image_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
     if [ -z "$URL" ]; then
       echo "FAIL no image_url in response"
       exit 1
     fi
-    # Ensure output directory exists
     mkdir -p "$(dirname "$OUTPUT")"
-    # Download
     if curl -fsSL -o "$OUTPUT" "$URL"; then
       echo "OK $OUTPUT"
       exit 0
