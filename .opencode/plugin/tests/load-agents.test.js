@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseAgentFile, convertAgentFrontmatter } from '../load-agents.js';
+import { parseAgentFile, convertAgentFrontmatter, buildPermissionForAgent } from '../load-agents.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.join(__dirname, 'fixtures/agents/director.md');
@@ -75,5 +75,45 @@ describe('convertAgentFrontmatter', () => {
   it('passes through description', () => {
     const out = convertAgentFrontmatter({ name: 'd', description: 'My desc' });
     expect(out.description).toBe('My desc');
+  });
+});
+
+describe('buildPermissionForAgent', () => {
+  const SCRIPTS = ['read-config.sh', 'asset-to-image-path.sh', 'image-gen-dreamina.sh',
+                   'keyframe-to-prompt.sh', 'video-gen-dreamina.sh', 'word-count.sh',
+                   'latest-episode.sh', 'check-episode.sh', 'storyboard-to-prompt.sh',
+                   'video-check-dreamina.sh'];
+
+  it('writer has bash deny-all', () => {
+    const p = buildPermissionForAgent('writer', SCRIPTS);
+    expect(p.bash['*']).toBe('deny');
+    expect(p.task).toBe('allow');
+    expect(p.skill).toBe('allow');
+    expect(p.external_directory).toBe('deny');
+  });
+
+  it('director allows read-config.sh only', () => {
+    const p = buildPermissionForAgent('director', SCRIPTS);
+    expect(p.bash['bash $SVD_PLUGIN_DIR/scripts/read-config.sh*']).toBe('allow');
+    expect(p.bash['bash $SVD_PLUGIN_DIR/scripts/image-gen-dreamina.sh*']).toBeUndefined();
+    expect(p.bash['*']).toBe('deny');
+  });
+
+  it('creator allows all dreamina-related scripts + dreamina CLI', () => {
+    const p = buildPermissionForAgent('creator', SCRIPTS);
+    expect(p.bash['bash $SVD_PLUGIN_DIR/scripts/image-gen-dreamina.sh*']).toBe('allow');
+    expect(p.bash['bash $SVD_PLUGIN_DIR/scripts/video-gen-dreamina.sh*']).toBe('allow');
+    expect(p.bash['dreamina user_credit']).toBe('allow');
+    expect(p.bash['dreamina query_result*']).toBe('allow');
+    expect(p.bash['mv /tmp/dreamina-pending/*']).toBe('allow');
+    expect(p.external_directory).toBe('allow');
+  });
+
+  it('scriptwriter & storyboarder mirror writer', () => {
+    for (const a of ['scriptwriter', 'storyboarder']) {
+      const p = buildPermissionForAgent(a, SCRIPTS);
+      expect(p.bash['*']).toBe('deny');
+      expect(p.external_directory).toBe('deny');
+    }
   });
 });

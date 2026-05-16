@@ -64,3 +64,73 @@ export function convertAgentFrontmatter(cc) {
   }
   return out;
 }
+
+const BASE_PERMISSION = {
+  task: 'allow',
+  skill: 'allow',
+  read: 'allow',
+  edit: 'allow',
+  write: 'allow',
+  glob: 'allow',
+  grep: 'allow',
+  list: 'allow',
+  webfetch: 'deny',
+  websearch: 'deny',
+  todowrite: 'allow',
+  question: 'allow',
+};
+
+// Per-agent bash config: which scripts to allow + extra non-script bash patterns + external_directory policy
+const AGENT_BASH_CONFIG = {
+  director: {
+    allowScripts: ['read-config.sh'],
+    extraBash: {},
+    externalDir: 'deny',
+  },
+  writer: { allowScripts: [], extraBash: {}, externalDir: 'deny' },
+  scriptwriter: { allowScripts: [], extraBash: {}, externalDir: 'deny' },
+  storyboarder: { allowScripts: [], extraBash: {}, externalDir: 'deny' },
+  creator: {
+    allowScripts: 'ALL',  // creator 自动放行所有 scripts/*.sh (覆盖任何 future script)
+    extraBash: {
+      'dreamina user_credit': 'allow',
+      'dreamina query_result*': 'allow',
+      'mkdir -p*': 'allow',
+      'mv /tmp/dreamina-pending/*': 'allow',
+    },
+    externalDir: 'allow',
+  },
+};
+
+/**
+ * Build OC permission object for a given agent, including the per-agent
+ * bash allowlist (resolved against the project's scripts/ inventory).
+ *
+ * @param agentName - one of director, writer, scriptwriter, storyboarder, creator
+ * @param allScripts - array of script filenames found in <project>/scripts/ (e.g., ['read-config.sh', ...])
+ *
+ * Bash allowlist format: keys are bash patterns matched against parsed command,
+ * values are 'allow'/'deny'. Wildcard `*` catches anything else.
+ * Last matching rule wins per OC permission docs.
+ */
+export function buildPermissionForAgent(agentName, allScripts) {
+  const cfg = AGENT_BASH_CONFIG[agentName];
+  if (!cfg) {
+    throw new Error(`Unknown agent: ${agentName}`);
+  }
+  const bash = {};
+  const scriptsToAllow = cfg.allowScripts === 'ALL' ? allScripts : cfg.allowScripts;
+  for (const s of scriptsToAllow) {
+    bash[`bash $SVD_PLUGIN_DIR/scripts/${s}*`] = 'allow';
+  }
+  for (const [k, v] of Object.entries(cfg.extraBash)) {
+    bash[k] = v;
+  }
+  bash['*'] = 'deny';
+
+  return {
+    ...BASE_PERMISSION,
+    bash,
+    external_directory: cfg.externalDir,
+  };
+}
