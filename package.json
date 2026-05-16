@@ -1,0 +1,17 @@
+{
+  "name": "short-video-director",
+  "version": "0.1.0",
+  "type": "module",
+  "main": ".opencode/plugin/index.js",
+  "description": "Short video direction workflow plugin for OpenCode (CC-compatible)",
+  "repository": "github:Hikaru518/ShortVideoDirector",
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^1.6.0",
+    "@opencode-ai/plugin": "^1.14.33"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
