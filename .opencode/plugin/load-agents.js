@@ -113,7 +113,7 @@ const AGENT_BASH_CONFIG = {
  * values are 'allow'/'deny'. Wildcard `*` catches anything else.
  * Last matching rule wins per OC permission docs.
  */
-export function buildPermissionForAgent(agentName, allScripts) {
+export function buildPermissionForAgent(agentName, allScripts = []) {
   const cfg = AGENT_BASH_CONFIG[agentName];
   if (!cfg) {
     throw new Error(`Unknown agent: ${agentName}`);

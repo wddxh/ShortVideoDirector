@@ -116,4 +116,24 @@ describe('buildPermissionForAgent', () => {
       expect(p.external_directory).toBe('deny');
     }
   });
+
+  it('throws on unknown agent', () => {
+    expect(() => buildPermissionForAgent('unknown-agent', SCRIPTS))
+      .toThrow(/Unknown agent.*unknown-agent/);
+  });
+
+  it('all agents inherit BASE_PERMISSION defaults', () => {
+    for (const agent of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+      const p = buildPermissionForAgent(agent, SCRIPTS);
+      expect(p.read, `${agent}.read`).toBe('allow');
+      expect(p.edit, `${agent}.edit`).toBe('allow');
+      expect(p.write, `${agent}.write`).toBe('allow');
+      expect(p.task, `${agent}.task`).toBe('allow');
+      expect(p.skill, `${agent}.skill`).toBe('allow');
+      expect(p.webfetch, `${agent}.webfetch`).toBe('deny');
+      expect(p.websearch, `${agent}.websearch`).toBe('deny');
+      expect(p.todowrite, `${agent}.todowrite`).toBe('allow');
+      expect(p.question, `${agent}.question`).toBe('allow');
+    }
+  });
 });
