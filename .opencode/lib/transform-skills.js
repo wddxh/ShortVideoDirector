@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, readdir, copyFile, stat } from 'fs/promises';
 import path from 'path';
 import { parseAgentFile as parseFrontmatterFile } from './load-agents.js';
-import { TASK_PROMPT_TEMPLATE, LEAF_CONTEXT_HINT, ENTRY_WORKFLOW_WRITE_GUIDANCE, USER_INVOCABLE_ENTRY_WORKFLOWS } from './tool-mapping.js';
+import { TASK_PROMPT_TEMPLATE, LEAF_CONTEXT_HINT, ENTRY_WORKFLOW_WRITE_GUIDANCE, USER_INVOCABLE_ENTRY_WORKFLOWS, AUTO_VIDEO_CRON_BODY } from './tool-mapping.js';
 
 // parseSkillFile 与 parseAgentFile 行为一致；alias 出来让代码语义更清晰
 export const parseSkillFile = parseFrontmatterFile;
@@ -79,4 +79,17 @@ export function injectEntryWorkflowGuidance(body, meta) {
   if (!meta.userInvocable) return body;
   if (!USER_INVOCABLE_ENTRY_WORKFLOWS.has(meta.name)) return body;
   return ENTRY_WORKFLOW_WRITE_GUIDANCE + '\n\n' + body;
+}
+
+export function rewriteAutoVideoCron(body) {
+  // 找到第一个引用 CronCreate/List/Delete 的标题段，整段（直到下一个一级或二级标题或文档尾）替换
+  // 简化实现：直接把全文从首个 "## " 开始全部替换为新模板
+  const firstSectionMatch = body.match(/^## /m);
+  if (!firstSectionMatch) {
+    // 没有任何 section，前置加 cron body
+    return body + '\n\n' + AUTO_VIDEO_CRON_BODY;
+  }
+  const offset = firstSectionMatch.index;
+  const preamble = body.slice(0, offset);
+  return preamble + AUTO_VIDEO_CRON_BODY;
 }

@@ -196,3 +196,17 @@ describe('injectEntryWorkflowGuidance', () => {
     expect(out).toBe(body);
   });
 });
+
+import { rewriteAutoVideoCron } from '../lib/transform-skills.js';
+
+describe('rewriteAutoVideoCron', () => {
+  it('replaces CronCreate/List/Delete sections with bash crontab body', () => {
+    const body = '## 安装\n\n调用 CronCreate(...) 创建。\n\n## 查询\n\n调用 CronList(...).';
+    const out = rewriteAutoVideoCron(body);
+    expect(out).not.toContain('CronCreate');
+    expect(out).not.toContain('CronList');
+    expect(out).not.toContain('CronDelete');
+    expect(out).toContain('crontab');
+    expect(out).toContain('opencode run --session');
+  });
+});
