@@ -98,3 +98,86 @@ export function rewriteAutoVideoCron(body) {
   const preamble = body.slice(0, offset);
   return preamble + AUTO_VIDEO_CRON_BODY;
 }
+
+/** 把 frontmatter 对象序列化回 YAML（极简，与 parser 对偶） */
+function stringifyFrontmatter(fm) {
+  const lines = ['---'];
+  for (const [k, v] of Object.entries(fm)) {
+    if (k === 'metadata' && typeof v === 'object') {
+      lines.push('metadata:');
+      for (const [mk, mv] of Object.entries(v)) {
+        lines.push(`  ${mk}: ${JSON.stringify(mv)}`);
+      }
+    } else {
+      lines.push(`${k}: ${JSON.stringify(v)}`);
+    }
+  }
+  lines.push('---');
+  return lines.join('\n');
+}
+
+/** 扫描所有源 skill 的 metadata 表，给 rewriteSkillCalls 用 */
+async function buildSkillMeta(skillsDir) {
+  const dirs = await readdir(skillsDir);
+  const meta = {};
+  for (const name of dirs) {
+    const skillFile = path.join(skillsDir, name, 'SKILL.md');
+    try {
+      const { frontmatter } = await parseSkillFile(skillFile);
+      meta[frontmatter.name || name] = {
+        agent: frontmatter.agent || null,
+        fork: frontmatter.context === 'fork',
+        userInvocable: frontmatter['user-invocable'] === 'true' ||
+                       frontmatter['user-invocable'] === true,
+      };
+    } catch (e) {
+      continue;
+    }
+  }
+  return meta;
+}
+
+export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
+  const sourceSkillsDir = path.join(pluginRoot, 'skills');
+  const meta = await buildSkillMeta(sourceSkillsDir);
+  const entries = await readdir(sourceSkillsDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const skillName = entry.name;
+    const srcDir = path.join(sourceSkillsDir, skillName);
+    const dstDir = path.join(cacheSkillsDir, skillName);
+    await mkdir(dstDir, { recursive: true });
+
+    const srcSkillFile = path.join(srcDir, 'SKILL.md');
+    let parsed;
+    try {
+      parsed = await parseSkillFile(srcSkillFile);
+    } catch {
+      continue;
+    }
+    const { frontmatter, body } = parsed;
+    const myMeta = meta[skillName] || { agent: null, fork: false, userInvocable: false };
+
+    let newBody = body;
+    newBody = rewriteSkillCalls(newBody, meta);
+    newBody = rewriteBashPaths(newBody);
+    if (skillName === 'auto-video') {
+      newBody = rewriteAutoVideoCron(newBody);
+    }
+    newBody = injectLeafHint(newBody, myMeta);
+    newBody = injectEntryWorkflowGuidance(newBody, { ...myMeta, name: skillName });
+
+    const newFm = rewriteFrontmatter(frontmatter);
+    const out = stringifyFrontmatter(newFm) + '\n\n' + newBody;
+    await writeFile(path.join(dstDir, 'SKILL.md'), out);
+
+    const auxFiles = (await readdir(srcDir)).filter(f => f !== 'SKILL.md');
+    for (const aux of auxFiles) {
+      const auxStat = await stat(path.join(srcDir, aux));
+      if (auxStat.isFile()) {
+        await copyFile(path.join(srcDir, aux), path.join(dstDir, aux));
+      }
+    }
+  }
+}

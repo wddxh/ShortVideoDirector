@@ -217,3 +217,62 @@ describe('rewriteAutoVideoCron', () => {
     expect(out).toContain('opencode run --session');
   });
 });
+
+import { mkdtemp, readFile as readFileAsync, rm, readdir } from 'fs/promises';
+import os from 'os';
+import { transformAllSkills } from '../lib/transform-skills.js';
+import { beforeEach, afterEach } from 'vitest';
+
+const PROJECT_ROOT = path.resolve(__dirname, '../..');
+
+describe('transformAllSkills (integration)', () => {
+  let tmpDir;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(path.join(os.tmpdir(), 'svd-cache-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('produces SKILL.md for all 44 skills', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const dirs = await readdir(tmpDir);
+    expect(dirs.length).toBe(44);
+  });
+
+  it('director-arc cache file has correct frontmatter', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const content = await readFileAsync(
+      path.join(tmpDir, 'director-arc/SKILL.md'), 'utf-8'
+    );
+    expect(content).toMatch(/^---\nname: "director-arc"/);
+    expect(content).not.toContain('\ncontext: fork');
+    expect(content).toContain('svd-context');
+  });
+
+  it('auto-video cache has crontab body, no CronCreate', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const content = await readFileAsync(
+      path.join(tmpDir, 'auto-video/SKILL.md'), 'utf-8'
+    );
+    expect(content).toContain('crontab');
+    expect(content).not.toContain('CronCreate');
+  });
+
+  it('series-video cache has entry workflow write guidance', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const content = await readFileAsync(
+      path.join(tmpDir, 'series-video/SKILL.md'), 'utf-8'
+    );
+    expect(content).toContain('写入约束');
+  });
+
+  it('aux files (rules.md) are copied', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const rulesPath = path.join(tmpDir, 'writer-novel/rules.md');
+    const exists = await readFileAsync(rulesPath, 'utf-8').then(() => true).catch(() => false);
+    expect(exists).toBe(true);
+  });
+});
