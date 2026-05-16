@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseSkillFile, rewriteFrontmatter, rewriteBashPaths } from '../lib/transform-skills.js';
+import { parseSkillFile, rewriteFrontmatter, rewriteBashPaths, rewriteSkillCalls } from '../lib/transform-skills.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -72,5 +72,79 @@ describe('rewriteBashPaths', () => {
   it('does not touch markdown prose mentions of scripts/', () => {
     const input = '本步骤需要项目中的 scripts/foo.sh 脚本';
     expect(rewriteBashPaths(input)).toBe(input);
+  });
+});
+
+describe('rewriteSkillCalls', () => {
+  const skillMeta = {
+    'director-arc': { agent: 'director', fork: true },
+    'creator-image-dreamina': { agent: 'creator', fork: true },
+    'series-video': { agent: null, fork: false },
+  };
+
+  it('fork-skill call becomes task() invocation', () => {
+    const input = '2. 使用 Skill tool 调用 `director-arc` skill, 传递参数: topic=xxx, episode=1';
+    const out = rewriteSkillCalls(input, skillMeta);
+    expect(out).toContain('task(');
+    expect(out).toContain('subagent_type: "director"');
+    expect(out).toContain('director-arc');
+  });
+
+  it('non-fork skill call becomes skill() invocation', () => {
+    const input = '1. 使用 Skill tool 调用 series-video skill';
+    const out = rewriteSkillCalls(input, skillMeta);
+    expect(out).toContain('skill({ name: "series-video" })');
+    expect(out).not.toContain('task(');
+  });
+
+  it('does not affect prose mentions', () => {
+    const input = '说明：series-video skill 是入口；director-arc 是其下游';
+    const out = rewriteSkillCalls(input, skillMeta);
+    expect(out).toBe(input);
+  });
+
+  it('throws on unknown skill reference', () => {
+    const input = '使用 Skill tool 调用 nonexistent-skill';
+    expect(() => rewriteSkillCalls(input, skillMeta)).toThrow(/nonexistent-skill/);
+  });
+
+  it('skips matches inside fenced code blocks', () => {
+    const input = [
+      '正文：使用 Skill tool 调用 director-arc',
+      '```',
+      '示例代码：使用 Skill tool 调用 director-arc',
+      '```',
+      '继续：使用 Skill tool 调用 series-video',
+    ].join('\n');
+    const out = rewriteSkillCalls(input, skillMeta);
+    expect(out).toContain('task(');
+    expect(out).toContain('示例代码：使用 Skill tool 调用 director-arc');
+    expect(out).toContain('skill({ name: "series-video" })');
+  });
+
+  it('skips matches inside quote blocks (lines starting with >)', () => {
+    const input = [
+      '正文：使用 Skill tool 调用 director-arc',
+      '> 引用：使用 Skill tool 调用 director-arc',
+    ].join('\n');
+    const out = rewriteSkillCalls(input, skillMeta);
+    expect(out).toContain('task(');
+    expect(out).toContain('> 引用：使用 Skill tool 调用 director-arc');
+  });
+
+  it('rewrites multiple calls in same document', () => {
+    const input = [
+      '步骤 1：使用 Skill tool 调用 director-arc skill',
+      '步骤 2：使用 Skill tool 调用 series-video skill',
+      '步骤 3：使用 Skill tool 调用 creator-image-dreamina skill',
+    ].join('\n');
+    const out = rewriteSkillCalls(input, skillMeta);
+    expect(out).toContain('director-arc');
+    expect(out).toContain('series-video');
+    expect(out).toContain('creator-image-dreamina');
+    // Two fork dispatches → two task() blocks with subagent_type
+    expect((out.match(/subagent_type:/g) || []).length).toBe(2);
+    // Non-fork series-video becomes a top-level `调用 \`skill({ name: "series-video" })\``
+    expect(out).toContain('调用 `skill({ name: "series-video" })`');
   });
 });
