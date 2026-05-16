@@ -148,3 +148,21 @@ describe('rewriteSkillCalls', () => {
     expect(out).toContain('调用 `skill({ name: "series-video" })`');
   });
 });
+
+import { injectLeafHint } from '../lib/transform-skills.js';
+
+describe('injectLeafHint', () => {
+  it('inserts hint at top of body for fork leaf', () => {
+    const body = '# Title\n\n正文段落';
+    const out = injectLeafHint(body, { fork: true, agent: 'director' });
+    expect(out).toMatch(/^> \*\*执行上下文\*\*/);
+    expect(out).toContain('director');
+    expect(out).toContain(body);
+  });
+
+  it('does not inject for non-fork skill', () => {
+    const body = '# Title\n\n正文';
+    const out = injectLeafHint(body, { fork: false, agent: null });
+    expect(out).toBe(body);
+  });
+});

@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, readdir, copyFile, stat } from 'fs/promises';
 import path from 'path';
 import { parseAgentFile as parseFrontmatterFile } from './load-agents.js';
-import { TASK_PROMPT_TEMPLATE } from './tool-mapping.js';
+import { TASK_PROMPT_TEMPLATE, LEAF_CONTEXT_HINT } from './tool-mapping.js';
 
 // parseSkillFile 与 parseAgentFile 行为一致；alias 出来让代码语义更清晰
 export const parseSkillFile = parseFrontmatterFile;
@@ -68,4 +68,9 @@ export function rewriteSkillCalls(text, skillMeta) {
     }));
   }
   return outLines.join('\n');
+}
+
+export function injectLeafHint(body, meta) {
+  if (!meta.fork || !meta.agent) return body;
+  return LEAF_CONTEXT_HINT(meta.agent) + '\n\n' + body;
 }
