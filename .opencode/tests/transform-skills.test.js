@@ -166,3 +166,33 @@ describe('injectLeafHint', () => {
     expect(out).toBe(body);
   });
 });
+
+import { injectEntryWorkflowGuidance } from '../lib/transform-skills.js';
+
+describe('injectEntryWorkflowGuidance', () => {
+  it('injects for user-invocable entry workflow', () => {
+    const body = '# series-video\n\n正文';
+    const out = injectEntryWorkflowGuidance(body, {
+      name: 'series-video', userInvocable: true
+    });
+    expect(out).toContain('写入约束');
+    expect(out).toContain('3000 字符');
+    expect(out).toContain(body);
+  });
+
+  it('does not inject for non-entry skill', () => {
+    const body = '# director-arc\n\n正文';
+    const out = injectEntryWorkflowGuidance(body, {
+      name: 'director-arc', userInvocable: false
+    });
+    expect(out).toBe(body);
+  });
+
+  it('does not inject for user-invocable skill NOT in entry list', () => {
+    const body = '# some-future-skill\n\n正文';
+    const out = injectEntryWorkflowGuidance(body, {
+      name: 'some-future-skill', userInvocable: true
+    });
+    expect(out).toBe(body);
+  });
+});
