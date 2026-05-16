@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseAgentFile, convertAgentFrontmatter, buildPermissionForAgent, loadAllAgents } from '../load-agents.js';
+import { parseAgentFile, convertAgentFrontmatter, buildPermissionForAgent, loadAllAgents } from '../lib/load-agents.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.join(__dirname, 'fixtures/agents/director.md');
@@ -138,7 +138,7 @@ describe('buildPermissionForAgent', () => {
   });
 });
 
-const PROJECT_ROOT = path.resolve(__dirname, '../../..');
+const PROJECT_ROOT = path.resolve(__dirname, '../..');
 
 describe('loadAllAgents (integration)', () => {
   it('loads all 5 agents from real project', async () => {

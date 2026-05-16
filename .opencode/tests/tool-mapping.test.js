@@ -5,7 +5,7 @@ import {
   LEAF_CONTEXT_HINT,
   ENTRY_WORKFLOW_WRITE_GUIDANCE,
   AUTO_VIDEO_CRON_BODY,
-} from '../tool-mapping.js';
+} from '../lib/tool-mapping.js';
 
 describe('tool-mapping constants', () => {
   it('USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 9 entries', () => {
