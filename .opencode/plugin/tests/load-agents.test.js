@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseAgentFile, convertAgentFrontmatter, buildPermissionForAgent } from '../load-agents.js';
+import { parseAgentFile, convertAgentFrontmatter, buildPermissionForAgent, loadAllAgents } from '../load-agents.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.join(__dirname, 'fixtures/agents/director.md');
@@ -135,5 +135,41 @@ describe('buildPermissionForAgent', () => {
       expect(p.todowrite, `${agent}.todowrite`).toBe('allow');
       expect(p.question, `${agent}.question`).toBe('allow');
     }
+  });
+});
+
+const PROJECT_ROOT = path.resolve(__dirname, '../../..');
+
+describe('loadAllAgents (integration)', () => {
+  it('loads all 5 agents from real project', async () => {
+    const agents = await loadAllAgents(PROJECT_ROOT);
+    expect(Object.keys(agents).sort()).toEqual([
+      'creator', 'director', 'scriptwriter', 'storyboarder', 'writer',
+    ]);
+  });
+
+  it('each agent has required OC fields', async () => {
+    const agents = await loadAllAgents(PROJECT_ROOT);
+    for (const [name, def] of Object.entries(agents)) {
+      expect(def.description, `${name}.description`).toBeTruthy();
+      expect(def.mode, `${name}.mode`).toBe('subagent');
+      expect(def.prompt, `${name}.prompt`).toBeTruthy();
+      expect(def.permission, `${name}.permission`).toBeTruthy();
+      expect(def.permission.task).toBe('allow');
+      expect(def.permission.skill).toBe('allow');
+    }
+  });
+
+  it('creator gets all script allowlist entries', async () => {
+    const agents = await loadAllAgents(PROJECT_ROOT);
+    const bash = agents.creator.permission.bash;
+    expect(bash['bash $SVD_PLUGIN_DIR/scripts/image-gen-dreamina.sh*']).toBe('allow');
+    expect(bash['bash $SVD_PLUGIN_DIR/scripts/video-gen-dreamina.sh*']).toBe('allow');
+  });
+
+  it('agent prompt includes OC execution contract', async () => {
+    const agents = await loadAllAgents(PROJECT_ROOT);
+    expect(agents.director.prompt).toContain('OC 执行契约');
+    expect(agents.director.prompt).toContain('skill({ name:');
   });
 });

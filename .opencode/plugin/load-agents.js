@@ -1,5 +1,6 @@
 // .opencode/plugin/load-agents.js
-import { readFile } from 'fs/promises';
+import { readFile, readdir } from 'fs/promises';
+import path from 'path';
 
 /**
  * 读取 agent .md 文件，解析 YAML frontmatter 与 body。
@@ -133,4 +134,46 @@ export function buildPermissionForAgent(agentName, allScripts = []) {
     bash,
     external_directory: cfg.externalDir,
   };
+}
+
+const OC_EXECUTION_CONTRACT = `
+
+## OC 执行契约
+
+当主代理通过 \`task\` 工具派发任务给你时：
+
+1. **第一步必须**调用 \`skill({ name: "<被指定的 skill>" })\` 加载完整 SKILL.md
+2. 严格按 SKILL.md 工作流逐步执行，不跳步、不缩短
+3. 按 SKILL.md "## 输出" 段定义的格式将最终结果返回给主代理
+
+不要凭印象或缩短步骤。如果同一 skill 内部又需要派发其他带 \`context: fork\` 的 skill，使用 \`task\` 工具派发；不带 \`context: fork\` 的 skill 用 \`skill\` 工具同上下文加载。`;
+
+/**
+ * Load all agents from `<pluginRoot>/agents/`, scan `<pluginRoot>/scripts/`,
+ * and return a complete config.agent object suitable for OC's config hook.
+ *
+ * @param pluginRoot - The plugin package's root directory (where the `agents/`,
+ *   `scripts/`, `skills/`, and `package.json` live). For ShortVideoDirector
+ *   this is the repo root because the project IS the plugin. Typically
+ *   computed in index.js as `path.resolve(__dirname, '../..')`.
+ */
+export async function loadAllAgents(pluginRoot) {
+  const agentsDir = path.join(pluginRoot, 'agents');
+  const scriptsDir = path.join(pluginRoot, 'scripts');
+  const allScripts = (await readdir(scriptsDir)).filter(f => f.endsWith('.sh'));
+
+  const files = (await readdir(agentsDir)).filter(f => f.endsWith('.md'));
+  const result = {};
+  for (const file of files) {
+    const filePath = path.join(agentsDir, file);
+    const { frontmatter, body } = await parseAgentFile(filePath);
+    if (!frontmatter.name) {
+      throw new Error(`Agent file ${file} missing 'name' in frontmatter`);
+    }
+    const oc = convertAgentFrontmatter(frontmatter);
+    oc.prompt = body + OC_EXECUTION_CONTRACT;
+    oc.permission = buildPermissionForAgent(frontmatter.name, allScripts);
+    result[frontmatter.name] = oc;
+  }
+  return result;
 }
