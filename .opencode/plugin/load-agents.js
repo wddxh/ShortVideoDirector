@@ -6,7 +6,8 @@ import { readFile } from 'fs/promises';
  * 使用简单的手写 parser 避免引入 js-yaml 依赖。
  */
 export async function parseAgentFile(filePath) {
-  const content = await readFile(filePath, 'utf-8');
+  const raw = await readFile(filePath, 'utf-8');
+  const content = raw.replace(/\r\n/g, '\n');  // normalize line endings
   const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
     throw new Error(`No YAML frontmatter found in ${filePath}`);

@@ -5,6 +5,8 @@ import { parseAgentFile } from '../load-agents.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.join(__dirname, 'fixtures/agents/director.md');
+const NO_FM = path.join(__dirname, 'fixtures/agents/no-frontmatter.md');
+const QUOTED = path.join(__dirname, 'fixtures/agents/quoted-values.md');
 
 describe('parseAgentFile', () => {
   it('parses frontmatter and body', async () => {
@@ -21,5 +23,28 @@ describe('parseAgentFile', () => {
     if (frontmatter.tools !== undefined) {
       expect(typeof frontmatter.tools).toBe('string');
     }
+  });
+});
+
+describe('parseAgentFile error handling', () => {
+  it('throws when frontmatter is missing', async () => {
+    await expect(parseAgentFile(NO_FM)).rejects.toThrow(/No YAML frontmatter found/);
+  });
+});
+
+describe('parseSimpleYaml via parseAgentFile', () => {
+  it('strips matching double quotes', async () => {
+    const { frontmatter } = await parseAgentFile(QUOTED);
+    expect(frontmatter.description).toBe('Quoted description value');
+  });
+
+  it('strips matching single quotes', async () => {
+    const { frontmatter } = await parseAgentFile(QUOTED);
+    expect(frontmatter.single).toBe('single-quoted');
+  });
+
+  it('preserves unmatched quotes', async () => {
+    const { frontmatter } = await parseAgentFile(QUOTED);
+    expect(frontmatter.mixed).toBe('"no closing quote');
   });
 });
