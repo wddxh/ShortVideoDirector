@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseAgentFile } from '../load-agents.js';
+import { parseAgentFile, convertAgentFrontmatter } from '../load-agents.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.join(__dirname, 'fixtures/agents/director.md');
@@ -46,5 +46,34 @@ describe('parseSimpleYaml via parseAgentFile', () => {
   it('preserves unmatched quotes', async () => {
     const { frontmatter } = await parseAgentFile(QUOTED);
     expect(frontmatter.mixed).toBe('"no closing quote');
+  });
+});
+
+describe('convertAgentFrontmatter', () => {
+  it('drops tools field', () => {
+    const out = convertAgentFrontmatter({
+      name: 'director', description: 'Director', tools: 'Read, Write', model: 'inherit'
+    });
+    expect(out.tools).toBeUndefined();
+  });
+
+  it('drops model:inherit', () => {
+    const out = convertAgentFrontmatter({ name: 'd', description: 'D', model: 'inherit' });
+    expect(out.model).toBeUndefined();
+  });
+
+  it('keeps model when not inherit', () => {
+    const out = convertAgentFrontmatter({ name: 'd', description: 'D', model: 'opus' });
+    expect(out.model).toBe('opus');
+  });
+
+  it('sets mode subagent', () => {
+    const out = convertAgentFrontmatter({ name: 'd', description: 'D' });
+    expect(out.mode).toBe('subagent');
+  });
+
+  it('passes through description', () => {
+    const out = convertAgentFrontmatter({ name: 'd', description: 'My desc' });
+    expect(out.description).toBe('My desc');
   });
 });

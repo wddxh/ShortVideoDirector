@@ -36,3 +36,31 @@ function parseSimpleYaml(text) {
   }
   return result;
 }
+
+/**
+ * Convert CC agent frontmatter to OC agent config schema.
+ *
+ * CC frontmatter has: name, description, tools (comma-string), model
+ * OC config.agent[X] needs: description, mode, prompt, permission, optional model
+ *
+ * This function only handles the frontmatter→config transformation. The body
+ * (system prompt) is added by loadAllAgents (Task 2.4). Permissions are
+ * built by buildPermissionForAgent (Task 2.3).
+ *
+ * Behaviors:
+ *   - Drops `tools` (OC uses `permission` instead)
+ *   - Drops `model: inherit` (OC defaults to inheriting from parent)
+ *   - Keeps explicit `model: <name>` values
+ *   - Sets `mode: 'subagent'` (all 5 ShortVideoDirector agents are subagents)
+ *   - Passes through `description` verbatim
+ */
+export function convertAgentFrontmatter(cc) {
+  const out = {
+    description: cc.description,
+    mode: 'subagent',
+  };
+  if (cc.model && cc.model !== 'inherit') {
+    out.model = cc.model;
+  }
+  return out;
+}
