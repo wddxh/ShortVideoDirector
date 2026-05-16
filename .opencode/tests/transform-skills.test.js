@@ -132,6 +132,13 @@ describe('rewriteSkillCalls', () => {
     expect(out).toContain('> 引用：使用 Skill tool 调用 director-arc');
   });
 
+  it('skips templated skill references (name followed by {)', () => {
+    const input = '6. 使用 Skill tool 调用 `creator-image-{图像模型值}` skill, 传递参数：路径';
+    const out = rewriteSkillCalls(input, skillMeta);
+    // Templated ref preserved verbatim — no throw, no rewrite
+    expect(out).toBe(input);
+  });
+
   it('rewrites multiple calls in same document', () => {
     const input = [
       '步骤 1：使用 Skill tool 调用 director-arc skill',

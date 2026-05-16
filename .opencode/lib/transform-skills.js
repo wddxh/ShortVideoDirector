@@ -51,6 +51,11 @@ export function rewriteSkillCalls(text, skillMeta) {
       continue;
     }
     outLines.push(line.replace(SKILL_CALL_RE, (match, skillName) => {
+      // Templated refs like `creator-image-{X}` are captured truncated as `creator-image-`.
+      // Leave them verbatim — the LLM resolves the template at runtime.
+      if (skillName.endsWith('-')) {
+        return match;
+      }
       const meta = skillMeta[skillName];
       if (!meta) {
         throw new Error(`Unknown skill referenced in source: ${skillName}`);
