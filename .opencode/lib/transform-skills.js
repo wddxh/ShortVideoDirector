@@ -22,3 +22,11 @@ export function rewriteFrontmatter(cc) {
   }
   return result;
 }
+
+export function rewriteBashPaths(text) {
+  // 严格匹配 "bash scripts/<filename>" 前缀，避免误改 prose
+  return text.replace(
+    /(\bbash\s+)scripts\//g,
+    '$1$SVD_PLUGIN_DIR/scripts/'
+  );
+}

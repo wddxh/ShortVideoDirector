@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseSkillFile, rewriteFrontmatter } from '../lib/transform-skills.js';
+import { parseSkillFile, rewriteFrontmatter, rewriteBashPaths } from '../lib/transform-skills.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -44,5 +44,33 @@ describe('rewriteFrontmatter', () => {
   it('clips description to 1024 chars', () => {
     const fm = rewriteFrontmatter({ name: 'x', description: 'a'.repeat(2000) });
     expect(fm.description.length).toBe(1024);
+  });
+});
+
+describe('rewriteBashPaths', () => {
+  it('prefixes scripts/ with $SVD_PLUGIN_DIR/', () => {
+    const out = rewriteBashPaths('bash scripts/foo.sh arg1 arg2');
+    expect(out).toBe('bash $SVD_PLUGIN_DIR/scripts/foo.sh arg1 arg2');
+  });
+
+  it('handles multiple occurrences', () => {
+    const input = 'bash scripts/a.sh\nbash scripts/b.sh';
+    const out = rewriteBashPaths(input);
+    expect(out).toBe('bash $SVD_PLUGIN_DIR/scripts/a.sh\nbash $SVD_PLUGIN_DIR/scripts/b.sh');
+  });
+
+  it('does not touch already-prefixed paths', () => {
+    const input = 'bash $SVD_PLUGIN_DIR/scripts/foo.sh';
+    expect(rewriteBashPaths(input)).toBe(input);
+  });
+
+  it('does not touch non-scripts paths', () => {
+    const input = 'bash other/foo.sh';
+    expect(rewriteBashPaths(input)).toBe(input);
+  });
+
+  it('does not touch markdown prose mentions of scripts/', () => {
+    const input = '本步骤需要项目中的 scripts/foo.sh 脚本';
+    expect(rewriteBashPaths(input)).toBe(input);
   });
 });
