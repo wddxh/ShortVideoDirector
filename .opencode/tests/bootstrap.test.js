@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, test } from 'node:test';
+import assert from 'node:assert/strict';
 import { generateBootstrap } from '../lib/bootstrap.js';
 
 describe('generateBootstrap', () => {
@@ -10,28 +11,28 @@ describe('generateBootstrap', () => {
     creator: { description: 'Creator' },
   };
 
-  it('contains SVD_BOOTSTRAP_MARKER', () => {
+  test('contains SVD_BOOTSTRAP_MARKER', () => {
     const out = generateBootstrap('/fake/root', sampleAgents);
-    expect(out).toContain('SVD_BOOTSTRAP_MARKER');
+    assert.ok(out.includes('SVD_BOOTSTRAP_MARKER'));
   });
 
-  it('lists all 5 agent names', () => {
+  test('lists all 5 agent names', () => {
     const out = generateBootstrap('/fake/root', sampleAgents);
     for (const name of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
-      expect(out).toContain(name);
+      assert.ok(out.includes(name), `bootstrap should contain agent name "${name}"`);
     }
   });
 
-  it('lists user-invocable entry workflows', () => {
+  test('lists user-invocable entry workflows', () => {
     const out = generateBootstrap('/fake/root', sampleAgents);
-    expect(out).toContain('series-video');
-    expect(out).toContain('short-video');
-    expect(out).toContain('auto-video');
+    assert.ok(out.includes('series-video'));
+    assert.ok(out.includes('short-video'));
+    assert.ok(out.includes('auto-video'));
   });
 
-  it('wraps in EXTREMELY_IMPORTANT', () => {
+  test('wraps in EXTREMELY_IMPORTANT', () => {
     const out = generateBootstrap('/fake/root', sampleAgents);
-    expect(out).toMatch(/<EXTREMELY_IMPORTANT>/);
-    expect(out).toMatch(/<\/EXTREMELY_IMPORTANT>/);
+    assert.match(out, /<EXTREMELY_IMPORTANT>/);
+    assert.match(out, /<\/EXTREMELY_IMPORTANT>/);
   });
 });

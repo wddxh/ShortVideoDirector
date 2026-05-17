@@ -1,31 +1,32 @@
-import { describe, it, expect } from 'vitest';
+import { describe, test } from 'node:test';
+import assert from 'node:assert/strict';
 import { ShortVideoDirectorPlugin } from '../plugin/index.js';
 
 describe('ShortVideoDirectorPlugin', () => {
-  it('returns object with 3 expected hooks', async () => {
+  test('returns object with 3 expected hooks', async () => {
     const plugin = await ShortVideoDirectorPlugin({ client: null, directory: '/tmp' });
-    expect(typeof plugin.config).toBe('function');
-    expect(typeof plugin['shell.env']).toBe('function');
-    expect(typeof plugin['experimental.chat.messages.transform']).toBe('function');
+    assert.equal(typeof plugin.config, 'function');
+    assert.equal(typeof plugin['shell.env'], 'function');
+    assert.equal(typeof plugin['experimental.chat.messages.transform'], 'function');
   });
 
-  it('config hook mutates skills.paths and agent', async () => {
+  test('config hook mutates skills.paths and agent', async () => {
     const plugin = await ShortVideoDirectorPlugin({ client: null, directory: '/tmp' });
     const config = {};
     await plugin.config(config);
-    expect(config.skills.paths.length).toBeGreaterThan(0);
-    expect(Object.keys(config.agent)).toContain('director');
+    assert.ok(config.skills.paths.length > 0);
+    assert.ok(Object.keys(config.agent).includes('director'));
   });
 
-  it('shell.env hook sets SVD_PLUGIN_DIR', async () => {
+  test('shell.env hook sets SVD_PLUGIN_DIR', async () => {
     const plugin = await ShortVideoDirectorPlugin({ client: null, directory: '/tmp' });
     const output = { env: {} };
     await plugin['shell.env']({}, output);
-    expect(output.env.SVD_PLUGIN_DIR).toBeTruthy();
-    expect(output.env.SVD_PLUGIN_DIR).toContain('ShortVideoDirector');
+    assert.ok(output.env.SVD_PLUGIN_DIR);
+    assert.ok(output.env.SVD_PLUGIN_DIR.includes('ShortVideoDirector'));
   });
 
-  it('messages.transform injects bootstrap idempotently', async () => {
+  test('messages.transform injects bootstrap idempotently', async () => {
     const plugin = await ShortVideoDirectorPlugin({ client: null, directory: '/tmp' });
     const output = {
       messages: [
@@ -33,9 +34,9 @@ describe('ShortVideoDirectorPlugin', () => {
       ],
     };
     await plugin['experimental.chat.messages.transform']({}, output);
-    expect(output.messages[0].parts.length).toBe(2);
-    expect(output.messages[0].parts[0].text).toContain('SVD_BOOTSTRAP_MARKER');
+    assert.equal(output.messages[0].parts.length, 2);
+    assert.ok(output.messages[0].parts[0].text.includes('SVD_BOOTSTRAP_MARKER'));
     await plugin['experimental.chat.messages.transform']({}, output);
-    expect(output.messages[0].parts.length).toBe(2);
+    assert.equal(output.messages[0].parts.length, 2);
   });
 });

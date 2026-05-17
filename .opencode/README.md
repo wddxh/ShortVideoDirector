@@ -150,11 +150,20 @@ cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 
 
 ## 开发
 
-```bash
-# 跑单元测试
-npx vitest run
+测试零依赖 —— 用 Node 内置 `node --test` runner（Node 18+）：
 
-# 验证 plugin 加载（在另一个 OC 启动会话期间）
+```bash
+# 跑单元测试（65 个）
+npm test
+# 或直接：
+node --test .opencode/tests/*.test.js
+
+# Watch 模式
+npm run test:watch
+
+# 验证 plugin 加载（OC 已启动后另开终端跑）
 opencode agent list
 opencode debug skill | head -30
 ```
+
+无 `node_modules`、无 `package-lock.json`、无外部依赖。`package.json` 仅保留 OC 加载需要的字段（`name` / `version` / `type` / `main` / `repository` / `license` / `scripts`）。

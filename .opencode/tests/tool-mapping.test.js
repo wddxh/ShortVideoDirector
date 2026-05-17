@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, test } from 'node:test';
+import assert from 'node:assert/strict';
 import {
   USER_INVOCABLE_ENTRY_WORKFLOWS,
   TASK_PROMPT_TEMPLATE,
@@ -8,8 +9,8 @@ import {
 } from '../lib/tool-mapping.js';
 
 describe('tool-mapping constants', () => {
-  it('USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 9 entries', () => {
-    expect(USER_INVOCABLE_ENTRY_WORKFLOWS).toEqual(new Set([
+  test('USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 9 entries', () => {
+    assert.deepStrictEqual(USER_INVOCABLE_ENTRY_WORKFLOWS, new Set([
       'series-video', 'short-video',
       'series-edit-story', 'short-edit-story',
       'series-repair-story', 'short-repair-story',
@@ -17,33 +18,33 @@ describe('tool-mapping constants', () => {
     ]));
   });
 
-  it('TASK_PROMPT_TEMPLATE renders with all required fields', () => {
+  test('TASK_PROMPT_TEMPLATE renders with all required fields', () => {
     const out = TASK_PROMPT_TEMPLATE({
       skillName: 'director-arc',
       agentName: 'director',
       params: '- topic: test\n- episode: 1',
     });
-    expect(out).toContain('director-arc');
-    expect(out).toContain('director');
-    expect(out).toContain('topic: test');
-    expect(out).toContain('skill({ name: "director-arc" })');
+    assert.ok(out.includes('director-arc'));
+    assert.ok(out.includes('director'));
+    assert.ok(out.includes('topic: test'));
+    assert.ok(out.includes('skill({ name: "director-arc" })'));
   });
 
-  it('LEAF_CONTEXT_HINT renders with agent name', () => {
+  test('LEAF_CONTEXT_HINT renders with agent name', () => {
     const out = LEAF_CONTEXT_HINT('director');
-    expect(out).toContain('director');
-    expect(out).toContain('执行上下文');
+    assert.ok(out.includes('director'));
+    assert.ok(out.includes('执行上下文'));
   });
 
-  it('ENTRY_WORKFLOW_WRITE_GUIDANCE is non-empty string with key terms', () => {
-    expect(ENTRY_WORKFLOW_WRITE_GUIDANCE).toContain('写入约束');
-    expect(ENTRY_WORKFLOW_WRITE_GUIDANCE).toContain('3000 字符');
-    expect(ENTRY_WORKFLOW_WRITE_GUIDANCE).toContain('Edit');
+  test('ENTRY_WORKFLOW_WRITE_GUIDANCE is non-empty string with key terms', () => {
+    assert.ok(ENTRY_WORKFLOW_WRITE_GUIDANCE.includes('写入约束'));
+    assert.ok(ENTRY_WORKFLOW_WRITE_GUIDANCE.includes('3000 字符'));
+    assert.ok(ENTRY_WORKFLOW_WRITE_GUIDANCE.includes('Edit'));
   });
 
-  it('AUTO_VIDEO_CRON_BODY contains crontab template', () => {
-    expect(AUTO_VIDEO_CRON_BODY).toContain('crontab');
-    expect(AUTO_VIDEO_CRON_BODY).toContain('opencode run --session');
-    expect(AUTO_VIDEO_CRON_BODY).toContain('svd-auto-video:');
+  test('AUTO_VIDEO_CRON_BODY contains crontab template', () => {
+    assert.ok(AUTO_VIDEO_CRON_BODY.includes('crontab'));
+    assert.ok(AUTO_VIDEO_CRON_BODY.includes('opencode run --session'));
+    assert.ok(AUTO_VIDEO_CRON_BODY.includes('svd-auto-video:'));
   });
 });
