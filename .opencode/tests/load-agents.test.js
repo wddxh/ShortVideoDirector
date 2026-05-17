@@ -95,14 +95,8 @@ describe('buildPermissionForAgent', () => {
     assert.equal(p.bash['*'], 'deny');
     assert.equal(p.task, 'allow');
     assert.equal(p.skill, 'allow');
-    // external_directory is an object with cache allowlist (no catch-all deny
-    // — OC's findLast semantics would let our deny override its own
-    // auto-injected per-skill allows). See NON_CREATOR_EXT_DIR comment.
-    assert.equal(typeof p.external_directory, 'object');
-    assert.equal(p.external_directory['*'], undefined, 'must NOT have catch-all deny');
-    const cacheKey = Object.keys(p.external_directory).find((k) => k.includes('short-video-director'));
-    assert.ok(cacheKey, 'should have a cache path allow rule');
-    assert.equal(p.external_directory[cacheKey], 'allow');
+    // All 5 agents now blanket-allow external_directory (zero-popup UX goal).
+    assert.equal(p.external_directory, 'allow');
   });
 
   test('director allows read-config.sh only', () => {
@@ -119,7 +113,6 @@ describe('buildPermissionForAgent', () => {
     assert.equal(p.bash['dreamina user_credit'], 'allow');
     assert.equal(p.bash['dreamina query_result*'], 'allow');
     assert.equal(p.bash['mv /tmp/dreamina-pending/*'], 'allow');
-    // creator keeps blanket allow (dreamina-pending tempfiles, downloaded images, etc.)
     assert.equal(p.external_directory, 'allow');
   });
 
@@ -127,25 +120,18 @@ describe('buildPermissionForAgent', () => {
     for (const a of ['scriptwriter', 'storyboarder']) {
       const p = buildPermissionForAgent(a, SCRIPTS);
       assert.equal(p.bash['*'], 'deny');
-      assert.equal(typeof p.external_directory, 'object');
-      assert.equal(p.external_directory['*'], undefined, `${a} must NOT have catch-all deny`);
+      assert.equal(p.external_directory, 'allow');
     }
   });
 
-  test('non-creator agents allow Read on plugin cache directory', () => {
-    // Regression: previously external_directory was 'deny' which blocked
-    // subagents from Reading skill aux files (rules.md, fixtures, etc.) at
-    // ~/.cache/short-video-director/<hash>/skills/<X>/. They must be allowed.
-    // Also: must NOT have catch-all '*: deny' because OC uses findLast
-    // (last-match-wins) and a catch-all deny would override OC's own
-    // auto-injected per-skill cache allows.
-    for (const a of ['director', 'writer', 'scriptwriter', 'storyboarder']) {
+  test('all 5 agents have external_directory: allow (zero-popup UX)', () => {
+    // Rationale: OC's permission evaluator uses findLast (last-match-wins).
+    // Any object-based external_directory rule with even a single deny would
+    // either block legitimate cache reads or trigger ask dialogs on other
+    // external paths. Blanket allow is the only way to keep zero popups.
+    for (const a of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
       const p = buildPermissionForAgent(a, SCRIPTS);
-      const cacheKey = Object.keys(p.external_directory).find((k) => k.includes('short-video-director'));
-      assert.ok(cacheKey, `${a} should have cache path allow rule`);
-      assert.equal(p.external_directory[cacheKey], 'allow', `${a} cache path should be allowed`);
-      assert.ok(cacheKey.endsWith('**'), `${a} cache pattern should use recursive **`);
-      assert.equal(p.external_directory['*'], undefined, `${a} must NOT have catch-all deny (OC findLast semantics)`);
+      assert.equal(p.external_directory, 'allow', `${a} should be 'allow'`);
     }
   });
 

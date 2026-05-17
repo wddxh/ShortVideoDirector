@@ -1,13 +1,6 @@
 // .opencode/plugin/load-agents.js
 import { readFile, readdir } from 'fs/promises';
 import path from 'path';
-import os from 'os';
-
-// Cache base — must match cache.js CACHE_BASE. Used in non-creator agent
-// external_directory allowlist so they can Read skill aux files (rules.md,
-// fixtures, etc.) from `~/.cache/short-video-director/<hash>/skills/<X>/`
-// which is outside the user's project directory.
-const CACHE_BASE_GLOB = path.join(os.homedir(), '.cache', 'short-video-director', '**');
 
 /**
  * 读取 agent .md 文件，解析 YAML frontmatter 与 body。
@@ -88,28 +81,24 @@ const BASE_PERMISSION = {
   question: 'allow',
 };
 
-// Default external_directory policy for non-creator agents: explicitly allow
-// reads from the plugin cache (where transformed skill aux files live).
-// Anything else falls back to OC's default behavior (which is "ask" — show a
-// permission dialog to the user). We intentionally do NOT include a catch-all
-// `'*': 'deny'` here because OC evaluates rules with `findLast` (last-match-
-// wins) and our `*: deny` would override OC's auto-injected per-skill cache
-// allow rules. Creator gets blanket 'allow' because it works with
-// dreamina-pending tempfiles, downloaded images, etc.
-const NON_CREATOR_EXT_DIR = {
-  [CACHE_BASE_GLOB]: 'allow',
-};
-
-// Per-agent bash config: which scripts to allow + extra non-script bash patterns + external_directory policy
+// Per-agent bash config: which scripts to allow + extra non-script bash patterns
+//
+// All 5 agents get external_directory: 'allow' (no ask dialogs). The
+// alternative — restricting non-creator agents to a cache-path whitelist —
+// fails because OC's permission evaluator uses findLast (last-match-wins) and
+// any catch-all '*: deny' would override OC's auto-injected per-skill cache
+// allows, while a cache-only allow would still trigger ask dialogs on any
+// other external read. Blanket allow keeps zero-popup UX which was the design
+// goal.
 const AGENT_BASH_CONFIG = {
   director: {
     allowScripts: ['read-config.sh'],
     extraBash: {},
-    externalDir: NON_CREATOR_EXT_DIR,
+    externalDir: 'allow',
   },
-  writer: { allowScripts: [], extraBash: {}, externalDir: NON_CREATOR_EXT_DIR },
-  scriptwriter: { allowScripts: [], extraBash: {}, externalDir: NON_CREATOR_EXT_DIR },
-  storyboarder: { allowScripts: [], extraBash: {}, externalDir: NON_CREATOR_EXT_DIR },
+  writer: { allowScripts: [], extraBash: {}, externalDir: 'allow' },
+  scriptwriter: { allowScripts: [], extraBash: {}, externalDir: 'allow' },
+  storyboarder: { allowScripts: [], extraBash: {}, externalDir: 'allow' },
   creator: {
     allowScripts: 'ALL',  // creator 自动放行所有 scripts/*.sh (覆盖任何 future script)
     extraBash: {
