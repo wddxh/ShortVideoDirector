@@ -147,7 +147,7 @@ LLM 在给出方案前必须读以下文件：
 6. 不在清单中的节点跳过
 7. `config.md` 图像模型 = `none` 时，images 节点跳过并在阶段 4 摘要中提示
 8. 某节点 skill 调用失败（非 review 失败）→ 该节点终止并中断后续级联（与 review 失败不同，review 失败仅记录继续），在阶段 4 摘要中报错
-9. **若集数非 ep01**：在 create-assets 执行之后、images 执行之前插入 `creator-update-records`（参数 `{集数}`）
+9. **若集数非 ep01**：在 create-assets 执行之后、images 执行之前使用 Skill tool 调用 `creator-update-records` skill，传递参数：`{集数}`
 
 #### 节点 → skill 对照
 
