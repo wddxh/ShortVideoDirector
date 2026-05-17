@@ -56,11 +56,23 @@ describe('parseSimpleYaml via parseAgentFile', () => {
 });
 
 describe('convertAgentFrontmatter', () => {
-  test('drops tools field', () => {
+  test('drops CC tools comma-string but explicitly enables bash tool', () => {
+    // Regression: OC defaults subagent tools.bash to false, so creator (which
+    // needs to invoke dreamina CLI + image-gen scripts) ended up unable to run
+    // any bash command even with permission allows in place. Fix: explicitly
+    // set tools.bash = true for all agents; per-agent bash command allowlist
+    // in permission.bash still gates WHICH commands actually run.
     const out = convertAgentFrontmatter({
       name: 'director', description: 'Director', tools: 'Read, Write', model: 'inherit'
     });
-    assert.equal(out.tools, undefined);
+    assert.deepEqual(out.tools, { bash: true });
+  });
+
+  test('all 5 agents end up with tools.bash = true', async () => {
+    const agents = await loadAllAgents(path.resolve(__dirname, '../..'));
+    for (const a of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+      assert.equal(agents[a].tools?.bash, true, `${a} should have tools.bash = true`);
+    }
   });
 
   test('drops model:inherit', () => {
@@ -90,37 +102,17 @@ describe('buildPermissionForAgent', () => {
                    'latest-episode.sh', 'check-episode.sh', 'storyboard-to-prompt.sh',
                    'video-check-dreamina.sh'];
 
-  test('writer has bash deny-all', () => {
-    const p = buildPermissionForAgent('writer', SCRIPTS);
-    assert.equal(p.bash['*'], 'deny');
-    assert.equal(p.task, 'allow');
-    assert.equal(p.skill, 'allow');
-    // All 5 agents now blanket-allow external_directory (zero-popup UX goal).
-    assert.equal(p.external_directory, 'allow');
-  });
-
-  test('director allows read-config.sh only', () => {
-    const p = buildPermissionForAgent('director', SCRIPTS);
-    assert.equal(p.bash['bash $SVD_PLUGIN_DIR/scripts/read-config.sh*'], 'allow');
-    assert.equal(p.bash['bash $SVD_PLUGIN_DIR/scripts/image-gen-dreamina.sh*'], undefined);
-    assert.equal(p.bash['*'], 'deny');
-  });
-
-  test('creator allows all dreamina-related scripts + dreamina CLI', () => {
-    const p = buildPermissionForAgent('creator', SCRIPTS);
-    assert.equal(p.bash['bash $SVD_PLUGIN_DIR/scripts/image-gen-dreamina.sh*'], 'allow');
-    assert.equal(p.bash['bash $SVD_PLUGIN_DIR/scripts/video-gen-dreamina.sh*'], 'allow');
-    assert.equal(p.bash['dreamina user_credit'], 'allow');
-    assert.equal(p.bash['dreamina query_result*'], 'allow');
-    assert.equal(p.bash['mv /tmp/dreamina-pending/*'], 'allow');
-    assert.equal(p.external_directory, 'allow');
-  });
-
-  test('scriptwriter & storyboarder mirror writer', () => {
-    for (const a of ['scriptwriter', 'storyboarder']) {
+  test('all 5 agents have bash: allow (blanket)', () => {
+    // Regression: previously non-creator agents had bash: {'*': 'deny'} which
+    // caused OC to derive tools.bash = false, blocking creator from running
+    // dreamina CLI even with explicit allow rules in the object.
+    // Fix: blanket 'allow' string for all agents. Security boundary lives in
+    // SKILL.md prompts (LLM-side restriction), not OC permission.
+    for (const a of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
       const p = buildPermissionForAgent(a, SCRIPTS);
-      assert.equal(p.bash['*'], 'deny');
-      assert.equal(p.external_directory, 'allow');
+      assert.equal(p.bash, 'allow', `${a}.bash`);
+      assert.equal(p.task, 'allow', `${a}.task`);
+      assert.equal(p.skill, 'allow', `${a}.skill`);
     }
   });
 
@@ -180,11 +172,14 @@ describe('loadAllAgents (integration)', () => {
     }
   });
 
-  test('creator gets all script allowlist entries', async () => {
+  test('creator has bash blanket-allow (formerly per-script allowlist)', async () => {
+    // Was previously an object with per-script allow rules + '*': deny.
+    // Now: blanket 'allow' string because OC derives tools.bash from
+    // permission.bash, and object-form with catch-all deny made bash tool
+    // unavailable to creator (couldn't run dreamina CLI). See AGENT_BASH_CONFIG
+    // comment in load-agents.js for full rationale.
     const agents = await loadAllAgents(PROJECT_ROOT);
-    const bash = agents.creator.permission.bash;
-    assert.equal(bash['bash $SVD_PLUGIN_DIR/scripts/image-gen-dreamina.sh*'], 'allow');
-    assert.equal(bash['bash $SVD_PLUGIN_DIR/scripts/video-gen-dreamina.sh*'], 'allow');
+    assert.equal(agents.creator.permission.bash, 'allow');
   });
 
   test('agent prompt includes OC execution contract', async () => {

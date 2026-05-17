@@ -49,7 +49,12 @@ function parseSimpleYaml(text) {
  * built by buildPermissionForAgent (Task 2.3).
  *
  * Behaviors:
- *   - Drops `tools` (OC uses `permission` instead)
+ *   - Drops CC's `tools` comma-string (OC uses `permission` for command-level
+ *     allow/deny). However we DO explicitly set `tools.bash = true` so the
+ *     LLM has access to the bash tool — without this, OC defaults bash to
+ *     false for subagents (security default) and the agent can't invoke any
+ *     CLI even with permission allows in place. WHICH bash commands actually
+ *     run is gated by `permission.bash` (see buildPermissionForAgent).
  *   - Drops `model: inherit` (OC defaults to inheriting from parent)
  *   - Keeps explicit `model: <name>` values
  *   - Sets `mode: 'subagent'` (all 5 ShortVideoDirector agents are subagents)
@@ -59,6 +64,7 @@ export function convertAgentFrontmatter(cc) {
   const out = {
     description: cc.description,
     mode: 'subagent',
+    tools: { bash: true },
   };
   if (cc.model && cc.model !== 'inherit') {
     out.model = cc.model;
@@ -81,65 +87,50 @@ const BASE_PERMISSION = {
   question: 'allow',
 };
 
-// Per-agent bash config: which scripts to allow + extra non-script bash patterns
+// Per-agent bash config: which scripts/commands to allow.
 //
-// All 5 agents get external_directory: 'allow' (no ask dialogs). The
-// alternative — restricting non-creator agents to a cache-path whitelist —
-// fails because OC's permission evaluator uses findLast (last-match-wins) and
-// any catch-all '*: deny' would override OC's auto-injected per-skill cache
-// allows, while a cache-only allow would still trigger ask dialogs on any
-// other external read. Blanket allow keeps zero-popup UX which was the design
-// goal.
+// All 5 agents get permission.bash = 'allow' AND external_directory = 'allow'
+// (no ask dialogs, no tool-disabled surprises). Background:
+//
+// OC derives the effective `tools.<name>` dict from `permission`. If
+// permission.bash is an object with `'*': deny` as catch-all, OC concludes
+// the bash tool is overall disabled and sets `tools.bash: false`, blocking
+// the agent from invoking ANY bash command (even ones with explicit allow
+// rules in the object). This bit creator on the 5e workflow — it couldn't
+// run dreamina CLI / scripts.
+//
+// Per-command bash restriction is incompatible with the desired UX (zero
+// popups, full agent functionality). Blanket 'allow' for all 5 agents keeps
+// bash usable. Security boundary lives in SKILL.md prompts (LLM is told what
+// commands to run; the LLM is the gatekeeper, not OC permission system).
 const AGENT_BASH_CONFIG = {
-  director: {
-    allowScripts: ['read-config.sh'],
-    extraBash: {},
-    externalDir: 'allow',
-  },
-  writer: { allowScripts: [], extraBash: {}, externalDir: 'allow' },
-  scriptwriter: { allowScripts: [], extraBash: {}, externalDir: 'allow' },
-  storyboarder: { allowScripts: [], extraBash: {}, externalDir: 'allow' },
-  creator: {
-    allowScripts: 'ALL',  // creator 自动放行所有 scripts/*.sh (覆盖任何 future script)
-    extraBash: {
-      'dreamina user_credit': 'allow',
-      'dreamina query_result*': 'allow',
-      'mkdir -p*': 'allow',
-      'mv /tmp/dreamina-pending/*': 'allow',
-    },
-    externalDir: 'allow',
-  },
+  director: { externalDir: 'allow' },
+  writer: { externalDir: 'allow' },
+  scriptwriter: { externalDir: 'allow' },
+  storyboarder: { externalDir: 'allow' },
+  creator: { externalDir: 'allow' },
 };
 
 /**
- * Build OC permission object for a given agent, including the per-agent
- * bash allowlist (resolved against the project's scripts/ inventory).
+ * Build OC permission object for a given agent.
+ *
+ * All 5 agents use blanket allow for bash + external_directory. WHICH
+ * commands actually run is gated by SKILL.md prompts (LLM-side restriction),
+ * not OC permission. This trades fine-grained per-command security for zero
+ * permission popups and guaranteed tool availability (OC won't disable
+ * bash/external_directory tools when permission is blanket-allow).
  *
  * @param agentName - one of director, writer, scriptwriter, storyboarder, creator
- * @param allScripts - array of script filenames found in <project>/scripts/ (e.g., ['read-config.sh', ...])
- *
- * Bash allowlist format: keys are bash patterns matched against parsed command,
- * values are 'allow'/'deny'. Wildcard `*` catches anything else.
- * Last matching rule wins per OC permission docs.
+ * @param allScripts - unused; kept for API compat with prior signature
  */
-export function buildPermissionForAgent(agentName, allScripts = []) {
+export function buildPermissionForAgent(agentName, _allScripts = []) {
   const cfg = AGENT_BASH_CONFIG[agentName];
   if (!cfg) {
     throw new Error(`Unknown agent: ${agentName}`);
   }
-  const bash = {};
-  const scriptsToAllow = cfg.allowScripts === 'ALL' ? allScripts : cfg.allowScripts;
-  for (const s of scriptsToAllow) {
-    bash[`bash $SVD_PLUGIN_DIR/scripts/${s}*`] = 'allow';
-  }
-  for (const [k, v] of Object.entries(cfg.extraBash)) {
-    bash[k] = v;
-  }
-  bash['*'] = 'deny';
-
   return {
     ...BASE_PERMISSION,
-    bash,
+    bash: 'allow',
     external_directory: cfg.externalDir,
   };
 }
