@@ -187,4 +187,14 @@ describe('loadAllAgents (integration)', () => {
     assert.ok(agents.director.prompt.includes('OC 执行契约'));
     assert.ok(agents.director.prompt.includes('skill({ name:'));
   });
+
+  test('agent prompt includes 写入纪律 section', async () => {
+    const agents = await loadAllAgents(PROJECT_ROOT);
+    for (const a of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+      assert.ok(agents[a].prompt.includes('写入纪律'), `${a} missing 写入纪律`);
+      assert.ok(agents[a].prompt.includes('JSON 增量模式'), `${a} missing JSON 增量模式`);
+      assert.ok(agents[a].prompt.includes('oldString'), `${a} missing oldString reference`);
+      assert.ok(agents[a].prompt.includes('不限制文件最终总长度'), `${a} missing length principle`);
+    }
+  });
 });

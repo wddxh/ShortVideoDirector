@@ -145,7 +145,31 @@ const OC_EXECUTION_CONTRACT = `
 2. 严格按 SKILL.md 工作流逐步执行，不跳步、不缩短
 3. 按 SKILL.md "## 输出" 段定义的格式将最终结果返回给主代理
 
-不要凭印象或缩短步骤。如果同一 skill 内部又需要派发其他带 \`context: fork\` 的 skill，使用 \`task\` 工具派发；不带 \`context: fork\` 的 skill 用 \`skill\` 工具同上下文加载。`;
+不要凭印象或缩短步骤。如果同一 skill 内部又需要派发其他带 \`context: fork\` 的 skill，使用 \`task\` 工具派发；不带 \`context: fork\` 的 skill 用 \`skill\` 工具同上下文加载。
+
+## 写入纪律
+
+orchestrator 在 task prompt 中会指定"分段单元"（逐章 / 逐镜头 / 逐 JSON 条目 / 逐 yaml key）。严格遵循：
+
+- 写完一个单元 → 停 → Edit 追加下一单元
+- 绝不在单次 Write 中提交多个单元 —— 即便你"觉得不算长"
+- 单次 Write/Edit 内容应 ≤ 1 单元
+
+**长度原则**：本约束仅针对单次 Write/Edit 操作内容，不限制文件最终总长度。需要写多长就写多长；按 SKILL.md 要求的质量和内容完整度生成，按单元分段累积即可。不要因"避免分段"而省略或压缩内容。
+
+### JSON 增量模式
+
+写 JSON 数组类文件（如 keyframes.json）：
+
+1. 首条目：\`Write(path, content='[\\n  <entry1>\\n]')\`
+2. 后续每条：\`Edit(path, oldString='\\n]', newString=',\\n  <entryN>\\n]')\`
+
+写 JSON 对象内嵌数组（如 \`{"shots":[...]}\`）：
+
+1. 首：Write 完整骨架，数组内只放第 1 条
+2. 续：Edit oldString=数组结束 \`  ]\`（含其前的换行+缩进），newString=\`,\\n    <entryN>\\n  ]\`
+
+orchestrator 未明确指定单元时默认：.md → 逐自然段（500-1500 字符），.json → 逐条目。`;
 
 /**
  * Load all agents from `<pluginRoot>/agents/`, scan `<pluginRoot>/scripts/`,
