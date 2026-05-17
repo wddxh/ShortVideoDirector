@@ -111,6 +111,16 @@ crontab -l | grep -v "svd-auto-video:\${SESSION_ID}" | crontab -
 - **Session 时效性**：cron 引用的 session 必须保持"近期活跃"。如果创建 cron 后超过 24-48 小时未在 OC 中操作该 session，session 可能"过期"导致 cron 任务静默失败（exit=0 但 LLM 无响应）。建议视频生成总时长 <24h 的场景使用 cron 模式；超长任务建议手动调用 check-video 或重新安装 cron
 `;
 
+/**
+ * Orchestrator-side directive: format-aware semantic chunking for sub-agent
+ * dispatches. Injected at the top of each user-invocable entry workflow's
+ * SKILL.md body (the 9 in USER_INVOCABLE_ENTRY_WORKFLOWS) by
+ * injectDispatchDiscipline in transform-skills.js.
+ *
+ * Replaces the legacy ENTRY_WORKFLOW_WRITE_GUIDANCE (3000-char arbitrary
+ * threshold) with semantic-unit chunking (chapter / scene / shot / JSON
+ * entry). Length is per-unit, never total — see "长度原则" section in body.
+ */
 export const ENTRY_WORKFLOW_DISPATCH_DISCIPLINE = `## 派发约束（OC 专用，每次 task 之前执行）
 
 派发 task 之前，必须先分析下游 sub-agent 将产出的文件格式，并在 task prompt 中明确分段策略。

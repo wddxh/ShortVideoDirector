@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, readdir, copyFile, stat } from 'fs/promises';
 import path from 'path';
 import { parseAgentFile as parseFrontmatterFile } from './load-agents.js';
-import { TASK_PROMPT_TEMPLATE, LEAF_CONTEXT_HINT, ENTRY_WORKFLOW_WRITE_GUIDANCE, USER_INVOCABLE_ENTRY_WORKFLOWS, AUTO_VIDEO_CRON_BODY } from './tool-mapping.js';
+import { TASK_PROMPT_TEMPLATE, LEAF_CONTEXT_HINT, ENTRY_WORKFLOW_DISPATCH_DISCIPLINE, USER_INVOCABLE_ENTRY_WORKFLOWS, AUTO_VIDEO_CRON_BODY } from './tool-mapping.js';
 
 // parseSkillFile 与 parseAgentFile 行为一致；alias 出来让代码语义更清晰
 export const parseSkillFile = parseFrontmatterFile;
@@ -80,10 +80,10 @@ export function injectLeafHint(body, meta) {
   return LEAF_CONTEXT_HINT(meta.agent) + '\n\n' + body;
 }
 
-export function injectEntryWorkflowGuidance(body, meta) {
+export function injectDispatchDiscipline(body, meta) {
   if (!meta.userInvocable) return body;
   if (!USER_INVOCABLE_ENTRY_WORKFLOWS.has(meta.name)) return body;
-  return ENTRY_WORKFLOW_WRITE_GUIDANCE + '\n\n' + body;
+  return ENTRY_WORKFLOW_DISPATCH_DISCIPLINE + '\n\n' + body;
 }
 
 export function rewriteAutoVideoCron(body) {
@@ -166,7 +166,7 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
       newBody = rewriteAutoVideoCron(newBody);
     }
     newBody = injectLeafHint(newBody, myMeta);
-    newBody = injectEntryWorkflowGuidance(newBody, { ...myMeta, name: skillName });
+    newBody = injectDispatchDiscipline(newBody, { ...myMeta, name: skillName });
 
     const newFm = rewriteFrontmatter(frontmatter);
     const out = stringifyFrontmatter(newFm) + '\n\n' + newBody;

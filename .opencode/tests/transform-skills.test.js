@@ -15,7 +15,7 @@ import {
   rewriteBashPaths,
   rewriteSkillCalls,
   injectLeafHint,
-  injectEntryWorkflowGuidance,
+  injectDispatchDiscipline,
   rewriteAutoVideoCron,
   transformAllSkills,
 } from '../lib/transform-skills.js';
@@ -188,20 +188,21 @@ describe('injectLeafHint', () => {
   });
 });
 
-describe('injectEntryWorkflowGuidance', () => {
+describe('injectDispatchDiscipline', () => {
   test('injects for user-invocable entry workflow', () => {
     const body = '# series-video\n\n正文';
-    const out = injectEntryWorkflowGuidance(body, {
+    const out = injectDispatchDiscipline(body, {
       name: 'series-video', userInvocable: true
     });
-    assert.ok(out.includes('写入约束'));
-    assert.ok(out.includes('3000 字符'));
+    assert.ok(out.includes('派发约束'));
+    assert.ok(out.includes('分段策略'));
+    assert.ok(out.includes('反例'));
     assert.ok(out.includes(body));
   });
 
   test('does not inject for non-entry skill', () => {
     const body = '# director-arc\n\n正文';
-    const out = injectEntryWorkflowGuidance(body, {
+    const out = injectDispatchDiscipline(body, {
       name: 'director-arc', userInvocable: false
     });
     assert.equal(out, body);
@@ -209,7 +210,7 @@ describe('injectEntryWorkflowGuidance', () => {
 
   test('does not inject for user-invocable skill NOT in entry list', () => {
     const body = '# some-future-skill\n\n正文';
-    const out = injectEntryWorkflowGuidance(body, {
+    const out = injectDispatchDiscipline(body, {
       name: 'some-future-skill', userInvocable: true
     });
     assert.equal(out, body);
@@ -264,12 +265,12 @@ describe('transformAllSkills (integration)', () => {
     assert.ok(!content.includes('CronCreate'));
   });
 
-  test('series-video cache has entry workflow write guidance', async () => {
+  test('series-video cache has dispatch discipline directive', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(
       path.join(tmpDir, 'series-video/SKILL.md'), 'utf-8'
     );
-    assert.ok(content.includes('写入约束'));
+    assert.ok(content.includes('派发约束（OC 专用'));
   });
 
   test('aux files (rules.md) are copied', async () => {
