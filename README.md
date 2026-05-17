@@ -48,6 +48,21 @@
 claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
+### For OpenCode users
+
+本仓库同时支持 OpenCode（`.opencode/` 兼容层）。在 `~/.config/opencode/opencode.json` 添加：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "short-video-director@git+https://github.com/Hikaru518/ShortVideoDirector.git"
+  ]
+}
+```
+
+启动 OC 即自动注册 5 个子代理与 44 个 skills。完整安装/升级/troubleshooting 说明见 [`.opencode/README.md`](./.opencode/README.md)。
+
 ## Codex
 
 Codex 支持是对 Claude Code plugin 的兼容层，由 `.codex-plugin/plugin.json` 提供。
