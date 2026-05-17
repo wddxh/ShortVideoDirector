@@ -151,25 +151,25 @@ LLM 在给出方案前必须读以下文件：
 
 #### 节点 → skill 对照
 
-| 节点动作 | skill 及参数 |
-|---------|------------|
-| 修 outline | `director-fix-outline`（`{集数} "{修改意见}"`） |
-| 写 novel | `writer-novel`（`{集数}`） |
-| 修 novel | `writer-fix-novel`（`{集数} "{修改意见}"`） |
-| review novel | `director-review-novel`（`{集数}`） |
+| 节点动作 | skill 调用 |
+|---------|-----------|
+| 修 outline | 使用 Skill tool 调用 `director-fix-outline` skill，传递参数：`{集数} "{修改意见}"` |
+| 写 novel | 使用 Skill tool 调用 `writer-novel` skill，传递参数：`{集数}` |
+| 修 novel | 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`{集数} "{修改意见}"` |
+| review novel | 使用 Skill tool 调用 `director-review-novel` skill，传递参数：`{集数}` |
 | Edit asset-list 清单 | 直接用 Edit 改 `story/episodes/{集数}/outline.md` 的「本集资产清单」部分（依据方案中的新增/删除条目；不调用 `director-keyframes`，仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframes 节点） |
-| 修 keyframes | `director-keyframes`（`{集数} incremental "{修改意见}"`） |
-| review keyframes 叙事 | `director-review-keyframes-narrative`（`{集数}`） |
-| 创建资产文件 | `creator-create-assets`（`{集数}`） |
-| 同步资产档案（非 ep01）| `creator-update-records`（`{集数}`） |
-| 修资产文件 | `creator-fix-asset`（`{资产文件路径} "{修改意见}"`） |
-| 重生成关键帧 .md | `creator-keyframe-prompts`（`{集数} incremental "{dirty list}"`） |
-| 覆盖单张资产图（已知资产路径）| `creator-image-{config 图像模型}`（`"{资产文件路径}"`） |
-| 批量生成新增资产图 + 关键帧图 | `creator-generate-images`（`{集数}`） |
-| 修关键帧图（含 prompt 调整 + 重抽）| `creator-fix-keyframe-image`（`{集数} "{dirty list}" "{意见列表}"`） |
-| review keyframes 画面 | `director-review-keyframes-visual`（`{集数}`） |
-| 修 storyboard | `storyboarder-fix-storyboard`（`{集数} "{修改意见}"`） |
-| review storyboard | `director-review-storyboard`（`{集数}`） |
+| 修 keyframes | 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`{集数} incremental "{修改意见}"` |
+| review keyframes 叙事 | 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`{集数}` |
+| 创建资产文件 | 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`{集数}` |
+| 同步资产档案（非 ep01）| 使用 Skill tool 调用 `creator-update-records` skill，传递参数：`{集数}` |
+| 修资产文件 | 使用 Skill tool 调用 `creator-fix-asset` skill，传递参数：`{资产文件路径} "{修改意见}"` |
+| 重生成关键帧 .md | 使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`{集数} incremental "{dirty list}"` |
+| 覆盖单张资产图（已知资产路径）| 使用 Skill tool 调用 `creator-image-{config 图像模型}` skill，传递参数：`"{资产文件路径}"` |
+| 批量生成新增资产图 + 关键帧图 | 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}` |
+| 修关键帧图（含 prompt 调整 + 重抽）| 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数} "{dirty list}" "{意见列表}"` |
+| review keyframes 画面 | 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`{集数}` |
+| 修 storyboard | 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "{修改意见}"` |
+| review storyboard | 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`{集数}` |
 
 ### 阶段 4: 完成
 

@@ -146,24 +146,24 @@ LLM 在给出方案前必须读以下文件：
 
 #### 节点 → skill 对照
 
-| 节点动作 | skill 及参数 |
-|---------|------------|
-| 修 outline | `short-fix-outline`（`ep01 "{修改意见}"`） |
-| 写 script | `scriptwriter-script`（`ep01`） |
-| 修 script | `scriptwriter-fix-script`（`ep01 "{修改意见}"`） |
-| review script | `director-review-script`（`ep01`） |
+| 节点动作 | skill 调用 |
+|---------|-----------|
+| 修 outline | 使用 Skill tool 调用 `short-fix-outline` skill，传递参数：`ep01 "{修改意见}"` |
+| 写 script | 使用 Skill tool 调用 `scriptwriter-script` skill，传递参数：`ep01` |
+| 修 script | 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"` |
+| review script | 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01` |
 | Edit asset-list 清单 | 直接用 Edit 改 `story/episodes/ep01/outline.md` 的「本集资产清单」部分（依据方案中的新增/删除条目；不调用 `director-keyframes`，仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframes 节点） |
-| 修 keyframes | `director-keyframes`（`ep01 incremental "{修改意见}"`） |
-| review keyframes 叙事 | `director-review-keyframes-narrative`（`ep01`） |
-| 创建资产文件 | `creator-create-assets`（`ep01`） |
-| 修资产文件 | `creator-fix-asset`（`{资产文件路径} "{修改意见}"`） |
-| 重生成关键帧 .md | `creator-keyframe-prompts`（`ep01 incremental "{dirty list}"`） |
-| 覆盖单张资产图（已知资产路径）| `creator-image-{config 图像模型}`（`"{资产文件路径}"`） |
-| 批量生成新增资产图 + 关键帧图 | `creator-generate-images`（`ep01`） |
-| 修关键帧图（含 prompt 调整 + 重抽）| `creator-fix-keyframe-image`（`ep01 "{dirty list}" "{意见列表}"`） |
-| review keyframes 画面 | `director-review-keyframes-visual`（`ep01`） |
-| 修 storyboard | `short-fix-storyboard`（`ep01 "{修改意见}"`） |
-| review storyboard | `short-review-storyboard`（`ep01`） |
+| 修 keyframes | 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental "{修改意见}"` |
+| review keyframes 叙事 | 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`ep01` |
+| 创建资产文件 | 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01` |
+| 修资产文件 | 使用 Skill tool 调用 `creator-fix-asset` skill，传递参数：`{资产文件路径} "{修改意见}"` |
+| 重生成关键帧 .md | 使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`ep01 incremental "{dirty list}"` |
+| 覆盖单张资产图（已知资产路径）| 使用 Skill tool 调用 `creator-image-{config 图像模型}` skill，传递参数：`"{资产文件路径}"` |
+| 批量生成新增资产图 + 关键帧图 | 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01` |
+| 修关键帧图（含 prompt 调整 + 重抽）| 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"` |
+| review keyframes 画面 | 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01` |
+| 修 storyboard | 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"` |
+| review storyboard | 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01` |
 
 ### 阶段 4: 完成
 
