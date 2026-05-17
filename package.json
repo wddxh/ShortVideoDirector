@@ -4,7 +4,7 @@
   "type": "module",
   "main": ".opencode/plugin/index.js",
   "description": "Short video direction workflow plugin for OpenCode (CC-compatible)",
-  "repository": "github:Hikaru518/ShortVideoDirector",
+  "repository": "github:wddxh/ShortVideoDirector",
   "license": "MIT",
   "devDependencies": {
     "vitest": "^1.6.0",

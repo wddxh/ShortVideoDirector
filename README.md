@@ -56,7 +56,7 @@ claude --plugin-dir /path/to/ShortVideoDirector
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "short-video-director@git+https://github.com/Hikaru518/ShortVideoDirector.git"
+    "short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git"
   ]
 }
 ```

@@ -20,7 +20,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "short-video-director@git+https://github.com/Hikaru518/ShortVideoDirector.git"
+    "short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git"
   ]
 }
 ```
@@ -55,7 +55,7 @@ opencode debug skill | head -30
 ## 升级
 
 ```bash
-opencode plugin short-video-director@git+https://github.com/Hikaru518/ShortVideoDirector.git --global --force
+opencode plugin short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git --global --force
 ```
 
 ## 卸载
@@ -122,7 +122,7 @@ cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 
 
 - `opencode agent list` 看输出，若没有 director/writer 等说明 plugin 未加载
 - 检查 `opencode.json` 的 plugin 配置正确性
-- 强制重新拉取插件：`opencode plugin short-video-director@git+https://github.com/Hikaru518/ShortVideoDirector.git --global --force`
+- 强制重新拉取插件：`opencode plugin short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git --global --force`
 - 清 cache 后重启：`rm -rf ~/.cache/short-video-director/`
 
 **问题：调用 skill 时报"unknown skill"**
