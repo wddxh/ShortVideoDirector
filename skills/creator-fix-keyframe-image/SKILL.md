@@ -40,9 +40,9 @@ model: sonnet
 3. **执行改动**：
    - 改 keyframes.json：用 Edit 修改对应帧的字段（id 不变，其他帧不动）；若改动影响下一帧的 variation_from_prev，同步更新下一帧的 variation_from_prev 字段
    - 改 .md：直接 Edit，遵守 `creator-keyframe-prompts/rules.md` 的 prompt 翻译规则
-4. **同步 .md（仅当改了 keyframes.json）**：调用 `creator-keyframe-prompts` incremental 模式，传入 dirty list 中**改了 keyframes.json 的那部分** KF-id，重写 .md
+4. **同步 .md（仅当改了 keyframes.json）**：使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`incremental "{改了 keyframes.json 的那部分 KF-id 空格分隔}"`，重写 .md
 5. **删旧图**：用 Bash 删除 dirty list 中**所有** KF-id 对应的 `assets/images/keyframes/{集数}/{KF-id}.png`（包括只改了 .md 没改 keyframes.json 的——只要 prompt 变了就要重抽）
-6. **重抽**：调用 `creator-generate-images $ARGUMENTS[0]`，它会扫到缺图自然补回（新增的 keyframes 扫描已在 creator-generate-images 中实现）
+6. **重抽**：使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`$ARGUMENTS[0]`，它会扫到缺图自然补回（新增的 keyframes 扫描已在 creator-generate-images 中实现）
 7. **输出 fix 摘要**：每个 KF-id 改了什么（字段层面 / .md 层面）+ 重抽结果
 
 ### 常见误区

@@ -219,6 +219,7 @@ opencode debug skill | head -30
 | **新 skill 带 `user-invocable: true`** | `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` Set（同时 `.opencode/tests/tool-mapping.test.js:13` 的硬编码列表） | `USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 9 entries` 失败 |
 | **删除已有的 `user-invocable` skill** | 同上 | 同上 |
 | **改 skill 间 `使用 Skill tool 调用 X` 引用** | 自动处理；但 X 必须存在于 `skills/` 否则 transform throws | integration test `produces SKILL.md for all 44 skills` 整个崩，错误显示 "Unknown skill referenced: X" |
+| **新 fork skill（`context: fork`）被其他 skill 引用** | 引用位置**必须**用 `使用 Skill tool 调用 \`<name>\` skill[, 传递参数：\`<args>\`]` 标准模板。`transform-skills.js` 只识别此模板，会改写为 `task` 派发；自然语言"调用 X"会让 OC LLM 选 `skill()` 同上下文加载，破坏 fork 隔离语义（fork→fork 嵌套场景会导致下游 subagent 全部图片/数据塞进单一上下文，附件压缩中断） | 无测试失败（沉默 bug）；只在实际跑 OC 工作流时表现为"该 fork 的下游没被 fork 出去"。verify: wipe cache + `grep "task(" ~/.cache/.../skills/<caller>/SKILL.md` 应有 task 代码块 |
 | **改 skill `description` 字段超 1024 字符** | 自动 clip 到 1024（无错，但用户可能看到截断的描述） | 无测试失败，但 `opencode debug skill` 看到的 description 被截断 |
 | **改 `auto-video/SKILL.md` 结构（删 `## ` 一级 section 或加入新非 cron 内容）** | `.opencode/lib/transform-skills.js` 的 `rewriteAutoVideoCron`（从首个 `## ` 截断；如果新内容也用 `## `，会被一起截掉） | `auto-video cache has crontab body, no CronCreate` 可能失败 |
 | **删除 `writer-novel/rules.md`** 或类似 aux 文件 | `.opencode/tests/transform-skills.test.js:272` 的 `aux files (rules.md) are copied` test 用了它 | aux test 失败；改用另一个 skill 的 aux 文件即可 |

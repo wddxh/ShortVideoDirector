@@ -28,7 +28,7 @@ model: opus
 ### 工作思路
 
 1. **读 keyframes.json**，按 keyframes 数组顺序拿到所有 KF-id
-2. **遍历**：对第 i 张关键帧（i 从 1 开始），调用 `director-review-keyframe-visual-single`：
+2. **遍历**：对第 i 张关键帧（i 从 1 开始），使用 Skill tool 调用 `director-review-keyframe-visual-single` skill：
    - 第 1 张：传 `$ARGUMENTS[0]` + 当前 KF-id + 空字符串（无上一帧）
    - 第 2+ 张：传 `$ARGUMENTS[0]` + 当前 KF-id + 上一帧 KF-id
 3. **收集每次返回**：
