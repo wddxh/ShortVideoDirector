@@ -7,6 +7,22 @@ argument-hint: "集数 [镜头N ...]"
 model: opus
 ---
 
+## 失败处理（核心规则）
+
+**sub-agent task 失败后，永远不要在主 session 自己接管本应由 sub-agent 做的工作。**
+
+正确做法：
+1. 分析失败原因（task return 值 / 错误信息）
+2. 如可修复：用修正后的参数重新派发同一 sub-agent
+3. 如不可修复：将失败原因和已尝试方案返回给用户，停止流程
+
+错误做法：
+- ❌ "sub-agent 失败了，我自己来写这个 novel.md"
+- ❌ "task 报错了，我在主 session 直接调用 Write"
+- ❌ "我 fallback 一下，自己生成 keyframes.json"
+
+原因：主 session 缺少 sub-agent 的隔离上下文（专属 system prompt、skill 加载、permission 配置），自己接管会导致质量下降、跨步骤上下文污染、permission 错配等问题。即使 sub-agent 失败，工作所有权也必须留在 sub-agent 层。
+
 ## 使用示例
 
 ```
