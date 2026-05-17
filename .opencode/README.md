@@ -14,6 +14,8 @@
 
 ## 安装
 
+### 方式 A：从 GitHub 安装（推荐给终端用户）
+
 编辑 `~/.config/opencode/opencode.json`：
 
 ```json
@@ -26,6 +28,43 @@
 ```
 
 启动 OC 即生效。首次启动会编译 cache（1-3 秒），后续启动复用 cache。
+
+### 方式 B：本地路径安装（推荐给开发/魔改场景）
+
+如果你已经 clone 了仓库到本地（例如 `~/repos/ShortVideoDirector`），用 `file://` 协议指向本地路径：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "file:///home/huangz/repos/ShortVideoDirector"
+  ]
+}
+```
+
+> 路径必须是**绝对路径**且带 `file://` 前缀（三个斜杠）。Windows 用 `file:///C:/path/to/ShortVideoDirector`。
+
+OC 会直接读取该路径下的 `package.json` 与 `.opencode/plugin/index.js`，**不复制不缓存**——改源码立刻生效（OC 重启即可）。
+
+### 方式 C：仅在项目目录内使用
+
+如果你只在仓库目录里跑 OC：
+
+```bash
+cd /path/to/ShortVideoDirector
+opencode
+```
+
+OC 会自动扫描当前目录的 `.opencode/plugin/*.js` 加载插件，**不用动 `opencode.json`**。
+缺点：在其他目录（如 `/tmp/test-project/`）跑 `opencode` 看不到 SVD plugin。
+
+### 三种方式对比
+
+| 方式 | 全局可见 | 改源码立即生效 | 需要联网 | 适合场景 |
+|------|---------|--------------|---------|---------|
+| A. git+https | ✓ | ✗（需 `--force` 重拉） | ✓ | 终端用户、CI |
+| B. file:// | ✓ | ✓ | ✗ | 开发、调试、魔改 |
+| C. 项目本地 | ✗（仅项目目录内） | ✓ | ✗ | 偶尔在仓库内开发 |
 
 ## 验证安装
 
