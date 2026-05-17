@@ -10,7 +10,7 @@
  * that drive multi-step flows by dispatching sub-agent skills.
  *
  * Used by:
- *   - transform-skills.js: injects ENTRY_WORKFLOW_WRITE_GUIDANCE at top of
+ *   - transform-skills.js: injects ENTRY_WORKFLOW_DISPATCH_DISCIPLINE at top of
  *     these skills' SKILL.md bodies in the OC cache
  *   - bootstrap.js: lists these in the first-message bootstrap so the LLM
  *     knows the entry points
@@ -59,19 +59,6 @@ ${params}
 export const LEAF_CONTEXT_HINT = (agentName) =>
   `> **执行上下文**：本 skill 被设计为由 \`${agentName}\` 子代理通过 \`task\` 工具派发执行。当你看到此 skill 内容时，你已在正确的子代理上下文中；按下方流程执行即可。`;
 
-export const ENTRY_WORKFLOW_WRITE_GUIDANCE = `## 写入约束（OC 专用，必读）
-
-本流程会派发子代理产出长内容（小说正文 / 剧本 / storyboard / asset .md 等）。**派发任意子代理前**，在 task prompt 中明确告知下游：
-
-> 当你需要写入超过约 3000 字符（约 1500 汉字）的内容到单个文件时：
-> 1. 先用 Write 工具创建文件并写入第一段（≤3000 字符）
-> 2. 后续段落使用 Edit 工具追加（每次 Edit 的 newString ≤3000 字符）
-> 3. **不要**用单次 Write 提交完整长内容 —— 会在 OpenCode 下导致 Write 工具调用挂起或超时
->
-> 适用对象：novel.md / script.md / storyboard.md / 长 outline / 多镜头 prompt 等
-> 不适用对象：keyframes.json / tasks.json 等结构化短数据
-`;
-
 export const AUTO_VIDEO_CRON_BODY = `## 安装定时任务
 
 OpenCode 不内置 cron 工具，本 skill 通过 bash 调用系统 crontab 实现定时调度。
@@ -117,9 +104,9 @@ crontab -l | grep -v "svd-auto-video:\${SESSION_ID}" | crontab -
  * SKILL.md body (the 9 in USER_INVOCABLE_ENTRY_WORKFLOWS) by
  * injectDispatchDiscipline in transform-skills.js.
  *
- * Replaces the legacy ENTRY_WORKFLOW_WRITE_GUIDANCE (3000-char arbitrary
- * threshold) with semantic-unit chunking (chapter / scene / shot / JSON
- * entry). Length is per-unit, never total — see "长度原则" section in body.
+ * Uses semantic-unit chunking (chapter / scene / shot / JSON
+ * entry) rather than an arbitrary character threshold. Length is per-unit,
+ * never total — see "长度原则" section in body.
  */
 export const ENTRY_WORKFLOW_DISPATCH_DISCIPLINE = `## 派发约束（OC 专用，每次 task 之前执行）
 

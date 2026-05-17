@@ -149,7 +149,7 @@ rm -rf ~/.cache/opencode/node_modules/short-video-director/
 - **frontmatter**：CC 字段（`context: fork`, `agent`, `user-invocable` 等）移到 `metadata.svd-*`，description 截断到 1024 字符
 - **`使用 Skill tool 调用 X`**：若 X 有 `context: fork` → 重写为 `task({ subagent_type: ..., prompt: "..." })`；否则重写为 `调用 \`skill({ name: "X" })\``
 - **`bash scripts/X.sh`** → **`bash $SVD_PLUGIN_DIR/scripts/X.sh`**
-- **9 个 user-invocable workflow 顶部**：注入"写入约束 3000 字符"指引（避免 OC Write 工具超时）
+- **9 个 user-invocable workflow 顶部**：注入"派发约束"指引（按语义单元 chapter/scene/shot/JSON 条目分段派发给子代理，避免单次 Write 过长在 OC 下挂起）
 - **fork-context skill 顶部**：注入"执行上下文：本 skill 已在 X 子代理中"提示
 - **auto-video skill**：CC 的 `CronCreate/List/Delete` 原语替换为基于 `crontab` + `opencode run --session` 的 bash 调度
 

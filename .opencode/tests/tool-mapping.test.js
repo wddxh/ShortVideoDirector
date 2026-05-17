@@ -9,7 +9,6 @@ import {
   USER_INVOCABLE_ENTRY_WORKFLOWS,
   TASK_PROMPT_TEMPLATE,
   LEAF_CONTEXT_HINT,
-  ENTRY_WORKFLOW_WRITE_GUIDANCE,
   AUTO_VIDEO_CRON_BODY,
 } from '../lib/tool-mapping.js';
 
@@ -39,12 +38,6 @@ describe('tool-mapping constants', () => {
     const out = LEAF_CONTEXT_HINT('director');
     assert.ok(out.includes('director'));
     assert.ok(out.includes('执行上下文'));
-  });
-
-  test('ENTRY_WORKFLOW_WRITE_GUIDANCE is non-empty string with key terms', () => {
-    assert.ok(ENTRY_WORKFLOW_WRITE_GUIDANCE.includes('写入约束'));
-    assert.ok(ENTRY_WORKFLOW_WRITE_GUIDANCE.includes('3000 字符'));
-    assert.ok(ENTRY_WORKFLOW_WRITE_GUIDANCE.includes('Edit'));
   });
 
   test('AUTO_VIDEO_CRON_BODY contains crontab template', () => {
