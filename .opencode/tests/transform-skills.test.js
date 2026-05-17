@@ -265,12 +265,24 @@ describe('transformAllSkills (integration)', () => {
     assert.ok(!content.includes('CronCreate'));
   });
 
-  test('series-video cache has dispatch discipline directive', async () => {
+  test('series-video cache has dispatch discipline directive at top of body', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(
       path.join(tmpDir, 'series-video/SKILL.md'), 'utf-8'
     );
     assert.ok(content.includes('派发约束（OC 专用'));
+    // I-2: ensure injection lands AT TOP of body — i.e., `派发约束` is the
+    // FIRST `## ` heading in the body (no other heading before it).
+    const fmOpen = content.indexOf('---');
+    const fmClose = content.indexOf('\n---', fmOpen + 3);
+    const bodyStart = fmClose + 4;
+    const firstHeadingIdx = content.indexOf('## ', bodyStart);
+    const dispatchHeadingIdx = content.indexOf('## 派发约束', bodyStart);
+    assert.ok(firstHeadingIdx > 0 && firstHeadingIdx === dispatchHeadingIdx,
+      'dispatch discipline directive should be the FIRST ## heading in body');
+    // I-3: source `失败处理（核心规则）` section must survive plugin transform
+    assert.ok(content.includes('失败处理（核心规则）'),
+      '失败处理 section from source SKILL.md must survive plugin transform');
   });
 
   test('aux files (rules.md) are copied', async () => {

@@ -169,7 +169,7 @@ orchestrator 在 task prompt 中会指定"分段单元"（逐章 / 逐镜头 / �
 1. 首：Write 完整骨架，数组内只放第 1 条
 2. 续：Edit oldString=数组结束 \`  ]\`（含其前的换行+缩进），newString=\`,\\n    <entryN>\\n  ]\`
 
-orchestrator 未明确指定单元时默认：.md → 逐自然段（500-1500 字符），.json → 逐条目。`;
+orchestrator 未明确指定单元时默认：.md → 逐自然段，.json → 逐条目。每段长度由内容自然决定，不设上限。`;
 
 /**
  * Load all agents from `<pluginRoot>/agents/`, scan `<pluginRoot>/scripts/`,
