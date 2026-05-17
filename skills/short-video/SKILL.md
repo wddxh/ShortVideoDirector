@@ -168,7 +168,7 @@ model: opus
 **4.3 Director — 审核剧本：**
 
 1. 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01`
-2. 若"需修改"→ 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+2. 若 review return `needs_revision M` → 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-script.md` 最后一轮意见）
 
 **4.4 Director — 规划关键帧 + 资产清单：**
 
@@ -178,7 +178,7 @@ model: opus
 **4.5 Director — 审核关键帧叙事：**
 
 1. 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`ep01`
-2. 若"需修改"→ 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental "{修改意见}"`（最多 2 轮）
+2. 若 review return `needs_revision M` → 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-narrative.md` 最后一轮意见）
 
 **4.6 Creator — 创建资产：**
 
@@ -198,7 +198,7 @@ model: opus
 **4.9 Director — 审核关键帧画面：**
 
 1. 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01`
-2. 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"`（最多 2 轮）
+2. 若 review return `needs_revision M` → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
 
 **4.10 Storyboarder — 生成分镜：**
 
@@ -207,7 +207,7 @@ model: opus
 **4.11 Director — 审核分镜：**
 
 1. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
-2. 若"需修改"→ 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+2. 若 review return `needs_revision M` → 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-storyboard.md` 最后一轮意见）
 
 **4.12 完成：**
 

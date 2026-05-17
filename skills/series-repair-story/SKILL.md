@@ -73,20 +73,20 @@ model: opus
 **从小说开始恢复：**
 1. 使用 Skill tool 调用 `writer-novel` skill，传递参数：`{集数}`
 2. 使用 Skill tool 调用 `director-review-novel` skill，传递参数：`{集数}`
-3. 若"需修改"→ 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
+3. 若 review return `needs_revision M` → 使用 Skill tool 调用 `writer-fix-novel` skill，传递参数：`{集数}`（最多 2 轮 fix；fix skill 自动读 `.review-novel.md` 最后一轮意见）
 4. 继续执行"从关键帧开始恢复"
 
 **从关键帧开始恢复（含资产清单/资产文件/图片/分镜全套重生成）：**
 1. 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`{集数}`
 2. 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`{集数}`
-3. 若"需修改"→ 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`{集数} incremental "{修改意见}"`（最多 2 轮）
+3. 若 review return `needs_revision M` → 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`{集数} incremental`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-narrative.md` 最后一轮意见）
 4. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`{集数}`
 5. 若非 ep01：使用 Skill tool 调用 `creator-update-records` skill，传递参数：`{集数}`
 6. 使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`{集数}`
 7. 若图像模型非 `none`：
    - 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
    - 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`{集数}`
-   - 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数} "{dirty list}" "{意见列表}"`（最多 2 轮）
+   - 若 review return `needs_revision M` → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数}`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
 8. 继续执行"从分镜开始恢复"
 
 **从资产文件开始恢复（keyframes 完整但 assets 缺失）：**
@@ -99,13 +99,13 @@ model: opus
 1. 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
 2. 若本次有 keyframe 图被生成（`keyframe-images:missing` 命中）：
    - 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`{集数}`
-   - 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数} "{dirty list}" "{意见列表}"`（最多 2 轮）
+   - 若 review return `needs_revision M` → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数}`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
 3. 继续执行"从分镜开始恢复"
 
 **从分镜开始恢复：**
 1. 使用 Skill tool 调用 `storyboarder-storyboard` skill，传递参数：`{集数}`
 2. 使用 Skill tool 调用 `director-review-storyboard` skill，传递参数：`{集数}`
-3. 若"需修改"→ 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数} "{修改意见}"`（最多 2 轮）
+3. 若 review return `needs_revision M` → 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，传递参数：`{集数}`（最多 2 轮 fix；fix skill 自动读 `.review-storyboard.md` 最后一轮意见）
 
 ### 阶段 6: 完成
 

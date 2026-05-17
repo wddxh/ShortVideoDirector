@@ -71,19 +71,19 @@ model: opus
 **从剧本开始恢复：**
 1. 使用 Skill tool 调用 `scriptwriter-script` skill，传递参数：`ep01`
 2. 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01`
-3. 若"需修改"→ 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+3. 若 review return `needs_revision M` → 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-script.md` 最后一轮意见）
 4. 继续执行"从关键帧开始恢复"
 
 **从关键帧开始恢复（含资产清单/资产文件/图片/分镜全套重生成）：**
 1. 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01`
 2. 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`ep01`
-3. 若"需修改"→ 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental "{修改意见}"`（最多 2 轮）
+3. 若 review return `needs_revision M` → 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-narrative.md` 最后一轮意见）
 4. 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01`
 5. 使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`ep01`
 6. 若图像模型非 `none`：
    - 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
    - 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01`
-   - 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"`（最多 2 轮）
+   - 若 review return `needs_revision M` → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
 7. 继续执行"从分镜开始恢复"
 
 **从资产文件开始恢复（keyframes 完整但 assets 缺失）：**
@@ -95,13 +95,13 @@ model: opus
 1. 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01`
 2. 若本次有 keyframe 图被生成（`keyframe-images:missing` 命中）：
    - 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01`
-   - 若"需修改"→ 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"`（最多 2 轮）
+   - 若 review return `needs_revision M` → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
 3. 继续执行"从分镜开始恢复"
 
 **从分镜开始恢复：**
 1. 使用 Skill tool 调用 `short-storyboard` skill，传递参数：`ep01`
 2. 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01`
-3. 若"需修改"→ 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"`（最多 2 轮）
+3. 若 review return `needs_revision M` → 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-storyboard.md` 最后一轮意见）
 
 ### 阶段 6: 完成
 

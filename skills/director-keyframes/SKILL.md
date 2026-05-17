@@ -18,6 +18,7 @@ model: sonnet
 - `story/arc.md` — 若存在则读取（跨集视觉/情绪连贯）
 - 上一集 `story/episodes/ep{N-1}/keyframes.json` — 续集模式必须读取最后一张关键帧（衔接校验）
 - `story/episodes/$ARGUMENTS[0]/keyframes.json` — 仅在增量模式存在时读取
+- `story/episodes/$ARGUMENTS[0]/.review-keyframes-narrative.md` — 仅增量模式必须读取（含本轮 review 意见）
 - `skills/director-keyframes/rules.md` — 必须读取并严格遵循（schema 字段、composition 规则、数量规则、增量模式工作流）
 
 ### Bash 调用
@@ -26,7 +27,6 @@ model: sonnet
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 `ep01`）
 - `$ARGUMENTS[1]` — 模式（可选，`full` 或 `incremental`，缺省为 `full`）
-- `$ARGUMENTS[2]` — 仅 `incremental` 模式：变更说明（自由文本，描述本次 edit 修改了什么）
 
 ## 职责描述
 
@@ -45,7 +45,7 @@ model: sonnet
 7. **校验剧情骨架完整**——逐条对照 outline 的「主要事件」「本集信息传达」「集尾钩子」；同时检查事件之间是否有铺垫帧串起因果链
 8. **校验视觉因果链**——按集内序号顺序读关键帧的 composition，确认前后两帧之间不存在"无法解释的视觉跳跃"（人物突然换位/道具突然出现/光线突变缺乏理由）
 9. **续集衔接校验**——读取上一集最后一张关键帧的 composition，确认本集第 1 张关键帧合理承接（场景/角色状态）
-10. **增量模式**：读取现有 keyframes.json，根据变更说明判断哪些 keyframes 需要修改/新增/删除，其他保持原样；变更后受影响的关键帧 id 不能被回收复用——新增帧必须用新 id（避免下游重抽误判）
+10. **增量模式**：读取现有 keyframes.json 与 `.review-keyframes-narrative.md`（**定位最后一个 `## 第 N 轮` heading**，用 grep `^## 第 [0-9]+ 轮` 找最大 N 段，用该段内的意见列表作为变更依据），判断哪些 keyframes 需要修改/新增/删除，其他保持原样；变更后受影响的关键帧 id 不能被回收复用——新增帧必须用新 id（避免下游重抽误判）
 
 ### 常见误区
 

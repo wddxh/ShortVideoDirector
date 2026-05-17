@@ -14,6 +14,7 @@ model: sonnet
 - `story/episodes/$ARGUMENTS[0]/keyframes.json` — 必须读取（描述源头，按需 Edit）
 - `assets/keyframes/$ARGUMENTS[0]/{KF-id}.md` — 对 dirty list 中每个 KF-id 读取（按需 Edit）
 - `skills/creator-keyframe-prompts/rules.md` — 必须读取（确保改 .md 时仍符合 prompt 翻译规则）
+- `story/episodes/$ARGUMENTS[0]/.review-keyframes-visual.md` — 必须读取（含本轮 dirty list 与意见列表）
 
 ### Skill 调用
 - `creator-keyframe-prompts` — 当改了 keyframes.json 时，以 incremental 模式重写受影响 .md
@@ -21,8 +22,6 @@ model: sonnet
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 `ep01`）
-- `$ARGUMENTS[1]` — dirty list（空格分隔的 KF-id，如 `KF-EP01-003 KF-EP01-007`）
-- `$ARGUMENTS[2]` — 意见列表（自由文本，每条形如 `KF-EP01-003: {issue} → {prompt_direction}`，由汇总层 visual review 输出）
 
 ## 职责描述
 
@@ -32,7 +31,7 @@ model: sonnet
 
 ### 工作思路
 
-1. **逐条解析意见**：对 dirty list 中每个 KF-id，定位该帧在意见列表中的 `issue` 与 `prompt_direction`
+1. **逐条解析意见**：读取 `.review-keyframes-visual.md`，**定位最后一个 `## 第 N 轮` heading**（用 grep `^## 第 [0-9]+ 轮` 找最大 N 段），从该段的 `### dirty list` 取本轮要修的 KF-id 列表，再对每个 KF-id 到 `### 意见列表` 定位该帧的 `issue` 与 `prompt_direction`
 2. **归因判断**——这条意见应该改哪里？
    - **改 keyframes.json 的某字段**：意见指向结构化要素（构图主体位置、光线色温、动作姿态、缺失道具、景别/机位错误）→ 改 keyframes.json 对应字段（composition / lighting_tone / action / shot_size / camera_position 等），再重写 .md
    - **只改 .md 不动 keyframes.json**：意见指向纯 prompt 表达层面（如"风格 suffix 漏写"、"资产引用语法格式问题"、"prompt 段落顺序导致权重不对"）→ 直接 Edit .md，keyframes.json 不动

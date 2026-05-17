@@ -4,7 +4,7 @@ description: Director 视觉审核汇总层——按集内序号遍历所有关�
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Skill
+allowed-tools: Read, Write, Edit, Grep, Skill
 model: opus
 ---
 
@@ -47,14 +47,24 @@ model: opus
 
 ## 输出格式
 
-通过时：
+审核结果写入 `story/episodes/$ARGUMENTS[0]/.review-keyframes-visual.md`（append 模式，每轮追加一段）。
+
+**Round 自检**：
+1. Read `.review-keyframes-visual.md`（若不存在，本次为第 1 轮；若存在，grep `^## 第 [0-9]+ 轮` 找最大 N，本次为第 N+1 轮）
+2. 用 Write（首次创建文件）或 Edit（append；oldString 用文件末尾 50 字符 anchor）追加本轮段
+
+**本轮段格式**：
+
+通过时（仅 heading 行）：
 ```markdown
-## 视觉审核结果：通过
+
+## 第 {N} 轮 ({YYYY-MM-DD HH:MM}) - 通过
 ```
 
 不通过时：
 ```markdown
-## 视觉审核结果：需修改
+
+## 第 {N} 轮 ({YYYY-MM-DD HH:MM}) - 需修改 ({M} 项)
 
 ### 意见列表
 1. **{KF-id}：** {issue} → {prompt_direction}
@@ -67,6 +77,8 @@ KF-EP01-003 KF-EP01-007 KF-EP01-012
 
 dirty list 为空格分隔的 KF-id，供下游 `creator-fix-keyframe-image` 直接消费。
 
+注意：每轮段前留一个空行，与上一轮段隔开。
+
 ## 规则
 
 - 串行调用单帧 skill（不并行）
@@ -75,5 +87,9 @@ dirty list 为空格分隔的 KF-id，供下游 `creator-fix-keyframe-image` 直
 
 ## 输出
 
+### 文件操作
+- 使用 Write 或 Edit 维护 `story/episodes/$ARGUMENTS[0]/.review-keyframes-visual.md`（append 模式，详见上文「输出格式」段的 Round 自检流程）
+
 ### 返回内容
-- 视觉审核结果（通过 / 需修改 + 意见列表 + dirty list） → 返回给 workflow
+- 简报：`pass` 或 `needs_revision {M}`（{M} = 本轮意见条数）→ 返回给 workflow
+- 详细意见与 dirty list 已写入文件，下游 fix skill 自行读取该文件最后一轮段

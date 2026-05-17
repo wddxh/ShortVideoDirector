@@ -139,7 +139,7 @@ LLM 在给出方案前必须读以下文件：
 2. 每个清单节点调用对应 skill（见下表）
 3. 传给下游 skill 的"修改意见"用方案中的具体描述，不是用户原始输入
 4. review 节点仅在同名节点本次有改动时触发
-5. review 失败 → 自动调对应 fix skill ≤2 轮；2 轮仍失败 → 记录到阶段 4 摘要并继续后续节点
+5. review 失败（return `needs_revision M`）→ 自动调对应 fix skill ≤2 轮 fix（fix skill 自动读 `.review-{type}.md` 最后一轮意见）；2 轮 fix 后再 review 仍失败 → 记录到阶段 4 摘要并继续后续节点
 6. 不在清单中的节点跳过
 7. `config.md` 图像模型 = `none` 时，images 节点跳过并在阶段 4 摘要中提示
 8. 某节点 skill 调用失败（非 review 失败）→ 该节点终止并中断后续级联（与 review 失败不同，review 失败仅记录继续），在阶段 4 摘要中报错
@@ -150,19 +150,19 @@ LLM 在给出方案前必须读以下文件：
 |---------|-----------|
 | 修 outline | 使用 Skill tool 调用 `short-fix-outline` skill，传递参数：`ep01 "{修改意见}"` |
 | 写 script | 使用 Skill tool 调用 `scriptwriter-script` skill，传递参数：`ep01` |
-| 修 script | 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01 "{修改意见}"` |
+| 修 script | 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01` |
 | review script | 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01` |
 | Edit asset-list 清单 | 直接用 Edit 改 `story/episodes/ep01/outline.md` 的「本集资产清单」部分（依据方案中的新增/删除条目；不调用 `director-keyframes`，仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframes 节点） |
-| 修 keyframes | 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental "{修改意见}"` |
+| 修 keyframes | 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental` |
 | review keyframes 叙事 | 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`ep01` |
 | 创建资产文件 | 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01` |
 | 修资产文件 | 使用 Skill tool 调用 `creator-fix-asset` skill，传递参数：`{资产文件路径} "{修改意见}"` |
 | 重生成关键帧 .md | 使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`ep01 incremental "{dirty list}"` |
 | 覆盖单张资产图（已知资产路径）| 使用 Skill tool 调用 `creator-image-{config 图像模型}` skill，传递参数：`"{资产文件路径}"` |
 | 批量生成新增资产图 + 关键帧图 | 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01` |
-| 修关键帧图（含 prompt 调整 + 重抽）| 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01 "{dirty list}" "{意见列表}"` |
+| 修关键帧图（含 prompt 调整 + 重抽）| 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01` |
 | review keyframes 画面 | 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01` |
-| 修 storyboard | 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01 "{修改意见}"` |
+| 修 storyboard | 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01` |
 | review storyboard | 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01` |
 
 ### 阶段 4: 完成

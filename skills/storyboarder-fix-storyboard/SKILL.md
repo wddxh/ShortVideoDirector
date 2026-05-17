@@ -17,10 +17,10 @@ model: sonnet
 - `config.md` — 必须读取
 - 从 `story/episodes/$ARGUMENTS[0]/outline.md` 的「本集资产清单」中提取本集引用的资产名称，使用 Glob 获取 `assets/**/*.md` 全部文件路径列表，仅读取文件名与清单中资产名称匹配的文件
 - `skills/storyboarder-storyboard/rules.md` — 必须读取并严格遵循
+- `story/episodes/$ARGUMENTS[0]/.review-storyboard.md` — 必须读取（含本轮 review 意见）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）
-- `$ARGUMENTS[1]` — 修改意见（由 workflow 传入，来源可能是 Director 审核或用户编辑请求）
 
 ## 职责描述
 
@@ -32,7 +32,7 @@ model: sonnet
 
 **评估阶段：**
 
-1. 完整通读 storyboard.md 现状 + novel.md 对照原文 + $ARGUMENTS[1]，把每条意见映射到具体镜头编号
+1. 完整通读 storyboard.md 现状 + novel.md 对照原文 + `.review-storyboard.md`（**定位最后一个 `## 第 N 轮` heading**，用 grep `^## 第 [0-9]+ 轮` 找最大 N 段，用该段内的意见列表），把每条意见映射到具体镜头编号
 2. **状态连锁评估**：改镜头 N 的视觉位置 / 姿势 / 手持物 / "已告知信息" → 镜头 N+1 的开头状态是否需要同步调整？
 3. **铺垫连锁评估**：改的镜头是否包含某条铺垫的种子或回收点？改后铺垫覆盖是否仍完整、时序是否仍正确（铺垫镜头编号 < 回收镜头编号）？
 4. **资产连锁评估**（若意见涉及资产引用）：被改的资产被哪些镜头引用？这些镜头都要同步检查
