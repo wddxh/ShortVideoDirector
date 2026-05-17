@@ -33,8 +33,8 @@ model: opus
 1. 使用 Skill tool 调用 `director-plot-options` skill（skill 通过检测 outline.md 存在自动识别 continue 模式）
 2. 展示选项给用户：
    - **A/B/C** — 选择对应剧情走向
-   - **D. 重新生成** — 重新调用 `director-plot-options` skill（无参数），生成全新 3 个方向
-   - **E. 告诉 Director 你的偏好** — 收集用户偏好描述，重新调用 `director-plot-options` skill，传递参数：`"{用户偏好描述}"`
+   - **D. 重新生成** — 使用 Skill tool 重新调用 `director-plot-options` skill（无参数），生成全新 3 个方向
+   - **E. 告诉 Director 你的偏好** — 收集用户偏好描述，使用 Skill tool 重新调用 `director-plot-options` skill，传递参数：`"{用户偏好描述}"`
    - **[default mode 下等待用户确认；full-auto mode 下 Director 自动选择]**
 3. 用户选择 A/B/C → 继续阶段 3
 
@@ -43,8 +43,8 @@ model: opus
 1. 使用 Skill tool 调用 `director-input-confirm` skill，传递参数：`"$ARGUMENTS[2]"`
 2. 展示说明给用户：
    - **A. 确认** — 继续阶段 3
-   - **B. 重新生成** — 重新调用 `director-input-confirm` skill，传递参数：`"$ARGUMENTS[2]"`
-   - **C. 补充说明** — 收集用户反馈，重新调用 `director-input-confirm` skill，传递参数：`"{用户反馈内容}"`
+   - **B. 重新生成** — 使用 Skill tool 重新调用 `director-input-confirm` skill，传递参数：`"$ARGUMENTS[2]"`
+   - **C. 补充说明** — 收集用户反馈，使用 Skill tool 重新调用 `director-input-confirm` skill，传递参数：`"{用户反馈内容}"`
    - **[default mode 下等待用户确认；full-auto mode 下 Director 自动确认]**
 3. 用户选择 A → 继续阶段 3
 
