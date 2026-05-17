@@ -53,3 +53,17 @@ describe('tool-mapping constants', () => {
     assert.ok(AUTO_VIDEO_CRON_BODY.includes('svd-auto-video:'));
   });
 });
+
+describe('ENTRY_WORKFLOW_DISPATCH_DISCIPLINE', () => {
+  test('contains key directive phrases', async () => {
+    const { ENTRY_WORKFLOW_DISPATCH_DISCIPLINE } = await import('../lib/tool-mapping.js');
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('派发约束'));
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('分段策略'));
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('逐镜头'));
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('JSON'));
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('长度原则'));
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('不限制最终文件总长度'));
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('反例'));
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('oldString'));
+  });
+});
