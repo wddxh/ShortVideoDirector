@@ -167,3 +167,68 @@ opencode debug skill | head -30
 ```
 
 无 `node_modules`、无 `package-lock.json`、无外部依赖。`package.json` 仅保留 OC 加载需要的字段（`name` / `version` / `type` / `main` / `repository` / `license` / `scripts`）。
+
+## 维护契约：改 CC 源后的 OC 同步 checklist
+
+源（`skills/`、`agents/`、`scripts/`）是单一真相源。**改源后，OC 兼容层有几处硬编码/断言会随之失效**，须同步更新并跑 `npm test` 验证。
+
+### 改 `skills/` 时
+
+| 改动 | 同步位置 | 失败征兆 |
+|------|----------|---------|
+| **加/减 skill 目录** | `.opencode/tests/transform-skills.test.js:240` 的 `assert.equal(dirs.length, 44)` | `produces SKILL.md for all 44 skills` 失败，错误显示实际目录数 |
+| **新 skill 带 `user-invocable: true`** | `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` Set（同时 `.opencode/tests/tool-mapping.test.js:13` 的硬编码列表） | `USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 9 entries` 失败 |
+| **删除已有的 `user-invocable` skill** | 同上 | 同上 |
+| **改 skill 间 `使用 Skill tool 调用 X` 引用** | 自动处理；但 X 必须存在于 `skills/` 否则 transform throws | integration test `produces SKILL.md for all 44 skills` 整个崩，错误显示 "Unknown skill referenced: X" |
+| **改 skill `description` 字段超 1024 字符** | 自动 clip 到 1024（无错，但用户可能看到截断的描述） | 无测试失败，但 `opencode debug skill` 看到的 description 被截断 |
+| **改 `auto-video/SKILL.md` 结构（删 `## ` 一级 section 或加入新非 cron 内容）** | `.opencode/lib/transform-skills.js` 的 `rewriteAutoVideoCron`（从首个 `## ` 截断；如果新内容也用 `## `，会被一起截掉） | `auto-video cache has crontab body, no CronCreate` 可能失败 |
+| **删除 `writer-novel/rules.md`** 或类似 aux 文件 | `.opencode/tests/transform-skills.test.js:272` 的 `aux files (rules.md) are copied` test 用了它 | aux test 失败；改用另一个 skill 的 aux 文件即可 |
+
+### 改 `agents/` 时
+
+| 改动 | 同步位置 | 失败征兆 |
+|------|----------|---------|
+| **加/减 agent** | `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG`（5-agent permission 矩阵，硬编码 director/writer/scriptwriter/storyboarder/creator）+ `.opencode/tests/load-agents.test.js:148` 的硬编码列表 | `loads all 5 agents from real project` 失败 |
+| **改 agent frontmatter 的 `model:` 字段** | 自动处理（`model: inherit` 被丢，其他保留） | 无 |
+| **改 agent body（system prompt）** | 自动处理；prompt 末尾会被注入 OC 执行契约 | `agent prompt includes OC execution contract` 检查 `OC 执行契约` 字串存在，不检查内容 |
+
+### 改 `scripts/` 时
+
+| 改动 | 同步位置 | 失败征兆 |
+|------|----------|---------|
+| **加新 script `scripts/X.sh`** | 如果某 agent 需要调用，添加到 `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG[agent].allowScripts` 数组（director/writer/scriptwriter/storyboarder；creator 设为 `'ALL'` 自动放行） | OC 运行时该 agent 调用 `bash $SVD_PLUGIN_DIR/scripts/X.sh` 被 `bash: deny` 拦 |
+| **重命名/删除 script** | 同上：从 `AGENT_BASH_CONFIG` 中移除 | 无测试失败，但 skill 调用旧名会运行时 fail |
+| **`bash scripts/X.sh` 调用方式不变** | 自动处理；`rewriteBashPaths` 注入 `$SVD_PLUGIN_DIR/` 前缀 | 无 |
+
+### 添 / 改 `agents/` permission 配置（5-agent 矩阵）
+
+如果想把 5 agents 的脚本访问范围调整（例如允许 director 调用 image-gen-dreamina.sh）：
+
+- 改 `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG[agent].allowScripts`
+- 看 `.opencode/tests/load-agents.test.js` 的 `buildPermissionForAgent` describe 块对应测试，可能需要更新断言
+
+### 触发 cache 重建
+
+任何源文件改动后，源 hash 自动变 → 下次 OC 启动重建 cache（一次性，~1 秒）。无需手动清。但开发期想强制清：
+
+```bash
+rm -rf ~/.cache/short-video-director/
+```
+
+### 单次同步流程速查
+
+```bash
+# 1. 改源（agents/X.md 或 skills/X/SKILL.md）
+$EDITOR agents/new-agent.md  # 或类似
+
+# 2. 跑测试看哪里炸
+npm test
+# (按上表对应同步位置修复)
+
+# 3. 重跑测试，全绿后再 commit
+npm test && git add -A && git commit -m "..."
+
+# 4. 启动 OC 真实验证
+opencode agent list
+opencode debug skill | head -30
+```

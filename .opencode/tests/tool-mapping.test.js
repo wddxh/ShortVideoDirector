@@ -1,3 +1,8 @@
+// The `USER_INVOCABLE_ENTRY_WORKFLOWS` assertion below mirrors the constant
+// in `.opencode/lib/tool-mapping.js`, which itself MUST stay in sync with
+// source skills that have `user-invocable: true` in their frontmatter. If
+// you add/remove a user-invocable skill, update BOTH the constant and this
+// test's hardcoded Set — see `.opencode/README.md` § 维护契约.
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import {

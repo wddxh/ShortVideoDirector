@@ -1,3 +1,8 @@
+// Some assertions in this file are coupled to the source `skills/` directory
+// (e.g., total skill count = 44, specific skill names like `director-arc`,
+// `auto-video`, `writer-novel/rules.md`). If you add/remove/rename source
+// skills, expect failures here — see `.opencode/README.md` § 维护契约 for the
+// sync checklist.
 import { describe, test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'path';

@@ -1,3 +1,8 @@
+// Some assertions in this file are coupled to the source `agents/` directory
+// (5 agents hardcoded: creator/director/scriptwriter/storyboarder/writer) and
+// to `AGENT_BASH_CONFIG` in `.opencode/lib/load-agents.js` (5-agent permission
+// matrix). If you add/remove/rename agents, expect failures — see
+// `.opencode/README.md` § 维护契约 for the sync checklist.
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'path';
