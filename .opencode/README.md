@@ -192,7 +192,7 @@ cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 
 测试零依赖 —— 用 Node 内置 `node --test` runner（Node 18+）：
 
 ```bash
-# 跑单元测试（65 个）
+# 跑单元测试（90 个）
 npm test
 # 或直接：
 node --test .opencode/tests/*.test.js
@@ -210,6 +210,21 @@ opencode debug skill | head -30
 ## 维护契约：改 CC 源后的 OC 同步 checklist
 
 源（`skills/`、`agents/`、`scripts/`）是单一真相源。**改源后，OC 兼容层有几处硬编码/断言会随之失效**，须同步更新并跑 `npm test` 验证。
+
+### Runtime Write Guard (tool.execute.before hook)
+
+`.opencode/lib/write-guard.js` 在 plugin 启动时注册为 `tool.execute.before` hook，对**每次** tool 调用做参数大小检查：
+
+| 行为 | 触发条件 |
+|---|---|
+| 通过（不干预）| 所有字符串参数 ≤2000 字符 |
+| Throw Error | 任何字符串参数 >2000 字符（**无文件类型例外**）|
+
+Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 各自的正确分段建议）。LLM 看到 error 自然 retry。
+
+阈值固定 `MAX_STRING_ARG_LEN = 2000`（写死，与 AGENTS.md 全局约束一致）。
+
+**为什么没有文件类型例外**：OC 卡死 root cause 是 LLM emit 长字符串参数时的 streaming 中断，跟文件内容类型无关。JSON / YAML 同样按增量模式分段（详见 `ENTRY_WORKFLOW_DISPATCH_DISCIPLINE`）。
 
 ### 改 `skills/` 时
 
