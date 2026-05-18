@@ -198,7 +198,7 @@ model: opus
 **4.9 Director — 审核关键帧画面：**
 
 1. 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01`
-2. 若 review return `needs_revision M` → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
+2. 若 review return 以 `needs_revision` 开头 → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
 
 **4.10 Storyboarder — 生成分镜：**
 

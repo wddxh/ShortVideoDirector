@@ -86,7 +86,7 @@ model: opus
 7. 若图像模型非 `none`：
    - 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
    - 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`{集数}`
-   - 若 review return `needs_revision M` → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数}`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
+   - 若 review return 以 `needs_revision` 开头 → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数}`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
 8. 继续执行"从分镜开始恢复"
 
 **从资产文件开始恢复（keyframes 完整但 assets 缺失）：**
@@ -99,7 +99,7 @@ model: opus
 1. 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`{集数}`
 2. 若本次有 keyframe 图被生成（`keyframe-images:missing` 命中）：
    - 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`{集数}`
-   - 若 review return `needs_revision M` → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数}`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
+   - 若 review return 以 `needs_revision` 开头 → 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`{集数}`（最多 2 轮 fix；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
 3. 继续执行"从分镜开始恢复"
 
 **从分镜开始恢复：**
