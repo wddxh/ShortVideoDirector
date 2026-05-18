@@ -2,6 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadAndTransform } from '../lib/cache.js';
 import { generateBootstrap } from '../lib/bootstrap.js';
+import { interceptToolCall } from '../lib/write-guard.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.resolve(__dirname, '../..');
@@ -37,5 +38,7 @@ export const ShortVideoDirectorPlugin = async ({ client, directory }) => {
       const ref = firstUser.parts[0];
       firstUser.parts.unshift({ ...ref, type: 'text', text: bootstrap });
     },
+
+    'tool.execute.before': interceptToolCall,
   };
 };
