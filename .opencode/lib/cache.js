@@ -42,6 +42,31 @@ export async function computeSourceHash(pluginRoot) {
     .slice(0, 16);
 }
 
+async function copyScripts(pluginRoot, cacheDir) {
+  const src = path.join(pluginRoot, 'scripts');
+  try {
+    await fs.access(src);
+  } catch {
+    return;
+  }
+  const dst = path.join(cacheDir, 'scripts');
+  await fs.mkdir(dst, { recursive: true });
+  const walk = async (s, d) => {
+    const entries = await fs.readdir(s, { withFileTypes: true });
+    for (const e of entries) {
+      const sp = path.join(s, e.name);
+      const dp = path.join(d, e.name);
+      if (e.isDirectory()) {
+        await fs.mkdir(dp, { recursive: true });
+        await walk(sp, dp);
+      } else if (e.isFile()) {
+        await fs.copyFile(sp, dp);
+      }
+    }
+  };
+  await walk(src, dst);
+}
+
 export async function loadAndTransform(pluginRoot) {
   const hash = await computeSourceHash(pluginRoot);
   const cacheDir = path.join(CACHE_BASE, hash);
@@ -56,6 +81,7 @@ export async function loadAndTransform(pluginRoot) {
     await fs.mkdir(cacheDir, { recursive: true });
     agents = await loadAllAgents(pluginRoot);
     await transformAllSkills(pluginRoot, cacheSkillsDir);
+    await copyScripts(pluginRoot, cacheDir);
     await fs.writeFile(agentsCachePath, JSON.stringify(agents, null, 2));
     await pruneOldCaches(CACHE_BASE, 3);
   }
