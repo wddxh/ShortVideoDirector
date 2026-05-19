@@ -255,6 +255,7 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 | **加新 script `scripts/X.sh`** | 如果某 agent 需要调用，添加到 `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG[agent].allowScripts` 数组（director/writer/scriptwriter/storyboarder；creator 设为 `'ALL'` 自动放行） | OC 运行时该 agent 调用 `bash $SVD_PLUGIN_DIR/scripts/X.sh` 被 `bash: deny` 拦 |
 | **重命名/删除 script** | 同上：从 `AGENT_BASH_CONFIG` 中移除 | 无测试失败，但 skill 调用旧名会运行时 fail |
 | **`bash scripts/X.sh` 调用方式不变** | 自动处理；`rewriteBashPaths` 注入 `$SVD_PLUGIN_DIR/` 前缀 | 无 |
+| **scripts/ 文件改动触发 cache 重建** | 自动处理；`computeSourceHash` 包含 scripts/ 全部文件 `path:mtime:size`，改动 → 新 hash → cache miss → 重建 → 实复制 scripts/ 到 `cacheDir/scripts/`（保留源文件 mode 位） | 无；若 cache 中 scripts 缺失，强制 `rm -rf ~/.cache/short-video-director/` 重建 |
 
 ### 添 / 改 `agents/` permission 配置（5-agent 矩阵）
 
