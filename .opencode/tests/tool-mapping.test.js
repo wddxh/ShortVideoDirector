@@ -9,7 +9,6 @@ import {
   USER_INVOCABLE_ENTRY_WORKFLOWS,
   TASK_PROMPT_TEMPLATE,
   LEAF_CONTEXT_HINT,
-  AUTO_VIDEO_CRON_BODY,
 } from '../lib/tool-mapping.js';
 
 describe('tool-mapping constants', () => {
@@ -38,12 +37,6 @@ describe('tool-mapping constants', () => {
     const out = LEAF_CONTEXT_HINT('director');
     assert.ok(out.includes('director'));
     assert.ok(out.includes('执行上下文'));
-  });
-
-  test('AUTO_VIDEO_CRON_BODY contains crontab template', () => {
-    assert.ok(AUTO_VIDEO_CRON_BODY.includes('crontab'));
-    assert.ok(AUTO_VIDEO_CRON_BODY.includes('opencode run --session'));
-    assert.ok(AUTO_VIDEO_CRON_BODY.includes('svd-auto-video:'));
   });
 });
 

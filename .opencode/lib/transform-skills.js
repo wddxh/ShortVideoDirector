@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, readdir, copyFile, stat } from 'fs/promises';
 import path from 'path';
 import { parseAgentFile as parseFrontmatterFile } from './load-agents.js';
-import { TASK_PROMPT_TEMPLATE, LEAF_CONTEXT_HINT, ENTRY_WORKFLOW_DISPATCH_DISCIPLINE, USER_INVOCABLE_ENTRY_WORKFLOWS, AUTO_VIDEO_CRON_BODY } from './tool-mapping.js';
+import { TASK_PROMPT_TEMPLATE, LEAF_CONTEXT_HINT, ENTRY_WORKFLOW_DISPATCH_DISCIPLINE, USER_INVOCABLE_ENTRY_WORKFLOWS } from './tool-mapping.js';
 
 // parseSkillFile 与 parseAgentFile 行为一致；alias 出来让代码语义更清晰
 export const parseSkillFile = parseFrontmatterFile;
@@ -86,19 +86,6 @@ export function injectDispatchDiscipline(body, meta) {
   return ENTRY_WORKFLOW_DISPATCH_DISCIPLINE + '\n\n' + body;
 }
 
-export function rewriteAutoVideoCron(body) {
-  // 找到第一个引用 CronCreate/List/Delete 的标题段，整段（直到下一个一级或二级标题或文档尾）替换
-  // 简化实现：直接把全文从首个 "## " 开始全部替换为新模板
-  const firstSectionMatch = body.match(/^## /m);
-  if (!firstSectionMatch) {
-    // 没有任何 section，前置加 cron body
-    return body + '\n\n' + AUTO_VIDEO_CRON_BODY;
-  }
-  const offset = firstSectionMatch.index;
-  const preamble = body.slice(0, offset);
-  return preamble + AUTO_VIDEO_CRON_BODY;
-}
-
 /** 把 frontmatter 对象序列化回 YAML（极简，与 parser 对偶） */
 function stringifyFrontmatter(fm) {
   const lines = ['---'];
@@ -137,15 +124,26 @@ async function buildSkillMeta(skillsDir) {
   return meta;
 }
 
+const SKILL_OVERRIDES_DIR = '.opencode/skill-overrides';
+
 export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
   const sourceSkillsDir = path.join(pluginRoot, 'skills');
+  const overridesDir = path.join(pluginRoot, SKILL_OVERRIDES_DIR);
   const meta = await buildSkillMeta(sourceSkillsDir);
   const entries = await readdir(sourceSkillsDir, { withFileTypes: true });
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const skillName = entry.name;
-    const srcDir = path.join(sourceSkillsDir, skillName);
+    // 优先用 OC override 目录；若无则用 CC 源
+    const overrideDir = path.join(overridesDir, skillName);
+    let srcDir = path.join(sourceSkillsDir, skillName);
+    try {
+      await stat(overrideDir);
+      srcDir = overrideDir;
+    } catch {
+      // 没 override，保留 CC 源
+    }
     const dstDir = path.join(cacheSkillsDir, skillName);
     await mkdir(dstDir, { recursive: true });
 
@@ -162,9 +160,6 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
     let newBody = body;
     newBody = rewriteSkillCalls(newBody, meta);
     newBody = rewriteBashPaths(newBody);
-    if (skillName === 'auto-video') {
-      newBody = rewriteAutoVideoCron(newBody);
-    }
     newBody = injectLeafHint(newBody, myMeta);
     newBody = injectDispatchDiscipline(newBody, { ...myMeta, name: skillName });
 

@@ -16,7 +16,6 @@ import {
   rewriteSkillCalls,
   injectLeafHint,
   injectDispatchDiscipline,
-  rewriteAutoVideoCron,
   transformAllSkills,
 } from '../lib/transform-skills.js';
 
@@ -217,18 +216,6 @@ describe('injectDispatchDiscipline', () => {
   });
 });
 
-describe('rewriteAutoVideoCron', () => {
-  test('replaces CronCreate/List/Delete sections with bash crontab body', () => {
-    const body = '## 安装\n\n调用 CronCreate(...) 创建。\n\n## 查询\n\n调用 CronList(...).';
-    const out = rewriteAutoVideoCron(body);
-    assert.ok(!out.includes('CronCreate'));
-    assert.ok(!out.includes('CronList'));
-    assert.ok(!out.includes('CronDelete'));
-    assert.ok(out.includes('crontab'));
-    assert.ok(out.includes('opencode run --session'));
-  });
-});
-
 describe('transformAllSkills (integration)', () => {
   let tmpDir;
 
@@ -256,13 +243,17 @@ describe('transformAllSkills (integration)', () => {
     assert.ok(content.includes('svd-context'));
   });
 
-  test('auto-video cache has crontab body, no CronCreate', async () => {
+  test('auto-video cache uses OC override (no CronCreate, no crontab)', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(
       path.join(tmpDir, 'auto-video/SKILL.md'), 'utf-8'
     );
-    assert.ok(content.includes('crontab'));
+    // OC override 标志：含 nohup loop + task tool 提及
+    assert.ok(content.includes('nohup'));
+    assert.ok(content.includes('task tool'));
+    // CC 专属机制不应出现
     assert.ok(!content.includes('CronCreate'));
+    assert.ok(!content.includes('系统 crontab'));
   });
 
   test('series-video cache has dispatch discipline directive at top of body', async () => {
@@ -290,5 +281,38 @@ describe('transformAllSkills (integration)', () => {
     const rulesPath = path.join(tmpDir, 'writer-novel/rules.md');
     const exists = await readFileAsync(rulesPath, 'utf-8').then(() => true).catch(() => false);
     assert.equal(exists, true);
+  });
+
+  test('OC override 文件被使用并覆盖 CC 源', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const content = await readFileAsync(
+      path.join(tmpDir, 'auto-video/SKILL.md'), 'utf-8'
+    );
+    // OC 版关键标记：task tool + 前置条件
+    assert.ok(content.includes('task tool'),
+      'OC override 内容应含 "task tool"');
+    assert.ok(content.includes('## 前置条件'),
+      'OC override 内容应含 "## 前置条件"');
+    // 旧 cron 实现不应再出现
+    assert.ok(!content.includes('系统 crontab'),
+      'cache 不应再含 "系统 crontab"');
+    assert.ok(!content.includes('opencode run --session'),
+      'cache 不应再含 "opencode run --session"');
+  });
+
+  test('OC override 目录的 aux 文件复制到 cache', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const loopSh = path.join(tmpDir, 'auto-video/loop.sh');
+    const cronPrompt = path.join(tmpDir, 'auto-video/cron-prompt.txt');
+    const { access } = await import('fs/promises');
+    await access(loopSh);  // 应抛错就是 fail
+    await access(cronPrompt);
+    // 内容 sanity
+    const loopContent = await readFileAsync(loopSh, 'utf-8');
+    assert.ok(loopContent.includes('FAIL_COUNT'),
+      'loop.sh 应含 FAIL_COUNT 健康检查');
+    const promptContent = await readFileAsync(cronPrompt, 'utf-8');
+    assert.ok(promptContent.includes('{{TARGET}}'),
+      'cron-prompt.txt 应含 {{TARGET}} 模板占位符');
   });
 });

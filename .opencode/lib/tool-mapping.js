@@ -59,45 +59,6 @@ ${params}
 export const LEAF_CONTEXT_HINT = (agentName) =>
   `> **执行上下文**：本 skill 被设计为由 \`${agentName}\` 子代理通过 \`task\` 工具派发执行。当你看到此 skill 内容时，你已在正确的子代理上下文中；按下方流程执行即可。`;
 
-export const AUTO_VIDEO_CRON_BODY = `## 安装定时任务
-
-OpenCode 不内置 cron 工具，本 skill 通过 bash 调用系统 crontab 实现定时调度。
-
-执行步骤：
-
-1. **获取当前 OC session ID**：从 \`OPENCODE_SESSION_ID\` 环境变量读取，或调用 \`opencode session list --max-count 1 --format json\` 拿最近 session
-2. **生成 cron 条目**：
-   \`\`\`bash
-   PROJECT_DIR=$(pwd)
-   SESSION_ID="<刚获取的 session id>"
-   ENTRY="*/5 * * * * cd $PROJECT_DIR && opencode run --session $SESSION_ID '调用 check-video skill' > /tmp/svd-cron-\${SESSION_ID}.log 2>&1 # svd-auto-video:\${SESSION_ID}"
-   \`\`\`
-3. **安装到 crontab**（追加，不覆盖用户已有条目）：
-   \`\`\`bash
-   (crontab -l 2>/dev/null; echo "$ENTRY") | crontab -
-   \`\`\`
-4. **告知用户**：定时任务已安装，每 5 分钟轮询一次 check-video。日志在 \`/tmp/svd-cron-\${SESSION_ID}.log\`。
-
-## 查询任务状态
-
-\`\`\`bash
-crontab -l | grep "svd-auto-video:\${SESSION_ID}" || echo "未安装"
-\`\`\`
-
-## 删除任务（视频全部完成后或用户主动取消）
-
-\`\`\`bash
-crontab -l | grep -v "svd-auto-video:\${SESSION_ID}" | crontab -
-\`\`\`
-
-## 安全提示
-
-- 安装定时任务后，cron 会在你不在 OC 会话时自动跑 \`opencode run\`，消耗 LLM token
-- 视频全部完成时务必删除，避免无限轮询
-- check-video skill 内部应有"全部任务完成 → 自删 cron"的兜底逻辑
-- **Session 时效性**：cron 引用的 session 必须保持"近期活跃"。如果创建 cron 后超过 24-48 小时未在 OC 中操作该 session，session 可能"过期"导致 cron 任务静默失败（exit=0 但 LLM 无响应）。建议视频生成总时长 <24h 的场景使用 cron 模式；超长任务建议手动调用 check-video 或重新安装 cron
-`;
-
 /**
  * Orchestrator-side directive: format-aware semantic chunking for sub-agent
  * dispatches. Injected at the top of each user-invocable entry workflow's
