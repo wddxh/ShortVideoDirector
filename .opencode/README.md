@@ -10,7 +10,6 @@
 
 - `dreamina` CLI（即梦视频生成）
 - `python3`（部分脚本依赖）
-- 系统 `crontab`（auto-video 需要）
 
 ## 安装
 
@@ -118,7 +117,6 @@ rm -rf ~/.cache/opencode/node_modules/short-video-director/
         "bash": {
           "bash $SVD_PLUGIN_DIR/scripts/*": "allow",
           "mkdir -p story/episodes/*": "allow",
-          "crontab*": "allow",
           "opencode run*": "allow",
           "*": "ask"
         },
@@ -151,7 +149,7 @@ rm -rf ~/.cache/opencode/node_modules/short-video-director/
 - **`bash scripts/X.sh`** → **`bash $SVD_PLUGIN_DIR/scripts/X.sh`**
 - **9 个 user-invocable workflow 顶部**：注入"派发约束"指引（按语义单元 chapter/scene/shot/JSON 条目分段派发给子代理，避免单次 Write 过长在 OC 下挂起）
 - **fork-context skill 顶部**：注入"执行上下文：本 skill 已在 X 子代理中"提示
-- **auto-video skill**：CC 的 `CronCreate/List/Delete` 原语替换为基于 `crontab` + `opencode run --session` 的 bash 调度
+- **auto-video skill**：CC 的 `CronCreate/List/Delete` 原语替换为基于 nohup loop + HTTP `/session/{SID}/prompt_async` 的调度（OC override 实现，见 `.opencode/skill-overrides/auto-video/`）
 
 cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 的前 16 hex 字符；保留最新 3 个 cache。
 
@@ -174,12 +172,15 @@ cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 
 - 检查 `$SVD_PLUGIN_DIR` 是否正确：在 OC 会话里跑 `bash -c 'echo $SVD_PLUGIN_DIR'`，应输出插件根目录绝对路径
 - 如果输出为空，可能是 OC 版本不支持 `shell.env` hook，请升级 OC（≥ 1.15）
 
-**问题：auto-video 的 cron 任务不执行**
+**问题：auto-video 的 nohup loop 没执行 / OC TUI 没收到自动 prompt**
 
-- 检查 `crontab -l` 是否真的安装了条目（grep `svd-auto-video`）
-- 检查 `/tmp/svd-cron-<session_id>.log` 看错误信息
-- 确认 `opencode run` 命令在 cron 环境下可用（cron 的 PATH 通常很小，可能需要绝对路径）
-- **Session 时效性**：cron 引用的 OC session 必须保持"近期活跃"。超过 24-48 小时未在 OC 中操作该 session，cron 会静默失败（exit=0 但 LLM 无响应）。建议短视频生成场景使用；超长任务建议手动重新安装 cron。
+排查步骤：
+1. 确认启动 OC 时加了 `--port`：`pgrep -af opencode` 应看到 `--port NNNN`。
+   没加 → loop curl 找不到 server → loop 几分钟内自杀。重启 OC 用 `opencode --port 4096 -s <SID>`。
+2. 确认 loop 进程在跑：`ls /tmp/svd-auto-video-loop-*-*.pid` + `kill -0 $(cat /tmp/svd-auto-video-loop-*-*.pid)`。
+3. 查 loop 日志：`tail -20 /tmp/svd-auto-video-loop-*-*.log` 看有无 curl 错误（connection refused = OC 已关或没起 server）。
+4. 手动验证 server: `curl http://127.0.0.1:NNNN/global/health` 应返回 `{healthy:true}`。
+5. 重装：删 PID/log/prompt 文件后重跑 `/auto-video ep01 1200`。
 
 ## 与 CC 版本的关系
 
@@ -237,7 +238,6 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 | **新 fork skill（`context: fork`）被其他 skill 引用** | 引用位置**必须**用 `使用 Skill tool 调用 \`<name>\` skill[, 传递参数：\`<args>\`]` 标准模板。`transform-skills.js` 只识别此模板，会改写为 `task` 派发；自然语言"调用 X"会让 OC LLM 选 `skill()` 同上下文加载，破坏 fork 隔离语义（fork→fork 嵌套场景会导致下游 subagent 全部图片/数据塞进单一上下文，附件压缩中断） | 无测试失败（沉默 bug）；只在实际跑 OC 工作流时表现为"该 fork 的下游没被 fork 出去"。verify: wipe cache + `grep "task(" ~/.cache/.../skills/<caller>/SKILL.md` 应有 task 代码块 |
 | **新 review→fix 链路** | review skill 必须 append 写入 `story/episodes/{集数}/.review-{type}.md`（自检 round 用 grep `^## 第 [0-9]+ 轮` + Edit anchor），return 简报 `pass` / `needs_revision M`；fix skill 必须从该文件读最后一轮意见；entry workflow 的派发参数只传 `{集数}`（不传 `"{修改意见}"`）。**目的**：避免大段 review 意见做为 task prompt 参数时 OC 卡死。**核心约定一致性**：6 个 review skill + 6 个 fix skill + 6 个 entry workflow 三层必须同步改 | 无测试失败（沉默 bug）；表现为 fix skill 拿不到意见或 task prompt 卡好几小时。verify: 实际跑一次 review-fix loop，检查 `.review-*.md` 是否生成；fix skill 是否能找到意见列表 |
 | **改 skill `description` 字段超 1024 字符** | 自动 clip 到 1024（无错，但用户可能看到截断的描述） | 无测试失败，但 `opencode debug skill` 看到的 description 被截断 |
-| **改 `auto-video/SKILL.md` 结构（删 `## ` 一级 section 或加入新非 cron 内容）** | `.opencode/lib/transform-skills.js` 的 `rewriteAutoVideoCron`（从首个 `## ` 截断；如果新内容也用 `## `，会被一起截掉） | `auto-video cache has crontab body, no CronCreate` 可能失败 |
 | **删除 `writer-novel/rules.md`** 或类似 aux 文件 | `.opencode/tests/transform-skills.test.js:272` 的 `aux files (rules.md) are copied` test 用了它 | aux test 失败；改用另一个 skill 的 aux 文件即可 |
 
 ### 改 `agents/` 时
@@ -256,6 +256,17 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 | **重命名/删除 script** | 同上：从 `AGENT_BASH_CONFIG` 中移除 | 无测试失败，但 skill 调用旧名会运行时 fail |
 | **`bash scripts/X.sh` 调用方式不变** | 自动处理；`rewriteBashPaths` 注入 `$SVD_PLUGIN_DIR/` 前缀 | 无 |
 | **scripts/ 文件改动触发 cache 重建** | 自动处理；`computeSourceHash` 包含 scripts/ 全部文件 `path:mtime:size`，改动 → 新 hash → cache miss → 重建 → 实复制 scripts/ 到 `cacheDir/scripts/`（保留源文件 mode 位） | 无；若 cache 中 scripts 缺失，强制 `rm -rf ~/.cache/short-video-director/` 重建 |
+
+### 加 / 改 OC skill override
+
+某些 skill 需要 OC 专属实现（如 `auto-video` 因 OC 没有 `CronCreate` 工具）。
+
+| 改动 | 同步位置 | 失败征兆 |
+|------|----------|---------|
+| **加新 OC override `<name>`** | 建目录 `.opencode/skill-overrides/<name>/` 含 `SKILL.md` + 可选 aux 文件（`.sh` `.txt` 等）；`transformAllSkills` 自动检测优先使用 | 无（自动生效）；可用 `rm -rf ~/.cache/short-video-director/ && opencode debug agent director` 验证 cache 内容 |
+| **改 OC override SKILL.md** | 直接编辑 `.opencode/skill-overrides/<name>/SKILL.md` | 同上；cache hash 自动跟随源文件 mtime 变化 |
+| **CC 源改了共享段（如 `## 失败处理`）** | 必须同步到 OC override SKILL.md 同 heading 下；测试 `OC auto-video override shares core sections with CC source` 会 detect 脱钩 | npm test 失败提示不一致段名 + diff |
+| **加 aux 文件** | 放进 OC override 目录；`transformAllSkills` 自动 copy 到 cache | LLM 通过 `$SVD_PLUGIN_DIR/.opencode/skill-overrides/<name>/<aux>` 引用 |
 
 ### 添 / 改 `agents/` permission 配置（5-agent 矩阵）
 
