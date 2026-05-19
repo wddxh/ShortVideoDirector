@@ -14,14 +14,19 @@ async function readPluginVersion(pluginRoot) {
 
 export async function computeSourceHash(pluginRoot) {
   const sources = [];
-  for (const subdir of ['skills', 'agents']) {
+  for (const subdir of ['skills', 'agents', 'scripts']) {
     const root = path.join(pluginRoot, subdir);
+    try {
+      await fs.access(root);
+    } catch {
+      continue;
+    }
     const walk = async (dir) => {
       const entries = await fs.readdir(dir, { withFileTypes: true });
       for (const e of entries) {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) await walk(p);
-        else if (e.name.endsWith('.md')) {
+        else if (subdir === 'scripts' || e.name.endsWith('.md')) {
           const st = await fs.stat(p);
           sources.push(`${p}:${st.mtimeMs}:${st.size}`);
         }

@@ -51,3 +51,26 @@ describe('pruneOldCaches', () => {
     await rm(tmp, { recursive: true, force: true });
   });
 });
+
+describe('computeSourceHash includes scripts/', () => {
+  test('changes when a script file is modified', async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), 'svd-hash-'));
+    // 构造最小 plugin 结构：package.json + skills/ + agents/ + scripts/
+    await writeFile(path.join(tmp, 'package.json'), '{"version":"0.0.1"}');
+    await mkdir(path.join(tmp, 'skills'));
+    await mkdir(path.join(tmp, 'agents'));
+    await mkdir(path.join(tmp, 'scripts'));
+    await writeFile(path.join(tmp, 'scripts', 'foo.sh'), '#!/bin/bash\necho v1\n');
+
+    const h1 = await computeSourceHash(tmp);
+
+    // 修改 scripts/foo.sh（内容 + 触碰 mtime）
+    await new Promise(r => setTimeout(r, 10));
+    await writeFile(path.join(tmp, 'scripts', 'foo.sh'), '#!/bin/bash\necho v2\n');
+
+    const h2 = await computeSourceHash(tmp);
+    assert.notEqual(h1, h2, 'hash should differ after scripts/ modification');
+
+    await rm(tmp, { recursive: true, force: true });
+  });
+});
