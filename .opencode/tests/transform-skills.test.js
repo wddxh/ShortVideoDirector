@@ -316,3 +316,52 @@ describe('transformAllSkills (integration)', () => {
       'cron-prompt.txt 应含 {{TARGET}} 模板占位符');
   });
 });
+
+describe('OC auto-video override shares core sections with CC source', () => {
+  // 共享段：必须在两个 SKILL.md 里 byte-for-byte 一致
+  // 注：`### 阶段 1: 解析参数` 不在此列 —— Task 1 重写了其 step 3
+  // （CC: 秒→分钟 cron 换算；OC: INTERVAL ≥60 校验），属设计性分歧。
+  const SHARED_HEADINGS = [
+    '## 失败处理（核心规则）',
+    '## 使用示例',
+    '## 约束',
+  ];
+
+  test('shared sections byte-for-byte identical between CC and OC', async () => {
+    const ccPath = path.join(PROJECT_ROOT, 'skills/auto-video/SKILL.md');
+    const ocPath = path.join(
+      PROJECT_ROOT, '.opencode/skill-overrides/auto-video/SKILL.md'
+    );
+    const cc = await readFileAsync(ccPath, 'utf-8');
+    const oc = await readFileAsync(ocPath, 'utf-8');
+
+    // 按 markdown heading 切分段（每段从 heading 开始到下一个同级或更高级 heading）
+    const extractSection = (text, heading) => {
+      const idx = text.indexOf('\n' + heading + '\n');
+      if (idx === -1) return null;
+      const start = idx + 1;
+      // 找下一个 ## 或 ### heading（同级或更高级）
+      const level = heading.match(/^#+/)[0].length;
+      const nextHeadingRe = new RegExp(
+        `\\n#{1,${level}} `, 'g'
+      );
+      nextHeadingRe.lastIndex = start + heading.length + 1;
+      const m = nextHeadingRe.exec(text);
+      const end = m ? m.index : text.length;
+      return text.slice(start, end).trimEnd();
+    };
+
+    for (const heading of SHARED_HEADINGS) {
+      const ccSection = extractSection(cc, heading);
+      const ocSection = extractSection(oc, heading);
+      assert.ok(ccSection, `CC SKILL.md 缺 heading: ${heading}`);
+      assert.ok(ocSection, `OC override SKILL.md 缺 heading: ${heading}`);
+      assert.equal(
+        ocSection, ccSection,
+        `共享段 "${heading}" 在 OC override 与 CC 源不一致。\n` +
+        `CC 改了共享段后，请同步到 .opencode/skill-overrides/auto-video/SKILL.md。\n` +
+        `CC 内容:\n${ccSection}\n\nOC override 内容:\n${ocSection}`
+      );
+    }
+  });
+});
