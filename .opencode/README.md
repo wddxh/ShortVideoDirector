@@ -268,6 +268,15 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 | **CC 源改了共享段（如 `## 失败处理`）** | 必须同步到 OC override SKILL.md 同 heading 下；测试 `OC auto-video override shares core sections with CC source` 会 detect 脱钩 | npm test 失败提示不一致段名 + diff |
 | **加 aux 文件** | 放进 OC override 目录；`transformAllSkills` 自动 copy 到 cache | LLM 通过 `$SVD_PLUGIN_DIR/.opencode/skill-overrides/<name>/<aux>` 引用 |
 
+### OC commands 自动 derive
+
+plugin config hook 自动为 `USER_INVOCABLE_ENTRY_WORKFLOWS` 集合中每个 skill 注册同名 OC command（如 `/auto-video`），template 含 `$ARGUMENTS` + `$1~$4` 占位符，OC 会在 user 输入 `/skill-name args...` 时替换并发给 LLM。
+
+维护契约：
+- 新增 user-invocable entry workflow 时，加到 `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` 集合即可，plugin 自动 derive command
+- 用户在 `~/.config/opencode/opencode.json` 自定义同名 command 会被保留（skip-if-exists）
+- 如需修改 template 措辞，改 `.opencode/lib/commands-derive.js` 的 `buildCommandTemplate` 函数（一处生效全部）
+
 ### 添 / 改 `agents/` permission 配置（5-agent 矩阵）
 
 如果想把 5 agents 的脚本访问范围调整（例如允许 director 调用 image-gen-dreamina.sh）：
