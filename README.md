@@ -1,8 +1,8 @@
 # ShortVideoDirector
 
-一个以 Claude Code 为主体的插件，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词、资产参考图片和视频片段。Codex 支持以兼容层形式提供。
+一个以 Claude Code 为主体的插件，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词、资产参考图片和视频片段。Codex 与 OpenCode 支持以兼容层形式提供。
 
-本仓库只维护一套事实上的 skill 内容层：`skills/`。Claude Code 直接加载这套源 skills；Codex 通过 `.codex/` 下生成的轻量适配层执行同一套 skill 内容。
+本仓库只维护一套事实上的 skill 内容层：`skills/`。Claude Code 直接加载这套源 skills；Codex 通过 `.codex/` 下生成的轻量适配层执行同一套 skill 内容；OpenCode 通过 `.opencode/` 下的运行时插件加载（启动时把 skills 转换缓存到 `~/.cache/short-video-director/<hash>/`，不污染源仓库）。
 
 ## 功能
 
