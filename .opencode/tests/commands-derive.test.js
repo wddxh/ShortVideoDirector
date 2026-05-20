@@ -70,3 +70,8 @@ test('commands derive: template 指引 LLM 调 skill tool', () => {
     'template 应提到 Skill tool');
   assert.ok(template.includes('SKILL.md'), 'template 应提到 SKILL.md');
 });
+
+test('commands derive: template 保留 $(N+1) 字面量（非占位符）', () => {
+  assert.ok(buildCommandTemplate('auto-video').includes('$(N+1)'),
+    'template 应含字面量 $(N+1)');
+});
