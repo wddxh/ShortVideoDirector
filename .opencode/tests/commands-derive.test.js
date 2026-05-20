@@ -85,7 +85,7 @@ test('commands derive: 用户已配置同名 command 时跳过（不覆盖）', 
   // 用户自定义应被保留
   assert.equal(result['auto-video'].description, 'USER OVERRIDE');
   assert.equal(result['auto-video'].template, 'USER TEMPLATE');
-  // 其他 8 个仍由 plugin 注册
+  // 其他 skill 仍由 plugin 注册
   assert.ok(result['short-video'].template.includes('Skill tool'));
 });
 
@@ -94,7 +94,8 @@ test('commands derive: 与用户已有的非冲突 command 共存', () => {
   const result = deriveCommands({ 'my-test': userCustom });
   // 用户的保留
   assert.equal(result['my-test'].description, 'user');
-  // plugin 的 9 个都注册了 + 用户的 1 个 = 10
+  // plugin 的全部 derive command + 用户的 1 个
   const totalCount = Object.keys(result).length;
-  assert.equal(totalCount, 9 + 1, '应为 9 个 derive + 1 个用户自定义');
+  assert.equal(totalCount, USER_INVOCABLE_ENTRY_WORKFLOWS.size + 1,
+    '应为所有 derive command + 1 个用户自定义');
 });
