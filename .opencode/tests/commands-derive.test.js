@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { USER_INVOCABLE_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
@@ -18,19 +19,17 @@ async function runConfigHook(initialConfig = {}) {
   return initialConfig;
 }
 
-test('commands derive: 9 个 user-invocable entry workflow 全部注册', async () => {
+test('commands derive: USER_INVOCABLE_ENTRY_WORKFLOWS 中所有 skill 全部注册', async () => {
   const config = await runConfigHook();
   assert.ok(config.command, 'config.command 应存在');
-  const expected = [
-    'series-video', 'short-video',
-    'series-edit-story', 'short-edit-story',
-    'series-repair-story', 'short-repair-story',
-    'generate-video', 'check-video', 'auto-video',
-  ];
-  for (const name of expected) {
+  for (const name of USER_INVOCABLE_ENTRY_WORKFLOWS) {
     assert.ok(config.command[name], `应注册 /${name}`);
   }
-  assert.equal(Object.keys(config.command).length, expected.length, 'commands 数量应为 9');
+  assert.equal(
+    Object.keys(config.command).length,
+    USER_INVOCABLE_ENTRY_WORKFLOWS.size,
+    'commands 数量应与 USER_INVOCABLE_ENTRY_WORKFLOWS 一致'
+  );
 });
 
 test('commands derive: 每个 command 含 template + description 必填字段', async () => {
