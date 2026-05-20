@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { USER_INVOCABLE_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
-import { buildCommandTemplate } from '../lib/commands-derive.js';
+import { buildCommandTemplate, deriveCommands } from '../lib/commands-derive.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
@@ -74,4 +74,27 @@ test('commands derive: template 指引 LLM 调 skill tool', () => {
 test('commands derive: template 保留 $(N+1) 字面量（非占位符）', () => {
   assert.ok(buildCommandTemplate('auto-video').includes('$(N+1)'),
     'template 应含字面量 $(N+1)');
+});
+
+test('commands derive: 用户已配置同名 command 时跳过（不覆盖）', () => {
+  const userCustom = {
+    description: 'USER OVERRIDE',
+    template: 'USER TEMPLATE',
+  };
+  const result = deriveCommands({ 'auto-video': userCustom });
+  // 用户自定义应被保留
+  assert.equal(result['auto-video'].description, 'USER OVERRIDE');
+  assert.equal(result['auto-video'].template, 'USER TEMPLATE');
+  // 其他 8 个仍由 plugin 注册
+  assert.ok(result['short-video'].template.includes('Skill tool'));
+});
+
+test('commands derive: 与用户已有的非冲突 command 共存', () => {
+  const userCustom = { description: 'user', template: 'my test' };
+  const result = deriveCommands({ 'my-test': userCustom });
+  // 用户的保留
+  assert.equal(result['my-test'].description, 'user');
+  // plugin 的 9 个都注册了 + 用户的 1 个 = 10
+  const totalCount = Object.keys(result).length;
+  assert.equal(totalCount, 9 + 1, '应为 9 个 derive + 1 个用户自定义');
 });
