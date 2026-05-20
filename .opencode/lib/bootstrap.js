@@ -26,7 +26,11 @@ ${workflowList}
 
 ## 如何启动
 
-用户可以用自然语言（"帮我做一个新的短视频，主题是 XXX"）或显式调用 skill（"执行 short-video skill，参数：topic=XXX"）。
+用户用 \`/skill-name args...\` 触发入口工作流（如 \`/auto-video ep01 60\`），args 由 OC commands 自动注入到 SKILL.md 的 \`$ARGUMENTS\` 占位符。
+
+- args 可选：未提供时按 SKILL.md "### 动态参数" 段定义的默认值处理
+- 切换非 build agent 后再触发 \`/skill-name\` 可能与 dispatch discipline 段假设不符（高级用法）
+- 也可用自然语言（"帮我做一个新的短视频，主题是 XXX"）触发，LLM 会自行决定调用对应 skill
 
 ## 关键执行规则
 
