@@ -1,0 +1,311 @@
+# ShortVideoDirector — OpenCode 插件
+
+短视频创作工作流插件，提供 5 个子代理（director, writer, scriptwriter, storyboarder, creator）与 44 个 skills。
+
+源代码是 Claude Code 插件，OC 兼容层在 `.opencode/` 下，运行时把源 skills 转换到 `~/.cache/short-video-director/<hash>/` 供 OC 加载，不污染源仓库。
+
+## 依赖
+
+需要在系统上预先安装：
+
+- `dreamina` CLI（即梦视频生成）
+- `python3`（部分脚本依赖）
+
+## 安装
+
+### 方式 A：从 GitHub 安装（推荐给终端用户）
+
+编辑 `~/.config/opencode/opencode.json`：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git"
+  ]
+}
+```
+
+启动 OC 即生效。首次启动会编译 cache（1-3 秒），后续启动复用 cache。
+
+### 方式 B：本地路径安装（推荐给开发/魔改场景）
+
+如果你已经 clone 了仓库到本地（例如 `~/repos/ShortVideoDirector`），用 `file://` 协议指向本地路径：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "file:///home/huangz/repos/ShortVideoDirector"
+  ]
+}
+```
+
+> 路径必须是**绝对路径**且带 `file://` 前缀（三个斜杠）。Windows 用 `file:///C:/path/to/ShortVideoDirector`。
+
+OC 会直接读取该路径下的 `package.json` 与 `.opencode/plugin/index.js`，**不复制不缓存**——改源码立刻生效（OC 重启即可）。
+
+### 方式 C：仅在项目目录内使用
+
+如果你只在仓库目录里跑 OC：
+
+```bash
+cd /path/to/ShortVideoDirector
+opencode
+```
+
+OC 会自动扫描当前目录的 `.opencode/plugin/*.js` 加载插件，**不用动 `opencode.json`**。
+缺点：在其他目录（如 `/tmp/test-project/`）跑 `opencode` 看不到 SVD plugin。
+
+### 三种方式对比
+
+| 方式 | 全局可见 | 改源码立即生效 | 需要联网 | 适合场景 |
+|------|---------|--------------|---------|---------|
+| A. git+https | ✓ | ✗（需 `--force` 重拉） | ✓ | 终端用户、CI |
+| B. file:// | ✓ | ✓ | ✗ | 开发、调试、魔改 |
+| C. 项目本地 | ✗（仅项目目录内） | ✓ | ✗ | 偶尔在仓库内开发 |
+
+## 验证安装
+
+启动 OC 后，在另一个终端运行：
+
+```bash
+opencode agent list
+```
+
+应该看到：
+
+```
+build (primary)
+creator (subagent)
+director (subagent)
+scriptwriter (subagent)
+storyboarder (subagent)
+writer (subagent)
+```
+
+进一步验证 skills 是否加载（应输出 44 个 skill，路径在 `~/.cache/short-video-director/<hash>/skills/`）：
+
+```bash
+opencode debug skill | head -30
+```
+
+## 升级
+
+```bash
+opencode plugin short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git --global --force
+```
+
+## 卸载
+
+从 `opencode.json` 移除 plugin 条目，然后清 cache：
+
+```bash
+rm -rf ~/.cache/short-video-director/
+rm -rf ~/.cache/opencode/node_modules/short-video-director/
+```
+
+## 可选：收紧 build agent 权限
+
+默认 OC `build` agent 全 allow，开箱即用。安全洁癖用户可在 `~/.config/opencode/opencode.json` 加：
+
+```json
+{
+  "agent": {
+    "build": {
+      "permission": {
+        "bash": {
+          "bash $SVD_PLUGIN_DIR/scripts/*": "allow",
+          "mkdir -p story/episodes/*": "allow",
+          "opencode run*": "allow",
+          "*": "ask"
+        },
+        "task": {
+          "director": "allow",
+          "writer": "allow",
+          "scriptwriter": "allow",
+          "storyboarder": "allow",
+          "creator": "allow",
+          "*": "deny"
+        }
+      }
+    }
+  }
+}
+```
+
+## 工作原理
+
+插件做 3 件事：
+
+1. **`config` hook**：把 cache 目录注册到 `config.skills.paths`，把 5 个子代理注册到 `config.agent`
+2. **`shell.env` hook**：注入 `SVD_PLUGIN_DIR=<插件根目录>` 环境变量给所有 bash 调用，使转换后的 `bash $SVD_PLUGIN_DIR/scripts/X.sh` 能定位脚本
+3. **`experimental.chat.messages.transform` hook**：在首条 user message 前注入 bootstrap 文本（列出 9 个 user-invocable workflow + 5 个子代理），用 `SVD_BOOTSTRAP_MARKER` 实现幂等
+
+转换规则（源 CC skill → OC cache skill）：
+
+- **frontmatter**：CC 字段（`context: fork`, `agent`, `user-invocable` 等）移到 `metadata.svd-*`，description 截断到 1024 字符
+- **`使用 Skill tool 调用 X`**：若 X 有 `context: fork` → 重写为 `task({ subagent_type: ..., prompt: "..." })`；否则重写为 `调用 \`skill({ name: "X" })\``
+- **`bash scripts/X.sh`** → **`bash $SVD_PLUGIN_DIR/scripts/X.sh`**
+- **9 个 user-invocable workflow 顶部**：注入"派发约束"指引（按语义单元 chapter/scene/shot/JSON 条目分段派发给子代理，避免单次 Write 过长在 OC 下挂起）
+- **fork-context skill 顶部**：注入"执行上下文：本 skill 已在 X 子代理中"提示
+- **auto-video skill**：CC 的 `CronCreate/List/Delete` 原语替换为基于 nohup loop + HTTP `/session/{SID}/prompt_async` 的调度（OC override 实现，见 `.opencode/skill-overrides/auto-video/`）
+
+cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 的前 16 hex 字符；保留最新 3 个 cache。
+
+## Troubleshooting
+
+**问题：启动后看不到 5 个子代理**
+
+- `opencode agent list` 看输出，若没有 director/writer 等说明 plugin 未加载
+- 检查 `opencode.json` 的 plugin 配置正确性
+- 强制重新拉取插件：`opencode plugin short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git --global --force`
+- 清 cache 后重启：`rm -rf ~/.cache/short-video-director/`
+
+**问题：调用 skill 时报"unknown skill"**
+
+- 可能 cache 不完整。手动清 cache：`rm -rf ~/.cache/short-video-director/`，重启 OC 触发重建
+- 验证转换是否产出 44 个 skill：`opencode debug skill | grep -c '"name":'`
+
+**问题：bash 脚本调用失败说找不到文件**
+
+- 检查 `$SVD_PLUGIN_DIR` 是否正确：在 OC 会话里跑 `bash -c 'echo $SVD_PLUGIN_DIR'`，应输出插件根目录绝对路径
+- 如果输出为空，可能是 OC 版本不支持 `shell.env` hook，请升级 OC（≥ 1.15）
+
+**问题：auto-video 的 nohup loop 没执行 / OC TUI 没收到自动 prompt**
+
+排查步骤：
+1. 确认启动 OC 时加了 `--port`：`pgrep -af opencode` 应看到 `--port NNNN`。
+   没加 → loop curl 找不到 server → loop 几分钟内自杀。重启 OC 用 `opencode --port 4096 -s <SID>`。
+2. 确认 loop 进程在跑：`ls /tmp/svd-auto-video-loop-*-*.pid` + `kill -0 $(cat /tmp/svd-auto-video-loop-*-*.pid)`。
+3. 查 loop 日志：`tail -20 /tmp/svd-auto-video-loop-*-*.log` 看有无 curl 错误（connection refused = OC 已关或没起 server）。
+4. 手动验证 server: `curl http://127.0.0.1:NNNN/global/health` 应返回 `{healthy:true}`。
+5. 重装：删 PID/log/prompt 文件后重跑 `/auto-video ep01 1200`。
+
+## 与 CC 版本的关系
+
+- 源 `skills/`、`agents/`、`scripts/`、`.claude-plugin/` 完全不变，CC 用户继续按现有方式使用
+- OC 兼容层（`.opencode/`、`package.json`）独立增量，不影响 CC
+- 同一仓库同时支持 CC 与 OC，无需 fork
+
+## 开发
+
+测试零依赖 —— 用 Node 内置 `node --test` runner（Node 18+）：
+
+```bash
+# 跑单元测试（90 个）
+npm test
+# 或直接：
+node --test .opencode/tests/*.test.js
+
+# Watch 模式
+npm run test:watch
+
+# 验证 plugin 加载（OC 已启动后另开终端跑）
+opencode agent list
+opencode debug skill | head -30
+```
+
+无 `node_modules`、无 `package-lock.json`、无外部依赖。`package.json` 仅保留 OC 加载需要的字段（`name` / `version` / `type` / `main` / `repository` / `license` / `scripts`）。
+
+## 维护契约：改 CC 源后的 OC 同步 checklist
+
+源（`skills/`、`agents/`、`scripts/`）是单一真相源。**改源后，OC 兼容层有几处硬编码/断言会随之失效**，须同步更新并跑 `npm test` 验证。
+
+### Runtime Write Guard (tool.execute.before hook)
+
+`.opencode/lib/write-guard.js` 在 plugin 启动时注册为 `tool.execute.before` hook，对**每次** tool 调用做参数大小检查：
+
+| 行为 | 触发条件 |
+|---|---|
+| 通过（不干预）| 所有字符串参数 ≤2000 字符 |
+| Throw Error | 任何字符串参数 >2000 字符（**无文件类型例外**）|
+
+Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 各自的正确分段建议）。LLM 看到 error 自然 retry。
+
+阈值固定 `MAX_STRING_ARG_LEN = 2000`（写死，与 AGENTS.md 全局约束一致）。
+
+**为什么没有文件类型例外**：OC 卡死 root cause 是 LLM emit 长字符串参数时的 streaming 中断，跟文件内容类型无关。JSON / YAML 同样按增量模式分段（详见 `ENTRY_WORKFLOW_DISPATCH_DISCIPLINE`）。
+
+### 改 `skills/` 时
+
+| 改动 | 同步位置 | 失败征兆 |
+|------|----------|---------|
+| **加/减 skill 目录** | `.opencode/tests/transform-skills.test.js:240` 的 `assert.equal(dirs.length, 44)` | `produces SKILL.md for all 44 skills` 失败，错误显示实际目录数 |
+| **新 skill 带 `user-invocable: true`** | `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` Set（同时 `.opencode/tests/tool-mapping.test.js:13` 的硬编码列表） | `USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 9 entries` 失败 |
+| **删除已有的 `user-invocable` skill** | 同上 | 同上 |
+| **改 skill 间 `使用 Skill tool 调用 X` 引用** | 自动处理；但 X 必须存在于 `skills/` 否则 transform throws | integration test `produces SKILL.md for all 44 skills` 整个崩，错误显示 "Unknown skill referenced: X" |
+| **新 fork skill（`context: fork`）被其他 skill 引用** | 引用位置**必须**用 `使用 Skill tool 调用 \`<name>\` skill[, 传递参数：\`<args>\`]` 标准模板。`transform-skills.js` 只识别此模板，会改写为 `task` 派发；自然语言"调用 X"会让 OC LLM 选 `skill()` 同上下文加载，破坏 fork 隔离语义（fork→fork 嵌套场景会导致下游 subagent 全部图片/数据塞进单一上下文，附件压缩中断） | 无测试失败（沉默 bug）；只在实际跑 OC 工作流时表现为"该 fork 的下游没被 fork 出去"。verify: wipe cache + `grep "task(" ~/.cache/.../skills/<caller>/SKILL.md` 应有 task 代码块 |
+| **新 review→fix 链路** | review skill 必须 append 写入 `story/episodes/{集数}/.review-{type}.md`（自检 round 用 grep `^## 第 [0-9]+ 轮` + Edit anchor），return 简报 `pass` / `needs_revision M`；fix skill 必须从该文件读最后一轮意见；entry workflow 的派发参数只传 `{集数}`（不传 `"{修改意见}"`）。**目的**：避免大段 review 意见做为 task prompt 参数时 OC 卡死。**核心约定一致性**：6 个 review skill + 6 个 fix skill + 6 个 entry workflow 三层必须同步改 | 无测试失败（沉默 bug）；表现为 fix skill 拿不到意见或 task prompt 卡好几小时。verify: 实际跑一次 review-fix loop，检查 `.review-*.md` 是否生成；fix skill 是否能找到意见列表 |
+| **改 skill `description` 字段超 1024 字符** | 自动 clip 到 1024（无错，但用户可能看到截断的描述） | 无测试失败，但 `opencode debug skill` 看到的 description 被截断 |
+| **删除 `writer-novel/rules.md`** 或类似 aux 文件 | `.opencode/tests/transform-skills.test.js:272` 的 `aux files (rules.md) are copied` test 用了它 | aux test 失败；改用另一个 skill 的 aux 文件即可 |
+
+### 改 `agents/` 时
+
+| 改动 | 同步位置 | 失败征兆 |
+|------|----------|---------|
+| **加/减 agent** | `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG`（5-agent permission 矩阵，硬编码 director/writer/scriptwriter/storyboarder/creator）+ `.opencode/tests/load-agents.test.js:148` 的硬编码列表 | `loads all 5 agents from real project` 失败 |
+| **改 agent frontmatter 的 `model:` 字段** | 自动处理（`model: inherit` 被丢，其他保留） | 无 |
+| **改 agent body（system prompt）** | 自动处理；prompt 末尾会被注入 OC 执行契约 | `agent prompt includes OC execution contract` 检查 `OC 执行契约` 字串存在，不检查内容 |
+
+### 改 `scripts/` 时
+
+| 改动 | 同步位置 | 失败征兆 |
+|------|----------|---------|
+| **加新 script `scripts/X.sh`** | 如果某 agent 需要调用，添加到 `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG[agent].allowScripts` 数组（director/writer/scriptwriter/storyboarder；creator 设为 `'ALL'` 自动放行） | OC 运行时该 agent 调用 `bash $SVD_PLUGIN_DIR/scripts/X.sh` 被 `bash: deny` 拦 |
+| **重命名/删除 script** | 同上：从 `AGENT_BASH_CONFIG` 中移除 | 无测试失败，但 skill 调用旧名会运行时 fail |
+| **`bash scripts/X.sh` 调用方式不变** | 自动处理；`rewriteBashPaths` 注入 `$SVD_PLUGIN_DIR/` 前缀 | 无 |
+| **scripts/ 文件改动触发 cache 重建** | 自动处理；`computeSourceHash` 包含 scripts/ 全部文件 `path:mtime:size`，改动 → 新 hash → cache miss → 重建 → 实复制 scripts/ 到 `cacheDir/scripts/`（保留源文件 mode 位） | 无；若 cache 中 scripts 缺失，强制 `rm -rf ~/.cache/short-video-director/` 重建 |
+
+### 加 / 改 OC skill override
+
+某些 skill 需要 OC 专属实现（如 `auto-video` 因 OC 没有 `CronCreate` 工具）。
+
+| 改动 | 同步位置 | 失败征兆 |
+|------|----------|---------|
+| **加新 OC override `<name>`** | 建目录 `.opencode/skill-overrides/<name>/` 含 `SKILL.md` + 可选 aux 文件（`.sh` `.txt` 等）；`transformAllSkills` 自动检测优先使用 | 无（自动生效）；可用 `rm -rf ~/.cache/short-video-director/ && opencode debug agent director` 验证 cache 内容 |
+| **改 OC override SKILL.md** | 直接编辑 `.opencode/skill-overrides/<name>/SKILL.md` | 同上；cache hash 自动跟随源文件 mtime 变化 |
+| **CC 源改了共享段（如 `## 失败处理`）** | 必须同步到 OC override SKILL.md 同 heading 下；测试 `OC auto-video override shares core sections with CC source` 会 detect 脱钩 | npm test 失败提示不一致段名 + diff |
+| **加 aux 文件** | 放进 OC override 目录；`transformAllSkills` 自动 copy 到 cache | LLM 通过 `$SVD_PLUGIN_DIR/.opencode/skill-overrides/<name>/<aux>` 引用 |
+
+### OC commands 自动 derive
+
+plugin config hook 自动为 `USER_INVOCABLE_ENTRY_WORKFLOWS` 集合中每个 skill 注册同名 OC command（如 `/auto-video`），template 含 `$ARGUMENTS` + `$1~$4` 占位符，OC 会在 user 输入 `/skill-name args...` 时替换并发给 LLM。
+
+维护契约：
+- 新增 user-invocable entry workflow 时，加到 `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` 集合即可，plugin 自动 derive command
+- 用户在 `~/.config/opencode/opencode.json` 自定义同名 command 会被保留（skip-if-exists）
+- 如需修改 template 措辞，改 `.opencode/lib/commands-derive.js` 的 `buildCommandTemplate` 函数（一处生效全部）
+
+### 添 / 改 `agents/` permission 配置（5-agent 矩阵）
+
+如果想把 5 agents 的脚本访问范围调整（例如允许 director 调用 image-gen-dreamina.sh）：
+
+- 改 `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG[agent].allowScripts`
+- 看 `.opencode/tests/load-agents.test.js` 的 `buildPermissionForAgent` describe 块对应测试，可能需要更新断言
+
+### 触发 cache 重建
+
+任何源文件改动后，源 hash 自动变 → 下次 OC 启动重建 cache（一次性，~1 秒）。无需手动清。但开发期想强制清：
+
+```bash
+rm -rf ~/.cache/short-video-director/
+```
+
+### 单次同步流程速查
+
+```bash
+# 1. 改源（agents/X.md 或 skills/X/SKILL.md）
+$EDITOR agents/new-agent.md  # 或类似
+
+# 2. 跑测试看哪里炸
+npm test
+# (按上表对应同步位置修复)
+
+# 3. 重跑测试，全绿后再 commit
+npm test && git add -A && git commit -m "..."
+
+# 4. 启动 OC 真实验证
+opencode agent list
+opencode debug skill | head -30
+```

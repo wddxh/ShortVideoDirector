@@ -4,7 +4,7 @@ description: Director根据用户故事材料生成结构化确认说明。自�
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 

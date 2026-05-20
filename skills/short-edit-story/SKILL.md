@@ -7,6 +7,22 @@ argument-hint: "[自然语言修改意见]"
 model: opus
 ---
 
+## 失败处理（核心规则）
+
+**sub-agent task 失败后，永远不要在主 session 自己接管本应由 sub-agent 做的工作。**
+
+正确做法：
+1. 分析失败原因（task return 值 / 错误信息）
+2. 如可修复：用修正后的参数重新派发同一 sub-agent
+3. 如不可修复：将失败原因和已尝试方案返回给用户，停止流程
+
+错误做法：
+- ❌ "sub-agent 失败了，我自己来写这个 novel.md"
+- ❌ "task 报错了，我在主 session 直接调用 Write"
+- ❌ "我 fallback 一下，自己生成 keyframes.json"
+
+原因：主 session 缺少 sub-agent 的隔离上下文（专属 system prompt、skill 加载、permission 配置），自己接管会导致质量下降、跨步骤上下文污染、permission 错配等问题。即使 sub-agent 失败，工作所有权也必须留在 sub-agent 层。
+
 ## 使用示例
 
 ```
@@ -77,6 +93,8 @@ LLM 在给出方案前必须读以下文件：
 1. **定位入口**：基于"新内容的语义源头在哪个节点"的判断：
    - 新增剧情/角色 → script 层
    - 角色/物品/场景的全局属性变更（外貌、衣着、身份）→ assets 层
+   - 关键帧叙事（剧情节奏、视觉节点编排）→ keyframes 层
+   - 关键帧图片本身不满意但描述/prompt 不变 → keyframe-images 层（仅重生 + visual review）
    - 纯视觉/构图/节奏 → storyboard 层
    - 剧情走向（幕结构、钩子）→ outline 层
    - 清单遗漏补齐（剧本已有但清单漏写）→ asset-list 层
@@ -121,26 +139,31 @@ LLM 在给出方案前必须读以下文件：
 2. 每个清单节点调用对应 skill（见下表）
 3. 传给下游 skill 的"修改意见"用方案中的具体描述，不是用户原始输入
 4. review 节点仅在同名节点本次有改动时触发
-5. review 失败 → 自动调对应 fix skill ≤2 轮；2 轮仍失败 → 记录到阶段 4 摘要并继续后续节点
+5. review 失败（return `needs_revision M`）→ 自动调对应 fix skill ≤2 轮 fix（fix skill 自动读 `.review-{type}.md` 最后一轮意见）；2 轮 fix 后再 review 仍失败 → 记录到阶段 4 摘要并继续后续节点
 6. 不在清单中的节点跳过
 7. `config.md` 图像模型 = `none` 时，images 节点跳过并在阶段 4 摘要中提示
 8. 某节点 skill 调用失败（非 review 失败）→ 该节点终止并中断后续级联（与 review 失败不同，review 失败仅记录继续），在阶段 4 摘要中报错
 
 #### 节点 → skill 对照
 
-| 节点动作 | skill 及参数 |
-|---------|------------|
-| 修 outline | `short-fix-outline`（`ep01 "{修改意见}"`） |
-| 写 script | `scriptwriter-script`（`ep01`） |
-| 修 script | `scriptwriter-fix-script`（`ep01 "{修改意见}"`） |
-| review script | `director-review-script`（`ep01`） |
-| Edit asset-list 清单 | 直接用 Edit 改 `story/episodes/ep01/outline.md` 的「本集资产清单」部分（依据方案中的新增/删除条目；不调用 `storyboarder-asset-list`） |
-| 创建资产文件 | `creator-create-assets`（`ep01`） |
-| 修资产文件 | `creator-fix-asset`（`{资产文件路径} "{修改意见}"`） |
-| 覆盖单张资产图（已知资产路径）| `creator-image-{config 图像模型}`（`"{资产文件路径}"`） |
-| 批量生成新增资产图 | `creator-generate-images`（`ep01`） |
-| 修 storyboard | `short-fix-storyboard`（`ep01 "{修改意见}"`） |
-| review storyboard | `short-review-storyboard`（`ep01`） |
+| 节点动作 | skill 调用 |
+|---------|-----------|
+| 修 outline | 使用 Skill tool 调用 `short-fix-outline` skill，传递参数：`ep01 "{修改意见}"` |
+| 写 script | 使用 Skill tool 调用 `scriptwriter-script` skill，传递参数：`ep01` |
+| 修 script | 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传递参数：`ep01` |
+| review script | 使用 Skill tool 调用 `director-review-script` skill，传递参数：`ep01` |
+| Edit asset-list 清单 | 直接用 Edit 改 `story/episodes/ep01/outline.md` 的「本集资产清单」部分（依据方案中的新增/删除条目；不调用 `director-keyframes`，仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframes 节点） |
+| 修 keyframes | 使用 Skill tool 调用 `director-keyframes` skill，传递参数：`ep01 incremental` |
+| review keyframes 叙事 | 使用 Skill tool 调用 `director-review-keyframes-narrative` skill，传递参数：`ep01` |
+| 创建资产文件 | 使用 Skill tool 调用 `creator-create-assets` skill，传递参数：`ep01` |
+| 修资产文件 | 使用 Skill tool 调用 `creator-fix-asset` skill，传递参数：`{资产文件路径} "{修改意见}"` |
+| 重生成关键帧 .md | 使用 Skill tool 调用 `creator-keyframe-prompts` skill，传递参数：`ep01 incremental "{dirty list}"` |
+| 覆盖单张资产图（已知资产路径）| 使用 Skill tool 调用 `creator-image-{config 图像模型}` skill，传递参数：`"{资产文件路径}"` |
+| 批量生成新增资产图 + 关键帧图 | 使用 Skill tool 调用 `creator-generate-images` skill，传递参数：`ep01` |
+| 修关键帧图（含 prompt 调整 + 重抽）| 使用 Skill tool 调用 `creator-fix-keyframe-image` skill，传递参数：`ep01` |
+| review keyframes 画面 | 使用 Skill tool 调用 `director-review-keyframes-visual` skill，传递参数：`ep01` |
+| 修 storyboard | 使用 Skill tool 调用 `short-fix-storyboard` skill，传递参数：`ep01` |
+| review storyboard | 使用 Skill tool 调用 `short-review-storyboard` skill，传递参数：`ep01` |
 
 ### 阶段 4: 完成
 
@@ -171,11 +194,15 @@ outline（大纲）
    ↓
 script（剧本）  ← [若改动则 director-review-script + ≤2 轮 fix]
    ↓
-asset-list（资产清单，嵌在 outline.md）
+keyframes（关键帧描述 + 资产清单）  ← [若改动则 director-review-keyframes-narrative + ≤2 轮 fix]
+   ↓
+asset-list（资产清单，嵌在 outline.md；可独立 Edit 局部补漏）
    ↓
 assets（资产 .md 文件）
    ↓
-images（资产 .png 图片）
+keyframe-mds（关键帧 .md：assets/keyframes/{ep}/）
+   ↓
+images（资产 .png 图片 + 关键帧 .png 图片）  ← [keyframe 图变动则 director-review-keyframes-visual + ≤2 轮 creator-fix-keyframe-image]
    ↓
 storyboard（分镜）  ← [若改动则 short-review-storyboard + ≤2 轮 fix]
 ```
@@ -184,9 +211,11 @@ storyboard（分镜）  ← [若改动则 short-review-storyboard + ≤2 轮 fix
 
 | 入口节点 | 最上游动作 | 下游候选（按需触发） |
 |---------|-----------|---------------------|
-| outline | `short-fix-outline` | scriptwriter-script → review+fix → asset-list → create-assets → images → storyboard → review+fix |
-| script | `scriptwriter-fix-script` | review+fix → asset-list → create-assets → images → storyboard → review+fix |
+| outline | `short-fix-outline` | scriptwriter-script → review+fix → keyframes → review+fix → create-assets → keyframe-prompts → images → keyframes-visual review+fix → storyboard → review+fix |
+| script | `scriptwriter-fix-script` | review+fix → keyframes → review+fix → create-assets → keyframe-prompts → images → keyframes-visual review+fix → storyboard → review+fix |
+| keyframes | `director-keyframes incremental` | review+fix → keyframe-prompts (incremental, dirty list) → images → keyframes-visual review+fix → storyboard → review+fix（若 keyframes 编排变化引入了新资产则同步触发 create-assets） |
 | asset-list | 直接 Edit `outline.md` 清单 | create-assets → images |
 | assets（文字变动）| `creator-fix-asset` | images → short-fix-storyboard（仅引用此资产的镜头）→ review+fix |
+| keyframe-images（仅重生 + 审）| `creator-fix-keyframe-image` | keyframes-visual review（≤2 轮 fix loop 内置）→ short-fix-storyboard（仅引用此 keyframe 的镜头）→ review+fix |
 | images（仅重生）| `creator-image-{模型}` | 无 |
 | storyboard | `short-fix-storyboard` | review+fix |

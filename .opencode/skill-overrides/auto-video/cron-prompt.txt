@@ -1,0 +1,29 @@
+自动视频检查任务触发。目标：{{TARGET}}。
+
+1. 使用 task tool 发起一个隔离的 sub-agent（subagent_type: general），
+   prompt 为：
+     "使用 Skill tool 调用 check-video skill，传递参数：{{TARGET}} --auto。
+     完整返回 skill 的输出。不要自行调用 dreamina CLI 或视频生成脚本，
+     不要绕过 skill 做查询/重试。"
+
+2. 从 sub-agent 返回文本中提取 JSON 摘要（LLM 理解，不固定最后一行规则）。
+   解析失败或无 JSON 时，基于整段返回文本语义推断 all_complete 与
+   recoverable（不确定偏向 all_complete=false / recoverable=true）。
+
+3. 按 JSON 决定：
+   - **all_complete == true** → kill loop 并清理：
+       kill $(cat /tmp/svd-auto-video-loop-{{TARGET}}-{{SID}}.pid) 2>/dev/null
+       rm -f /tmp/svd-auto-video-loop-{{TARGET}}-{{SID}}.{pid,log}
+       rm -f /tmp/svd-cron-prompt-{{TARGET}}-{{SID}}.txt
+     输出最终摘要 + human_needed 详情 +
+     "可用 /check-video {{TARGET}} 手动处理"
+   - **含 error 且 recoverable=false** → 同上 kill + 清理；输出 error 描述
+   - **其他** → 输出一行进度（完成 X / 排队 Y / 失败 Z），等下次触发
+
+严禁：
+- 不要以任何理由（包括测试、验证、调试）自行调用 dreamina CLI 提交
+  视频/图片生成任务。视频生成成本很高，只有 check-video skill 内的
+  重试流程才允许提交。
+- 不要绕过 sub-agent → check-video 路径直接执行查询/重试/生成。
+- 不要在主会话里直接调 check-video skill —— 必须通过 task tool sub-agent
+  隔离上下文。

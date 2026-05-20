@@ -1,12 +1,12 @@
 ---
-name: storyboarder-asset-list
-description: Storyboarder提取本集使用的所有资产（标注新增/已有），写入ep outline.md。
+name: creator-keyframe-prompts
+description: Creator 把 keyframes.json 翻译成关键帧 .md 文件（含视觉描述和图像生成提示词），落盘到 assets/keyframes/{ep}/。
 user-invocable: false
 ---
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/storyboarder-asset-list/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/creator-keyframe-prompts/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -56,7 +56,7 @@ user-invocable: false
 
 ## 执行源 Skill
 
-1. 读取 `skills/storyboarder-asset-list/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/storyboarder-asset-list/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+1. 读取 `skills/creator-keyframe-prompts/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/creator-keyframe-prompts/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
 3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

@@ -4,7 +4,7 @@ description: Scriptwriter根据Director修改意见定向修正剧本。读取�
 user-invocable: false
 context: fork
 agent: scriptwriter
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 
@@ -16,10 +16,10 @@ model: sonnet
 - `config.md` — 必须读取
 - `assets/characters/*.md` — 若存在则全部读取（角色一致性参考）
 - `skills/scriptwriter-script/rules.md` — 必须读取并严格遵循
+- `story/episodes/$ARGUMENTS[0]/.review-script.md` — 必须读取（含本轮 review 意见）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）
-- `$ARGUMENTS[1]` — 修改意见（由 workflow 传入，来源可能是 Director 审核或用户编辑请求）
 
 ## 职责描述
 
@@ -29,7 +29,7 @@ model: sonnet
 
 ### 工作思路
 
-1. 完整通读 script.md 现状，再读 $ARGUMENTS[1]，把每条意见映射到具体场景 / 台词 / 动作描写
+1. 完整通读 script.md 现状，再读 `.review-script.md`，**定位最后一个 `## 第 N 轮` heading**（用 grep `^## 第 [0-9]+ 轮` 找最大 N 段），用该段内的意见列表，把每条意见映射到具体场景 / 台词 / 动作描写
 2. 评估每条修正的连锁影响：改一句台词是否影响场景内时长分配？改场景描写是否需要同步调整动作 / 对白？
 3. 必要时把"修正一处"扩展为"修正这一处 + 同场景内被影响的台词与动作描写"——但不擅自改与意见无关的场景
 4. 动笔时仍用 scriptwriter-script 的"画面在前，对白在后"和"每句台词服务剧情或塑造人物"原则

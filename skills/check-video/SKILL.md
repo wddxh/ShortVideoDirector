@@ -7,6 +7,22 @@ argument-hint: "集数 [--auto]"
 model: opus
 ---
 
+## 失败处理（核心规则）
+
+**sub-agent task 失败后，永远不要在主 session 自己接管本应由 sub-agent 做的工作。**
+
+正确做法：
+1. 分析失败原因（task return 值 / 错误信息）
+2. 如可修复：用修正后的参数重新派发同一 sub-agent
+3. 如不可修复：将失败原因和已尝试方案返回给用户，停止流程
+
+错误做法：
+- ❌ "sub-agent 失败了，我自己来写这个 novel.md"
+- ❌ "task 报错了，我在主 session 直接调用 Write"
+- ❌ "我 fallback 一下，自己生成 keyframes.json"
+
+原因：主 session 缺少 sub-agent 的隔离上下文（专属 system prompt、skill 加载、permission 配置），自己接管会导致质量下降、跨步骤上下文污染、permission 错配等问题。即使 sub-agent 失败，工作所有权也必须留在 sub-agent 层。
+
 ## 使用示例
 
 ```
@@ -123,8 +139,8 @@ model: opus
 1. 显示镜头编号和 `fail_reason` 原文
 2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
 3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
-   - 涉及分镜/画面描述修改 → 检查是否存在 `story/episodes/{集数}/script.md`（短视频）或 `story/episodes/{集数}/novel.md`（系列视频），使用对应的 fix-storyboard skill（`short-fix-storyboard` 或 `storyboarder-fix-storyboard`）
-   - 涉及资产/图片修改 → 使用 Bash 调用 `bash scripts/read-config.sh "图像模型"` 获取图像模型值，调用 `creator-fix-asset` skill + `creator-image-{图像模型值}` skill
+   - 涉及分镜/画面描述修改 → 检查是否存在 `story/episodes/{集数}/script.md`（短视频，使用 Skill tool 调用 `short-fix-storyboard` skill）或 `story/episodes/{集数}/novel.md`（系列视频，使用 Skill tool 调用 `storyboarder-fix-storyboard` skill）
+   - 涉及资产/图片修改 → 使用 Bash 调用 `bash scripts/read-config.sh "图像模型"` 获取图像模型值，使用 Skill tool 调用 `creator-fix-asset` skill + 使用 Skill tool 调用 `creator-image-{图像模型值}` skill
 4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
 5. 重新生成 prompt：`bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`
 6. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`

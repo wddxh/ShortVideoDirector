@@ -48,6 +48,21 @@
 claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
+### For OpenCode users
+
+本仓库同时支持 OpenCode（`.opencode/` 兼容层）。在 `~/.config/opencode/opencode.json` 添加：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git"
+  ]
+}
+```
+
+启动 OC 即自动注册 5 个子代理与 44 个 skills。完整安装/升级/troubleshooting 说明见 [`.opencode/README.md`](./.opencode/README.md)。
+
 ## Codex
 
 Codex 支持是对 Claude Code plugin 的兼容层，由 `.codex-plugin/plugin.json` 提供。
@@ -340,13 +355,18 @@ ShortVideoDirector/
 │   ├── director-review-novel/   # Director 审核小说
 │   ├── director-review-storyboard/ # Director 审核分镜
 │   ├── director-fix-outline/      # Director 修正大纲
+│   ├── director-keyframes/      # Director 规划关键帧 + 资产清单
+│   ├── director-review-keyframes-narrative/ # Director 审核关键帧叙事
+│   ├── director-review-keyframes-visual/    # Director 视觉审核汇总层
+│   ├── director-review-keyframe-visual-single/ # Director 单帧视觉审核
 │   ├── writer-novel/            # Writer 生成小说
-│   ├── storyboarder-asset-list/ # Storyboarder 生成资产清单
 │   ├── storyboarder-storyboard/ # Storyboarder 生成分镜
 │   ├── storyboarder-fix-storyboard/ # Storyboarder 修正分镜
 │   ├── writer-fix-novel/        # Writer 修正小说
 │   ├── creator-create-assets/   # Creator 创建资产
-│   ├── creator-generate-images/ # Creator 批量生成资产参考图片（路由层）
+│   ├── creator-keyframe-prompts/ # Creator 把 keyframes.json 翻译为关键帧 .md
+│   ├── creator-fix-keyframe-image/ # Creator 修订关键帧 prompt 并重抽图
+│   ├── creator-generate-images/ # Creator 批量生成资产/关键帧参考图片（路由层）
 │   ├── creator-image-dreamina/  # Creator 即梦图片生成（模型编排层）
 │   ├── generate-video/          # 提交视频生成任务（用户可调用）
 │   ├── check-video/             # 查询视频生成结果（用户可调用）

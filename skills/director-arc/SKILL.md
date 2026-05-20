@@ -4,7 +4,7 @@ description: Director生成阶段级剧情弧线规划。自动读取config.md�
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 
