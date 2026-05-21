@@ -33,3 +33,11 @@
 - 续集忽视前集设置: 引入与既有 arc/上集冲突的新元素
 - 跨集人物状态不一致: 上集结束角色 X 已知 Y，本集开头又问 Y 是什么
 - 跳跃式开场承接生硬: 开场用高潮/悬疑跳跃式抓人后，第二场景没有自然承接
+
+## 「本集新增资产」段 series 模式补充
+
+（公共规则见 director-outline/SKILL.md Phase 5 + director-outline/rules.md 「新增资产规则」段）
+
+series 模式额外约束:
+- **arc.md 已声明的角色**：若本集首次出场, 仍按"新增"列入「本集新增资产」段（arc.md 是叙事大纲非 asset 注册表; 实际 asset 创建归 creator-create-assets 在本集执行）
+- **continue-series 模式**: 前集 outline.md「本集资产清单」中的 asset（已由前集 scriptwriter Phase 5 落地为 `assets/<type>/<名称>.md` 文件）→ 本集复用, **不入**「本集新增资产」（Glob 已注册 → 直接复用）
