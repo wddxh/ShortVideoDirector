@@ -1,6 +1,6 @@
 ---
 name: director-input-confirm
-description: Director根据用户故事材料生成结构化确认说明。自动读取config.md、arc.md、outline.md、最近M集novel。
+description: Director 根据用户故事材料生成结构化确认说明。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 context: fork
 agent: director
@@ -10,50 +10,54 @@ model: sonnet
 
 ## 输入
 
-### 文件读取
-- `config.md` — 必须读取
-- `story/arc.md` — 若存在则读取
-- `story/outline.md` — 若存在则读取
-- 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
+通过 prompt 接收：
+- mode: 'new-series' | 'continue-series' | 'short'
+- $ARGUMENTS[0]: 用户故事材料文本 (或反馈内容)
 
-### 模式判断
-- 若 `story/outline.md` 不存在 → new-story 模式
-- 若 `story/outline.md` 已存在 → continue-story 模式
+## 必读文件
 
-### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 用户故事输入或用户反馈内容
+- `config.md` — 必读
+- `skills/director-input-confirm/series.md` (when mode ∈ {new-series, continue-series}) — 必读并严格遵循
+- `skills/director-input-confirm/short.md` (when mode = short) — 必读并严格遵循
 
-## 职责描述
+## 工作流
 
-根据用户提供的故事材料，生成结构化的确认说明，梳理核心设定、关键转折和集尾钩子。
+### Phase 1: 检测 mode 并加载专属指南 (必做)
 
-## 输出格式
+1. 解析 prompt 中的 mode 参数
+2. 按 mode 用 Read tool 加载**仅对应 mode 的文件** (避免 prompt 污染):
+   - mode ∈ {'new-series', 'continue-series'}: Read('skills/director-input-confirm/series.md')
+   - mode = 'short': Read('skills/director-input-confirm/short.md')
+3. **不要**加载非当前 mode 的文件
+4. 严格按"公共骨架 + 当前 mode 文件"指引执行后续 Phase
 
-**new-story 时（story/outline.md 不存在）：**
+### Phase 2: 上下文准备
 
-```markdown
-## {主题名称}
-- **剧名：** {剧名}
-- **核心设定：** {一句话概括世界观和主角定位}
-- **开篇钩子：** {第一集的核心冲突/悬念}
-- **卖点分析：** {为什么适合短视频}
-```
+- 读 `config.md`
+- 按 mode 文件指引读其他上下文 (series 需 arc.md / story/outline.md / 最近 M 集 novel；short 仅 config)
 
-**continue-story 时（story/outline.md 已存在）：**
+### Phase 3: 生成结构化确认说明 (公共骨架)
 
-```markdown
-## {走向名称}
-- **关键转折：** {本集核心冲突或反转}
-- **涉及角色：** {主要出场角色}
-- **集尾钩子：** {收束方式 — 描述}
-- **对整体剧情的影响：** {如何推动后续剧情}
-```
-
-## 规则
-
+所有 mode 都满足：
+- 输出 Markdown 格式确认说明
 - 忠实于用户输入，不过度发挥
+- 版权规避：不得使用现实明星 / 公众人物 / 真实地名 / 商标
+- 若材料涉及现实版权 IP，须在说明末尾追加版权规避提示
+- 按当前 mode 文件中"字段清单"填写
 
-## 输出
+### Phase 4: mode 专属确认项
 
-### 返回内容
-- 结构化确认说明（Markdown 格式） → 返回给 workflow 展示
+按 Phase 1 加载的 series.md / short.md "强制确认项 / 强制问用户" 指引执行：
+- series 模式：restate 总集数 (来自 plot-options 阶段)，并按 mode 文件追问 arc 相关设定
+- short 模式：无 arc 提问，不问总集数
+
+### Phase 5: 用户交互
+
+展示确认说明 + (series) arc 设定追问，等待用户回应：
+- 用户确认 → 返回最终方向文本给 workflow
+- 用户提反馈 → 反馈作为 `$ARGUMENTS[0]` 重新执行本 skill
+
+## 通用规则
+
+- "总集数"在 director-plot-options 阶段已问；本 skill 仅 **restate / 确认**，不再追问
+- continue-series 时确认说明须与 arc 当前阶段目标对齐
