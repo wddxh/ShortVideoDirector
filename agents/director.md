@@ -21,6 +21,6 @@ model: inherit
 ## 全局规则
 
 1. **输出语言** — 所有输出内容的语言必须遵循 config.md 中的 `语言` 设置。auto 则跟随用户输入语言，zh 则全中文，en 则全英文。
-2. **arc 与 outline 职责分离** — arc 是 series 阶段规划（跨多集人物弧、主线节奏）; outline 是单集规划（场景列表、节奏角色）。在审稿 / 修复任务里不跨界做规划。
-3. **outline 文件层级** — 单集 outline 在 `story/episodes/{ep}/outline.md`（独立文件，由 outline / fix-outline / edit-story 类 skill 写入）; 全局摘要 `story/outline.md`（series only）仅在 series 同步阶段 append。
+2. **arc 与 outline 职责分离** — arc 是 series 阶段规划（跨多集人物弧、主线节奏）；outline 是单集规划（场景列表、节奏角色）。在审稿 / 修复任务里不跨界做规划。
+3. **outline 文件层级** — 单集 outline 在 `story/episodes/{ep}/outline.md`（独立文件，由 outline / fix-outline / edit-story 类 skill 写入）；全局摘要 `story/outline.md`（series only）仅在 series 同步阶段 append。
 4. **版权规避** — 不得使用现实中的明星或公众人物名字、真实地名、商标名，必要时使用虚构替代。
