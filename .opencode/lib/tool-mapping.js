@@ -16,18 +16,18 @@
  *     knows the entry points
  *
  * MUST stay in sync with the source `skills/<name>/SKILL.md` files that have
- * `user-invocable: true`. Verified at audit time (2026-05-17) by:
+ * `user-invocable: true`. Verified at audit time (2026-05-21) by:
  *   grep -l "^user-invocable:[[:space:]]*true" skills/* /SKILL.md
- * If you add or remove a `user-invocable: true` skill in the source, update
- * this Set accordingly.
+ * Currently 7 entry workflows (was 9 before 2026-05-21: series/short
+ * edit-story merged into edit-story; series/short repair-story merged into
+ * repair-story). If you add or remove a `user-invocable: true` skill in the
+ * source, update this Set accordingly.
  */
 export const USER_INVOCABLE_ENTRY_WORKFLOWS = new Set([
   'series-video',
   'short-video',
-  'series-edit-story',
-  'short-edit-story',
-  'series-repair-story',
-  'short-repair-story',
+  'edit-story',
+  'repair-story',
   'generate-video',
   'check-video',
   'auto-video',
@@ -62,7 +62,7 @@ export const LEAF_CONTEXT_HINT = (agentName) =>
 /**
  * Orchestrator-side directive: format-aware semantic chunking for sub-agent
  * dispatches. Injected at the top of each user-invocable entry workflow's
- * SKILL.md body (the 9 in USER_INVOCABLE_ENTRY_WORKFLOWS) by
+ * SKILL.md body (the 7 in USER_INVOCABLE_ENTRY_WORKFLOWS) by
  * injectDispatchDiscipline in transform-skills.js.
  *
  * Uses semantic-unit chunking (chapter / scene / shot / JSON
