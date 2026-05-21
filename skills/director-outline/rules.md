@@ -15,8 +15,8 @@
 ## 场景列表
 
 ### 场景 1: {场景标题}
-- **地点 (location asset):** {asset id 或 "本集新增"}
-- **出场角色 (character assets):** {asset id 列表 或 "本集新增"}
+- **地点 (location asset):** {asset id 或 "本集新增"}  <!-- asset id = 资产名, 见下方 "asset id 规则" -->
+- **出场角色 (character assets):** {asset id 列表 或 "本集新增"}  <!-- 同上 -->
 - **节奏角色:** {开场 / 铺垫 / 推进 / 高潮 / 收束 / 过渡 之一}
 - **动作:** {1-3 个连续动作的描述}
 
@@ -36,9 +36,10 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
 ### Asset 引用约束
 - 每个场景的 `地点` 和 `出场角色` 字段中引用的 asset，必须满足以下之一：
   - 已在 `assets/characters/` 或 `assets/locations/` 中注册
-  - 在本集 outline 的「本集新增资产」清单中显式列出（待 creator-keyframe-prompts / creator-create-assets 后续创建）
+  - 在本集 outline 末尾的 `## 本集新增资产` 段中显式列出（director-outline 阶段产物，scriptwriter Phase 5 后切换为 `## 本集资产清单` superset 终态）
 - 不允许 dangling reference（引用未注册且未声明新增的 asset）
-- item asset（道具）此阶段不在场景字段中强制列出，由 scriptwriter / storyboarder 后续补充
+- item asset（道具）此阶段**在场景字段中不出现**（场景仅写地点 + 出场角色），但 director-outline 阶段已知的新增 items 应列入 `## 本集新增资产` 段供 scriptwriter 复用
+- buildings: 同 items 处理（已知建筑列入「本集新增资产」段，未涉及写 `(无)`）
 
 ### 节奏角色
 - 每个场景**有且仅有一个**节奏角色，取值范围：
@@ -74,3 +75,57 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
 - new-series vs continue-series mode 的输出文件操作差异（由 generate-episode-pipeline 编排）
 - 全局 story/outline.md 同步策略
 - mode 专属失败模式（钩子无力、续集状态不一致、结局仓促等）
+
+## 新增资产规则
+
+### 定义
+
+"新增资产" = 在本集 outline 中引用，但**未在 `assets/{characters,locations,items,buildings}/` 注册**的角色 / 地点 / 物品 / 建筑。
+
+### asset id 规则
+
+- **asset id = 资产名**，禁止英文化 / kebab-case 转写。
+- **语言遵循 `config.md` 「语言」设置**：
+  - `auto` → 跟随输入材料语言（中文输入 → 中文 id；英文输入 → 英文 id）
+  - `zh` → 全中文 id（如「沈昭」「地下室」「旧怀表」）
+  - `en` → 全英文 id（如 `Shen_Zhao`、`Basement`、`Old_Pocket_Watch`，**下划线连接多词**，禁止 kebab-case）
+  - 自定义 → 按指定语言
+- 与 `creator-create-assets/rules.md:8` 文件名一致（资产名为「张三」→ 文件名 `张三.md` → asset id `张三`）。
+- **明确禁止 LLM 自发添加英文 prefix / 转写**：
+  - ❌ `char-沈昭`、`loc-地下室`、`item-旧怀表`（前缀英文化）
+  - ❌ `char-shen-zhao`、`loc-basement`、`shen-zhao`（kebab-case 转写）
+  - ❌ `Shen-Zhao` / `shen_zhao`（en 时大小写或连接符不一致）
+  - ✅ `沈昭`（zh） / `Shen_Zhao`（en）
+- **语言一致性**（R3 缓解）: 同一 outline 内所有 asset id 必须使用同一语言（zh / en / 自定义不混入），director-review-outline 据此 dangling check 时一并检查
+
+### 「本集新增资产」段格式（director-outline 阶段中间产物）
+
+```
+## 本集新增资产
+- characters: 王五 (assets/characters/王五.md), 赵六 (assets/characters/赵六.md)
+- locations: 地下室 (assets/locations/地下室.md)
+- items: 旧怀表 (assets/items/旧怀表.md)
+- buildings: (无)
+```
+
+- 按 asset 类型分组（4 类固定顺序：characters / locations / items / buildings）
+- 每条 `<asset id> (assets/<type>/<asset id>.md)`
+- 类型无新增写 `(无)`，**不可省略类型行**
+
+### 复用判断（防止重复创建）
+
+- 写入「本集新增资产」前**必须 Glob** `assets/{characters,locations,items,buildings}/*.md` 扫描已注册全集
+- 资产名**精确匹配**已注册文件 → 直接复用（不入「本集新增资产」）
+- 名字**相近**（"巡查义体" vs "天工坊巡查义体"）→ 优先复用更具体的已存在资产
+- 同一资产不同造型 → 按 `creator-create-assets/rules.md:7` 判断是否独立变体文件
+
+### 阶段流转
+
+| 阶段 | outline.md 末尾段 | 操作 |
+|------|----|----|
+| director-outline 产出 | `## 本集新增资产` | Write |
+| director-review-outline 检查 | `## 本集新增资产` | Read（dangling check 依据） |
+| director-fix-outline 修订 | `## 本集新增资产` | Edit |
+| scriptwriter-script Phase 5 后 | `## 本集资产清单`（含两子段 superset） | Edit（detect-then-write） |
+
+director-outline 自身阶段仅写「本集新增资产」段；scriptwriter Phase 5 后段名切换为「本集资产清单」并扩充为含「### 新增资产」+「### 已有资产（本集出场）」两子段 superset，详见 scriptwriter-script/rules.md。
