@@ -1,6 +1,6 @@
 ---
 name: director-plot-options
-description: 生成 3 个差异化剧情候选并与用户协商选定。按 mode 自动加载 series.md 或 short.md 专属指南。
+description: 生成 3 个差异化剧情候选 (action='generate') 或按 modification 修订候选 (action='modify')。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 context: fork
 agent: director
@@ -67,7 +67,7 @@ model: sonnet
 
 ### Phase 4: 自检
 
-按 mode 文件中"专属失败模式"自查; 不通过则回 Phase 3。
+按 mode 文件中"专属失败模式"自查; 不通过则回 Phase 3 对应分支 (3a/3b/3c, 按本次 action) 重做。
 
 ## 输出
 
