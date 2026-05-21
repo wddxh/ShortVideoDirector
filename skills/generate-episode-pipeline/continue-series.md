@@ -12,23 +12,34 @@
 
 ## review 循环 (通用模式, 适用所有 review-* 步骤)
 
-每个 review-* 步骤遵循下述循环, 最多 2 轮修复:
+每个 review-* 步骤最多 fix 2 次。**main session 自己维护 fix 计数 (fix_attempts)**, 不要依赖 review 文件的"第 N 轮"编号——那是 review skill 内部调用次数计数 (每次 review 调用 +1), 与 fix 次数无关。
 
-1. 使用 Skill tool 调用 <review-skill> → 产生 `.review-<type>.md`
-2. 读 `.review-<type>.md` 最后一轮结论:
+1. 使用 Skill tool 调用 <review-skill> (initial review) → 追加到 `.review-<type>.md`
+2. 读 `.review-<type>.md` 最后一段结论:
    - "pass" → 进入下一 Step
-   - "needs_revision" → 进入修复循环 (下方)
+   - "needs_revision" → 进入修复循环 (fix_attempts 从 1 开始)
 
-修复循环 (循环 i ∈ {1, 2}):
+修复循环:
+
+**第 1 次** (fix_attempts=1):
 - a. 使用 Skill tool 调用 <fix-skill> (传 `.review-<type>.md` 路径)
-- b. 使用 Skill tool 重新调用 <review-skill> → 写入 `.review-<type>.md` 新一轮
+- b. 使用 Skill tool 调用 <review-skill> → 追加新一段到 `.review-<type>.md`
 - c. 读最新结论:
   - pass → 跳出循环, 进入下一 Step
-  - i == 2 且仍 needs_revision → main session 直接 print:
-    > ⚠️ <ep> <step name> review 第 2 轮仍未通过, 剩余问题:
-    > <从 .review-<type>.md 摘要>
-    > 已自动跳过, 继续下一步。可用 /edit-story 手动修订。
+  - needs_revision → 进入第 2 次
+
+**第 2 次** (fix_attempts=2):
+- a. 使用 Skill tool 调用 <fix-skill>
+- b. 使用 Skill tool 调用 <review-skill> → 追加新一段
+- c. 读最新结论:
+  - pass → 跳出循环, 进入下一 Step
+  - needs_revision → main session 直接 print:
+    > ⚠️ <ep> <step name> 已尝试 2 次修复后仍未通过, 剩余问题:
+    > <从 .review-<type>.md 最后一段摘要>
+    > 已自动跳过, 继续下一步 (使用已有的 outline / assets / keyframes 等产物)。可用 /edit-story 手动修订。
     然后跳出循环, 进入下一 Step
+
+**绝不问用户**: 跳过不需要用户确认; print 警告后直接进入下一 Step (使用已有产物, 不阻断 pipeline)。
 
 ### review → fix skill 映射
 
