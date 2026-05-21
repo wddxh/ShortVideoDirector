@@ -1,6 +1,6 @@
 ---
 name: director-arc
-description: Director生成阶段级剧情弧线规划。自动读取config.md、outline.md、最近M集novel，并写入arc.md。
+description: Director生成阶段级剧情弧线规划（series 必生成）。读取 config.md、已有 outline.md、最近 M 集 novel，写入 arc.md。
 user-invocable: false
 context: fork
 agent: director
@@ -12,71 +12,34 @@ model: sonnet
 
 ### 文件读取
 - `config.md` — 必须读取
-- `story/outline.md` — 若存在则读取
-- 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
+- `story/outline.md` — 若存在则读取（continue-series 时参考）
+- 最近 M 集 novel.md — 若 `story/outline.md` 存在，按 config.md 中 `上下文集数` M，用 Glob 匹配 `story/episodes/ep*/novel.md` 取最近 M 集读取
+- `skills/director-arc/rules.md` — 必须读取并严格遵循（输出 schema、节点集数标注约定、常见误区）
 
 ### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 总集数
-- `$ARGUMENTS[1]` — 选定的剧情方向（引号包裹的完整文本）
+- `$ARGUMENTS[0]` — **总集数 N（必填）**。由 plot-options 阶段与剧情方向一同决定并经 input-confirm 确认，本 skill 不再向用户询问；缺失 → 报错退出
+- `$ARGUMENTS[1]` — 选定的剧情方向（引号包裹的完整文本，必填）
 
 ## 职责描述
 
-根据总集数和剧情方向，生成阶段级剧情弧线规划。
+### 核心使命
+series 模式下**必生成** `story/arc.md`，作为后续 director-outline / scriptwriter-script / director-review-script / continue-series 定位的唯一叙事骨架来源。
 
-## 输出格式
+### 范围边界
+- 只规划 arc 级骨架（主线 / 副线节点、人物弧、世界观要点），不展开单集场景
+- **不在节点上挂"节奏角色"字段**（节奏是单集 outline / scriptwriter 的事）
+- **不写独立的"关键转折点 (跨节点)" section**，关键转折并入各节点的"关键转折"字段
+- 单集详细规划由 director-outline 在生成 epNN/outline.md 时按 arc 节点展开
 
-```markdown
-# 剧情弧线
-
-总集数：{N}
-
-## 总体剧情
-{完整故事的总体概述：核心冲突、主要角色关系、故事走向和最终结局。篇幅根据故事复杂度自行决定，确保后续各阶段和每集规划都能从中找到清晰的叙事依据}
-
-## 第1-{X}集：{阶段名称}
-- **阶段目标：** {描述}
-- **关键转折点：** {描述}
-- **角色发展：** {描述}
-- **阶段结尾钩子：** {描述}
-
-### 每集规划
-- **第1集：** {本集主要剧情概述}
-- **第2集：** {本集主要剧情概述}
-- ...
-- **第{X}集：** {本集主要剧情概述}
-
-## 第{X+1}-{Y}集：{阶段名称}
-- **阶段目标：** {描述}
-- **关键转折点：** {描述}
-- **角色发展：** {描述}
-- **阶段结尾钩子：** {描述}
-
-### 每集规划
-- **第{X+1}集：** {本集主要剧情概述}
-- ...
-- **第{Y}集：** {本集主要剧情概述}
-
-## 第{Z}-{N}集：{阶段名称}（大结局）
-- **阶段目标：** {描述}
-- **关键转折点：** {描述}
-- **角色发展：** {描述}
-- **大结局：** {精彩的结局设计}
-
-### 每集规划
-- **第{Z}集：** {本集主要剧情概述}
-- ...
-- **第{N}集：** {本集主要剧情概述}
-```
-
-## 规则
-
-- 阶段划分合理，每阶段覆盖的集数根据总集数自行决定
-- 最后一个阶段必须包含精彩的大结局设计，替换"阶段结尾钩子"为"大结局"
-- 在阶段规划的基础上，为每集分配大概的剧情规划（一句话概述本集主要剧情），供 outline 生成时严格遵循
-- 每集规划只是方向性概述，不是详细大纲，具体事件和细节由 outline skill 展开
-- continue-story 时必须与已有 outline 保持逻辑连贯
+### 规划要求
+- 节点总集数严格等于 $ARGUMENTS[0]（总和校验）
+- 节点划分均衡（避免铺垫过长 / 高潮收束被压缩）
+- 人物弧起点与终点状态有可见差异
+- 关键转折分布于全 arc，不集中前段
+- 副线（如有）必须服务主线
+- continue-series 时与已有 outline / novel 保持逻辑连贯
 
 ## 输出
 
 ### 文件操作
-- 使用 Write 将剧情弧线写入 `story/arc.md`
+- 使用 Write 将剧情弧线写入 `story/arc.md`（输出 schema 详见 rules.md）
