@@ -2,8 +2,6 @@
 name: generate-episode-pipeline
 description: 内部 pipeline 调度。按 mode 参数 (new-series | continue-series | short) 编排调用链。由 series-video / short-video 入口 delegate 给它。
 user-invocable: false
-context: fork
-agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: opus
 ---
