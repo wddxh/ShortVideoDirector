@@ -59,24 +59,68 @@
 - **新增**：仅当剧情真正引入既有 assets/ 中没有的新元素时才作为"本集新增资产"。
 - **引用格式**：在元数据字段中按 `<名称> (assets/<type>/<名称>.md)` 引用既有资产。
 
-## 本集新增资产写回 outline.md
+## scriptwriter Phase 5: 本集资产清单 superset 写回 outline.md
 
-剧本生成完毕后，必须将本集新增资产追加/重写到 `story/episodes/epNN/outline.md` 末尾的 `## 本集新增资产` section，**按 asset 类型分组**（与 spec §3.2 schema 对齐）：
+剧本生成完毕后，scriptwriter 必须在 Phase 5 把 outline.md 末尾的 `## 本集新增资产` 段（director-outline 阶段产物）**切换并扩充为** `## 本集资产清单` superset 段（含两子段）：
 
 ```
-## 本集新增资产  (scriptwriter 阶段追加)
+## 本集资产清单
+
+### 新增资产
 - characters: 王五 (assets/characters/王五.md), 赵六 (assets/characters/赵六.md)
 - locations: 地下室 (assets/locations/地下室.md)
 - items: 旧怀表 (assets/items/旧怀表.md)
 - buildings: (无)
+
+### 已有资产（本集出场）
+- characters: 张三 (assets/characters/张三.md), 李四 (assets/characters/李四.md)
+- locations: 茶馆 (assets/locations/茶馆.md)
+- items: (无)
+- buildings: 鼓楼 (assets/buildings/鼓楼.md)
 ```
 
-**dedupe 流程** (per spec §10 Q5)：
+### 段格式约束
 
-1. **read** — 读取 outline.md 现有 `## 本集新增资产` section（不存在则视为各类型空）
-2. **merge** — 合并本次剧本识别出的新增条目到对应类型组
-3. **dedupe by asset path** — 同一 asset 文件路径只保留一条
-4. **rewrite** — 整段重写 section（4 个类型行全列，无新增写 `(无)`），**不靠 git diff、不增量 append**
+- 段标题固定 `## 本集资产清单`（不带阶段标注）
+- 子段顺序固定: 先「### 新增资产」后「### 已有资产（本集出场）」
+- 每子段下 4 类型行齐全顺序固定（characters / locations / items / buildings），无内容写 `(无)`
+- 每条 `<asset id> (assets/<type>/<asset id>.md)`，asset id 严格遵循 director-outline/rules.md「asset id 规则」
+
+### Phase 5 完整流程
+
+1. **Read** `story/episodes/{ep}/outline.md`
+   - 取既有 `## 本集新增资产` 段（director-outline 阶段写的初稿）
+2. **Read 本集 script.md**（即 scriptwriter 自己刚生成的剧本）
+   - Grep 所有形如 `assets/{characters,locations,items,buildings}/<名称>.md` 的引用路径
+   - 去重得到本集 asset 全集（路径列表）
+   - **不兜底**：剧本中未带路径的 asset 名（仅写"沈昭"无 `(assets/...)`）**不识别**（依赖 director-review-script hard gate 拦截）
+3. **Glob** `assets/{characters,locations,items,buildings}/*.md` → 已注册全集
+4. **分类**（按文件路径判定）:
+   - 路径 ∈ 已注册 → 复用 asset
+   - 路径 ∉ 已注册 → 新增 asset
+5. **合并**:
+   - "新增资产" 子段 = outline 初稿「本集新增资产」+ 剧本提取的新增 → dedupe by 文件路径
+   - "已有资产（本集出场）" 子段 = 复用集 → dedupe by 路径
+6. **Edit outline.md 末尾**（detect-then-write，见下）:
+   - 删除 `## 本集新增资产` 段（director-outline 产物）
+   - 写入 `## 本集资产清单` 段（含两子段）
+
+### detect-then-write 规则（兼容已有 outline.md）
+
+outline.md 末尾扫描, 按段名状态分支:
+
+- **状态 A**（已有 `## 本集新增资产`）→ **删除该段 + Append `## 本集资产清单` 段**
+- **状态 B**（已有 `## 本集资产清单`）→ **in-place 重写**（仅替换该段及两子段，其他段保留）
+- **状态 C**（两段都无）→ **Append `## 本集资产清单` 段**
+
+替换逻辑必须按 `^## ` 严格分段定界（精确边界），**不破坏用户手工添加的其他 section**（如 `## 拍摄备注` 之类）。
+
+### 失败模式
+
+1. 段格式破损（类型行缺失 / 子段顺序错乱）—— 下游 8 skill 读 outline 解析失败
+2. asset id 英文化（违反 director-outline/rules.md「asset id 规则」）—— 与 creator-create-assets 文件名错配
+3. 子段重复 / dedupe 不全（同 asset 在新增 + 复用同时出现）
+4. detect-then-write 破坏用户手工段（替换边界不准）—— 必须按 `^## ` 严格分段
 
 ## 公共失败模式 (须主动规避)
 
