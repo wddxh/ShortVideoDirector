@@ -9,7 +9,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <script.md> --target <N>"
+  echo "Usage: $0 <script.md> --target <N>" >&2
   echo "       $0 <script.md> --target-min <M> --target-max <X>" >&2
   exit 2
 }
@@ -31,9 +31,9 @@ done
 [ -f "$FILE" ] || { echo "FAIL (file not found: $FILE)"; exit 1; }
 
 # 提取所有 "目标时长: <N>s" 形式的秒数并累加
-SUM=$(grep -oE '目标时长:[[:space:]]*[0-9]+s' "$FILE" 2>/dev/null \
-        | grep -oE '[0-9]+' \
-        | awk 'BEGIN{s=0} {s+=$1} END{print s+0}')
+SUM=$( ( grep -oE '目标时长:[[:space:]]*[0-9]+s' "$FILE" 2>/dev/null || true ) \
+        | ( grep -oE '[0-9]+' || true ) \
+        | awk 'BEGIN{s=0} {s+=$1} END{print s+0}' )
 
 if [ -n "$TARGET" ]; then
   MIN=$(awk "BEGIN { printf \"%.0f\", $TARGET * 0.9 }")

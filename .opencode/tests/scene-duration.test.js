@@ -73,3 +73,26 @@ test('FAIL: sum 低于 target-min', () => {
     assert.match(r.stdout, /below min/);
   } finally { rmSync(dir, { recursive: true }); }
 });
+
+test('FAIL: script.md 无任何场景目标时长字段', () => {
+  const { dir, file } = setupTmp('## 场景 1\n(没有时长字段)\n');
+  try {
+    const r = run(file, '--target', '60');
+    assert.notEqual(r.status, 0);
+    assert.match(r.stdout, /FAIL/);
+    assert.match(r.stdout, /sum=0s/);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('exit code 2: 缺少参数', () => {
+  const r = spawnSync('bash', [SCRIPT], { encoding: 'utf8' });
+  assert.equal(r.status, 2);
+});
+
+test('exit code 2: 未知 flag', () => {
+  const { dir, file } = setupTmp('## 场景 1\n- 目标时长: 60s\n');
+  try {
+    const r = run(file, '--bogus', '60');
+    assert.equal(r.status, 2);
+  } finally { rmSync(dir, { recursive: true }); }
+});
