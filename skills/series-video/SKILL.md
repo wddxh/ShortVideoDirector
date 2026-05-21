@@ -56,7 +56,7 @@ COUNT=$(ls -d story/episodes/ep* 2>/dev/null | wc -l)
 
 ## 阶段 6：Dispatch
 
-使用 task tool 派发到 `generate-episode-pipeline`（agent: director），prompt 模板：
+使用 Skill tool 调用 `generate-episode-pipeline`，prompt 模板：
 
 ```
 加载并执行 skill generate-episode-pipeline。

@@ -29,7 +29,7 @@ model: opus
 4. 严格按加载的 mode 文件指引执行 Phase 2
 
 ### Phase 2: 按 mode 文件指引执行调用链
-- 逐步派发 sub-skill（task tool dispatch on OC，Skill tool on CC）
+- 逐步使用 Skill tool 调用 sub-skill
 - 每步明确告知 mode 和 ep 参数
 - 遇到 review dirty 按 mode 文件中的循环上限处理
 - 任一步失败立即停止并向用户报告

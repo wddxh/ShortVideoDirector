@@ -42,7 +42,7 @@ argument-hint: "[故事材料|文件路径]"
 
 ## 阶段 5：Dispatch
 
-使用 task tool 派发到 `generate-episode-pipeline`（agent: director），prompt 模板：
+使用 Skill tool 调用 `generate-episode-pipeline`，prompt 模板：
 
 ```
 加载并执行 skill generate-episode-pipeline。

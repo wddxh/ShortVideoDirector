@@ -42,7 +42,7 @@ metadata:
 4. **读 config 取并发数**：`视觉_review_并发数`，缺省 5；上限 5（OC 单 message 并行限制）
 5. **分批 dispatch**：按 (asset_path, image_path) 对的全局顺序（type 顺序 → 同 type 内 Glob 顺序）切批，每批 ≤并发数
 6. **逐批执行**：
-   - 在主 skill 单条 message 内，对批内每个 (asset_path, image_path) 对**并行使用 Skill tool 调用** `director-review-asset-visual-single`，传递参数：`{asset_path} {image_path}`（OC plugin 自动转成 task 调用）
+   - 在主 skill 单条 message 内，对批内每个 (asset_path, image_path) 对**并行使用 Skill tool 调用** `director-review-asset-visual-single`，传递参数：`{asset_path} {image_path}`
    - 等批内全部 done
    - 失败者（subagent 抛错 / 返回非空非 JSON）→ 同批内再 dispatch 1 次；仍失败计入「无法判定」列表
 7. **进度日志**：每批 dispatch 前主 skill 输出一行 `批 i/N: {type}/{首-末 asset 名}`
