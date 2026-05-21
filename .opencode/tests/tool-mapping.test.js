@@ -12,11 +12,10 @@ import {
 } from '../lib/tool-mapping.js';
 
 describe('tool-mapping constants', () => {
-  test('USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 9 entries', () => {
+  test('USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 7 entries', () => {
     assert.deepStrictEqual(USER_INVOCABLE_ENTRY_WORKFLOWS, new Set([
       'series-video', 'short-video',
-      'series-edit-story', 'short-edit-story',
-      'series-repair-story', 'short-repair-story',
+      'edit-story', 'repair-story',
       'generate-video', 'check-video', 'auto-video',
     ]));
   });
