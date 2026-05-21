@@ -20,7 +20,32 @@ model: sonnet
 
 ## 职责描述
 
-从 tasks.json 加载 pending 镜头，读取其 prompt / images / duration，调用脚本提交视频生成任务，将结果（submit_id / status / fail_reason）写回 tasks.json。
+从 tasks.json 加载 pending 镜头，读取其 prompt / images / duration，**解析 prompt 中 `{图片N}` 的位置语义标记**（首帧/尾帧/参考），调用脚本提交视频生成任务，将结果（submit_id / status / fail_reason）写回 tasks.json。
+
+### KF 位置语义解析
+
+prompt 文本中（由上游 storyboard-to-prompt.sh 派生），每个 keyframe 引用以 `[{图片N}]` 形式出现，且其前缀**必须**含以下三种位置语义标记之一：
+
+| prompt 中标记 | 视频模型参数 | 即梦 CLI 表达 |
+|---|---|---|
+| `画面首帧是 [{图片N}]` | 视频首帧约束 | 该 `{图片N}` 对应路径在 `--image` 列表中作为**首张**传入 |
+| `画面尾帧是 [{图片N}]` | 视频尾帧约束 | 该 `{图片N}` 对应路径在 `--image` 列表中作为**末张**传入 |
+| `画面参考 [{图片N}]` | 整体视觉风格参考 | 该 `{图片N}` 对应路径作为**中间项**传入，与其它风格图同级 |
+
+**约束**：
+- prompt 中所有 keyframe 类型的 `{图片N}`（其对应路径含 `assets/images/keyframes/`）必须有位置语义前缀
+- 检测方法：在 prompt 中查找 `[{图片N}]` token，若其前 ≤8 个字符内不含 `画面首帧是` / `画面尾帧是` / `画面参考` 之一，且该 `{图片N}` 对应路径属 `assets/images/keyframes/` → **旧格式错误**
+- 旧格式 → **立即报错**：输出"shot {N} prompt 含 KF 引用但缺位置语义标记（旧格式，不再支持）。请重跑 `/generate-video {集数} {N}` 强制重建 tasks.json。"，**跳过该 shot**不提交（pending → 不动），继续下一个
+
+### 重排 --image 列表
+
+提交前需将 tasks.json 中的 `images`（逗号分隔路径，与 prompt 中 `{图片N}` 编号一一对应）按位置语义重排：
+
+1. 首先放置 `画面首帧是 [{图片M}]` 对应路径（若有，最多一张；多于一张取首次出现）
+2. 中间放置非 keyframe 路径（character / location / item）+ `画面参考 [{图片K}]` 对应路径
+3. 末尾放置 `画面尾帧是 [{图片L}]` 对应路径（若有，最多一张；多于一张取首次出现）
+
+重排只影响 `--image` 顺序，**不修改 tasks.json 的 `images` 字段**；prompt 文本原样传入，不做替换。
 
 ## 约束
 
@@ -85,13 +110,17 @@ model: sonnet
 
 对阶段 2 筛出的每个 pending 镜头：
 1. 从 tasks.json 该 shot 记录读取 `prompt` / `images` / `duration`
-2. 提交视频生成：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-3. 根据退出码处理：
+2. **位置语义检测**：扫描 prompt 中所有 `[{图片N}]` token。对每个 token，定位 `images` 中编号 N 的路径：
+   - 若该路径含 `assets/images/keyframes/` → keyframe 引用，必须有位置语义前缀（`画面首帧是` / `画面尾帧是` / `画面参考`）。检测方法：取 prompt 中该 token 起始位置往前 12 个字符的子串，搜索三个标记词之一
+   - 找不到任一位置语义 → 输出"shot {N}: keyframe `{图片N}` ({路径}) 缺位置语义标记（旧格式）。请重跑 `/generate-video {集数} {N}` 重建 tasks.json。"，**跳过该 shot，pending 状态不动**，继续下一个 shot
+3. **重排 --image 顺序**：按位置语义把 keyframe 路径调整到首/中/尾，非 keyframe 路径放中间。构建新的逗号分隔字符串 `IMAGES_REORDERED`（仅用于本次提交参数，**不写回 tasks.json**）
+4. 提交视频生成：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{IMAGES_REORDERED}" "{duration}" "{比例}" "{模型版本}"`
+5. 根据退出码处理：
    - exit 0，stdout 以 `SUBMITTED` 开头 → 提取 `submit_id`，状态转移 pending → submitted
    - exit 1，stdout 以 `FAIL` 开头 → 提取失败原因，状态转移 pending → failed
-4. 用 Read 读取 tasks.json 最新内容，按 shot 编号找到对应条目，**只更新 `submit_id` / `status` / `fail_reason` 三个字段**（prompt / images / duration 保持不变），然后用 Write 写回完整 JSON
-5. 提交失败 → 写入 failed + fail_reason → 继续下一个 shot，本次运行中不得再次尝试该 shot
-6. 若提交失败原因为并发限制 → 立即停止本次提交，且把所有剩余 pending shot（status==pending 且尚未在本次 run 中提交过的）在 tasks.json 中状态转移 pending → failed，fail_reason 设为 `ExceedConcurrencyLimit`，submit_id 保持 `""`。已在本次 run 中标为 submitted 或 failed 的 shot 不动。批量标记规则：用 Read 读取 tasks.json 最新内容，批量更新后用 Write 写回完整 JSON。输出"已达并发上限，剩余 N 个 pending 镜头已标为 failed (ExceedConcurrencyLimit)，将由 auto-video cron 自动重试"。
+6. 用 Read 读取 tasks.json 最新内容，按 shot 编号找到对应条目，**只更新 `submit_id` / `status` / `fail_reason` 三个字段**（prompt / images / duration 保持不变），然后用 Write 写回完整 JSON
+7. 提交失败 → 写入 failed + fail_reason → 继续下一个 shot，本次运行中不得再次尝试该 shot
+8. 若提交失败原因为并发限制 → 立即停止本次提交，且把所有剩余 pending shot（status==pending 且尚未在本次 run 中提交过的）在 tasks.json 中状态转移 pending → failed，fail_reason 设为 `ExceedConcurrencyLimit`，submit_id 保持 `""`。已在本次 run 中标为 submitted 或 failed 的 shot 不动。批量标记规则：用 Read 读取 tasks.json 最新内容，批量更新后用 Write 写回完整 JSON。输出"已达并发上限，剩余 N 个 pending 镜头已标为 failed (ExceedConcurrencyLimit)，将由 auto-video cron 自动重试"。
 
    设计意图：把"剩余 pending"转移到"failed-retryable"，复用 check-video phase 5a auto-retry 机制把它们逐步推进。failure-classification.md 已规定并发限制为 retryable，无需修改分类逻辑。
 
