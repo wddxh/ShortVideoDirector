@@ -36,7 +36,10 @@
 | director-review-assets-visual | creator-fix-asset-image |
 
 ### Phase A: 剧情确定
-1. **director-plot-options** — mode='short'（无 arc，单集自闭合剧情）
+1. **director-plot-options** — mode='short'，action='generate'（无 arc，单集自闭合剧情）。子代理自己落盘到 `story/plot-options.md`（含末尾 sentinel `<!-- 候选列表结束，等待用户选定 -->`），prompt 只返回 3 候选标题摘要。
+   - main session 收到摘要后 Read `story/plot-options.md` → 完整呈现 3 候选给用户 → 问"选定 A/B/C 或提修改意见？"
+   - 用户回复 modify + target_option → 重派 director-plot-options，action='modify'，target_option=X，modification=<用户文本>，previous_options_path=`story/plot-options.md`。重复直到用户选定。
+   - 用户选定（如 A）→ main session 用 Edit 把 "## 用户已选定方向\n\n> 选定方向：选项 A —《<主题名称>》\n\n后续 director-input-confirm / director-outline 等步骤均基于本方向展开。\n" 块**插在 sentinel 之前**（anchor=`<!-- 候选列表结束，等待用户选定 -->`）。
 2. **director-input-confirm** — 结构化确认用户输入
 
 ### Phase B: 本集大纲 & 剧本

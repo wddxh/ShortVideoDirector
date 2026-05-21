@@ -69,11 +69,51 @@ model: sonnet
 
 按 mode 文件中"专属失败模式"自查; 不通过则回 Phase 3 对应分支 (3a/3b/3c, 按本次 action) 重做。
 
-## 输出
+## 落盘
 
-不与用户交互, 直接返回结果给 caller:
-- generate / modify-without-target: 3 候选 markdown
-- modify-with-target: 1 个修改后候选 markdown
+子代理**必须自己落盘**到 `story/plot-options.md`，而非把完整 markdown 塞 prompt（避免主 session 收到长 prompt 后再 Write/Edit 分段时 anchor 错位）。
+
+### 落盘约束（强制，违反即视为生成失败）
+
+1. **每个候选作为完整单元一次性 Write 或 Edit**，严禁按字段切片
+   - 若单候选 > 2000 chars，用 `## 选项 N: <名称>` 整行作为 oldString anchor（该行在文件内唯一）
+   - **绝不**用 `---` 或 `**字段名：**` 类作 anchor（不唯一，会错位）
+
+2. **文件末尾必须留 sentinel 行**，给 main session 后续 Edit append "用户已选定方向" 块用：
+   ```
+   <!-- 候选列表结束，等待用户选定 -->
+   ```
+
+### 落盘步骤
+
+#### action='generate' 或 'modify-without-target'
+
+1. Write `story/plot-options.md`：先写头部 + 选项 A 完整段 + sentinel（确保单次 Write ≤2000 chars；若选项 A 超长，仅 Write 头部 + sentinel，留下空 placeholder）
+2. Edit append 选项 B（anchor=`<!-- 候选列表结束，等待用户选定 -->`，newString=`## 选项 B: ...\n（完整 B 段）\n\n---\n\n<!-- 候选列表结束，等待用户选定 -->`）
+3. Edit append 选项 C 同上模式
+4. 若选项 A 留了 placeholder，用 anchor=`## 选项 A: <名称>` + 后续 placeholder 行替换为完整 A 段
+
+#### action='modify-with-target'
+
+只 Edit 替换该 target 选项整段：
+- oldString=`## 选项 {target}: <现名称>` 整段到下一 `## 选项` 或 sentinel 之前
+- newString=修改后该选项整段
+
+不动其他选项，不动 sentinel。
+
+## 输出（返回 caller 的 prompt 内容）
+
+不与用户交互，prompt 仅返回简短摘要：
+
+```
+已落盘 3 候选到 story/plot-options.md。
+- 选项 A: <主题名称>
+- 选项 B: <主题名称>
+- 选项 C: <主题名称>
+（modify-with-target 时仅列被修改的那一项）
+```
+
+main session 收到该摘要后 Read `story/plot-options.md` → 呈现给用户 → 用户选定（A/B/C 或要求修改）→ main session 按 generate-episode-pipeline mode 文件指引处理后续动作。
 
 ## 通用规则
 
