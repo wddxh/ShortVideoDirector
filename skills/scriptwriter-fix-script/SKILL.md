@@ -9,10 +9,12 @@ model: sonnet
 ---
 
 ## 输入
-通过 prompt 接收：
+
+通过 prompt 接收:
 - mode: 'new-series' | 'continue-series' | 'short'
 - ep: 'epXX'
-- 修订意见 (用户编辑请求或 .review-script.md 最后一轮意见)
+- $ARGUMENTS[0] — `.review-script.md` 路径 (一般 `story/episodes/{ep}/.review-script.md`)
+- (可选) extra_instructions — 用户额外编辑请求 (edit-story 调用时传)
 
 ## 必读文件
 - `story/episodes/{ep}/script.md` — 必读 (现有剧本)
@@ -22,7 +24,7 @@ model: sonnet
 - `skills/scriptwriter-script/rules.md` — 必读并严格遵循 (公共规则)
 - `skills/scriptwriter-fix-script/series.md` (when mode in {new-series, continue-series}) — 必读
 - `skills/scriptwriter-fix-script/short.md` (when mode=short) — 必读
-- `story/episodes/{ep}/.review-script.md` — 若存在则必读 (含本轮 review 意见)
+- `$ARGUMENTS[0]` — 必读 (含多轮 review; 仅取最大轮号那段意见)
 
 ## 工作流
 
@@ -37,7 +39,8 @@ model: sonnet
 ### Phase 2: 读 script + 修订意见
 - Read `story/episodes/{ep}/script.md` 现状
 - Read `story/episodes/{ep}/outline.md`, `config.md`
-- 若 `.review-script.md` 存在: Read 并 grep `^## 第 [0-9]+ 轮` 找最大 N，使用该段意见
+- Read `$ARGUMENTS[0]`, 用 `grep -nE '^## 第 [0-9]+ 轮' $ARGUMENTS[0]` 找最大 N, 取该段意见 (前几轮忽略)
+- 若 prompt 含 extra_instructions, 与 review 意见合并为完整修订意见集
 - 通读意见，把每条映射到具体场景 / 台词 / 动作描写
 - 按 mode 文件指引读其余上下文 (series 需 arc.md / novel.md / 上集 script)
 

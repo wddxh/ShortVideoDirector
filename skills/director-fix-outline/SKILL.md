@@ -9,13 +9,16 @@ model: sonnet
 ---
 
 ## 输入
-通过 prompt 接收：
+
+通过 prompt 接收:
 - mode: 'series' | 'short'
 - ep: 'epXX'
-- 修订意见 (用户编辑请求或审稿意见)
+- $ARGUMENTS[0] — `.review-outline.md` 路径 (一般 `story/episodes/{ep}/.review-outline.md`)
+- (可选) extra_instructions — 用户额外编辑请求 (edit-story 调用时传)
 
 ## 必读文件
 - `story/episodes/{ep}/outline.md` — 必读 (现有大纲)
+- `$ARGUMENTS[0]` — 必读 (含多轮 review; 仅取最大轮号那段意见)
 - `config.md` — 必读
 - `skills/director-outline/rules.md` — 必读并严格遵循 (公共规则)
 - `skills/director-fix-outline/series.md` (when mode=series) — 必读
@@ -31,11 +34,14 @@ model: sonnet
 3. **不要**加载非当前 mode 的文件
 4. 严格按"公共骨架 + 当前 mode 文件"指引执行后续 Phase
 
-### Phase 2: 读 outline 与修订意见
+### Phase 2: 读 outline 与 review 意见
+
 - Read `story/episodes/{ep}/outline.md` 现状
 - Read config.md
-- 按 mode 文件指引读其他上下文 (series 需 arc.md / story/outline.md；short 不需要)
-- 通读修订意见，把每条意见映射到具体事件 / 字段
+- Read `$ARGUMENTS[0]`, 用 `grep -nE '^## 第 [0-9]+ 轮' $ARGUMENTS[0]` 找最大 N, 取该段意见为修复输入 (前几轮忽略)
+- 若 prompt 含 extra_instructions, 与 review 意见合并为完整修订意见集
+- 按 mode 文件指引读其他上下文 (series 需 arc.md / story/outline.md; short 不需要)
+- 通读修订意见, 把每条映射到具体事件 / 字段
 
 ### Phase 3: 按 mode 修正
 - 按 Phase 1 加载的 series.md / short.md 指引定向修改字段
