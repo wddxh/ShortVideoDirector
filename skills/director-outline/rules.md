@@ -38,8 +38,7 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
   - 已在 `assets/characters/` 或 `assets/locations/` 中注册
   - 在本集 outline 末尾的 `## 本集新增资产` 段中显式列出（director-outline 阶段产物，scriptwriter Phase 5 后切换为 `## 本集资产清单` superset 终态）
 - 不允许 dangling reference（引用未注册且未声明新增的 asset）
-- item asset（道具）此阶段**在场景字段中不出现**（场景仅写地点 + 出场角色），但 director-outline 阶段已知的新增 items 应列入 `## 本集新增资产` 段供 scriptwriter 复用
-- buildings: 同 items 处理（已知建筑列入「本集新增资产」段，未涉及写 `(无)`）
+- item asset（道具）/ building asset（建筑）此阶段**在场景字段中不出现**（场景仅写地点 + 出场角色），但 director-outline 阶段已知的新增 items / buildings 应列入「本集新增资产」段供 scriptwriter 复用（具体格式见下方「新增资产规则」段）
 
 ### 节奏角色
 - 每个场景**有且仅有一个**节奏角色，取值范围：
@@ -90,13 +89,13 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
   - `zh` → 全中文 id（如「沈昭」「地下室」「旧怀表」）
   - `en` → 全英文 id（如 `Shen_Zhao`、`Basement`、`Old_Pocket_Watch`，**下划线连接多词**，禁止 kebab-case）
   - 自定义 → 按指定语言
-- 与 `creator-create-assets/rules.md:8` 文件名一致（资产名为「张三」→ 文件名 `张三.md` → asset id `张三`）。
+- 与 `creator-create-assets/rules.md:76` 文件名一致（资产名为「张三」→ 文件名 `张三.md` → asset id `张三`）。
 - **明确禁止 LLM 自发添加英文 prefix / 转写**：
   - ❌ `char-沈昭`、`loc-地下室`、`item-旧怀表`（前缀英文化）
   - ❌ `char-shen-zhao`、`loc-basement`、`shen-zhao`（kebab-case 转写）
   - ❌ `Shen-Zhao` / `shen_zhao`（en 时大小写或连接符不一致）
   - ✅ `沈昭`（zh） / `Shen_Zhao`（en）
-- **语言一致性**（R3 缓解）: 同一 outline 内所有 asset id 必须使用同一语言（zh / en / 自定义不混入），director-review-outline 据此 dangling check 时一并检查
+- **语言一致性**（防止 zh/en 混用导致下游 dangling check 误判）: 同一 outline 内所有 asset id 必须使用同一语言（zh / en / 自定义不混入），director-review-outline 据此 dangling check 时一并检查
 
 ### 「本集新增资产」段格式（director-outline 阶段中间产物）
 
@@ -117,7 +116,7 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
 - 写入「本集新增资产」前**必须 Glob** `assets/{characters,locations,items,buildings}/*.md` 扫描已注册全集
 - 资产名**精确匹配**已注册文件 → 直接复用（不入「本集新增资产」）
 - 名字**相近**（"巡查义体" vs "天工坊巡查义体"）→ 优先复用更具体的已存在资产
-- 同一资产不同造型 → 按 `creator-create-assets/rules.md:7` 判断是否独立变体文件
+- 同一资产不同造型 → 按 `creator-create-assets/rules.md:75` 判断是否独立变体文件
 
 ### 阶段流转
 
