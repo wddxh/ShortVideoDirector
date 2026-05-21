@@ -4,7 +4,31 @@
 
 ## 调用链
 
-每步使用 Skill tool 调用对应 skill, 显式传 mode / ep 参数。除 review-* 步骤外, 任一步失败立即停止并向用户报告; review-* 步骤按下方"review 循环 (通用模式)"处理。
+每步使用 Skill tool 调用对应 skill, 显式传 mode / ep 参数。除 review-* 步骤外, 任一步失败按下方"子代理任务失败时的重试规则"处理 (自动重试最多 3 次, 4 次仍失败则中断 pipeline); review-* 步骤按下方"review 循环 (通用模式)"处理 review 结论 (本规则同样适用于 review-* / fix-* 的 task 派发本身, 即技术故障层重试)。
+
+## 子代理任务失败时的重试规则 (通用模式, 适用所有 task 派发)
+
+当主 session 通过 `task` 工具派发子代理任务**返回 error** (而非 result) 时, 视为任务失败 (含 stream timeout / chunkTimeout abort / network / rate-limit / provider 5xx 等技术故障)。
+
+**自动重试**: main session 维护 `task_attempts` 计数器, 初次调用为 attempt 1。
+
+- attempt 1 (initial) 失败 → 立即重派 → 进入 attempt 2 (retry 1)
+- attempt 2 (retry 1) 失败 → 立即重派 → 进入 attempt 3 (retry 2)
+- attempt 3 (retry 2) 失败 → 立即重派 → 进入 attempt 4 (retry 3)
+- attempt 4 (retry 3) 失败 → **中断 pipeline** (不再派发后续任何 step)
+
+**重派要求**: 使用**完全相同**的 `task` 参数 (同 subagent_type, 同 prompt, 同 description), 不修改、不缩短、不换路径、不问用户、不打折扣。
+
+**中断 pipeline 行为**: main session 直接 print:
+> ❌ <ep> <step name> 子代理任务连续 4 次失败 (3 次自动重试均未成功)
+> 最后一次错误: <error 摘要>
+> Pipeline 已中断。请检查日志, 修复问题后用 /series-repair-story <ep> 续跑。
+
+print 后立即返回, **不再派发任何后续 step**, 不再调用 review / fix / Phase X 任何后续逻辑。
+
+**用户主动 cancel** (按 Esc 等) 不算 task 失败, 不触发重试, 直接 abort 整个 pipeline。
+
+**与 review 循环的关系**: 本规则适用于**所有** task 派发, 包括 review-* 和 fix-* skill 的派发本身。即 review skill 子代理因技术故障失败时也走本规则的 3 次重试; 重试成功后再按下方"review 循环"段处理 review 结论 (pass / needs_revision)。两套规则正交: 本规则管"task 调用是否技术上成功", review 循环管"内容质量是否达标"。
 
 ## review 循环 (通用模式, 适用所有 review-* 步骤)
 
