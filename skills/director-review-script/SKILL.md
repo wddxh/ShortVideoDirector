@@ -54,8 +54,9 @@ model: opus
    - outline 主要事件每一项是否都能映射到 script 某场景 (枚举主要事件 → 逐项映射到场景 → 缺失打回)
 
 3. **asset 列表完整性 (双向核对)**
-   - 剧本中所有 character / location / item 引用 → 必须 ∈ (assets/ 已注册 ∪ outline.md「本集新增资产」)
-   - outline.md「本集新增资产」每一项 → 必须在 script.md 中至少出现一次 (反之即冗余声明)
+   - 剧本中所有 character / location / item / building 引用 → 必须 ∈ (assets/ 已注册 ∪ outline.md `## 本集资产清单` 段中「### 新增资产」+「### 已有资产（本集出场）」全集) — 注意 review-script 在 scriptwriter Phase 5 之后运行, outline.md 末尾段名已切换为「本集资产清单」superset
+   - outline.md「本集资产清单/新增资产」每一项 → 必须在 script.md 中至少出现一次 (反之即冗余声明)
+   - **Hard gate (asset 引用必带路径)**: script.md 中任何 asset 名出现处必带 `(assets/<type>/<名称>.md)` 路径后缀; 仅写"张三" 不带路径 → review fail (依据: scriptwriter-script/rules.md 元数据引用规范 + scriptwriter Phase 5 grep 提取依赖)
    - 列出所有 dangling 引用 + 冗余声明
 
 4. **rules.md 机械约束**: 台词精准 / 场景具象 / 节奏适配 / 角色声音 / 禁旁白等
