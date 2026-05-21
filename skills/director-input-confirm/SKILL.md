@@ -10,9 +10,10 @@ model: sonnet
 
 ## 输入
 
-通过 prompt 接收：
+通过 prompt 接收:
 - mode: 'new-series' | 'continue-series' | 'short'
-- $ARGUMENTS[0]: 用户故事材料文本 (或反馈内容)
+- story_input: 用户故事材料 (原始文本或文件路径)
+- selected_plot_option: 从 plot-options 阶段返回的选定剧情方向 (new-series 必填; continue-series / short 可选)
 
 ## 必读文件
 
@@ -45,19 +46,26 @@ model: sonnet
 - 若材料涉及现实版权 IP，须在说明末尾追加版权规避提示
 - 按当前 mode 文件中"字段清单"填写
 
-### Phase 4: mode 专属确认项
+### Phase 4: mode 专属字段填充
 
-按 Phase 1 加载的 series.md / short.md "强制确认项 / 强制问用户" 指引执行：
-- series 模式：restate 总集数 (来自 plot-options 阶段)，并按 mode 文件追问 arc 相关设定
-- short 模式：无 arc 提问，不问总集数
+按 Phase 1 加载的 series.md / short.md "字段填写要求" 指引补充字段:
+- series 模式: restate 总集数 (来自 config.md 总集数 字段); restate arc 状态 (continue-series 时)
+- short 模式: 无 arc 字段, 无总集数字段
 
-### Phase 5: 用户交互
+### Phase 5: 自检并返回
 
-展示确认说明 + (series) arc 设定追问，等待用户回应：
-- 用户确认 → 返回最终方向文本给 workflow
-- 用户提反馈 → 反馈作为 `$ARGUMENTS[0]` 重新执行本 skill
+按 mode 文件"专属失败模式自查"清单确认; 通过则返回 markdown 给 caller。
+
+## 输出
+
+不与用户交互, 直接返回结构化确认说明 markdown:
+- mode 标识
+- (series) 总集数 restate
+- (continue-series) arc 当前阶段 restate
+- 故事材料摘要 + mode 专属字段
+- (涉及现实 IP 时) 版权规避提示
 
 ## 通用规则
 
-- "总集数"在 director-plot-options 阶段已问；本 skill 仅 **restate / 确认**，不再追问
+- "总集数"已存 config.md 总集数 字段; 本 skill 仅 **restate**, 不追问任何字段
 - continue-series 时确认说明须与 arc 当前阶段目标对齐
