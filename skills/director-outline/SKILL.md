@@ -42,7 +42,17 @@ model: sonnet
 ### Phase 4: 按 mode 加补充字段
 按 Phase 1 加载的 series.md / short.md 指引执行
 
-### Phase 5: 输出 + (可选) 同步全局
+### Phase 5: 写「本集新增资产」段（必产出）
+
+outline.md **末尾必须含 `## 本集新增资产` 段**，按 `skills/director-outline/rules.md` 「新增资产规则」段 写入：
+- 4 类型行（characters / locations / items / buildings）齐全
+- 无内容写 `(无)`
+- asset id 按 `skills/director-outline/rules.md`「asset id 规则」编写（=资产名，跟随 config.md 「语言」设置）
+- 写入前 Glob `assets/{characters,locations,items,buildings}/*.md` 复用判断（精确匹配 / 相近名优先复用既有）
+
+该段是 director-review-outline 做 dangling check 的依据。scriptwriter Phase 5 会读取本段 + 剧本提取的 asset → 合并 dedupe → 重写为 `## 本集资产清单` superset 终态（含「### 新增资产」+「### 已有资产（本集出场）」两子段）。
+
+### Phase 6: 输出 + (可选) 同步全局
 按 mode 指引
 
 ## 通用规则
