@@ -1,5 +1,5 @@
 // Some assertions in this file are coupled to the source `skills/` directory
-// (e.g., total skill count = 34, specific skill names like `director-arc`,
+// (e.g., total skill count = 35, specific skill names like `director-arc`,
 // `auto-video`, `writer-novel/rules.md`). If you add/remove/rename source
 // skills, expect failures here — see `.opencode/README.md` § 维护契约 for the
 // sync checklist.
@@ -227,10 +227,10 @@ describe('transformAllSkills (integration)', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test('produces SKILL.md for all 34 skills', async () => {
+  test('produces SKILL.md for all 35 skills', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const dirs = await readdir(tmpDir);
-    assert.equal(dirs.length, 34);
+    assert.equal(dirs.length, 35);
   });
 
   test('director-arc cache file has correct frontmatter', async () => {

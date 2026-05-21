@@ -1,6 +1,6 @@
 # ShortVideoDirector — OpenCode 插件
 
-短视频创作工作流插件，提供 5 个子代理（director, writer, scriptwriter, storyboarder, creator）与 34 个 skills。
+短视频创作工作流插件，提供 5 个子代理（director, writer, scriptwriter, storyboarder, creator）与 35 个 skills。
 
 源代码是 Claude Code 插件，OC 兼容层在 `.opencode/` 下，运行时把源 skills 转换到 `~/.cache/short-video-director/<hash>/` 供 OC 加载，不污染源仓库。
 
@@ -84,7 +84,7 @@ storyboarder (subagent)
 writer (subagent)
 ```
 
-进一步验证 skills 是否加载（应输出 34 个 skill，路径在 `~/.cache/short-video-director/<hash>/skills/`）：
+进一步验证 skills 是否加载（应输出 35 个 skill，路径在 `~/.cache/short-video-director/<hash>/skills/`）：
 
 ```bash
 opencode debug skill | head -30
@@ -231,6 +231,12 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 
 - `USER_INVOCABLE_ENTRY_WORKFLOWS` 从 9 → 7：合并 `series-edit-story` + `short-edit-story` → `edit-story`；`series-repair-story` + `short-repair-story` → `repair-story`。`tool-mapping.js` 中 Set 已更新，对应 OC commands 自动 derive。
 - skill 总数 44 → 34：删除 `new-story` / `continue-story` / `short-*` 系列分流 skill，由 `generate-episode-pipeline` 统一承载，`series-video` / `short-video` 仅作入口透传 mode 参数。
+- skill 总数 34 → 35：新增 `director-fix-arc`（pipeline review 循环新增 arc 修复路径，对齐 outline/novel/script/storyboard/asset 五条已有 fix 链）。
+- pipeline mode 文件加 `review 循环 (通用模式)`：每个 `review-*` 步骤遵循"≤2 轮修复 + 自动跳过"模式，2 轮仍 dirty 则 main session print 警告并继续，用户后续可用 `/edit-story` 手动修订。
+- 子 skill 严格 stateless functional：`director-plot-options` 加 `action` 参数（generate/modify）+ `previous_options_path`；`director-input-confirm` 加 `selected_plot_option` 参数；两者均删除"等待用户回应/重新执行本 skill"等交互指令，由 main session 处理。
+- `generate-episode-pipeline` 不再 fork（删 `context: fork` + `agent: director`），运行在调用方（`series-video` / `short-video`） session 中，使 review 失败时主 session 可直接 print 警告并自动跳过。
+- `config.md` 新增 `总集数` 字段（默认 1）：`series-video` 入口 `new-series` 模式检测到默认值时问用户后写入；`director-arc` 从 config 读总集数（不再走 prompt 参数）。
+- `director-fix-outline` / `scriptwriter-fix-script` 输入统一为 `$ARGUMENTS[0] = .review-*.md 路径` + 可选 `extra_instructions`（与 `storyboarder-fix-storyboard` / `writer-fix-novel` / `creator-fix-asset-image` / 新增 `director-fix-arc` 一致）。
 - 旧 `episodes/` 目录用新 skill 触发会报错（Task 24 clean break），无向后兼容路径。
 
 ### mode-specific 文件约定（series.md / short.md）
@@ -252,10 +258,10 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 
 | 改动 | 同步位置 | 失败征兆 |
 |------|----------|---------|
-| **加/减 skill 目录** | `.opencode/tests/transform-skills.test.js` 的 `assert.equal(dirs.length, 34)` | `produces SKILL.md for all 34 skills` 失败，错误显示实际目录数 |
+| **加/减 skill 目录** | `.opencode/tests/transform-skills.test.js` 的 `assert.equal(dirs.length, 35)` | `produces SKILL.md for all 35 skills` 失败，错误显示实际目录数 |
 | **新 skill 带 `user-invocable: true`** | `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` Set（同时 `.opencode/tests/tool-mapping.test.js` 的硬编码列表） | `USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 7 entries` 失败 |
 | **删除已有的 `user-invocable` skill** | 同上 | 同上 |
-| **改 skill 间 `使用 Skill tool 调用 X` 引用** | 自动处理；但 X 必须存在于 `skills/` 否则 transform throws | integration test `produces SKILL.md for all 34 skills` 整个崩，错误显示 "Unknown skill referenced: X" |
+| **改 skill 间 `使用 Skill tool 调用 X` 引用** | 自动处理；但 X 必须存在于 `skills/` 否则 transform throws | integration test `produces SKILL.md for all 35 skills` 整个崩，错误显示 "Unknown skill referenced: X" |
 | **新 fork skill（`context: fork`）被其他 skill 引用** | 引用位置**必须**用 `使用 Skill tool 调用 \`<name>\` skill[, 传递参数：\`<args>\`]` 标准模板。`transform-skills.js` 只识别此模板，会改写为 `task` 派发；自然语言"调用 X"会让 OC LLM 选 `skill()` 同上下文加载，破坏 fork 隔离语义（fork→fork 嵌套场景会导致下游 subagent 全部图片/数据塞进单一上下文，附件压缩中断） | 无测试失败（沉默 bug）；只在实际跑 OC 工作流时表现为"该 fork 的下游没被 fork 出去"。verify: wipe cache + `grep "task(" ~/.cache/.../skills/<caller>/SKILL.md` 应有 task 代码块 |
 | **新 review→fix 链路** | review skill 必须 append 写入 `story/episodes/{集数}/.review-{type}.md`（自检 round 用 grep `^## 第 [0-9]+ 轮` + Edit anchor），return 简报 `pass` / `needs_revision M`；fix skill 必须从该文件读最后一轮意见；entry workflow 的派发参数只传 `{集数}`（不传 `"{修改意见}"`）。**目的**：避免大段 review 意见做为 task prompt 参数时 OC 卡死。**核心约定一致性**：6 个 review skill + 6 个 fix skill + 6 个 entry workflow 三层必须同步改 | 无测试失败（沉默 bug）；表现为 fix skill 拿不到意见或 task prompt 卡好几小时。verify: 实际跑一次 review-fix loop，检查 `.review-*.md` 是否生成；fix skill 是否能找到意见列表 |
 | **改 skill `description` 字段超 1024 字符** | 自动 clip 到 1024（无错，但用户可能看到截断的描述） | 无测试失败，但 `opencode debug skill` 看到的 description 被截断 |
