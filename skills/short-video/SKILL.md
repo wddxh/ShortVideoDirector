@@ -27,14 +27,20 @@ argument-hint: "[故事材料|文件路径]"
 
 若 `$ARGUMENTS` 第一个 token 为 `config`：Read 展示 `config.md`，询问是否编辑。流程结束。
 
-## 阶段 3：输入解析
+## 阶段 3：总集数保底
+
+1. 用 `bash scripts/read-config.sh "总集数"` 读 config 总集数值
+2. 字段缺失 → 用 Edit 在 config.md 的「## 创作配置」段顶部追加 `- 总集数: 1`
+3. 字段已存在 → 不动 (尊重用户配置)
+
+## 阶段 4：输入解析
 
 `$ARGUMENTS` 整体作为故事材料：
 - 空 → `story_input=''`
 - 以 `.txt` / `.md` 结尾 → Read 文件内容
 - 否则 → 内联文本
 
-## 阶段 4：Dispatch
+## 阶段 5：Dispatch
 
 使用 task tool 派发到 `generate-episode-pipeline`（agent: director），prompt 模板：
 

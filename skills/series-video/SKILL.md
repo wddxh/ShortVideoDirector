@@ -38,14 +38,23 @@ COUNT=$(ls -d story/episodes/ep* 2>/dev/null | wc -l)
 
 若 `latest-episode.sh` 非零退出但 COUNT>0，报错停止。
 
-## 阶段 4：输入解析
+## 阶段 4：总集数检测（mode='new-series' only）
+
+1. 用 `bash scripts/read-config.sh "总集数"` 读 config 总集数值 (整数 N)
+2. 若 `mode='new-series'` 且 N == 1 (默认值) → 问用户:
+   > 本剧总集数 (整数, 例: 20):
+3. 用户回复 N (≥2) → 用 Edit 把 config.md 中 `- 总集数: 1` 改为 `- 总集数: <N>`
+4. 若 N > 1 → 不动 (用户已设)
+5. mode='continue-series' → 跳过本阶段
+
+## 阶段 5：输入解析
 
 `$ARGUMENTS` 整体作为故事材料候选：
 - 空 → `story_input=''`
 - 以 `.txt` / `.md` 结尾 → Read 文件内容
 - 否则 → 内联文本
 
-## 阶段 5：Dispatch
+## 阶段 6：Dispatch
 
 使用 task tool 派发到 `generate-episode-pipeline`（agent: director），prompt 模板：
 
