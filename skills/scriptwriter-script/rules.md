@@ -93,7 +93,7 @@
 2. **Read 本集 script.md**（即 scriptwriter 自己刚生成的剧本）
    - Grep 所有形如 `assets/{characters,locations,items,buildings}/<名称>.md` 的引用路径
    - 去重得到本集 asset 全集（路径列表）
-   - **不兜底**：剧本中未带路径的 asset 名（仅写"沈昭"无 `(assets/...)`）**不识别**（依赖 director-review-script hard gate 拦截）
+   - **不兜底**：剧本中未带路径的 asset 名（仅写"张三"无 `(assets/...)`）**不识别**（依赖 director-review-script hard gate 拦截）
 3. **Glob** `assets/{characters,locations,items,buildings}/*.md` → 已注册全集
 4. **分类**（按文件路径判定）:
    - 路径 ∈ 已注册 → 复用 asset
@@ -101,13 +101,13 @@
 5. **合并**:
    - "新增资产" 子段 = outline 初稿「本集新增资产」+ 剧本提取的新增 → dedupe by 文件路径
    - "已有资产（本集出场）" 子段 = 复用集 → dedupe by 路径
-6. **Edit outline.md 末尾**（detect-then-write，见下）:
+6. **Edit outline.md**（detect-then-write 决定具体位置，见下）:
    - 删除 `## 本集新增资产` 段（director-outline 产物）
    - 写入 `## 本集资产清单` 段（含两子段）
 
 ### detect-then-write 规则（兼容已有 outline.md）
 
-outline.md 末尾扫描, 按段名状态分支:
+outline.md 扫描已有段名（按 `^## ` 分段定界），按状态分支:
 
 - **状态 A**（已有 `## 本集新增资产`）→ **删除该段 + Append `## 本集资产清单` 段**
 - **状态 B**（已有 `## 本集资产清单`）→ **in-place 重写**（仅替换该段及两子段，其他段保留）
@@ -117,7 +117,7 @@ outline.md 末尾扫描, 按段名状态分支:
 
 ### 失败模式
 
-1. 段格式破损（类型行缺失 / 子段顺序错乱）—— 下游 8 skill 读 outline 解析失败
+1. 段格式破损（类型行缺失 / 子段顺序错乱）—— 下游 8 skill / 10 文件读 outline 解析失败（见 spec §2.4 文件修改清单）
 2. asset id 英文化（违反 director-outline/rules.md「asset id 规则」）—— 与 creator-create-assets 文件名错配
 3. 子段重复 / dedupe 不全（同 asset 在新增 + 复用同时出现）
 4. detect-then-write 破坏用户手工段（替换边界不准）—— 必须按 `^## ` 严格分段
