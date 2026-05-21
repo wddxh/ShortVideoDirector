@@ -25,3 +25,11 @@
 - 结局设计仓促: 结局是"故事结束"而非"情感落点"
 - 开场过弱: 第一场景节奏角色不是"开场"或"铺垫" → 错过抓住观众
 - 跳跃式开场承接生硬: 同 series 描述
+
+## 「本集新增资产」段 short 模式补充
+
+（公共规则见 director-outline/SKILL.md Phase 5 + director-outline/rules.md 「新增资产规则」段）
+
+short 模式约束:
+- **单集自闭合**: 无 arc / 跨集复用, 全部场景出场角色 / 地点 / 已知道具 / 已知建筑 → 入「本集新增资产」段
+- **二次跑 short-video（同项目 ep02 等）**: 上一 ep 的 asset 也算复用（按 Glob `assets/{characters,locations,items,buildings}/*.md` 判断, 已注册 → 不入新增）
