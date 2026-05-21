@@ -4,9 +4,22 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import sys
 from pathlib import Path
+
+
+def check_sibling_files(source_dir, skill_md_content, skill_name):
+    pattern = rf'`skills/{re.escape(skill_name)}/([\w-]+\.md)`'
+    referenced = set(re.findall(pattern, skill_md_content))
+    missing = []
+    for sibling in referenced:
+        if sibling == 'SKILL.md':
+            continue
+        if not (source_dir / sibling).exists():
+            missing.append(sibling)
+    return missing
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -152,6 +165,18 @@ def check() -> int:
         current = target.read_text(encoding="utf-8")
         if current != wrappers[target]:
             errors.append(f"过期的适配层: {target.relative_to(ROOT)}")
+
+    for source_dir in sorted(path for path in SOURCE_SKILLS.iterdir() if path.is_dir()):
+        source_skill = source_dir / "SKILL.md"
+        if not source_skill.is_file():
+            continue
+        content = source_skill.read_text(encoding="utf-8")
+        missing = check_sibling_files(source_dir, content, source_dir.name)
+        if missing:
+            for sibling in missing:
+                errors.append(
+                    f"源 skill {source_dir.name} 引用了缺失的同级文件: {sibling}"
+                )
 
     if errors:
         print("Codex skill 适配层未同步:", file=sys.stderr)
