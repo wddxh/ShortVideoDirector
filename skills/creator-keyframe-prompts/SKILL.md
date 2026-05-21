@@ -1,6 +1,6 @@
 ---
 name: creator-keyframe-prompts
-description: Creator 把 keyframes.json 翻译成关键帧 .md 文件（含视觉描述和图像生成提示词），落盘到 assets/keyframes/{ep}/。
+description: Creator 把 keyframes.json 翻译成关键帧 .md 文件（含视觉描述和图像生成提示），落盘到 assets/keyframes/{ep}/。
 user-invocable: false
 context: fork
 agent: creator
@@ -51,7 +51,7 @@ model: sonnet
 - **自动切英文** — 模型本能切换 prompt 语言为英文 — 严格遵循 config.md 语言设置
 - **风格漏注** — 写 prompt 时忘了加 config 的视频风格 suffix（"3D写实风"等）— 每条 prompt 末尾必须包含视频风格描述
 - **增量模式越权** — 收到 dirty 列表后顺手处理列表外的 keyframe — 严格只处理 dirty 列表中的 id
-- **prompt 正文写 markdown 链接** — 「图像生成提示词」段写成 `[张三](../../characters/张三.md)站在...`❌ — 引用关系**只**在 `## 引用资产` 区块声明；正文写裸名字 `张三站在...`✅
+- **prompt 正文写 markdown 链接** — 「图像生成提示」段写成 `[张三](../../characters/张三.md)站在...`❌ — 引用关系**只**在 `## 引用资产` 区块声明；正文写裸名字 `张三站在...`✅
 - **`## 引用资产` 区块漏写或顺序乱** — composition 写了 `<硬币>` 但 `## 引用资产` 没列；或顺序不是 composition 中首次出现顺序 — 按 composition 标签首次出现顺序枚举、去重，每个 `<资产名>` 都必须在区块里
 
 ## 规则参考
