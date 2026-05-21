@@ -23,17 +23,16 @@
 
 ### 从关键帧开始恢复（含资产清单/资产文件/图片/分镜全套重生成）
 
-1. `director-keyframes`，参数 `{ep}`
-2. `director-review-keyframes-narrative`，参数 `{ep}`
-3. 若 review return `needs_revision M` → `director-keyframes`，参数 `{ep} incremental`（≤2 轮；fix skill 自动读 `.review-keyframes-narrative.md` 最后一轮意见）
+1. `creator-keyframe-prompts`，参数 `{ep}`
+2. `director-review-script`，参数 `series {ep}`
+3. 若 review return `needs_revision M` → `creator-keyframe-prompts`，参数 `{ep} incremental`（≤2 轮；fix skill 自动读 `.review-script.md` 最后一轮意见）
 4. `creator-create-assets`，参数 `{ep}`
 5. **若非 ep01**：`creator-update-records`，参数 `{ep}`
-6. `creator-keyframe-prompts`，参数 `{ep}`
-7. 若图像模型非 `none`：
+6. 若图像模型非 `none`：
    - `creator-generate-images`，参数 `{ep}`
-   - `director-review-keyframes-visual`，参数 `{ep}`
-   - 若 review return 以 `needs_revision` 开头 → `creator-fix-keyframe-image`，参数 `{ep}`（≤2 轮；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
-8. 继续"从分镜开始恢复"
+   - `director-review-assets-visual`，参数 `{ep} --type=keyframes`
+   - 若 review return 以 `needs_revision` 开头 → `creator-fix-asset-image`，参数 `{ep}`（≤2 轮；fix skill 自动读 `.review-assets-visual.md` 最后一轮 dirty list + 意见）
+7. 继续"从分镜开始恢复"
 
 ### 从资产文件开始恢复（keyframes 完整但 assets 缺失）
 
@@ -46,8 +45,8 @@
 
 1. `creator-generate-images`，参数 `{ep}`
 2. 若本次有 keyframe 图被生成（`keyframe-images:missing` 命中）：
-   - `director-review-keyframes-visual`，参数 `{ep}`
-   - 若 review return 以 `needs_revision` 开头 → `creator-fix-keyframe-image`，参数 `{ep}`（≤2 轮）
+   - `director-review-assets-visual`，参数 `{ep} --type=keyframes`
+   - 若 review return 以 `needs_revision` 开头 → `creator-fix-asset-image`，参数 `{ep}`（≤2 轮）
 3. 继续"从分镜开始恢复"
 
 ### 从分镜开始恢复
@@ -59,9 +58,9 @@
 ## Series 恢复 DAG 参考
 
 ```
-outline → novel [review-novel+fix] → keyframes [review-keyframes-narrative+fix]
-   → asset-list → assets → [非 ep01: update-records] → keyframe-mds
-   → images [keyframe 图变动: review-keyframes-visual + ≤2 轮 fix-keyframe-image]
+outline → novel [review-novel+fix] → keyframe-prompts [review-script+fix]
+   → asset-list → assets → [非 ep01: update-records]
+   → images [keyframe 图变动: review-assets-visual + ≤2 轮 fix-asset-image]
    → storyboard [review-storyboard+fix]
 ```
 
@@ -69,5 +68,5 @@ outline → novel [review-novel+fix] → keyframes [review-keyframes-narrative+f
 
 - 解析集数错误（$ARGUMENTS[0] 缺失时未走 `scripts/latest-episode.sh` 兜底）
 - 非 ep01 漏插 `creator-update-records`
-- 误调用 short-only skill（`scriptwriter-*` / `short-fix-storyboard` / `short-review-storyboard`）
+- 误调用 short-only skill（`scriptwriter-*` 应仅 short mode 使用；series 用 writer-* 三件套）
 - 大纲缺失时擅自调 `director-fix-outline` 或 `writer-novel`（应直接提示用户走 `/series-video`）

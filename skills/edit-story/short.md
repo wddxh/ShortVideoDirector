@@ -11,14 +11,14 @@
 
 | 入口节点 | 最上游动作 | 下游候选（按需触发） |
 |---------|-----------|---------------------|
-| outline | `short-fix-outline` | scriptwriter-script → review+fix → keyframes → review+fix → create-assets → keyframe-prompts → images → keyframes-visual review+fix → storyboard → review+fix |
-| script | `scriptwriter-fix-script` | review+fix → keyframes → review+fix → create-assets → keyframe-prompts → images → keyframes-visual review+fix → storyboard → review+fix |
-| keyframes | `director-keyframes incremental` | review+fix → keyframe-prompts (incremental, dirty list) → images → keyframes-visual review+fix → storyboard → review+fix（若 keyframes 编排变化引入新资产则同步触发 create-assets） |
+| outline | `director-fix-outline`（mode=short） | scriptwriter-script → review+fix → keyframe-prompts → review-script+fix → create-assets → images → assets-visual review+fix → storyboard → review+fix |
+| script | `scriptwriter-fix-script` | review+fix → keyframe-prompts → review-script+fix → create-assets → images → assets-visual review+fix → storyboard → review+fix |
+| keyframes | `creator-keyframe-prompts`（incremental, dirty list） | review-script+fix → images → assets-visual review+fix → storyboard → review+fix（若关键帧编排变化引入新资产则同步触发 create-assets） |
 | asset-list | 直接 Edit `outline.md` 清单 | create-assets → images |
-| assets（文字变动）| `creator-fix-asset` | images → short-fix-storyboard（仅引用此资产的镜头）→ review+fix |
-| keyframe-images（仅重生 + 审）| `creator-fix-keyframe-image` | keyframes-visual review（≤2 轮 fix loop 内置）→ short-fix-storyboard（仅引用此 keyframe 的镜头）→ review+fix |
+| assets（文字变动）| `creator-fix-asset` | images → storyboarder-fix-storyboard（仅引用此资产的镜头）→ review+fix |
+| keyframe-images（仅重生 + 审）| `creator-fix-asset-image` | assets-visual review（≤2 轮 fix loop 内置）→ storyboarder-fix-storyboard（仅引用此 keyframe 的镜头）→ review+fix |
 | images（仅重生）| `creator-image-{模型}` | 无 |
-| storyboard | `short-fix-storyboard` | review+fix |
+| storyboard | `storyboarder-fix-storyboard` | review+fix |
 
 **关键差异**：short 模式下游绝不插入 `creator-update-records`（单集无跨集出场记录概念）。
 
@@ -35,31 +35,30 @@
 
 | 节点动作 | skill 调用（Skill / Task 工具按 OC 调度规则）|
 |---------|---|
-| 修 outline | `short-fix-outline`，参数 `ep01 "{修改意见}"` |
+| 修 outline | `director-fix-outline`，参数 `short ep01 "{修改意见}"` |
 | 写 script | `scriptwriter-script`，参数 `ep01` |
 | 修 script | `scriptwriter-fix-script`，参数 `ep01` |
-| review script | `director-review-script`，参数 `ep01` |
-| Edit asset-list 清单 | 直接 Edit `story/episodes/ep01/outline.md` 「本集资产清单」section（不调 `director-keyframes`，仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframes 节点）。Edit 后按 SKILL.md「dedupe 公共逻辑」去重 |
-| 修 keyframes | `director-keyframes`，参数 `ep01 incremental`。产出后按 dedupe 逻辑同步本集资产清单 |
-| review keyframes 叙事 | `director-review-keyframes-narrative`，参数 `ep01` |
+| review script | `director-review-script`，参数 `short ep01` |
+| Edit asset-list 清单 | 直接 Edit `story/episodes/ep01/outline.md` 「本集资产清单」section（仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframe-prompts 节点）。Edit 后按 SKILL.md「dedupe 公共逻辑」去重 |
+| 修 keyframes | `creator-keyframe-prompts`，参数 `ep01 incremental`。产出后按 dedupe 逻辑同步本集资产清单 |
 | 创建资产文件 | `creator-create-assets`，参数 `ep01` |
 | 修资产文件 | `creator-fix-asset`，参数 `{资产文件路径} "{修改意见}"` |
 | 重生成关键帧 .md | `creator-keyframe-prompts`，参数 `ep01 incremental "{dirty list}"` |
 | 覆盖单张资产图 | `creator-image-{config 图像模型}`，参数 `"{资产文件路径}"` |
 | 批量生成新增资产 + 关键帧图 | `creator-generate-images`，参数 `ep01` |
-| 修关键帧图（含 prompt 调整 + 重抽）| `creator-fix-keyframe-image`，参数 `ep01` |
-| review keyframes 画面 | `director-review-keyframes-visual`，参数 `ep01` |
-| 修 storyboard | `short-fix-storyboard`，参数 `ep01` |
-| review storyboard | `short-review-storyboard`，参数 `ep01` |
+| 修关键帧图（含 prompt 调整 + 重抽）| `creator-fix-asset-image`，参数 `ep01` |
+| review keyframes 画面 | `director-review-assets-visual`，参数 `ep01 --type=keyframes` |
+| 修 storyboard | `storyboarder-fix-storyboard`，参数 `ep01` |
+| review storyboard | `director-review-storyboard`，参数 `ep01` |
 
 **注意**：无 `creator-update-records` 行 —— short 模式永不触发。
 
 ## Short 级联 DAG 参考
 
 ```
-outline → script [review-script+fix] → keyframes [review-keyframes-narrative+fix]
-   → asset-list → assets → keyframe-mds
-   → images [keyframe 图变动: review-keyframes-visual + ≤2 轮 fix-keyframe-image]
+outline → script [review-script+fix] → keyframe-prompts [review-script+fix 二轮]
+   → asset-list → assets → images
+   [keyframe 图变动: review-assets-visual + ≤2 轮 fix-asset-image]
    → storyboard [review-storyboard+fix]
 ```
 
@@ -69,7 +68,6 @@ outline → script [review-script+fix] → keyframes [review-keyframes-narrative
 
 - 误调用 `writer-novel` / `writer-fix-novel`（应走 script-trio）
 - 误插入 `creator-update-records`（短视频永不需要）
-- 误调用 `director-review-storyboard`（应用 `short-review-storyboard`）
-- 误调用 `storyboarder-fix-storyboard`（应用 `short-fix-storyboard`）
+- 误传 mode 参数给 director-review-storyboard / storyboarder-fix-storyboard（这两个 skill 模式无关，统一入口）
 - 误接纳 arc.md / 全局 outline 类请求（应拒绝）
 - 接纳 "ep02 …" 请求并真的去找该集（应忽略并提示用户）

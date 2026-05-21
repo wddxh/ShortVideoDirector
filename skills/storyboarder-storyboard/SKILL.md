@@ -32,7 +32,7 @@ model: sonnet
 2. **镜头创意**：为每个 shot 赋予景别/运动/视频风格/转场，并把剧本对白与视觉摘要翻译成连贯的「画面与声音描述」prose
 3. **KF 标记**：按需在 shot 内联标注 `[KF-id]`（首帧/尾帧/参考），并在头部「引用资产」字段同步声明
 
-**禁止越权**：不重新分配场景时长、不改剧本对白字句、不引入剧本未覆盖的 character/location/item。仅 KF 由分镜师自主创建（director-keyframes 在更下游）。
+**禁止越权**：不重新分配场景时长、不改剧本对白字句、不引入剧本未覆盖的 character/location/item。仅 KF 由分镜师自主创建（creator-keyframe-prompts 在更下游）。
 
 下游消费者：`creator-keyframe-prompts`（按 KF 标记生成关键帧 .md）、`creator-video-dreamina`（按 shot 提交视频生成）、`director-review-storyboard`（审稿）。
 

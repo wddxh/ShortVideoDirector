@@ -139,7 +139,7 @@ model: opus
 1. 显示镜头编号和 `fail_reason` 原文
 2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
 3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
-   - 涉及分镜/画面描述修改 → 检查是否存在 `story/episodes/{集数}/script.md`（短视频，使用 Skill tool 调用 `short-fix-storyboard` skill）或 `story/episodes/{集数}/novel.md`（系列视频，使用 Skill tool 调用 `storyboarder-fix-storyboard` skill）
+   - 涉及分镜/画面描述修改 → 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill（统一入口，根据 `story/episodes/{集数}/script.md`（短视频）或 `story/episodes/{集数}/novel.md`（系列视频）自动判断 mode）
    - 涉及资产/图片修改 → 使用 Bash 调用 `bash scripts/read-config.sh "图像模型"` 获取图像模型值，使用 Skill tool 调用 `creator-fix-asset` skill + 使用 Skill tool 调用 `creator-image-{图像模型值}` skill
 4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
 5. 重新生成 prompt：`bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`

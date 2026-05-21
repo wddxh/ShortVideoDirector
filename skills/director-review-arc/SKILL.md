@@ -1,6 +1,6 @@
 ---
 name: director-review-arc
-description: 审查 arc.md 框架完整性、节点分配、人物弧深度、关键转折分布。new-story 阶段 director-arc 之后强制调用。
+description: 审查 arc.md 框架完整性、节点分配、人物弧深度、关键转折分布。generate-episode-pipeline 在 new-series 模式 director-arc 之后强制调用。
 user-invocable: false
 context: fork
 agent: director

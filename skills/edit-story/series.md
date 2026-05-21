@@ -12,12 +12,12 @@
 
 | 入口节点 | 最上游动作 | 下游候选（按需触发） |
 |---------|-----------|---------------------|
-| outline | `director-fix-outline` | writer-novel → review+fix → keyframes → review+fix → create-assets → [update-records] → keyframe-prompts → images → keyframes-visual review+fix → storyboard → review+fix |
-| novel | `writer-fix-novel` | review+fix → keyframes → review+fix → create-assets → [update-records] → keyframe-prompts → images → keyframes-visual review+fix → storyboard → review+fix |
-| keyframes | `director-keyframes incremental` | review+fix → keyframe-prompts (incremental, dirty list) → images → keyframes-visual review+fix → storyboard → review+fix（若 keyframes 编排变化引入新资产则同步触发 create-assets / [update-records]） |
+| outline | `director-fix-outline`（mode=series） | writer-novel → review+fix → keyframe-prompts → review-script+fix → create-assets → [update-records] → images → assets-visual review+fix → storyboard → review+fix |
+| novel | `writer-fix-novel` | review+fix → keyframe-prompts → review-script+fix → create-assets → [update-records] → images → assets-visual review+fix → storyboard → review+fix |
+| keyframes | `creator-keyframe-prompts`（incremental, dirty list） | review-script+fix → images → assets-visual review+fix → storyboard → review+fix（若关键帧编排变化引入新资产则同步触发 create-assets / [update-records]） |
 | asset-list | 直接 Edit `outline.md` 清单 | create-assets → [update-records] → images |
 | assets（文字变动）| `creator-fix-asset` | images → storyboarder-fix-storyboard（仅引用此资产的镜头）→ review+fix |
-| keyframe-images（仅重生 + 审）| `creator-fix-keyframe-image` | keyframes-visual review（≤2 轮 fix loop 内置）→ storyboarder-fix-storyboard（仅引用此 keyframe 的镜头）→ review+fix |
+| keyframe-images（仅重生 + 审）| `creator-fix-asset-image` | assets-visual review（≤2 轮 fix loop 内置）→ storyboarder-fix-storyboard（仅引用此 keyframe 的镜头）→ review+fix |
 | images（仅重生）| `creator-image-{模型}` | 无 |
 | storyboard | `storyboarder-fix-storyboard` | review+fix |
 
@@ -39,26 +39,26 @@
 | 写 novel | `writer-novel`，参数 `{ep}` |
 | 修 novel | `writer-fix-novel`，参数 `{ep}` |
 | review novel | `director-review-novel`，参数 `{ep}` |
-| Edit asset-list 清单 | 直接 Edit `story/episodes/{ep}/outline.md` 「本集资产清单」section（不调 `director-keyframes`，仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframes 节点）。Edit 后按 SKILL.md「dedupe 公共逻辑」去重 |
-| 修 keyframes | `director-keyframes`，参数 `{ep} incremental`。产出后按 dedupe 逻辑同步本集资产清单 |
-| review keyframes 叙事 | `director-review-keyframes-narrative`，参数 `{ep}` |
+| Edit asset-list 清单 | 直接 Edit `story/episodes/{ep}/outline.md` 「本集资产清单」section（仅作为局部清单补漏；若改动来自关键帧编排变化应走 keyframe-prompts 节点）。Edit 后按 SKILL.md「dedupe 公共逻辑」去重 |
+| 修 keyframes | `creator-keyframe-prompts`，参数 `{ep} incremental`。产出后按 dedupe 逻辑同步本集资产清单 |
+| review script（叙事/视觉节点覆盖）| `director-review-script`，参数 `series {ep}` |
 | 创建资产文件 | `creator-create-assets`，参数 `{ep}` |
 | 同步资产档案（**非 ep01**）| `creator-update-records`，参数 `{ep}` |
 | 修资产文件 | `creator-fix-asset`，参数 `{资产文件路径} "{修改意见}"` |
 | 重生成关键帧 .md | `creator-keyframe-prompts`，参数 `{ep} incremental "{dirty list}"` |
 | 覆盖单张资产图 | `creator-image-{config 图像模型}`，参数 `"{资产文件路径}"` |
 | 批量生成新增资产 + 关键帧图 | `creator-generate-images`，参数 `{ep}` |
-| 修关键帧图（含 prompt 调整 + 重抽）| `creator-fix-keyframe-image`，参数 `{ep}` |
-| review keyframes 画面 | `director-review-keyframes-visual`，参数 `{ep}` |
+| 修关键帧图（含 prompt 调整 + 重抽）| `creator-fix-asset-image`，参数 `{ep}` |
+| review keyframes 画面 | `director-review-assets-visual`，参数 `{ep} --type=keyframes` |
 | 修 storyboard | `storyboarder-fix-storyboard`，参数 `{ep}` |
 | review storyboard | `director-review-storyboard`，参数 `{ep}` |
 
 ## Series 级联 DAG 参考
 
 ```
-outline → novel [review-novel+fix] → keyframes [review-keyframes-narrative+fix]
-   → asset-list → assets → [非 ep01: update-records] → keyframe-mds
-   → images [keyframe 图变动: review-keyframes-visual + ≤2 轮 fix-keyframe-image]
+outline → novel [review-novel+fix] → keyframe-prompts [review-script+fix]
+   → asset-list → assets → [非 ep01: update-records] → images
+   [keyframe 图变动: review-assets-visual + ≤2 轮 fix-asset-image]
    → storyboard [review-storyboard+fix]
 ```
 

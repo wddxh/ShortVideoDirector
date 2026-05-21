@@ -58,6 +58,6 @@ model: sonnet
 - 使用 Write 覆写 `story/episodes/{ep}/script.md`
 
 ## 通用约束
-- 下游消费者是 short-storyboard (拆分镜) 和 director-review-script (审稿)，它们已基于"修改前"运作过一轮——修正必须只动指出的问题，未涉及部分逐字保留
+- 下游消费者是 storyboarder-storyboard (拆分镜) 和 director-review-script (审稿)，它们已基于"修改前"运作过一轮——修正必须只动指出的问题，未涉及部分逐字保留
 - 短视频时长极紧 (通常 1-3 分钟，series 单集 3-5 分钟)，任何台词或场景结构改动都会重新分配节奏；超改 = 节奏失衡 + 已分镜场景失效
 - script 是 storyboard 的直接上游——主要事件 / 场景结构 / 台词的修改都可能让下游已生成 storyboard 失效

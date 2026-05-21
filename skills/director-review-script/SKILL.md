@@ -1,6 +1,6 @@
 ---
 name: director-review-script
-description: 审核单集 script.md 的剧本级合理性 (节奏分布 / 视觉节点覆盖 / asset 列表完整性 + mode 专属戏剧弧)。本 skill 接管 narrative review (旧 director-review-keyframes-narrative 已下线)。按 mode 加载 series.md 或 short.md 专属指南。
+description: 审核单集 script.md 的剧本级合理性 (节奏分布 / 视觉节点覆盖 / asset 列表完整性 + mode 专属戏剧弧)。本 skill 同时承担叙事 (narrative) review 职责——新架构下 script 即叙事骨架，narrative 审核在此层一次完成 (keyframes 不再作为独立 narrative 审核节点)。按 mode 加载 series.md 或 short.md 专属指南。
 user-invocable: false
 context: fork
 agent: director
@@ -23,7 +23,7 @@ model: opus
 - `skills/director-review-script/short.md` (when mode=short) — 必读
 
 ## 接管说明
-本 skill **接管原 director-review-keyframes-narrative 的叙事审核职责**。新架构下 keyframes 已不作为独立 narrative 审核节点——script 即叙事骨架，narrative review 在此层一次完成。
+本 skill **同时承担叙事 (narrative) 审核职责**。新架构下 keyframes 已不作为独立 narrative 审核节点——script 即叙事骨架，narrative review 在此层一次完成。
 
 ## 工作流
 

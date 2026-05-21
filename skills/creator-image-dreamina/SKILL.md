@@ -77,7 +77,7 @@ model: sonnet
 3. 推导输出路径：`bash scripts/asset-to-image-path.sh "{关键帧 .md 路径}"` → `assets/images/keyframes/{集数}/{KF-id}.png`
 4. 使用 Bash 执行：`bash scripts/image-gen-dreamina.sh "{prompt 文本}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" "{IMAGES 逗号分隔字符串}"`
    - 第 1 参数 `{prompt 文本}` 是 step 1 中 `---` 之后的整段（从 `**引用资产：**` 行到末尾），原样传递，**不要剥离头部**——dreamina 需要看到 `[name:{图片N}]` 头部才能把名字对应到参考图槽位
-5. 按三态处理结果。**注意**：dreamina CLI 一次最多 10 张参考图，超出会 FAIL；本档不在脚本层兜底，超出由 dreamina 报错→记 FAIL→由 `creator-fix-keyframe-image` 阶段判断是 director 拆帧还是减资产
+5. 按三态处理结果。**注意**：dreamina CLI 一次最多 10 张参考图，超出会 FAIL；本档不在脚本层兜底，超出由 dreamina 报错→记 FAIL→由 `creator-fix-asset-image` 阶段判断是 director 拆帧还是减资产
 
 ### 阶段 4: 轮询 pending 任务
 

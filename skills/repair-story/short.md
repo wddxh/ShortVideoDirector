@@ -23,16 +23,15 @@
 
 ### 从关键帧开始恢复（含资产清单/资产文件/图片/分镜全套重生成）
 
-1. `director-keyframes`，参数 `ep01`
-2. `director-review-keyframes-narrative`，参数 `ep01`
-3. 若 review return `needs_revision M` → `director-keyframes`，参数 `ep01 incremental`（≤2 轮；fix skill 自动读 `.review-keyframes-narrative.md` 最后一轮意见）
+1. `creator-keyframe-prompts`，参数 `ep01`
+2. `director-review-script`，参数 `short ep01`
+3. 若 review return `needs_revision M` → `creator-keyframe-prompts`，参数 `ep01 incremental`（≤2 轮；fix skill 自动读 `.review-script.md` 最后一轮意见）
 4. `creator-create-assets`，参数 `ep01`
-5. `creator-keyframe-prompts`，参数 `ep01`
-6. 若图像模型非 `none`：
+5. 若图像模型非 `none`：
    - `creator-generate-images`，参数 `ep01`
-   - `director-review-keyframes-visual`，参数 `ep01`
-   - 若 review return 以 `needs_revision` 开头 → `creator-fix-keyframe-image`，参数 `ep01`（≤2 轮；fix skill 自动读 `.review-keyframes-visual.md` 最后一轮 dirty list + 意见）
-7. 继续"从分镜开始恢复"
+   - `director-review-assets-visual`，参数 `ep01 --type=keyframes`
+   - 若 review return 以 `needs_revision` 开头 → `creator-fix-asset-image`，参数 `ep01`（≤2 轮；fix skill 自动读 `.review-assets-visual.md` 最后一轮 dirty list + 意见）
+6. 继续"从分镜开始恢复"
 
 ### 从资产文件开始恢复（keyframes 完整但 assets 缺失）
 
@@ -44,22 +43,22 @@
 
 1. `creator-generate-images`，参数 `ep01`
 2. 若本次有 keyframe 图被生成（`keyframe-images:missing` 命中）：
-   - `director-review-keyframes-visual`，参数 `ep01`
-   - 若 review return 以 `needs_revision` 开头 → `creator-fix-keyframe-image`，参数 `ep01`（≤2 轮）
+   - `director-review-assets-visual`，参数 `ep01 --type=keyframes`
+   - 若 review return 以 `needs_revision` 开头 → `creator-fix-asset-image`，参数 `ep01`（≤2 轮）
 3. 继续"从分镜开始恢复"
 
 ### 从分镜开始恢复
 
-1. `short-storyboard`，参数 `ep01`
-2. `short-review-storyboard`，参数 `ep01`
-3. 若 review return `needs_revision M` → `short-fix-storyboard`，参数 `ep01`（≤2 轮；fix skill 自动读 `.review-storyboard.md` 最后一轮意见）
+1. `storyboarder-storyboard`，参数 `ep01`
+2. `director-review-storyboard`，参数 `ep01`
+3. 若 review return `needs_revision M` → `storyboarder-fix-storyboard`，参数 `ep01`（≤2 轮；fix skill 自动读 `.review-storyboard.md` 最后一轮意见）
 
 ## Short 恢复 DAG 参考
 
 ```
-outline → script [review-script+fix] → keyframes [review-keyframes-narrative+fix]
-   → asset-list → assets → keyframe-mds
-   → images [keyframe 图变动: review-keyframes-visual + ≤2 轮 fix-keyframe-image]
+outline → script [review-script+fix] → keyframe-prompts [review-script+fix 二轮]
+   → asset-list → assets
+   → images [keyframe 图变动: review-assets-visual + ≤2 轮 fix-asset-image]
    → storyboard [review-storyboard+fix]
 ```
 
@@ -69,6 +68,6 @@ outline → script [review-script+fix] → keyframes [review-keyframes-narrative
 
 - 误调用 `writer-novel` / `writer-fix-novel` / `director-review-novel`（应走 script-trio）
 - 误插入 `creator-update-records`（短视频永不需要）
-- 误调用 `director-review-storyboard` / `storyboarder-fix-storyboard`（应用 short-* 对应 skill）
+- 误传模式参数给 storyboarder-storyboard / director-review-storyboard / storyboarder-fix-storyboard（这些 skill 模式无关）
 - 接纳 "ep02 …" 请求并真的去找该集（应忽略并提示用户）
 - 大纲缺失时擅自重生大纲（应直接提示用户走 `/short-video`）

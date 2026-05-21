@@ -36,7 +36,7 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
 ### Asset 引用约束
 - 每个场景的 `地点` 和 `出场角色` 字段中引用的 asset，必须满足以下之一：
   - 已在 `assets/characters/` 或 `assets/locations/` 中注册
-  - 在本集 outline 的「本集新增资产」清单中显式列出（待 director-keyframes / creator 后续创建）
+  - 在本集 outline 的「本集新增资产」清单中显式列出（待 creator-keyframe-prompts / creator-create-assets 后续创建）
 - 不允许 dangling reference（引用未注册且未声明新增的 asset）
 - item asset（道具）此阶段不在场景字段中强制列出，由 scriptwriter / storyboarder 后续补充
 
@@ -71,6 +71,6 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
 本文件**不规定**以下内容（由 mode 文件管理）：
 - 集尾钩子 / 开场策略 (series 与 short 在 ep1 共有，但 series 每集都需要钩子，short 单集需结局落点)
 - 与 arc.md 的对接方式（仅 series）
-- new-story vs continue-story 的输出文件操作差异
+- new-series vs continue-series mode 的输出文件操作差异（由 generate-episode-pipeline 编排）
 - 全局 story/outline.md 同步策略
 - mode 专属失败模式（钩子无力、续集状态不一致、结局仓促等）
