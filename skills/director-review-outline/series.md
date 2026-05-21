@@ -22,7 +22,7 @@
    - mode='continue-series'：本集场景是否与上集集尾钩子自然承接，是否引入与 arc 冲突的新元素
 
 4. **新增 asset 合理性**
-   - "本集新增资产" 列表中新角色数 ≥5 → 警告（信息过载）
+   - 按剧情自由安排, 不设硬阈值（character / location / item / building 数量任意）
    - 新增角色是否对本集叙事必需，能否复用已有角色
 
 5. **asset dangling reference**
