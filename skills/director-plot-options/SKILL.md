@@ -10,9 +10,17 @@ model: sonnet
 
 ## 输入
 
-通过 prompt 接收：
+通过 prompt 接收:
 - mode: 'new-series' | 'continue-series' | 'short'
-- $ARGUMENTS[0] (可选): 用户偏好描述 (重新生成时传入)
+- action: 'generate' | 'modify'
+- target_option: 'A' | 'B' | 'C' (modify 可选)
+- modification: 用户指令文本 (modify 必填)
+- previous_options_path: 'tmp/...' (modify 必填)
+
+输出由 action 决定:
+- generate → 3 候选
+- modify + target_option → 修改后的 1 个候选
+- modify 无 target_option → 重生成 3 候选
 
 ## 必读文件
 
@@ -36,32 +44,38 @@ model: sonnet
 - 读 `config.md`
 - 按 mode 文件指引读其他上下文 (series 需 arc.md / story/outline.md / 最近 M 集 novel；short 仅 config)
 
-### Phase 3: 生成 3 候选 (公共骨架)
+### Phase 3: 按 action 执行
 
-所有 mode 都满足:
+#### Phase 3a (action='generate')
+
+按公共骨架 + mode 文件指引生成 3 候选, 差异显著:
 - 输出 3 个候选 (选项 A / B / C)
 - 3 个候选必须差异显著 (主题、冲突类型或叙事风格不同)
-- 版权规避：不得使用现实明星 / 公众人物 / 真实地名 / 商标
+- 版权规避: 不得使用现实明星 / 公众人物 / 真实地名 / 商标
 - 按 mode 文件中"每候选字段"清单填写
 
-### Phase 4: mode 专属强制交互
+#### Phase 3b (action='modify' + target_option)
 
-- 按 Phase 1 加载的 series.md / short.md "强制问用户" 指引执行
-- series mode **必须**额外问"总集数 (整数)"，留待 director-arc 接收
-- short mode **不问**总集数
+1. Read previous_options_path 取之前 3 候选
+2. 仅按 modification 修改 target_option 指向的候选
+3. 输出 1 个修改后候选
 
-### Phase 5: 协商与选定
+#### Phase 3c (action='modify' 无 target_option)
 
-呈现 3 候选 + (series) 总集数追问，等待用户回应:
-- 用户选定某候选 → 将该候选完整文本 (+ series 的总集数) 返回 workflow
-- 用户提偏好并要求重生成 → 偏好作为 `$ARGUMENTS[0]` 重新执行本 skill
+1. Read previous_options_path 取之前 3 候选 (反向约束: 新 3 候选不应与旧雷同)
+2. 按 modification 偏好重生成 3 候选
 
-### Phase 6: 自检
+### Phase 4: 自检
 
-按 Phase 1 加载的 mode 文件中"专属失败模式"自查；不通过则回 Phase 3。
+按 mode 文件中"专属失败模式"自查; 不通过则回 Phase 3。
+
+## 输出
+
+不与用户交互, 直接返回结果给 caller:
+- generate / modify-without-target: 3 候选 markdown
+- modify-with-target: 1 个修改后候选 markdown
 
 ## 通用规则
 
 - 3 候选差异必须落在结构层 (主线 / 冲突 / 情感落点)，不是仅换名字
 - continue-series 时，候选不得偏离 arc 当前阶段目标
-- full-auto mode: 按"观众吸引力 > 短视频适配性 > 剧情张力"自动选定 (series mode 总集数走 config 默认或追问)
