@@ -17,7 +17,7 @@
 ## 结局设计
 {结局合理性 + 情感落点：观众离场时记住什么}
 
-## Phase 5: 同步全局 outline
+## Phase 6: 同步全局 outline
 跳过 (short 无全局 outline 文件)
 
 ## Short 专属失败模式

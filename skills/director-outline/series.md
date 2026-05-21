@@ -23,7 +23,7 @@
 ## 集尾钩子
 {留给下一集的戏剧悬念，不是"下集见"}
 
-## Phase 5: 同步全局 outline
+## Phase 6: 同步全局 outline
 追加 ## epXX 摘要 到 story/outline.md
 摘要含: 主要场景 (标题列表) + 集尾钩子
 

@@ -44,7 +44,7 @@ model: sonnet
 
 ### Phase 5: 写「本集新增资产」段（必产出）
 
-outline.md **末尾必须含 `## 本集新增资产` 段**，按 `skills/director-outline/rules.md` 「新增资产规则」段 写入：
+outline.md **末尾必须含 `## 本集新增资产` 段**（写入位置：所有 mode 专属字段——如 series 的「集尾钩子」、short 的「结局设计」——之后，作为文件最末段），按 `skills/director-outline/rules.md` 「新增资产规则」段 写入：
 - 4 类型行（characters / locations / items / buildings）齐全
 - 无内容写 `(无)`
 - asset id 按 `skills/director-outline/rules.md`「asset id 规则」编写（=资产名，跟随 config.md 「语言」设置）
