@@ -61,19 +61,22 @@
 
 ## 本集新增资产写回 outline.md
 
-剧本生成完毕后，必须将"本集新增资产"清单追加到 `story/episodes/epNN/outline.md` 末尾的 `## 本集新增资产` section。
+剧本生成完毕后，必须将本集新增资产追加/重写到 `story/episodes/epNN/outline.md` 末尾的 `## 本集新增资产` section，**按 asset 类型分组**（与 spec §3.2 schema 对齐）：
+
+```
+## 本集新增资产  (scriptwriter 阶段追加)
+- characters: 王五 (assets/characters/王五.md), 赵六 (assets/characters/赵六.md)
+- locations: 地下室 (assets/locations/地下室.md)
+- items: 旧怀表 (assets/items/旧怀表.md)
+- buildings: (无)
+```
 
 **dedupe 流程** (per spec §10 Q5)：
 
-1. **read** — 读取 outline.md 现有 `## 本集新增资产` section (若不存在则视为空清单)
-2. **merge** — 合并本次剧本识别出的新增 asset 条目
-3. **dedupe by asset path** — 按 asset 文件路径去重 (如 `assets/items/old-key.md` 出现多次只保留一条)
-4. **rewrite** — 整段重写 `## 本集新增资产` section，**不靠 git diff、不增量 append**
-
-**条目格式** (每条一行)：
-```
-- [<名称>](assets/<type>/<名称>.md) — <一句简介，说明本集首次出现的角色定位/物件作用/地点用途>
-```
+1. **read** — 读取 outline.md 现有 `## 本集新增资产` section（不存在则视为各类型空）
+2. **merge** — 合并本次剧本识别出的新增条目到对应类型组
+3. **dedupe by asset path** — 同一 asset 文件路径只保留一条
+4. **rewrite** — 整段重写 section（4 个类型行全列，无新增写 `(无)`），**不靠 git diff、不增量 append**
 
 ## 公共失败模式 (须主动规避)
 
