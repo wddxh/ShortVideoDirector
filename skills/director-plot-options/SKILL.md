@@ -1,6 +1,6 @@
 ---
 name: director-plot-options
-description: Director生成3个差异化剧情走向选项。自动读取config.md、arc.md、outline.md、最近M集novel。
+description: 生成 3 个差异化剧情候选并与用户协商选定。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 context: fork
 agent: director
@@ -10,71 +10,58 @@ model: sonnet
 
 ## 输入
 
-### 文件读取
-- `config.md` — 必须读取
-- `story/arc.md` — 若存在则读取
-- `story/outline.md` — 若存在则读取
-- 最近 M 集 novel.md — 若 `story/outline.md` 存在，根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
+通过 prompt 接收：
+- mode: 'new-series' | 'continue-series' | 'short'
+- $ARGUMENTS[0] (可选): 用户偏好描述 (重新生成时传入)
 
-### 模式判断
-- 若 `story/outline.md` 不存在 → new-story 模式
-- 若 `story/outline.md` 已存在 → continue-story 模式
+## 必读文件
 
-### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 用户偏好描述（可选，重新生成时传入）
+- `config.md` — 必读
+- `skills/director-plot-options/series.md` (when mode ∈ {new-series, continue-series}) — 必读并严格遵循
+- `skills/director-plot-options/short.md` (when mode = short) — 必读并严格遵循
 
-## 职责描述
+## 工作流
 
-根据故事配置和已有剧情上下文，生成 3 个差异化的剧情走向选项供选择。
+### Phase 1: 检测 mode 并加载专属指南 (必做)
 
-## 输出格式
+1. 解析 prompt 中的 mode 参数
+2. 按 mode 用 Read tool 加载**仅对应 mode 的文件** (避免 prompt 污染):
+   - mode ∈ {'new-series', 'continue-series'}: Read('skills/director-plot-options/series.md')
+   - mode = 'short': Read('skills/director-plot-options/short.md')
+3. **不要**加载非当前 mode 的文件
+4. 严格按"公共骨架 + 当前 mode 文件"指引执行后续 Phase
 
-**new-story 时（story/outline.md 不存在）：**
+### Phase 2: 上下文准备
 
-```markdown
-## 选项 A: {主题名称}
-- **剧名：** {剧名}
-- **核心设定：** {一句话概括世界观和主角定位}
-- **开篇钩子：** {第一集的核心冲突/悬念}
-- **卖点分析：** {为什么适合短视频}
+- 读 `config.md`
+- 按 mode 文件指引读其他上下文 (series 需 arc.md / story/outline.md / 最近 M 集 novel；short 仅 config)
 
-## 选项 B: {主题名称}
-...
+### Phase 3: 生成 3 候选 (公共骨架)
 
-## 选项 C: {主题名称}
-...
-```
+所有 mode 都满足:
+- 输出 3 个候选 (选项 A / B / C)
+- 3 个候选必须差异显著 (主题、冲突类型或叙事风格不同)
+- 版权规避：不得使用现实明星 / 公众人物 / 真实地名 / 商标
+- 按 mode 文件中"每候选字段"清单填写
 
-**continue-story 时（story/outline.md 已存在）：**
+### Phase 4: mode 专属强制交互
 
-```markdown
-## 选项 A（稳健）: {走向名称}
-- **关键转折：** {本集核心冲突或反转}
-- **涉及角色：** {主要出场角色}
-- **集尾钩子：** {收束方式 — 描述}
-- **对整体剧情的影响：** {如何推动后续剧情}
+- 按 Phase 1 加载的 series.md / short.md "强制问用户" 指引执行
+- series mode **必须**额外问"总集数 (整数)"，留待 director-arc 接收
+- short mode **不问**总集数
 
-## 选项 B（激进）: {走向名称}
-...
+### Phase 5: 协商与选定
 
-## 选项 C（拓展）: {走向名称}
-...
-```
+呈现 3 候选 + (series) 总集数追问，等待用户回应:
+- 用户选定某候选 → 将该候选完整文本 (+ series 的总集数) 返回 workflow
+- 用户提偏好并要求重生成 → 偏好作为 `$ARGUMENTS[0]` 重新执行本 skill
 
-## full-auto mode
+### Phase 6: 自检
 
-自动选择标准（按优先级）：
-1. 观众吸引力
-2. 短视频适配性
-3. 剧情张力
+按 Phase 1 加载的 mode 文件中"专属失败模式"自查；不通过则回 Phase 3。
 
-## 规则
+## 通用规则
 
-- 3 个选项必须有明显差异
-- continue-story 时：稳健（顺延当前剧情线）、激进（大反转/新冲突）、拓展（引入新角色/新势力/新世界观元素）
-- continue-story 时若 `story/arc.md` 存在：3 个选项必须围绕 arc 中为下一集分配的剧情规划展开，不得偏离 arc 的整体方向和阶段目标。选项的差异体现在具体的演绎方式和细节处理上，而非剧情走向本身
-
-## 输出
-
-### 返回内容
-- 3 个差异化剧情选项（Markdown 格式） → 返回给 workflow 展示
+- 3 候选差异必须落在结构层 (主线 / 冲突 / 情感落点)，不是仅换名字
+- continue-series 时，候选不得偏离 arc 当前阶段目标
+- full-auto mode: 按"观众吸引力 > 短视频适配性 > 剧情张力"自动选定 (series mode 总集数走 config 默认或追问)
