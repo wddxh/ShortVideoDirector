@@ -1,50 +1,51 @@
 ---
 name: scriptwriter-script
-description: Scriptwriter根据大纲生成具有画面感和紧凑叙事节奏的剧本。自动读取大纲、config和角色资产。
-user-invocable: false
-context: fork
-agent: scriptwriter
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
-model: sonnet
+description: 把 outline (+ series 模式下的 novel) 转译为可拍摄剧本。半结构化场景级 schema，自由分配场景时长，追加"本集新增资产"到 outline。
 ---
 
 ## 输入
+通过 prompt 接收：
+- mode: 'new-series' | 'continue-series' | 'short'
+- ep: 'epXX'
 
-### 文件读取
-- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取
-- `config.md` — 必须读取
-- `assets/characters/*.md` — 若存在则全部读取（角色声音一致性参考）
-- `skills/scriptwriter-script/rules.md` — 必须读取并严格遵循
+## 必读文件
+- `skills/scriptwriter-script/rules.md` — 必须读取并严格遵循 (公共规则)
+- `skills/scriptwriter-script/series.md` (when mode in {new-series, continue-series}) — 含 novel 输入处理
+- `skills/scriptwriter-script/short.md` (when mode=short) — 无 novel 输入
 
-### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 当前集数（如 ep01）
+## 工作流
 
-## 职责描述
+### Phase 1: 检测 mode 并加载专属指南 (双重保护)
+1. 解析 prompt 中的 mode 参数
+2. 按 mode 用 Read tool 加载**仅对应 mode 的文件** (避免 prompt 污染):
+   - mode in {'new-series', 'continue-series'}: Read('skills/scriptwriter-script/series.md')
+   - mode='short': Read('skills/scriptwriter-script/short.md')
+3. **不要**加载非当前 mode 的文件
+4. 严格按"公共骨架 + 当前 mode 文件"指引执行后续 Phase
 
-### 核心使命
+### Phase 2: 上下文准备
+- 读 `config.md`
+- 读 `story/episodes/{ep}/outline.md`
+- 按 mode (series) 读 `story/episodes/{ep}/novel.md`
+- 其余上下文按 series.md / short.md 指引
 
-把短视频大纲扩展成具有画面感的剧本，按场景组织，每个场景包含地点、时间、氛围、动作、对白、内心独白、旁白和声音反应。下游消费者是 short-storyboard（拆分镜），它把你的剧本转成镜头序列；如果你的剧本只有抽象台词没有画面信息，下游必须替你想画面，分镜质量就掉。短视频时长有限（通常 1-3 分钟），台词必须每句服务剧情或塑造人物，没有冗余空间。
+### Phase 3: 扫描 assets/ 复用
+执行命令：
+```bash
+ls -1 assets/{characters,locations,items,buildings}/*.md 2>/dev/null
+```
+对已存在 asset 优先复用，避免重复创建。
 
-### 工作思路
+### Phase 4: 生成剧本
+- 按场景级 schema 展开 (详见 rules.md §3.4)
+- 自由分配场景时长 (节奏角色为软引导，剧本以可拍摄性为最高目标，不硬 mapping)
+- 写入 `story/episodes/{ep}/script.md`
 
-1. 通读 outline，按事件流划分场景——一个场景=一个地点/时间/氛围块
-2. 每个场景先想"画面"再写台词：地点在哪、光线如何、角色在做什么——这是 storyboarder 拆镜头的依据
-3. 台词写每句前自问"这句话推进了什么/塑造了什么"——服务不了剧情或人物的台词删掉
-4. 安排主角内心独白展现想法和判断，增强代入感；安排声音反应（吼叫/哭泣/叹息）增加听觉密度
-5. 节奏按 config 时长目标分配——重要场景多留铺垫秒数，过渡场景压缩
+### Phase 5: 追加"本集新增资产"到 outline
+- 读 outline.md 末尾既有"本集新增资产"段 → merge 新出现 asset → dedupe by 路径 → 重写该 section
+- 仅登记真正新增 (未在 assets/ 中存在) 的资产
 
-### 常见误区
-
-- **大纲扩写式写剧本** — 和 writer-novel 同根诱因，大纲最近读、最结构化 — 场景切分先于句子扩写
-- **台词废话** — 模型容易写寒暄、自然客套（"你好""你来了"），看似真实但占用宝贵秒数；rules.md 已规定"台词精准"但模型本能写"自然对话" — 每句台词通过"剧情推进/人物塑造"二选一过滤
-- **场景描写抽象** — 写"温馨的房间内"，下游分镜不知道画面是什么 — 地点要具体到家具/光线/物件，氛围要可视觉化
-- **角色声音失忆** — 模型容易把所有角色写成相同语气；rules.md 已规定"角色声音一致"但模型本能用通用对话 — 写每个角色台词前对照其资产文件「声音特征」
-
-## 规则参考
-
-- `skills/scriptwriter-script/rules.md` — 必须读取并严格遵循
-
-## 输出
-
-### 文件操作
-- 使用 Write 将剧本写入 `story/episodes/$ARGUMENTS[0]/script.md`
+### Phase 6: 自检
+- 调用 `scripts/scene-duration.sh` 校验场景"目标时长"字段累加和是否落在 target × [0.9, 1.1] 区间
+- 调用方式见 spec §3.4
+- 不通过则回到 Phase 4 微调
