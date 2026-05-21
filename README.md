@@ -61,7 +61,7 @@ claude --plugin-dir /path/to/ShortVideoDirector
 }
 ```
 
-启动 OC 即自动注册 5 个子代理与 44 个 skills。完整安装/升级/troubleshooting 说明见 [`.opencode/README.md`](./.opencode/README.md)。
+启动 OC 即自动注册 5 个子代理与 34 个 skills。完整安装/升级/troubleshooting 说明见 [`.opencode/README.md`](./.opencode/README.md)。
 
 ## Codex
 
@@ -79,8 +79,9 @@ python3 .codex/build-codex-skills.py
 
 本插件按任务复杂度分配模型：
 
-- Opus（编排、Director 审核）：15 个 skill
-- Sonnet（内容生成、机械执行）：24 个 skill
+- Opus（编排、Director 审核）：13 个 skill
+- Sonnet（内容生成、机械执行）：18 个 skill
+- 未指定（继承调用方）：3 个 skill
 
 **前置条件**：账号需同时有 Opus 和 Sonnet 访问权限。
 
@@ -127,32 +128,22 @@ env var 优先级最高，会覆盖所有 frontmatter 的 `model`，整个 sessi
 ```
 
 ```bash
-# 编辑系列视频已有内容
-/series-edit-story ep01大纲的集尾钩子改成更有悬念的
-/series-edit-story ep02分镜镜头3的台词太少，增加内心独白
-/series-edit-story ep03主角的外貌描述改成短发
-/series-edit-story 在ep01的资产清单中增加一个新角色"老王"
-/series-edit-story 重新生成张三的参考图片
-/series-edit-story 张三的头发改成红色，重新生成图片
+# 编辑已有内容（自然语言，自动判断系列/单集）
+/edit-story ep01大纲的集尾钩子改成更有悬念的
+/edit-story ep02分镜镜头3的台词太少，增加内心独白
+/edit-story ep03主角的外貌描述改成短发
+/edit-story 在ep01的资产清单中增加一个新角色"老王"
+/edit-story 重新生成张三的参考图片
+/edit-story 张三的头发改成红色，重新生成图片
+/edit-story 大纲的结局改成开放式结局
+/edit-story 剧本场景2的台词太少，增加内心独白
 ```
 
 ```bash
-# 编辑单集短视频已有内容
-/short-edit-story 大纲的结局改成开放式结局
-/short-edit-story 剧本场景2的台词太少，增加内心独白
-/short-edit-story 主角的外貌描述改成短发
-/short-edit-story 重新生成张三和李四的参考图片
-```
-
-```bash
-# 修复系列视频中断的生成
-/series-repair-story ep03
-/series-repair-story          # 自动检测最新一集
-```
-
-```bash
-# 修复单集短视频中断的生成
-/short-repair-story
+# 修复中断的生成（自动检测系列/单集 + 最新一集）
+/repair-story ep03
+/repair-story            # 自动检测最新一集
+/repair-story            # 单集短视频项目自动定位 ep01
 ```
 
 ```bash
@@ -234,33 +225,62 @@ your-project/
 
 ## 工作流程
 
-### New Story（新故事）
+### 统一管线（series & short 共用骨架）
+
+```
+plot-options → input-confirm → [arc (series only)] → outline
+  → [novel (series only)] → script → storyboard
+  → 资产创建 + (按需) keyframes 规划 → 资产图生成 → 视频生成
+```
+
+差异点：
+- **series-video**：包含 `arc`（多集时）与 `novel`（小说原文）两层；novel 由 Director 审核后再产出 script
+- **short-video**：跳过 `arc` 与 `novel`，从 outline 直接生成 script（单集独立完整故事）
+- **keyframes**：按需启用——若分镜引用到的资产/场景需要更精细的关键帧锚定才规划；否则直接进入视频生成
+
+### New Story（新故事，series）
 
 1. 创建目录结构 + 交互式配置引导
 2. 用户提供输入或让 Director 生成主题选项（default mode 下用户选择；full-auto mode 下 Director 自动选择）
 3. Director 生成结构化确认说明供用户确认（default mode 下用户确认；full-auto mode 下自动确认）
 4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
 5. Director 生成本集剧情大纲（参考 arc 如有）
-6. Writer 生成小说原文
-7. Director 审核小说原文，若需修改则 Writer 定向修正（最多 2 轮）
-8. Storyboarder 生成资产清单（写入 ep outline.md）
-9. Creator 创建新资产
-10. **并行执行**：Creator 生成资产参考图片（若配置了图像模型）+ Storyboarder 生成分镜
-11. Director 审核分镜，若需修改则 Storyboarder 定向修正（最多 2 轮）
+6. Writer 生成小说原文 → Director 审核（最多 2 轮）
+7. Scriptwriter 基于 outline + novel 生成剧本 → Director 审核（最多 2 轮）
+8. Storyboarder 生成资产清单 + 分镜 → Director 审核（最多 2 轮）
+9. Creator 创建新资产、（按需）规划关键帧
+10. **并行**：Creator 生成资产/关键帧参考图片（若配置了图像模型）
+11. （触发 `/generate-video` 时）提交视频任务并跟踪
 
-### Continue Story（续写）
+### Continue Story（续写，series）
 
 1. 检测最新集数，创建新集目录
-2. 用户提供输入或让 Director 生成剧情走向选项（default mode 下用户选择；full-auto mode 下 Director 自动选择）
-3. Director 生成结构化确认说明供用户确认（default mode 下用户确认；full-auto mode 下自动确认）
-4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
-5. Director 生成新集大纲（append-only 追加到总大纲，参考 arc 如有）
-6. Writer 生成小说原文（参考最近 M 集小说和角色资产）
-7. Director 审核小说原文，若需修改则 Writer 定向修正（最多 2 轮）
-8. Storyboarder 生成资产清单（写入 ep outline.md，含新增和已有资产）
-9. **并行执行**：Creator 创建新资产 + Creator 更新已有资产出场记录
-10. **并行执行**：Creator 生成资产参考图片（若配置了图像模型）+ Storyboarder 生成分镜
-11. Director 审核分镜，若需修改则 Storyboarder 定向修正（最多 2 轮）
+2. 用户提供输入或让 Director 生成剧情走向选项
+3. Director 生成结构化确认说明
+4. （可选）arc 不存在且指定总集数 → 生成剧情弧线
+5. Director 生成新集大纲（append-only 追加到总大纲）
+6. Writer 生成小说原文 → Director 审核（最多 2 轮）
+7. Scriptwriter 生成剧本 → Director 审核（最多 2 轮）
+8. Storyboarder 生成资产清单（含新增/已有）+ 分镜 → Director 审核（最多 2 轮）
+9. **并行**：Creator 创建新资产 + 更新已有资产出场记录 + 按需规划关键帧 + 生成参考图
+
+### Short Story（单集短视频）
+
+1. 创建目录结构 + 交互式配置引导
+2. plot-options → input-confirm → outline（无 arc）
+3. **跳过 novel** → Scriptwriter 基于 outline 直接生成剧本 → Director 审核
+4. Storyboarder 生成资产清单 + 分镜 → Director 审核
+5. Creator 资产 + （按需）关键帧 + 参考图
+6. 视频生成同上
+
+### 重大变更（vs 旧版本，clean break）
+
+- **管线统一**：旧的 `new-story` / `continue-story` / `short-*` / `series-*` 分流 workflow 合并为单一 `generate-episode-pipeline`，由 `series-video` / `short-video` 入口透传 mode 参数（`series` / `short`）
+- **命令简化**：9 → 7 个 user-invocable command；`series-edit-story` + `short-edit-story` → `edit-story`；`series-repair-story` + `short-repair-story` → `repair-story`
+- **Skill 数量**：44 → 34；删除冗余/分流 skill，合并 review/fix 链路
+- **关键帧按需化**：keyframes 不再强制；只在分镜需要精细视觉锚定时才规划
+- **mode-specific 内容外置**：管线 SKILL.md 主体保持通用，差异化指令拆到 sibling 文件（`series.md` / `short.md`），Phase 1 强制 Read 当前 mode 文件
+- **不向后兼容**：旧 `episodes/` 目录若用新 skill 触发会报错——旧项目请固定到上一个 release tag 使用，或迁移到新结构
 
 ## 分镜格式
 
@@ -335,57 +355,41 @@ ShortVideoDirector/
 │   ├── scriptwriter.md          # Scriptwriter（短视频编剧）
 │   ├── storyboarder.md          # Storyboarder（分镜师）
 │   └── creator.md               # Creator（创意总监）
-├── skills/
-│   ├── series-video/            # 系列视频入口 skill
-│   │   ├── SKILL.md
-│   │   └── config-template.md
-│   ├── short-video/             # 单集短视频入口 skill
-│   │   ├── SKILL.md
-│   │   └── config-template.md
-│   ├── series-edit-story/          # 编辑系列视频已有内容（自然语言）
-│   ├── series-repair-story/       # 修复系列视频中断的生成
-│   ├── new-story/               # 新故事工作流
-│   │   └── SKILL.md
-│   ├── continue-story/          # 续写工作流
-│   │   └── SKILL.md
-│   ├── director-plot-options/   # Director 生成剧情选项
-│   ├── director-input-confirm/  # Director 确认用户输入
-│   ├── director-outline/        # Director 生成大纲
-│   ├── director-arc/            # Director 生成弧线
-│   ├── director-review-novel/   # Director 审核小说
-│   ├── director-review-storyboard/ # Director 审核分镜
-│   ├── director-fix-outline/      # Director 修正大纲
-│   ├── director-keyframes/      # Director 规划关键帧 + 资产清单
-│   ├── director-review-keyframes-narrative/ # Director 审核关键帧叙事
-│   ├── director-review-keyframes-visual/    # Director 视觉审核汇总层
-│   ├── director-review-keyframe-visual-single/ # Director 单帧视觉审核
-│   ├── writer-novel/            # Writer 生成小说
-│   ├── storyboarder-storyboard/ # Storyboarder 生成分镜
+├── skills/                          # 34 个 skills，按职责分组
+│   ├── series-video/                # 系列视频入口（user-invocable，含 series.md）
+│   ├── short-video/                 # 单集短视频入口（user-invocable，含 short.md）
+│   ├── generate-episode-pipeline/   # 统一管线（series/short 共用骨架）
+│   ├── edit-story/                  # 编辑已有内容（user-invocable，自然语言）
+│   ├── repair-story/                # 修复中断的生成（user-invocable）
+│   ├── generate-video/              # 提交视频任务（user-invocable）
+│   ├── check-video/                 # 查询视频结果（user-invocable）
+│   ├── auto-video/                  # 视频生成定时监控（user-invocable）
+│   ├── director-plot-options/       # Director 生成剧情选项
+│   ├── director-input-confirm/      # Director 确认用户输入
+│   ├── director-arc/                # Director 生成弧线
+│   ├── director-review-arc/         # Director 审核弧线
+│   ├── director-outline/            # Director 生成大纲
+│   ├── director-review-outline/     # Director 审核大纲
+│   ├── director-fix-outline/        # Director 修正大纲
+│   ├── director-review-novel/       # Director 审核小说
+│   ├── director-review-script/      # Director 审核剧本
+│   ├── director-review-storyboard/  # Director 审核分镜
+│   ├── director-review-assets-visual/         # Director 视觉审核汇总层
+│   ├── director-review-asset-visual-single/   # Director 单资产视觉审核
+│   ├── writer-novel/                # Writer 生成小说
+│   ├── writer-fix-novel/            # Writer 修正小说
+│   ├── scriptwriter-script/         # Scriptwriter 生成剧本
+│   ├── scriptwriter-fix-script/     # Scriptwriter 修正剧本
+│   ├── storyboarder-storyboard/     # Storyboarder 生成分镜
 │   ├── storyboarder-fix-storyboard/ # Storyboarder 修正分镜
-│   ├── writer-fix-novel/        # Writer 修正小说
-│   ├── creator-create-assets/   # Creator 创建资产
-│   ├── creator-keyframe-prompts/ # Creator 把 keyframes.json 翻译为关键帧 .md
-│   ├── creator-fix-keyframe-image/ # Creator 修订关键帧 prompt 并重抽图
-│   ├── creator-generate-images/ # Creator 批量生成资产/关键帧参考图片（路由层）
-│   ├── creator-image-dreamina/  # Creator 即梦图片生成（模型编排层）
-│   ├── generate-video/          # 提交视频生成任务（用户可调用）
-│   ├── check-video/             # 查询视频生成结果（用户可调用）
-│   ├── auto-video/              # 视频生成定时监控（用户可调用）
-│   ├── creator-video-dreamina/  # 即梦视频生成（模型编排层）
-│   ├── creator-update-records/  # Creator 更新出场记录
-│   ├── creator-fix-asset/         # Creator 修正资产
-│   ├── short-plot-options/      # Director 生成短视频剧情选项
-│   ├── short-input-confirm/     # Director 确认短视频用户输入
-│   ├── short-outline/           # Director 生成短视频大纲
-│   ├── scriptwriter-script/     # Scriptwriter 生成剧本
-│   ├── scriptwriter-fix-script/ # Scriptwriter 修正剧本
-│   ├── director-review-script/  # Director 审核剧本
-│   ├── short-storyboard/        # Storyboarder 生成短视频分镜
-│   ├── short-review-storyboard/ # Director 审核短视频分镜
-│   ├── short-fix-storyboard/    # Storyboarder 修正短视频分镜
-│   ├── short-fix-outline/       # Director 修正短视频大纲
-│   ├── short-edit-story/        # 编辑单集短视频已有内容
-│   └── short-repair-story/      # 修复单集短视频中断的生成
+│   ├── creator-create-assets/       # Creator 创建资产
+│   ├── creator-update-records/      # Creator 更新出场记录
+│   ├── creator-fix-asset/           # Creator 修正资产
+│   ├── creator-fix-asset-image/     # Creator 修订资产 prompt 并重抽图
+│   ├── creator-keyframe-prompts/    # Creator 把关键帧 spec 翻译为 .md
+│   ├── creator-generate-images/     # Creator 批量生成图片（路由层）
+│   ├── creator-image-dreamina/      # Creator 即梦图片生成（模型编排层）
+│   └── creator-video-dreamina/      # Creator 即梦视频生成（模型编排层）
 ├── scripts/
 │   ├── run-batch.ps1            # 批量生成脚本
 │   ├── image-gen-dreamina.sh    # 即梦单张图片生成脚本（支持参考图）

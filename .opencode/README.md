@@ -1,6 +1,6 @@
 # ShortVideoDirector — OpenCode 插件
 
-短视频创作工作流插件，提供 5 个子代理（director, writer, scriptwriter, storyboarder, creator）与 44 个 skills。
+短视频创作工作流插件，提供 5 个子代理（director, writer, scriptwriter, storyboarder, creator）与 34 个 skills。
 
 源代码是 Claude Code 插件，OC 兼容层在 `.opencode/` 下，运行时把源 skills 转换到 `~/.cache/short-video-director/<hash>/` 供 OC 加载，不污染源仓库。
 
@@ -84,7 +84,7 @@ storyboarder (subagent)
 writer (subagent)
 ```
 
-进一步验证 skills 是否加载（应输出 44 个 skill，路径在 `~/.cache/short-video-director/<hash>/skills/`）：
+进一步验证 skills 是否加载（应输出 34 个 skill，路径在 `~/.cache/short-video-director/<hash>/skills/`）：
 
 ```bash
 opencode debug skill | head -30
@@ -140,14 +140,14 @@ rm -rf ~/.cache/opencode/node_modules/short-video-director/
 
 1. **`config` hook**：把 cache 目录注册到 `config.skills.paths`，把 5 个子代理注册到 `config.agent`
 2. **`shell.env` hook**：注入 `SVD_PLUGIN_DIR=<插件根目录>` 环境变量给所有 bash 调用，使转换后的 `bash $SVD_PLUGIN_DIR/scripts/X.sh` 能定位脚本
-3. **`experimental.chat.messages.transform` hook**：在首条 user message 前注入 bootstrap 文本（列出 9 个 user-invocable workflow + 5 个子代理），用 `SVD_BOOTSTRAP_MARKER` 实现幂等
+3. **`experimental.chat.messages.transform` hook**：在首条 user message 前注入 bootstrap 文本（列出 7 个 user-invocable workflow + 5 个子代理），用 `SVD_BOOTSTRAP_MARKER` 实现幂等
 
 转换规则（源 CC skill → OC cache skill）：
 
 - **frontmatter**：CC 字段（`context: fork`, `agent`, `user-invocable` 等）移到 `metadata.svd-*`，description 截断到 1024 字符
 - **`使用 Skill tool 调用 X`**：若 X 有 `context: fork` → 重写为 `task({ subagent_type: ..., prompt: "..." })`；否则重写为 `调用 \`skill({ name: "X" })\``
 - **`bash scripts/X.sh`** → **`bash $SVD_PLUGIN_DIR/scripts/X.sh`**
-- **9 个 user-invocable workflow 顶部**：注入"派发约束"指引（按语义单元 chapter/scene/shot/JSON 条目分段派发给子代理，避免单次 Write 过长在 OC 下挂起）
+- **9 个 user-invocable workflow 顶部**：注入"派发约束"指引（按语义单元 chapter/scene/shot/JSON 条目分段派发给子代理，避免单次 Write 过长在 OC 下挂起）—— **注意**：管线重构后实际为 7 个（`series-video` / `short-video` / `edit-story` / `repair-story` / `generate-video` / `check-video` / `auto-video`），见 `tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS`
 - **fork-context skill 顶部**：注入"执行上下文：本 skill 已在 X 子代理中"提示
 - **auto-video skill**：CC 的 `CronCreate/List/Delete` 原语替换为基于 nohup loop + HTTP `/session/{SID}/prompt_async` 的调度（OC override 实现，见 `.opencode/skill-overrides/auto-video/`）
 
@@ -227,14 +227,35 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 
 **为什么没有文件类型例外**：OC 卡死 root cause 是 LLM emit 长字符串参数时的 streaming 中断，跟文件内容类型无关。JSON / YAML 同样按增量模式分段（详见 `ENTRY_WORKFLOW_DISPATCH_DISCIPLINE`）。
 
-### 改 `skills/` 时
+### 管线重构变更记录（2026-05-21）
+
+- `USER_INVOCABLE_ENTRY_WORKFLOWS` 从 9 → 7：合并 `series-edit-story` + `short-edit-story` → `edit-story`；`series-repair-story` + `short-repair-story` → `repair-story`。`tool-mapping.js` 中 Set 已更新，对应 OC commands 自动 derive。
+- skill 总数 44 → 34：删除 `new-story` / `continue-story` / `short-*` 系列分流 skill，由 `generate-episode-pipeline` 统一承载，`series-video` / `short-video` 仅作入口透传 mode 参数。
+- 旧 `episodes/` 目录用新 skill 触发会报错（Task 24 clean break），无向后兼容路径。
+
+### mode-specific 文件约定（series.md / short.md）
+
+`series-video` / `short-video` / `generate-episode-pipeline` 等 mode-aware skill 把差异化指令拆到 sibling 文件：
+
+- 目录结构示例：
+  ```
+  skills/series-video/
+    ├── SKILL.md         # 通用主体
+    ├── series.md        # series mode 专属步骤
+    └── short.md         # short mode 专属步骤（若入口同时支持两种 mode）
+  ```
+- **SKILL.md Phase 1 强制 Read 当前 mode 文件**：避免 LLM 凭印象执行；mode 不匹配会立即 fail-fast
+- **transform-skills 自动复制 sibling 文件**：所有 `.md` / `.txt` / `.sh` aux 文件随 SKILL.md 一起 copy 到 cache，无需改 transform logic
+- 维护契约：改 mode-specific 文件不需要动 `.opencode/` 任何代码；只要文件落在 skill 目录下即自动生效
+
+
 
 | 改动 | 同步位置 | 失败征兆 |
 |------|----------|---------|
-| **加/减 skill 目录** | `.opencode/tests/transform-skills.test.js:240` 的 `assert.equal(dirs.length, 44)` | `produces SKILL.md for all 44 skills` 失败，错误显示实际目录数 |
-| **新 skill 带 `user-invocable: true`** | `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` Set（同时 `.opencode/tests/tool-mapping.test.js:13` 的硬编码列表） | `USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 9 entries` 失败 |
+| **加/减 skill 目录** | `.opencode/tests/transform-skills.test.js` 的 `assert.equal(dirs.length, 34)` | `produces SKILL.md for all 34 skills` 失败，错误显示实际目录数 |
+| **新 skill 带 `user-invocable: true`** | `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` Set（同时 `.opencode/tests/tool-mapping.test.js` 的硬编码列表） | `USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 7 entries` 失败 |
 | **删除已有的 `user-invocable` skill** | 同上 | 同上 |
-| **改 skill 间 `使用 Skill tool 调用 X` 引用** | 自动处理；但 X 必须存在于 `skills/` 否则 transform throws | integration test `produces SKILL.md for all 44 skills` 整个崩，错误显示 "Unknown skill referenced: X" |
+| **改 skill 间 `使用 Skill tool 调用 X` 引用** | 自动处理；但 X 必须存在于 `skills/` 否则 transform throws | integration test `produces SKILL.md for all 34 skills` 整个崩，错误显示 "Unknown skill referenced: X" |
 | **新 fork skill（`context: fork`）被其他 skill 引用** | 引用位置**必须**用 `使用 Skill tool 调用 \`<name>\` skill[, 传递参数：\`<args>\`]` 标准模板。`transform-skills.js` 只识别此模板，会改写为 `task` 派发；自然语言"调用 X"会让 OC LLM 选 `skill()` 同上下文加载，破坏 fork 隔离语义（fork→fork 嵌套场景会导致下游 subagent 全部图片/数据塞进单一上下文，附件压缩中断） | 无测试失败（沉默 bug）；只在实际跑 OC 工作流时表现为"该 fork 的下游没被 fork 出去"。verify: wipe cache + `grep "task(" ~/.cache/.../skills/<caller>/SKILL.md` 应有 task 代码块 |
 | **新 review→fix 链路** | review skill 必须 append 写入 `story/episodes/{集数}/.review-{type}.md`（自检 round 用 grep `^## 第 [0-9]+ 轮` + Edit anchor），return 简报 `pass` / `needs_revision M`；fix skill 必须从该文件读最后一轮意见；entry workflow 的派发参数只传 `{集数}`（不传 `"{修改意见}"`）。**目的**：避免大段 review 意见做为 task prompt 参数时 OC 卡死。**核心约定一致性**：6 个 review skill + 6 个 fix skill + 6 个 entry workflow 三层必须同步改 | 无测试失败（沉默 bug）；表现为 fix skill 拿不到意见或 task prompt 卡好几小时。verify: 实际跑一次 review-fix loop，检查 `.review-*.md` 是否生成；fix skill 是否能找到意见列表 |
 | **改 skill `description` 字段超 1024 字符** | 自动 clip 到 1024（无错，但用户可能看到截断的描述） | 无测试失败，但 `opencode debug skill` 看到的 description 被截断 |
