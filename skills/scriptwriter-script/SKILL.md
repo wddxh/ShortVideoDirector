@@ -1,6 +1,11 @@
 ---
 name: scriptwriter-script
 description: 把 outline (+ series 模式下的 novel) 转译为可拍摄剧本。半结构化场景级 schema，自由分配场景时长，追加"本集新增资产"到 outline。
+user-invocable: false
+context: fork
+agent: scriptwriter
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+model: sonnet
 ---
 
 ## 输入
