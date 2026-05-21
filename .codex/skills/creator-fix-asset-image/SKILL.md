@@ -1,12 +1,11 @@
 ---
-name: continue-story
-description: 续写工作流。基于已有故事继续创作下一集：上下文收集→剧情选项→大纲→小说→资产→分镜。
-user-invocable: false
+name: "creator-fix-asset-image"
+description: "通用 asset 图修复。消费 dirty list，按 asset 类型修改 .md 的\"图像生成提示\" section → 删旧 .png → 重新 generate。"
 ---
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/continue-story/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/creator-fix-asset-image/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -56,7 +55,7 @@ user-invocable: false
 
 ## 执行源 Skill
 
-1. 读取 `skills/continue-story/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/continue-story/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+1. 读取 `skills/creator-fix-asset-image/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/creator-fix-asset-image/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
 3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

@@ -1,12 +1,12 @@
 ---
-name: short-repair-story
-description: 检测单集短视频的文件完整性，从断点处恢复生成。自动识别缺失或不完整的文件，重新执行后续步骤。
-user-invocable: true
+name: generate-episode-pipeline
+description: 内部 pipeline 调度。按 mode 参数 (new-series | continue-series | short) 编排调用链。由 series-video / short-video 入口 delegate 给它。
+user-invocable: false
 ---
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/short-repair-story/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/generate-episode-pipeline/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -56,7 +56,7 @@ user-invocable: true
 
 ## 执行源 Skill
 
-1. 读取 `skills/short-repair-story/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/short-repair-story/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+1. 读取 `skills/generate-episode-pipeline/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/generate-episode-pipeline/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
 3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

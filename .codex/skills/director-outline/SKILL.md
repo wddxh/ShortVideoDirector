@@ -1,6 +1,6 @@
 ---
 name: director-outline
-description: Director生成本集详细大纲和outline.md内容。自动读取config.md、arc.md，并写入ep outline和story outline。
+description: 生成单集 outline，含场景级拆分 + 节奏角色。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 ---
 

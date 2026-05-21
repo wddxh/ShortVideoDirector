@@ -1,6 +1,6 @@
 ---
 name: storyboarder-storyboard
-description: Storyboarder将小说原文转化为完整分镜提示词。包含内部台词密度自检循环（最多3轮）。
+description: 把剧本翻译为 storyboard.md (≤15s 切片 + 镜头创意 + KF 标记)。剥离节奏决策（剧本已分配场景时长，分镜只做拆分）。
 user-invocable: false
 ---
 

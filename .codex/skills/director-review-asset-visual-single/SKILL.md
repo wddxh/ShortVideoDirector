@@ -1,12 +1,11 @@
 ---
-name: short-plot-options
-description: Director为单集短视频生成3个差异化剧情选项。自动读取config.md。
-user-invocable: false
+name: "director-review-asset-visual-single"
+description: "通用 single asset visual review。review 一个 asset (含 keyframe) 的 .md 卡描述 vs 对应 .png 是否匹配。"
 ---
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/short-plot-options/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/director-review-asset-visual-single/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -56,7 +55,7 @@ user-invocable: false
 
 ## 执行源 Skill
 
-1. 读取 `skills/short-plot-options/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/short-plot-options/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+1. 读取 `skills/director-review-asset-visual-single/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/director-review-asset-visual-single/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
 3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

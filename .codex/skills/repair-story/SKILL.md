@@ -1,13 +1,13 @@
 ---
-name: short-edit-story
-description: 对单集短视频的任意内容（资产、大纲、剧本、分镜）提出修改意见。通过对话协商确定方案后，按级联 DAG 按需执行修正。使用 /short-edit-story 加自然语言描述触发。
+name: repair-story
+description: 检测指定集的文件完整性，从断点处恢复生成。自动检测 series/short mode。
 user-invocable: true
-argument-hint: "[自然语言修改意见]"
+argument-hint: "[epXX, 可选；short mode 忽略]"
 ---
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/short-edit-story/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/repair-story/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -57,7 +57,7 @@ argument-hint: "[自然语言修改意见]"
 
 ## 执行源 Skill
 
-1. 读取 `skills/short-edit-story/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/short-edit-story/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+1. 读取 `skills/repair-story/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/repair-story/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
 3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

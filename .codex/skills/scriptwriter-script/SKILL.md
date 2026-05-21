@@ -1,6 +1,6 @@
 ---
 name: scriptwriter-script
-description: Scriptwriter根据大纲生成具有画面感和紧凑叙事节奏的剧本。自动读取大纲、config和角色资产。
+description: 把 outline (+ series 模式下的 novel) 转译为可拍摄剧本。半结构化场景级 schema，自由分配场景时长，追加"本集新增资产"到 outline。
 user-invocable: false
 ---
 

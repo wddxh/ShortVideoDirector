@@ -1,12 +1,13 @@
 ---
-name: short-fix-storyboard
-description: Storyboarder根据Director修改意见定向修正单集短视频分镜。读取现有分镜，只修改指出的问题。
-user-invocable: false
+name: edit-story
+description: 对任意内容（资产、大纲、剧本、分镜）提出修改意见。自动检测 series/short mode 并按 DAG 级联修复。
+user-invocable: true
+argument-hint: "[自然语言修改意见]"
 ---
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/short-fix-storyboard/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/edit-story/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -56,7 +57,7 @@ user-invocable: false
 
 ## 执行源 Skill
 
-1. 读取 `skills/short-fix-storyboard/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/short-fix-storyboard/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+1. 读取 `skills/edit-story/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/edit-story/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
 3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

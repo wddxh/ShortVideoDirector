@@ -1,6 +1,6 @@
 ---
 name: short-video
-description: 将故事创意转化为单集短视频的分镜提示词和资产图像提示词。输入故事点子或概述，输出完整的剧本、分镜和资产提示词。使用 /short-video 启动，/short-video config 编辑配置。
+description: 单集短视频入口。写入 mode 标记，dispatch generate-episode-pipeline (mode=short) 完成单集生成。使用 /short-video 启动，/short-video config 编辑配置。
 user-invocable: true
 argument-hint: "[故事材料|文件路径]"
 ---

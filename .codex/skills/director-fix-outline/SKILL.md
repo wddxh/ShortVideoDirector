@@ -1,6 +1,6 @@
 ---
 name: director-fix-outline
-description: Director根据修改意见定向修正本集大纲。同步更新story/outline.md中对应内容。
+description: 按修订意见定向修正本集 outline。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 ---
 

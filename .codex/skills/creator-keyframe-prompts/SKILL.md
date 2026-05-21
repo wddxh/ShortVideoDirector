@@ -1,6 +1,6 @@
 ---
 name: creator-keyframe-prompts
-description: Creator 把 keyframes.json 翻译成关键帧 .md 文件（含视觉描述和图像生成提示词），落盘到 assets/keyframes/{ep}/。
+description: Creator 把 storyboard.md 中的 [KF-id] 内联引用翻译成关键帧 .md 文件（含视觉描述和图像生成提示），落盘到 assets/keyframes/{ep}/。
 user-invocable: false
 ---
 

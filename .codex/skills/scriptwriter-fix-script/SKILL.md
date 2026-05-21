@@ -1,6 +1,6 @@
 ---
 name: scriptwriter-fix-script
-description: Scriptwriter根据Director修改意见定向修正剧本。读取现有剧本，只修改指出的问题。
+description: 按修订意见定向修正本集 script.md。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 ---
 

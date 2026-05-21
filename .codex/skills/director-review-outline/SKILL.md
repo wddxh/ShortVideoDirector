@@ -1,12 +1,12 @@
 ---
-name: short-storyboard
-description: Storyboarder将剧本转化为完整分镜提示词。包含内部自检循环（最多3轮）。
+name: director-review-outline
+description: 审查单集 outline.md 的场景级合理性 (节奏角色分布 / 场景数量 / 与 arc 节点契合 / 新增 asset / 跳跃式开场承接 / 结局落点)。director-outline 之后强制调用。按 mode 加载 series.md 或 short.md 专属指南。
 user-invocable: false
 ---
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/short-storyboard/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/director-review-outline/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -56,7 +56,7 @@ user-invocable: false
 
 ## 执行源 Skill
 
-1. 读取 `skills/short-storyboard/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/short-storyboard/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+1. 读取 `skills/director-review-outline/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/director-review-outline/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
 3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

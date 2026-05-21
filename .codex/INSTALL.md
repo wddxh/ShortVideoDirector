@@ -26,10 +26,8 @@ python3 .codex/build-codex-skills.py --check
 
 - `series-video`
 - `short-video`
-- `series-edit-story`
-- `short-edit-story`
-- `series-repair-story`
-- `short-repair-story`
+- `edit-story`
+- `repair-story`
 - `generate-video`
 - `check-video`
 - `auto-video`

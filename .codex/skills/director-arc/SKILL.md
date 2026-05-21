@@ -1,6 +1,6 @@
 ---
 name: director-arc
-description: Director生成阶段级剧情弧线规划。自动读取config.md、outline.md、最近M集novel，并写入arc.md。
+description: Director生成阶段级剧情弧线规划（series 必生成）。读取 config.md、已有 outline.md、最近 M 集 novel，写入 arc.md。
 user-invocable: false
 ---
 

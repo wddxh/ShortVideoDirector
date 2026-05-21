@@ -1,6 +1,6 @@
 ---
 name: director-plot-options
-description: Director生成3个差异化剧情走向选项。自动读取config.md、arc.md、outline.md、最近M集novel。
+description: 生成 3 个差异化剧情候选并与用户协商选定。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 ---
 

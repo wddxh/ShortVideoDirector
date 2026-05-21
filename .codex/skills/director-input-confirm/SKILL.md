@@ -1,6 +1,6 @@
 ---
 name: director-input-confirm
-description: Director根据用户故事材料生成结构化确认说明。自动读取config.md、arc.md、outline.md、最近M集novel。
+description: Director 根据用户故事材料生成结构化确认说明。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 ---
 

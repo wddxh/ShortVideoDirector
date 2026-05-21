@@ -1,6 +1,6 @@
 ---
 name: creator-create-assets
-description: Creator为新资产创建完整Markdown文件，包含视觉描述和图像生成提示词。
+description: Creator为新资产创建完整Markdown文件，包含视觉描述和图像生成提示。
 user-invocable: false
 ---
 
