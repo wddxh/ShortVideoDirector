@@ -59,6 +59,6 @@ model: sonnet
 
 ## 通用规则
 - 场景颗粒度: 每场景含 1-3 个连续动作
-- asset 引用: 所有 character/location 必须在 assets/ 已注册或在"本集新增资产"列出
+- asset 引用: 所有 character/location 必须在 assets/ 已注册或在 `## 本集新增资产` 段（director-outline 阶段产物）列出. 修订时 asset id 严格遵循 director-outline/rules.md 「asset id 规则」（= 资产名, 禁止英文 prefix / kebab, 语言遵循 config.md「语言」设置）.
 - 节奏角色互斥: 一场景只能挂一个节奏角色
 - outline 是上游骨架——任何"主要事件 / 角色出场 / 信息传达 / 钩子或结局"的修改都会让下游已生成的 novel.md / script.md / storyboard.md 失效；修正必须谨慎评估下游波及（由上游 workflow 触发对应 fix skill）
