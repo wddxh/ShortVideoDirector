@@ -84,18 +84,13 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
 ### asset id 规则
 
 - **asset id = 资产名**，禁止英文化 / kebab-case 转写。
-- **语言遵循 `config.md` 「语言」设置**：
-  - `auto` → 跟随输入材料语言（中文输入 → 中文 id；英文输入 → 英文 id）
-  - `zh` → 全中文 id（如「沈昭」「地下室」「旧怀表」）
-  - `en` → 全英文 id（如 `Shen_Zhao`、`Basement`、`Old_Pocket_Watch`，**下划线连接多词**，禁止 kebab-case）
-  - 自定义 → 按指定语言
+- **asset id 语言** — 见 `skills/_meta/rules/output-language.md`（规约所有产出文本含 asset id 的语言；同一 outline 内不混语言）
 - 与 `creator-create-assets/rules.md:76` 文件名一致（资产名为「张三」→ 文件名 `张三.md` → asset id `张三`）。
 - **明确禁止 LLM 自发添加英文 prefix / 转写**：
   - ❌ `char-沈昭`、`loc-地下室`、`item-旧怀表`（前缀英文化）
   - ❌ `char-shen-zhao`、`loc-basement`、`shen-zhao`（kebab-case 转写）
   - ❌ `Shen-Zhao` / `shen_zhao`（en 时大小写或连接符不一致）
   - ✅ `沈昭`（zh） / `Shen_Zhao`（en）
-- **语言一致性**（防止 zh/en 混用导致下游 dangling check 误判）: 同一 outline 内所有 asset id 必须使用同一语言（zh / en / 自定义不混入），director-review-outline 据此 dangling check 时一并检查
 
 ### 「本集新增资产」段格式（director-outline 阶段中间产物）
 
