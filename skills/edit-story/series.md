@@ -52,6 +52,7 @@
 | review keyframes 画面 | `director-review-assets-visual`，参数 `{ep} --type=keyframes` |
 | 修 storyboard | `storyboarder-fix-storyboard`，参数 `{ep}` |
 | review storyboard | `director-review-storyboard`，参数 `{ep}` |
+| review asset prompts | `director-review-asset-prompts`，参数 `{ep}` |
 
 ## Series 级联 DAG 参考
 
