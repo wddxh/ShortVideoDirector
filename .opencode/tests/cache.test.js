@@ -75,6 +75,34 @@ describe('computeSourceHash includes scripts/', () => {
   });
 });
 
+describe('loadAndTransform copies shared skill resources (skills/_*\/)', () => {
+  test('cache miss creates cacheSkillsDir/_meta/rules/ with rule files', async () => {
+    // 强制 cache miss：先算 hash 找到 cache dir 并删除
+    const hash = await computeSourceHash(PROJECT_ROOT);
+    const cacheDir = path.join(os.homedir(), '.cache', 'short-video-director', hash);
+    await rm(cacheDir, { recursive: true, force: true });
+
+    const { cacheSkillsDir } = await loadAndTransform(PROJECT_ROOT);
+    const metaDir = path.join(cacheSkillsDir, '_meta', 'rules');
+
+    // _meta/rules/ 目录应存在
+    const metaStat = await stat(metaDir);
+    assert.ok(metaStat.isDirectory(), 'cacheSkillsDir/_meta/rules/ should be a directory');
+
+    // 4 个共享 rules 文件全部存在
+    const expected = [
+      'output-language.md',
+      'review-meta-rules.md',
+      'visual-prompt-craft-common.md',
+      'visual-prompt-craft-video.md',
+    ];
+    for (const f of expected) {
+      const fStat = await stat(path.join(metaDir, f));
+      assert.ok(fStat.isFile(), `${f} should be copied to cache`);
+    }
+  });
+});
+
 describe('loadAndTransform copies scripts/', () => {
   test('cache miss creates cacheDir/scripts/ preserving source file modes', async () => {
     const { cacheSkillsDir } = await loadAndTransform(PROJECT_ROOT);

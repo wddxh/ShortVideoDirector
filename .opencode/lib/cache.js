@@ -42,6 +42,20 @@ export async function computeSourceHash(pluginRoot) {
     .slice(0, 16);
 }
 
+async function copyDirRecursive(src, dst) {
+  await fs.mkdir(dst, { recursive: true });
+  const entries = await fs.readdir(src, { withFileTypes: true });
+  for (const e of entries) {
+    const sp = path.join(src, e.name);
+    const dp = path.join(dst, e.name);
+    if (e.isDirectory()) {
+      await copyDirRecursive(sp, dp);
+    } else if (e.isFile()) {
+      await fs.copyFile(sp, dp);
+    }
+  }
+}
+
 async function copyScripts(pluginRoot, cacheDir) {
   const src = path.join(pluginRoot, 'scripts');
   try {
@@ -49,22 +63,30 @@ async function copyScripts(pluginRoot, cacheDir) {
   } catch {
     return;
   }
-  const dst = path.join(cacheDir, 'scripts');
-  await fs.mkdir(dst, { recursive: true });
-  const walk = async (s, d) => {
-    const entries = await fs.readdir(s, { withFileTypes: true });
-    for (const e of entries) {
-      const sp = path.join(s, e.name);
-      const dp = path.join(d, e.name);
-      if (e.isDirectory()) {
-        await fs.mkdir(dp, { recursive: true });
-        await walk(sp, dp);
-      } else if (e.isFile()) {
-        await fs.copyFile(sp, dp);
-      }
-    }
-  };
-  await walk(src, dst);
+  await copyDirRecursive(src, path.join(cacheDir, 'scripts'));
+}
+
+/**
+ * 复制 skills/_*\/ 共享资源目录（如 _meta/）到 cache。
+ * transformAllSkills 因每个目录被当作 skill 处理 + 缺少 SKILL.md 而 silently 跳过，
+ * 这里负责递归把 `_` 前缀目录原样搬运过去。
+ */
+async function copySharedSkillResources(pluginRoot, cacheSkillsDir) {
+  const skillsRoot = path.join(pluginRoot, 'skills');
+  try {
+    await fs.access(skillsRoot);
+  } catch {
+    return;
+  }
+  const entries = await fs.readdir(skillsRoot, { withFileTypes: true });
+  for (const e of entries) {
+    if (!e.isDirectory()) continue;
+    if (!e.name.startsWith('_')) continue;
+    await copyDirRecursive(
+      path.join(skillsRoot, e.name),
+      path.join(cacheSkillsDir, e.name)
+    );
+  }
 }
 
 export async function loadAndTransform(pluginRoot) {
@@ -81,6 +103,7 @@ export async function loadAndTransform(pluginRoot) {
     await fs.mkdir(cacheDir, { recursive: true });
     agents = await loadAllAgents(pluginRoot);
     await transformAllSkills(pluginRoot, cacheSkillsDir);
+    await copySharedSkillResources(pluginRoot, cacheSkillsDir);
     await copyScripts(pluginRoot, cacheDir);
     await fs.writeFile(agentsCachePath, JSON.stringify(agents, null, 2));
     await pruneOldCaches(CACHE_BASE, 3);
