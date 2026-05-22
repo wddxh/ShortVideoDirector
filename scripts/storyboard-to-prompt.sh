@@ -9,12 +9,17 @@
 # Exit codes: 0=success, 1=shot not found or parse error
 #
 # Behavior:
-# - Regular assets in "**引用资产：**" line: replaced inline as [name:{图片N}]
-# - Keyframe references (path contains assets/keyframes/) anywhere in the shot:
-#   replaced as [{图片N}], and any keyframe references in the 引用资产 line are
-#   stripped (keyframes belong in body, not header)
-# - Same path used multiple times reuses the first {图片N} (no duplicate IMAGES entries)
-# - Numbering order: header regular assets first, then body keyframes by appearance
+# - Header (出场人物 / 引用资产) links: ALL replaced inline as [name:{图片N}],
+#   including keyframes (which retain their KF-id as name).
+# - Body (画面与声音描述) keyframe references in BARE form `[KF-id]` (no
+#   markdown link, per storyboarder schema): replaced as [{图片N}], matching
+#   the keyframe's {图片N} assigned in the header.
+# - Body keyframe references in MARKDOWN-LINK form `[KF-id](path.md)` (rare,
+#   legacy): also replaced as [{图片N}].
+# - Non-keyframe entity names in body prose ("青锋剑派议事广场") pass through
+#   unchanged (storyboarder schema uses bare names in prose).
+# - Same path used multiple times reuses the first {图片N} (no duplicate IMAGES entries).
+# - Numbering order = source order in header (出场人物 first, then 引用资产).
 
 if [ $# -lt 2 ]; then
   echo "Usage: bash scripts/storyboard-to-prompt.sh storyboard_path shot_number"
@@ -44,36 +49,29 @@ if [ -z "$SHOT_BLOCK" ]; then
   exit 1
 fi
 
-ASSET_LINE=$(echo "$SHOT_BLOCK" | grep '引用资产')
-ASSET_LINKS=$(echo "$ASSET_LINE" | grep -oE '\[[^]]+\]\([^)]+\.md\)')
-BODY_LINKS=$(echo "$SHOT_BLOCK" | grep -v '引用资产' | grep -oE '\[[^]]+\]\([^)]+\.md\)')
-
-# Strip keyframe references from the 引用资产 line FIRST (before any replacement),
-# so leftover {图片N} from header doesn't pollute the output. Keyframes belong in body.
-SHOT_BLOCK=$(printf '%s\n' "$SHOT_BLOCK" | awk '
-  /引用资产/ {
-    while (match($0, /\[[^]]+\]\([^)]*assets\/keyframes\/[^)]+\.md\)/)) {
-      start = RSTART; len = RLENGTH
-      head = substr($0, 1, start - 1)
-      tail = substr($0, start + len)
-      # Consume one adjacent separator (prefer trailing, else leading)
-      if (match(tail, /^[ \t]*[、,][ \t]*/)) {
-        tail = substr(tail, RLENGTH + 1)
-      } else if (match(head, /[、,][ \t]*$/)) {
-        head = substr(head, 1, RSTART - 1)
-      }
-      $0 = head tail
-    }
-    sub(/[ \t]*[、,][ \t]*$/, "", $0)
-    sub(/^([^：]*：)[ \t]*[、,][ \t]*/, "\\1", $0)
-  }
+# Split SHOT_BLOCK into header (before "**画面与声音描述：**") and body (after).
+# Header contains 出场人物 / 引用资产 fields with [name](path.md) links.
+# Body contains prose with bare [KF-id] keyframe refs + bare entity names.
+HEADER_PART=$(echo "$SHOT_BLOCK" | awk '
+  /^\*\*画面与声音描述/ { exit }
   { print }
 ')
+BODY_PART=$(echo "$SHOT_BLOCK" | awk '
+  /^\*\*画面与声音描述/ { in_body=1 }
+  in_body { print }
+')
+
+# Collect all markdown-link refs in header (in source order — 出场人物 then 引用资产).
+ASSET_LINKS=$(printf '%s\n' "$HEADER_PART" | grep -oE '\[[^]]+\]\([^)]+\.md\)')
+# Collect markdown-link refs in body (rare; storyboarder schema uses bare [KF-id]).
+BODY_LINKS=$(printf '%s\n' "$BODY_PART" | grep -oE '\[[^]]+\]\([^)]+\.md\)' || true)
 
 REPLACED_BLOCK="$SHOT_BLOCK"
 IMAGES=""
 COUNTER=0
 SEEN_MAP=""
+# kf_id_map: KF-id<TAB>N — for resolving bare [KF-id] in body to its header N.
+KF_ID_MAP=""
 
 # Look up an existing {图片N} for a path (returns N or empty)
 lookup_n() {
@@ -101,6 +99,14 @@ process_link() {
     else
       IMAGES="$IMAGES,$img_path"
     fi
+    # If this is a keyframe header entry, also record KF-id → N for body
+    # bare [KF-id] substitution in Pass 3.
+    case "$path_md" in
+      *assets/keyframes/*)
+        KF_ID_MAP="${KF_ID_MAP}${name}	${existing_n}
+"
+        ;;
+    esac
   fi
 
   if [ "$is_keyframe" = "1" ]; then
@@ -118,17 +124,16 @@ process_link() {
     }')
 }
 
-# Pass 1: header regular assets (skip keyframe paths — handled in pass 2)
+# Pass 1: header refs (出场人物 + 引用资产). ALL get [name:{图片N}] format
+# including keyframes (which retain "KF-id" as name). KF id → N mapping is
+# captured inside process_link for Pass 3 below.
 while IFS= read -r link; do
   [ -z "$link" ] && continue
-  path_md=$(echo "$link" | sed 's/.*(\([^)]*\))/\1/')
-  case "$path_md" in
-    *assets/keyframes/*) ;;
-    *) process_link "$link" "0" ;;
-  esac
+  process_link "$link" "0"
 done <<< "$ASSET_LINKS"
 
-# Pass 2: body keyframe references (in appearance order)
+# Pass 2: body markdown-link keyframe refs (legacy / rare). Storyboarder
+# schema uses bare [KF-id] in prose; this pass exists for backward compat.
 while IFS= read -r link; do
   [ -z "$link" ] && continue
   path_md=$(echo "$link" | sed 's/.*(\([^)]*\))/\1/')
@@ -137,6 +142,36 @@ while IFS= read -r link; do
     *) ;;
   esac
 done <<< "$BODY_LINKS"
+
+# Pass 3: body bare [KF-id] refs (storyboarder schema standard form). Look up
+# each bare KF-id in KF_ID_MAP and substitute to [{图片N}]. Bare KF-ids that
+# don't appear in header KF_ID_MAP are left unchanged (validation handled by
+# upstream storyboarder review).
+while IFS=$'\t' read -r kf_id n; do
+  [ -z "$kf_id" ] && continue
+  REPLACED_BLOCK=$(printf '%s' "$REPLACED_BLOCK" | awk -v kf="$kf_id" -v num="$n" '
+    {
+      old = "[" kf "]"
+      new = "[{图片" num "}]"
+      out = ""
+      rest = $0
+      while ((idx = index(rest, old)) > 0) {
+        head = substr(rest, 1, idx-1)
+        tail = substr(rest, idx+length(old))
+        # Skip if next char is "(" — that means this [KF-id]( is a markdown
+        # link already handled in Pass 1 or Pass 2.
+        next_c = substr(tail, 1, 1)
+        if (next_c == "(") {
+          out = out head old
+          rest = tail
+        } else {
+          out = out head new
+          rest = tail
+        }
+      }
+      print out rest
+    }')
+done <<< "$KF_ID_MAP"
 
 # Extract duration from "**时长：**" line
 DURATION=$(echo "$SHOT_BLOCK" | grep -oE '时长：.*[0-9]+s' | grep -oE '[0-9]+')

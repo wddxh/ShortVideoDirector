@@ -215,14 +215,15 @@ bash scripts/speech-rate.sh '0-3:normal:台词A' '3-7:slow:台词B' '7-12:fast:�
    - 判定标准是「视觉是否需要无缝衔接」，与「是否同场景」无关
 4. **内联 KF 标记缺位置语义**（只写 `[KF-id]` 不写"首帧/尾帧/参考"）
 5. **内联 KF 与「引用资产」字段不一致**（prose 引用了 `[KF-X]` 但 header 未列，或反之）
-6. **引入剧本未覆盖的 asset**（越权决定新 character / location / item）
-7. **切片 sum 超 ±10%**（本场景剧本 25s，切片合计 30s）
-8. **单 shot 超 15s**（违反视频模型硬约束）
-9. **出场人物字段错误**（5 子项）：
-   - 误把 character 放在「引用资产」而非「出场人物」独立字段
-   - 漏写出场人物的声音特征字段
-   - 声音特征不是 verbatim copy character 卡（storyboarder 自己浓缩/改写 → 与 character 卡漂移）
-   - 临场表演细节（缓慢/颤抖/急促等）混入「声音特征」字段（应放 prose 临场描述）
-   - 出场人物字段含非 character asset（location / item / KF 应在「引用资产」）
-10. **prose 中对白缺临场表演描述**：只写 `张三: "..."` 没在括号里描述基线偏离（LLM 用默认表演 → 失去戏剧张力）
-11. **字段顺序错乱**：不按约定顺序（镜头类型 / 运动 / 风格 / 时长 / 出场人物 / 引用资产 / 转场）
+6. **自己写 `{图片N}` 占位符** — storyboard.md 中**所有** `{图片N}` 占位符由下游 `scripts/storyboard-to-prompt.sh` 自动生成；storyboarder **绝不**手写。所有资产引用都要用 markdown 链接形式 `[name](path.md)`，所有 keyframe 引用都用 `[KF-id]`（header 带链接、body 裸标）。常见错误样态：在「引用资产」写成 `- [{图片1}]` 而不是 `- [KF-01](assets/keyframes/ep01/KF-01.md)`。原因通常是从 creator-video-dreamina 文档抄了占位符语法
+7. **引入剧本未覆盖的 asset**（越权决定新 character / location / item）
+8. **切片 sum 超 ±10%**（本场景剧本 25s，切片合计 30s）
+9. **单 shot 超 15s**（违反视频模型硬约束）
+10. **出场人物字段错误**（5 子项）：
+    - 误把 character 放在「引用资产」而非「出场人物」独立字段
+    - 漏写出场人物的声音特征字段
+    - 声音特征不是 verbatim copy character 卡（storyboarder 自己浓缩/改写 → 与 character 卡漂移）
+    - 临场表演细节（缓慢/颤抖/急促等）混入「声音特征」字段（应放 prose 临场描述）
+    - 出场人物字段含非 character asset（location / item / KF 应在「引用资产」）
+11. **prose 中对白缺临场表演描述**：只写 `张三: "..."` 没在括号里描述基线偏离（LLM 用默认表演 → 失去戏剧张力）
+12. **字段顺序错乱**：不按约定顺序（镜头类型 / 运动 / 风格 / 时长 / 出场人物 / 引用资产 / 转场）
