@@ -91,7 +91,7 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 ### Phase C: 资产 (角色/场景/物品/建筑)
 9. **creator-create-assets** — ep='ep0X'，登记本集**新增**资产
 10. **creator-update-records** — ep='ep0X'，为本集出场的**已有**资产追加出场记录条目（非 ep01 必做）
-11. **director-review-asset-prompts** — 审本集 asset .md 卡的 `## 图像生成提示` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt section 不生图)
+11. **director-review-asset-prompts** — `$ARGUMENTS[1]=basic`，审本集 character/location/item/building 资产 .md 卡的 `## 图像生成提示` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt section 不生图)
 12. **creator-generate-images** — 为本集新增的 character / location / item / building 资产生成图片
 13. **director-review-assets-visual** — `--type=characters,locations,items,buildings`
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
@@ -100,7 +100,7 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 14. **storyboarder-storyboard** — ep='ep0X'
 15. **director-review-storyboard**
 16. **creator-keyframe-prompts** — 输入: storyboard.md (从分镜 inline KF 标记翻译)
-17. **director-review-asset-prompts** — 审本集 keyframe .md 卡的 `## 图像生成提示词` 段表达 (按"review 循环 (通用模式)"处理; 注: 此步骤会重审已审 character/location/item/building 资产, 通过则无副作用; needs_revision → creator-fix-asset 修订 prompt 不生图)
+17. **director-review-asset-prompts** — `$ARGUMENTS[1]=keyframes`，**仅审**本集 keyframe .md 卡的 `## 图像生成提示词` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt 不生图)
 18. **creator-generate-images** — 为 keyframes 生成图片
 19. **director-review-assets-visual** — `--type=keyframes`
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)

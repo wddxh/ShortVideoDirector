@@ -18,6 +18,10 @@ model: opus
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 集数（如 `ep01`）或全局范围（`assets`）
+- `$ARGUMENTS[1]` — scope 过滤器（可选）：
+  - 空 / 缺省 — 全部 asset（向后兼容）
+  - `basic` — 仅 character / location / item / building（跳过 keyframes）
+  - `keyframes` — 仅本集 keyframe（跳过 basic asset）
 
 ## 职责描述
 
@@ -27,10 +31,12 @@ model: opus
 
 ### 工作流
 
-1. **收集 asset 列表**：
-   - $ARGUMENTS[0] = epXX → Glob `story/episodes/{ep}/outline.md` 提取「本集资产清单」，对清单中每个资产名 Glob `assets/**/{name}.md` 得 asset_path
-   - 同时 Glob `assets/keyframes/{ep}/*.md` 收集本集 keyframe asset_path
-   - $ARGUMENTS[0] = "assets" → Glob `assets/**/*.md`（全集合）
+1. **收集 asset 列表**（按 $ARGUMENTS[1] scope 过滤）：
+   - $ARGUMENTS[0] = epXX:
+     - scope = "" / 缺省 → 同时收 basic + keyframes（向后兼容）
+     - scope = "basic" → 仅 Glob `story/episodes/{ep}/outline.md` 提取「本集资产清单」，对清单中每个资产名 Glob `assets/**/{name}.md` 得 asset_path；**跳过** `assets/keyframes/{ep}/*.md`
+     - scope = "keyframes" → 仅 Glob `assets/keyframes/{ep}/*.md`；**跳过** outline 资产清单
+   - $ARGUMENTS[0] = "assets" → Glob `assets/**/*.md`（scope 参数忽略；全集合）
 2. **分批并行派发**：每批 ≤ 5 个 asset，用 `task` 工具并行调 `director-review-asset-prompt-single($ARGUMENTS[0]=asset_path)`
 3. **聚合结果**：收集所有子任务返回值——空字符串（通过）和 JSON 对象（需修改）
 4. **写入 review md**（append 模式，每轮追加一段）
@@ -42,6 +48,7 @@ model: opus
 - **汇总丢失** — 子任务返回值未收集全就写文件 — 等所有子任务完成再聚合
 - **意见格式不规整** — 直接拼 JSON 不转可读 markdown — 输出格式见下
 - **不去重 asset** — outline 资产清单可能含重复名 — Glob 后去重再派发
+- **scope 越界** — 调用本意只审某一类（如 keyframes）但漏传 $ARGUMENTS[1]，会落入"全集"默认行为而重审其他类（basic 资产），LLM review 非确定性导致不该改的 asset 被改 — 调用前先确认 $ARGUMENTS[1] 与目标范围匹配
 
 ## 输出格式
 

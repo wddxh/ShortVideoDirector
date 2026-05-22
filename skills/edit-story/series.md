@@ -52,7 +52,7 @@
 | review keyframes 画面 | `director-review-assets-visual`，参数 `{ep} --type=keyframes` |
 | 修 storyboard | `storyboarder-fix-storyboard`，参数 `{ep}` |
 | review storyboard | `director-review-storyboard`，参数 `{ep}` |
-| review asset prompts | `director-review-asset-prompts`，参数 `{ep}` |
+| review asset prompts | `director-review-asset-prompts`，参数 `{ep} {scope}`（scope=basic 仅审 character/location/item/building；scope=keyframes 仅审 keyframes；缺省=全部，**仅在 dedup 不出问题时使用**）|
 
 ## Series 级联 DAG 参考
 
