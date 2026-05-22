@@ -25,6 +25,7 @@ model: sonnet
 - `skills/scriptwriter-fix-script/series.md` (when mode in {new-series, continue-series}) — 必读
 - `skills/scriptwriter-fix-script/short.md` (when mode=short) — 必读
 - `$ARGUMENTS[0]` — 必读 (含多轮 review; 仅取最大轮号那段意见)
+- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 

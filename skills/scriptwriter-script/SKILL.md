@@ -17,6 +17,7 @@ model: sonnet
 - `skills/scriptwriter-script/rules.md` — 必须读取并严格遵循 (公共规则)
 - `skills/scriptwriter-script/series.md` (when mode in {new-series, continue-series}) — 含 novel 输入处理
 - `skills/scriptwriter-script/short.md` (when mode=short) — 无 novel 输入
+- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 
