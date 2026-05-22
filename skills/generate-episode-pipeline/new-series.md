@@ -71,6 +71,7 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 | director-review-script | scriptwriter-fix-script |
 | director-review-storyboard | storyboarder-fix-storyboard |
 | director-review-assets-visual | creator-fix-asset-image |
+| director-review-asset-prompts | creator-fix-asset |
 
 ### Phase A: 系列规划
 1. **director-plot-options** — mode='series'，action='generate'。子代理自己落盘到 `story/plot-options.md`（含末尾 sentinel `<!-- 候选列表结束，等待用户选定 -->`），prompt 只返回 3 候选标题摘要。
@@ -91,20 +92,22 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 
 ### Phase C: 资产 (角色/场景/物品/建筑)
 11. **creator-create-assets** — ep='ep01'，登记本集新资产
-12. **creator-generate-images** — 为 character / location / item / building 资产生成图片
-13. **director-review-assets-visual** — `--type=characters,locations,items,buildings`
+12. **director-review-asset-prompts** — 审本集 asset .md 卡的 `## 图像生成提示` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt section 不生图)
+13. **creator-generate-images** — 为 character / location / item / building 资产生成图片
+14. **director-review-assets-visual** — `--type=characters,locations,items,buildings`
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
 
 ### Phase D: 分镜 & 关键帧
-14. **storyboarder-storyboard** — ep='ep01'
-15. **director-review-storyboard**
-16. **creator-keyframe-prompts** — 输入: storyboard.md (从分镜 inline KF 标记翻译)
-17. **creator-generate-images** — 为 keyframes 生成图片
-18. **director-review-assets-visual** — `--type=keyframes`
+15. **storyboarder-storyboard** — ep='ep01'
+16. **director-review-storyboard**
+17. **creator-keyframe-prompts** — 输入: storyboard.md (从分镜 inline KF 标记翻译)
+18. **director-review-asset-prompts** — 审本集 keyframe .md 卡的 `## 图像生成提示词` 段表达 (按"review 循环 (通用模式)"处理; 注: 此步骤会重审已审 character/location/item/building 资产, 通过则无副作用; needs_revision → creator-fix-asset 修订 prompt 不生图)
+19. **creator-generate-images** — 为 keyframes 生成图片
+20. **director-review-assets-visual** — `--type=keyframes`
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
 
 ### Phase E: 视频生成
-19. **creator-video-dreamina** — 派发本集所有镜头到即梦 multimodal2video，pending → submitted/failed 状态转移
+21. **creator-video-dreamina** — 派发本集所有镜头到即梦 multimodal2video，pending → submitted/failed 状态转移
 
 ## 完成
 所有步骤通过后，向用户报告：
