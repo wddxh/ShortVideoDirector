@@ -50,6 +50,7 @@
 | review keyframes 画面 | `director-review-assets-visual`，参数 `ep01 --type=keyframes` |
 | 修 storyboard | `storyboarder-fix-storyboard`，参数 `ep01` |
 | review storyboard | `director-review-storyboard`，参数 `ep01` |
+| review asset prompts | `director-review-asset-prompts`，参数 `ep01` |
 
 **注意**：无 `creator-update-records` 行 —— short 模式永不触发。
 
