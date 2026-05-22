@@ -94,5 +94,5 @@ test('asset id 规则文档化: director-outline/rules.md 含 asset id 定义', 
   assert.match(content, /asset id = 资产名/, 'asset id 必须 = 资产名');
   assert.match(content, /Shen_Zhao/, '应含 en 下划线正例');
   assert.match(content, /char-shen-zhao|char-沈昭/, '应含 kebab/前缀反例');
-  assert.match(content, /语言遵循.+config/, '应说明语言遵循 config.md');
+  assert.match(content, /skills\/_meta\/rules\/output-language\.md/, '应引用共享语言规则 output-language.md');
 });

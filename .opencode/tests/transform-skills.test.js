@@ -227,10 +227,10 @@ describe('transformAllSkills (integration)', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test('produces SKILL.md for all 35 skills', async () => {
+  test('produces SKILL.md for all 38 skills', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const dirs = await readdir(tmpDir);
-    assert.equal(dirs.length, 35);
+    assert.equal(dirs.length, 38);
   });
 
   test('director-arc cache file has correct frontmatter', async () => {
