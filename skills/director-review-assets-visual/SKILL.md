@@ -15,6 +15,8 @@ metadata:
 ### 文件读取
 - `story/config.md` — 必须读取（取 `视觉_review_并发数` 字段；缺省 5）
 - 按 `--type` 收集 asset .md 列表（Glob）
+- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ### Skill 调用
 - `director-review-asset-visual-single` — 对每个 asset 调用一次
