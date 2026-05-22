@@ -1,6 +1,6 @@
 # 视频 Prompt 创作规则（共享）
 
-本文件被所有写视频 prompt 的 skill（storyboarder-storyboard / storyboarder-fix-storyboard / short-storyboard / short-fix-storyboard）必读引用。规约视频 prompt 独有的时序 / 镜头 / 事件密度 / 音视频规约。
+本文件被所有写视频 prompt 的 skill（storyboarder-storyboard / storyboarder-fix-storyboard）必读引用。规约视频 prompt 独有的时序 / 镜头 / 事件密度 / 音视频规约。
 
 **前置阅读**：先读 `visual-prompt-craft-common.md`（图像 + 视频共通的 5 条核心原则）。本文件**不重复** -common 内容，只补视频独有部分。
 
@@ -99,7 +99,7 @@
 ## 适用边界
 
 - ✅ storyboard.md 的 shot prose（video prompt）
-- ✅ visual review skill 的"video prompt 表达"审核维度（director-review-storyboard / short-review-storyboard 内嵌 phase 12）
+- ✅ visual review skill 的"video prompt 表达"审核维度（director-review-storyboard 内嵌 phase 12）
 - ❌ 不适用：asset .md 卡的 `## 图像生成提示` 段（静态图，归 -common.md）
 
 ## 与其他共享规则的关系

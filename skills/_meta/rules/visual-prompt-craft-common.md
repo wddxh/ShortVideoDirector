@@ -1,6 +1,6 @@
 # 视觉 Prompt 创作通用规则（共享）
 
-本文件被所有写视觉 prompt 的 skill（creator-create-assets / creator-fix-asset / creator-keyframe-prompts / creator-fix-asset-image / storyboarder-storyboard / storyboarder-fix-storyboard / short-storyboard / short-fix-storyboard）必读引用。规约所有视觉 prompt（图像 + 视频共通部分）的核心表达原则。
+本文件被所有写视觉 prompt 的 skill（creator-create-assets / creator-fix-asset / creator-keyframe-prompts / creator-fix-asset-image / storyboarder-storyboard）必读引用。规约所有视觉 prompt（图像 + 视频共通部分）的核心表达原则。
 
 **重要前提**："prompt 能写的就假定模型能做到"——本文件聚焦"如何精确表达"，不聚焦"模型做不到什么"。Seedance 2.0 / Veo 3 / LTX-2 等新模型能力快速演化，避免硬编码"当前能力上限"。**半年内复审本文件以避免规则陈旧**。
 

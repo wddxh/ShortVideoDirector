@@ -62,6 +62,6 @@
 | Review skill | 引用本文件 | 引用 visual-prompt-craft-* |
 |---|---|---|
 | director-review-novel / -script / -outline / -arc | ✅ | ❌ |
-| director-review-storyboard / short-review-storyboard | ✅ | ✅（用于 phase 12「video prompt 表达审核」）|
+| director-review-storyboard | ✅ | ✅（用于 phase 12「video prompt 表达审核」）|
 | director-review-asset-visual-single / director-review-assets-visual | ✅ | ❌ |
 | director-review-asset-prompt-single / director-review-asset-prompts | ✅ | ✅ |
