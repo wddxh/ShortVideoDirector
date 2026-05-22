@@ -16,6 +16,10 @@ model: opus
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（含本集资产清单）
 - 从 outline.md 的「本集资产清单」中提取本集引用的资产名称，使用 Glob 获取 `assets/**/*.md` 全部文件路径列表，仅读取文件名与清单匹配的文件
 - `skills/storyboarder-storyboard/rules.md` — 必须读取（输出 schema、字段顺序、字段约束）
+- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 通用原则，用于 phase 12 video prompt 表达审核）
+- `skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则，用于 phase 12 video prompt 表达审核）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）
@@ -31,7 +35,7 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 
 1. 先做观众视角终极判断（凌驾于其他规则）：从普通观众视角整体审视，剧情精彩吗？流畅吗？吸引人继续看吗？若整体平淡或突兀——即使 rules 全过仍要打回
 2. 对照 outline 和 script：叙事完整吗？剧本场景全部覆盖？关键铺垫都到位吗？人物言行符合性格吗？
-3. 过 storyboarder-storyboard/rules.md 逐条审核（见下文「分镜技术审核清单」11 项）
+3. 过 storyboarder-storyboard/rules.md 逐条审核（见下文「分镜技术审核清单」12 项）
 4. 决定值得拦截的问题——所有进入意见列表的项都会被 fix skill 执行；只拦"会让视频生成失败"或"会让剧情断裂"或"会让下游 keyframe / TTS 出错"的问题
 5. 第二轮 review（fix 修过一次后）：聚焦仍影响视频生成或剧情连贯的关键问题
 
@@ -46,7 +50,7 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 - **越权改剧本** — 发现剧本对白超时本能想"让 storyboard 缩台词"，但对白权威在剧本 — 报回 director-review-script，不写入 storyboard review
 - **逐字改写式意见** — fix skill 会照搬作为镜头描述，剥夺 Storyboarder 设计空间 — 说清问题方向，不替 Storyboarder 写最终描述
 
-## 分镜技术审核清单（11 项，rules.md 之外的硬约束）
+## 分镜技术审核清单（12 项，rules.md 之外的硬约束）
 
 逐条核查，问题进入意见列表：
 
@@ -61,8 +65,18 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 - **出场人物字段正确性**：character 在「出场人物」字段（不在「引用资产」），每条目附完整声音特征 verbatim copy 自 character 卡 `## 声音特征` section（含 音色/语速/语调 三项）
 - **临场表演正确分层**：基线属性（音色/语速/语调）在出场人物字段，临场偏离（颤抖/急促/沙哑加剧等）在 prose `角色 (临场描述): "..."`
 - **字段顺序符合约定**：每个 shot 字段严格按 镜头类型 / 镜头运动 / 视频风格 / 时长 / 出场人物 / 引用资产 / 转场 顺序
+- **video prompt 表达检查**：每个 shot 的 prose 是否符合 visual-prompt-craft-common.md + visual-prompt-craft-video.md 全部 9 条原则。重点检查：
+  - 是否电影摄影指令式（不是小说叙事）
+  - 是否含 negative phrasing（"严禁/不要/避免/无 X" 句式）
+  - 是否含文学比喻 / 隐喻 / 心理描写
+  - 复杂效果是否显式分解（画中画 / 文字 / 复合特效的参数具体指定）
+  - 资产引用是否按场景规则使用（prose 不重复描述外观，用裸名字 + 位置语义）
+  - 镜头运动是否具象（pan / tilt / dolly / zoom + 速度修饰）
+  - 转场是否显式（cut / dissolve / fade + 时长）
+  - 音视频事件是否显式指定（音效触发时间 + 音色 / 对白 / BGM）
+  - 事件密度是否匹配 shot 时长（1-15s 单 shot，事件量随时长线性）
 
-## 导演专属审核重点（rules.md 与上述 11 项之外）
+## 导演专属审核重点（rules.md 与上述 12 项之外）
 
 - **叙事完整性** — 分镜完整覆盖剧本场景，无遗漏关键画面节点
 - **剧情节奏** — 切片未让某场景过碎裂或过聚合，破坏剧本节奏意图
