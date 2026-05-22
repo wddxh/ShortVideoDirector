@@ -15,6 +15,8 @@ model: opus
 - `config.md` — 必须读取（总集数 N、世界观锚点等核对依据）
 - `skills/director-arc/rules.md` — 必须读取（schema / 节点集数标注约定 / 5 类失败模式定义在此）
 - `story/outline.md` — 若存在（continue-series）则读取，核对 arc 与已播出内容一致
+- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ### 动态参数（$ARGUMENTS）
 - 无。arc 是 series 级文件，无集数参数

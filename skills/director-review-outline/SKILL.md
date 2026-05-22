@@ -19,6 +19,8 @@ model: opus
 - `config.md` — 必须读取（每集时长 / 场景数量目标 / 世界观锚点）
 - `story/arc.md` — mode∈{new-series, continue-series} 必读（核对本集对应 arc 节点）
 - `assets/` 目录 — 必须扫描（核对 asset 引用是否 dangling）
+- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ## 必读文件
 
