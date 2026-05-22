@@ -27,6 +27,7 @@ model: sonnet
 - `config.md` — 必读
 - `skills/director-plot-options/series.md` (when mode ∈ {new-series, continue-series}) — 必读并严格遵循
 - `skills/director-plot-options/short.md` (when mode = short) — 必读并严格遵循
+- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 
