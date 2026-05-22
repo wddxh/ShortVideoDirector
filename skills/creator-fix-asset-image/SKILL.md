@@ -15,8 +15,8 @@ metadata:
 ### 文件读取
 - `$ARGUMENTS[0]` — `.review-assets-visual.md` 路径（如 `story/episodes/ep01/.review-assets-visual.md` 或 `story/.review-assets-visual.md`）。必须读取，取**最后一轮**的 `### dirty list` 与对应 `### 意见列表`
 - 对 dirty list 中每个 asset_path 读取该 .md 卡（按需 Edit）
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
 
 ### Skill 调用
 - `creator-generate-images` — 删旧图后调用，自然补回新图

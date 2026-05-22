@@ -17,9 +17,9 @@ model: sonnet
 - `config.md` — 必须读取（单镜头时长上限、视频风格等）
 - 从 outline.md 「本集资产清单」提取本集引用的 character / location / item 名称；用 Glob 取 `assets/**/*.md` 列表，仅读取文件名匹配清单的文件
 - `skills/storyboarder-storyboard/rules.md` — 必须读取并严格遵循（输出 schema、字段顺序、字段约束、自检清单）
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则）
-- `skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则）
 
 ### 动态参数（$ARGUMENTS）
 

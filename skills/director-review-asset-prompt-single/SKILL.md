@@ -13,9 +13,9 @@ model: opus
 ### 文件读取
 - `$ARGUMENTS[0]` (asset_path) — 必须读取（asset .md 卡，仅文本）
 - 仅当 asset_path 位于 `assets/keyframes/` 下：按 .md 卡 `## 引用资产` 区块中引用的 character / location / item / building 资产，逐个 Glob 定位 `assets/**/{资产名}.md` 并读取（**仅文本，不读图**）
-- `skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（5 条核心原则 + 反例）
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（5 条核心原则 + 反例）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — asset_path（如 `assets/characters/沈昭.md` / `assets/items/玄铁古剑灵核.md` / `assets/keyframes/ep01/KF-EP01-005.md`）

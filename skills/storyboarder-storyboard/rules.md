@@ -65,7 +65,7 @@ Storyboarder 是**翻译层**：把 Scriptwriter 剧本的场景/对白/节奏�
 
 ## 字段约束
 
-- **输出语言**：见 `skills/_meta/rules/output-language.md`（规约所有产出文本含 prompt 字段的语言）。
+- **输出语言**：见 `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md`（规约所有产出文本含 prompt 字段的语言）。
 - **镜头类型可选值**：特写、全景、中景、近景、远景、俯拍、仰拍
 - **镜头运动可选值**：推、拉、摇、移、固定、跟、升、降
 - **转场可选值**：切、淡入淡出、叠化、划像。仅描述当前镜头过渡效果类型，禁止引用其他镜头编号。

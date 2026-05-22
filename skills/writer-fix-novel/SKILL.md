@@ -18,7 +18,7 @@ model: sonnet
 - `assets/characters/*.md` — 若存在则全部读取（角色一致性参考）
 - `skills/writer-novel/rules.md` — 必须读取并严格遵循
 - `story/episodes/$ARGUMENTS[0]/.review-novel.md` — 必须读取（含本轮 review 意见）
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）

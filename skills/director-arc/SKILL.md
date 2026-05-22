@@ -15,7 +15,7 @@ model: sonnet
 - `story/outline.md` — 若存在则读取（continue-series 时参考）
 - 最近 M 集 novel.md — 若 `story/outline.md` 存在，按 config.md 中 `上下文集数` M，用 Glob 匹配 `story/episodes/ep*/novel.md` 取最近 M 集读取
 - `skills/director-arc/rules.md` — 必须读取并严格遵循（输出 schema、节点集数标注约定、常见误区）
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ### 通过 prompt 接收
 - mode: 'new-series' | 'continue-series'

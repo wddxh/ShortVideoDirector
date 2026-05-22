@@ -18,7 +18,7 @@ model: sonnet
 - `skills/director-outline/rules.md` — 必须读取并严格遵循 (公共规则)
 - `skills/director-outline/series.md` (when mode=series) — 必须读取并严格遵循
 - `skills/director-outline/short.md` (when mode=short) — 必须读取并严格遵循
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 

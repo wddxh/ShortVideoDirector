@@ -19,7 +19,7 @@ model: opus
 - `$ARGUMENTS[0]` — 必读 (含多轮 review; 仅取最大轮号那段意见)
 - `skills/director-arc/rules.md` — 必读并严格遵循 (schema / 节点合规性 / 失败模式)
 - `config.md` — 必读 (取 总集数 字段)
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 

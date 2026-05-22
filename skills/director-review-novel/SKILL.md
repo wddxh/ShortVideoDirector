@@ -14,8 +14,8 @@ model: opus
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取
 - `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取
 - `assets/characters/*.md` — 若存在则读取（角色一致性审核）
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）

@@ -16,8 +16,8 @@ model: sonnet
 - `config.md` — 必须读取（语言、视频风格、目标图像模型）
 - `assets/**/*.md` — Glob 列出现有 asset 文件路径（用于解析 character / location / item asset 到 .md 路径）
 - `skills/creator-keyframe-prompts/rules.md` — 必须读取并严格遵循
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 `ep01`）

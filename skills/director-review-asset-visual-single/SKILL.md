@@ -16,8 +16,8 @@ metadata:
 - `$ARGUMENTS[0]` (asset_path) — 必须读取（asset .md 卡，文本）
 - `$ARGUMENTS[1]` (image_path) — 必须读取（**唯一允许读的 PNG**）
 - 仅当 asset_path 位于 `assets/keyframes/` 下：按 .md 卡中引用的 character / location / item / building 资产，逐个 Glob 定位 `assets/**/{资产名}.md` 并读取（**仅文本，不读图**）
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — asset_path（如 `assets/characters/张三.md` 或 `assets/keyframes/ep01/KF-EP01-005.md`）

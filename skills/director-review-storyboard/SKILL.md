@@ -16,10 +16,10 @@ model: opus
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（含本集资产清单）
 - 从 outline.md 的「本集资产清单」中提取本集引用的资产名称，使用 Glob 获取 `assets/**/*.md` 全部文件路径列表，仅读取文件名与清单匹配的文件
 - `skills/storyboarder-storyboard/rules.md` — 必须读取（输出 schema、字段顺序、字段约束）
-- `skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
-- `skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 通用原则，用于 phase 12 video prompt 表达审核）
-- `skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则，用于 phase 12 video prompt 表达审核）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 通用原则，用于 phase 12 video prompt 表达审核）
+- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则，用于 phase 12 video prompt 表达审核）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）
