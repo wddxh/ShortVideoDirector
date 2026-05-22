@@ -29,7 +29,7 @@ model: opus
 ### 工作思路
 
 1. **建立审核基准**：读 visual-prompt-craft-common.md 全部 5 条原则 + output-language.md 语言规则
-2. **读 asset .md 卡**：定位 `## 图像生成提示` 段（或 keyframe 的 `## 图像生成提示词` 段）
+2. **读 asset .md 卡**：定位 `## 图像生成提示` 段
 3. **逐项核查 5 条原则**：
    - 原则 1：是否电影摄影指令式（不是小说叙事）
    - 原则 2：是否含 negative phrasing（"严禁/不要/避免/无 X" 句式）

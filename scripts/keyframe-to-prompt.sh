@@ -6,7 +6,7 @@
 #   ---
 #   **引用资产：** [name1:{图片1}]、[name2:{图片2}]、...
 #
-#   <prompt body from "## 图像生成提示词" section>
+#   <prompt body from "## 图像生成提示" section>
 # Exit codes: 0=success, 1=file missing / parse error / no asset references
 #
 # Behavior:
@@ -17,7 +17,7 @@
 #   (mirrors scripts/asset-to-image-path.sh and scripts/storyboard-to-prompt.sh).
 # - Reference paths in the keyframe .md are RELATIVE to the keyframe file's
 #   directory; this script normalizes them to repo-root-relative paths first.
-# - Prompt body comes verbatim from "## 图像生成提示词" section (already plain
+# - Prompt body comes verbatim from "## 图像生成提示" section (already plain
 #   text with bare asset names per creator-keyframe-prompts rules).
 # - Does NOT cap to 10 images; dreamina CLI will fail on >10 and the caller
 #   (creator-image-dreamina) records the failure for the fix layer to handle.
@@ -102,9 +102,9 @@ while IFS= read -r link; do
   fi
 done <<< "$ASSET_LINKS"
 
-# Extract "## 图像生成提示词" section: lines from heading up to next "## " or EOF.
+# Extract "## 图像生成提示" section: lines from heading up to next "## " or EOF.
 PROMPT_BODY=$(awk '
-  /^## 图像生成提示词[[:space:]]*$/ { inside=1; next }
+  /^## 图像生成提示[[:space:]]*$/ { inside=1; next }
   inside && /^## / { inside=0 }
   inside { print }
 ' "$KF_MD")

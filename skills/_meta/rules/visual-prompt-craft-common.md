@@ -76,7 +76,7 @@
   → image-gen-dreamina.sh (image2image, 第 6 参数=基础角色 png)
   → assets/images/characters/{name}-{variant}.png
 
-[keyframe .md `## 引用资产` + `## 图像生成提示词`]
+[keyframe .md `## 引用资产` + `## 图像生成提示`]
   → keyframe-to-prompt.sh: 解析引用 → IMAGES:p1,p2,... + 头部 [name:{图片N}] tokens
   → image-gen-dreamina.sh (image2image, 第 6 参数=IMAGES 逗号串)
   → assets/images/keyframes/{ep}/{KF-id}.png
@@ -92,7 +92,7 @@
 
 ## 适用边界
 
-- ✅ 图像生成 prompt（asset .md 卡 `## 图像生成提示` 段 / keyframe `## 图像生成提示词` 段）
+- ✅ 图像生成 prompt（asset .md 卡 `## 图像生成提示` 段，包含 character/location/item/building/keyframe 全部类型）
 - ✅ 视频生成 prompt（storyboard shot prose）
 - ✅ 视觉 review skill 的"prompt 表达"审核维度
 - ❌ 不直接适用：narrative 文本（novel / script / outline / arc）

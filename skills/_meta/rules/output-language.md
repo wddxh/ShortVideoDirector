@@ -21,7 +21,7 @@
 - ✅ Narrative 文本（novel / script / outline / arc）
 - ✅ Review 意见（所有 `*-review-*` skill 的输出）
 - ✅ Asset id / 文件名
-- ✅ Prompt 字段（asset .md 卡 `## 图像生成提示` 段 / keyframe `## 图像生成提示词` 段 / storyboard shot prose）
+- ✅ Prompt 字段（asset .md 卡 `## 图像生成提示` 段，含 character/location/item/building/keyframe 全部类型 / storyboard shot prose）
 - ❌ 不适用：跨语言技术名词（保留英文）
 
 ## 与其他共享规则的关系

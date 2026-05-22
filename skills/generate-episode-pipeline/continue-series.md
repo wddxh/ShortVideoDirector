@@ -100,7 +100,7 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 14. **storyboarder-storyboard** — ep='ep0X'
 15. **director-review-storyboard**
 16. **creator-keyframe-prompts** — 输入: storyboard.md (从分镜 inline KF 标记翻译)
-17. **director-review-asset-prompts** — `$ARGUMENTS[1]=keyframes`，**仅审**本集 keyframe .md 卡的 `## 图像生成提示词` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt 不生图)
+17. **director-review-asset-prompts** — `$ARGUMENTS[1]=keyframes`，**仅审**本集 keyframe .md 卡的 `## 图像生成提示` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt 不生图)
 18. **creator-generate-images** — 为 keyframes 生成图片
 19. **director-review-assets-visual** — `--type=keyframes`
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
