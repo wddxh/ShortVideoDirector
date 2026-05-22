@@ -18,20 +18,20 @@ Storyboarder 是**翻译层**：把 Scriptwriter 剧本的场景/对白/节奏�
 ## 场景 1: <场景名> (剧本目标 Xs, 切片 sum Ys ✓, 容差 ±10% → [低界s, 高界s])
 
 ### shot 1
-- 镜头类型: <景别>
-- 镜头运动: <运动>
-- 视频风格: <from config>
-- 时长: <N>s
-- 出场人物:
+- 镜头类型：<景别>
+- 镜头运动：<运动>
+- 视频风格：<from config>
+- 时长：<N>s
+- 出场人物：
   - [角色名](assets/characters/角色名.md)
-    声音特征: <verbatim copy 自 character 卡 `## 声音特征` section，含 音色/语速/语调 三项>
+    声音特征：<verbatim copy 自 character 卡 `## 声音特征` section，含 音色/语速/语调 三项>
   - [角色名2](assets/characters/角色名2.md)
-    声音特征: <同上 verbatim copy>
-- 引用资产:
+    声音特征：<同上 verbatim copy>
+- 引用资产：
   - [场景名](assets/locations/场景名.md)
   - [物品名](assets/items/物品名.md)
   - [KF-id](assets/keyframes/epNN/KF-id.md)
-- 转场: <切|淡入淡出|叠化|划像>
+- 转场：<切|淡入淡出|叠化|划像>
 
 **画面与声音描述：**
 [0s-4s] 画面首帧是 [KF-id]，<画面动作叙事>。

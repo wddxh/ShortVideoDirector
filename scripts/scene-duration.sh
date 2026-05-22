@@ -30,8 +30,8 @@ done
 
 [ -f "$FILE" ] || { echo "FAIL (file not found: $FILE)"; exit 1; }
 
-# 提取所有 "目标时长: <N>s" 形式的秒数并累加
-SUM=$( ( grep -oE '目标时长:[[:space:]]*[0-9]+s' "$FILE" 2>/dev/null || true ) \
+# 提取所有 "目标时长: <N>s" 或 "目标时长：<N>s" 形式的秒数并累加（容错全角/半角冒号）
+SUM=$( ( grep -oE '目标时长[:：][[:space:]]*[0-9]+s' "$FILE" 2>/dev/null || true ) \
         | ( grep -oE '[0-9]+' || true ) \
         | awk 'BEGIN{s=0} {s+=$1} END{print s+0}' )
 

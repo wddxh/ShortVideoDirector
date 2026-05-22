@@ -173,8 +173,8 @@ while IFS=$'\t' read -r kf_id n; do
     }')
 done <<< "$KF_ID_MAP"
 
-# Extract duration from "**时长：**" line
-DURATION=$(echo "$SHOT_BLOCK" | grep -oE '时长：.*[0-9]+s' | grep -oE '[0-9]+')
+# Extract duration from "- 时长：<N>s" line (accept full-width or half-width colon).
+DURATION=$(echo "$SHOT_BLOCK" | grep -oE '时长[:：][[:space:]]*[0-9]+s' | grep -oE '[0-9]+')
 
 if [ -z "$DURATION" ]; then
   DURATION="5"
