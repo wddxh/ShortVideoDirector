@@ -48,11 +48,30 @@ model: sonnet
 - 按 Phase 1 加载的 series.md / short.md 指引定向修改字段
 - 不擅自改与意见无关的部分；但必要时扩展到结构相邻字段以保持一致性
 
+### Phase 3.5: schema 升级（针对旧 outline.md, 必做）
+
+若现有 outline.md 场景缺 `- **目标时长:** Ns` 字段，本 phase 主动升级：
+
+1. 对每场景估时（按 rules.md `## 时长规划原则` 7 条 + 节奏角色 + 剧情密度自决），加 `- **目标时长:** Ns` 字段，紧贴 `### 场景 N: <标题>` 之下
+2. 跑 `bash scripts/scene-duration.sh story/episodes/{ep}/outline.md [--target-min M --target-max X] | [--target N]` (DURATION 字符串解析见 director-outline/SKILL.md Phase 4.5)
+3. FAIL 按 rules.md `## 时长规划原则` 7 条优先级取舍调整 (分散吸收 > 砍场景数 > 压缩时长), 再次校验直到 PASS
+
+**不做"宽容补字段"** — 即使本轮 review 意见没明说 schema 升级也要主动做, 否则下游 director-review-outline Phase 2.5 立即 FAIL (scene-duration.sh 不通过)。
+
 ### Phase 4: 自检
 - 每条意见是否落地？
-- 公共骨架完整 (本集信息传达 / 场景列表)？
+- 公共骨架完整 (本集信息传达 / 场景列表, 含 - **目标时长:** Ns 字段)？
 - 场景节奏角色、asset 引用规则未破坏？
 - 按 mode 文件中"专属失败模式"自查
+
+**必跑脚本兜底**:
+
+```bash
+bash scripts/scene-duration.sh story/episodes/{ep}/outline.md \
+  [--target-min M --target-max X] | [--target N]
+```
+
+退出码非 0 → 回 Phase 3 / Phase 3.5 重做。
 
 ### Phase 5: 输出
 - 使用 Write 覆写 `story/episodes/{ep}/outline.md`
