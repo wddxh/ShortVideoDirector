@@ -43,6 +43,22 @@ model: sonnet
 ### Phase 4: 按 mode 加补充字段
 按 Phase 1 加载的 series.md / short.md 指引执行
 
+### Phase 4.5: 时长 sum 硬校验（必跑）
+
+```bash
+DURATION=$(bash scripts/read-config.sh "每集时长目标")
+# 解析 DURATION 字符串:
+# 范围 X-Y 分钟 → --target-min <X*60> --target-max <Y*60>
+# 范围 X-Y 秒 → --target-min X --target-max Y
+# 单值 N 分钟 → --target <N*60>
+# 单值 Ns / N秒 → --target N
+
+bash scripts/scene-duration.sh story/episodes/{ep}/outline.md \
+  [--target-min M --target-max X] | [--target N]
+```
+
+退出码非 0 → 按 rules.md `## 时长规划原则` 7 条优先级取舍 (分散吸收 > 砍场景数 > 压缩时长), 再次跑校验直到 PASS 才进 Phase 5。
+
 ### Phase 5: 写「本集新增资产」段（必产出）
 
 outline.md **末尾必须含 `## 本集新增资产` 段**（写入位置：所有 mode 专属字段——如 series 的「集尾钩子」、short 的「结局设计」——之后，作为文件最末段），按 `skills/director-outline/rules.md` 「新增资产规则」段 写入：
