@@ -47,6 +47,24 @@ series 模式下**必生成** `story/arc.md`，作为后续 director-outline / s
 - 副线（如有）必须服务主线
 - continue-series 时与已有 outline / novel 保持逻辑连贯
 
+## 工作流
+
+### Phase 1: 读 config + 算预算
+1. `bash scripts/read-config.sh "总集数"` 取 N
+2. 规划主线节点的集数分布（节点数 + 每节点集数）
+3. 对**每个**主线 / 副线节点，`bash scripts/arc-budget.sh <节点集数>` 取预算秒
+4. 在节点 header 写入 `(epXX-YY, 节点预算 ~Zs)`
+
+### Phase 2: 列核心事件 bullet
+对每节点：
+1. 先列必需事件，每条 `- {事件} (~Ns, 必需)` 格式
+2. 心算必需 sum 与节点预算的差
+3. 剩余预算补可选事件 `(~Ns, 可选)`
+4. 必需 sum > 预算 → 拆细 / 合并 / 降级 / 调节点划分（不改集数）
+
+### Phase 3: 写入 arc.md
+按 rules.md schema 用 Write 落盘（参考 §1 schema、§1.5 预算计算、§3.5 bullet 格式）。
+
 ## 输出
 
 ### 文件操作
