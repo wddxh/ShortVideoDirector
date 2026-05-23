@@ -166,6 +166,7 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
     newBody = rewriteBashPaths(newBody);
     newBody = injectLeafHint(newBody, myMeta);
     newBody = injectDispatchDiscipline(newBody, { ...myMeta, name: skillName });
+    newBody = inlineSubstitutePluginRoot(newBody, pluginRoot);
 
     const newFm = rewriteFrontmatter(frontmatter);
     const out = stringifyFrontmatter(newFm) + '\n\n' + newBody;
