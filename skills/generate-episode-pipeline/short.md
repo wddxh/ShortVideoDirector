@@ -89,7 +89,7 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 8. **creator-create-assets** — ep='ep01'，登记本集新资产
 9. **director-review-asset-prompts** — `$ARGUMENTS[1]=basic`，审本集 character/location/item/building 资产 .md 卡的 `## 图像生成提示` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt section 不生图)
 10. **creator-generate-images** — 为 character / location / item / building 资产生成图片
-11. **director-review-assets-visual** — `--type=characters,locations,items,buildings`
+11. **director-review-assets-visual** — `--type=characters,locations,items,buildings ep01`（review 文件 = `story/episodes/ep01/.review-basic-assets-visual.md`）
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
 
 ### Phase D: 分镜 & 关键帧
@@ -98,7 +98,7 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 14. **creator-keyframe-prompts** — 输入: storyboard.md (从分镜 inline KF 标记翻译)
 15. **director-review-asset-prompts** — `$ARGUMENTS[1]=keyframes`，**仅审**本集 keyframe .md 卡的 `## 图像生成提示` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt 不生图)
 16. **creator-generate-images** — 为 keyframes 生成图片
-17. **director-review-assets-visual** — `--type=keyframes`
+17. **director-review-assets-visual** — `--type=keyframes ep01`（review 文件 = `story/episodes/ep01/.review-keyframes-visual.md`）
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
 
 ### Phase E: 视频生成
