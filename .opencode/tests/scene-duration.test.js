@@ -96,3 +96,62 @@ test('exit code 2: 未知 flag', () => {
     assert.equal(r.status, 2);
   } finally { rmSync(dir, { recursive: true }); }
 });
+
+// outline 阶段调用 fixtures (spec §9.1)
+test('outline: 范围 3-5 分钟, sum=240s → PASS', () => {
+  const { dir, file } = setupTmp(
+    '## 场景 1\n- 目标时长: 60s\n## 场景 2\n- 目标时长: 90s\n## 场景 3\n- 目标时长: 90s\n'
+  );
+  try {
+    const r = run(file, '--target-min', '180', '--target-max', '300');
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /PASS/);
+    assert.match(r.stdout, /sum=240s/);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('outline: 范围 3-5 分钟, sum=150s → FAIL below', () => {
+  const { dir, file } = setupTmp(
+    '## 场景 1\n- 目标时长: 50s\n## 场景 2\n- 目标时长: 100s\n'
+  );
+  try {
+    const r = run(file, '--target-min', '180', '--target-max', '300');
+    assert.notEqual(r.status, 0);
+    assert.match(r.stdout, /FAIL/);
+    assert.match(r.stdout, /below min/);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('outline: 范围 3-5 分钟, sum=350s → FAIL exceeds', () => {
+  const { dir, file } = setupTmp(
+    '## 场景 1\n- 目标时长: 150s\n## 场景 2\n- 目标时长: 200s\n'
+  );
+  try {
+    const r = run(file, '--target-min', '180', '--target-max', '300');
+    assert.notEqual(r.status, 0);
+    assert.match(r.stdout, /FAIL/);
+    assert.match(r.stdout, /exceeds max/);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('outline: 单值 240s, sum=220s → PASS (±10%)', () => {
+  const { dir, file } = setupTmp(
+    '## 场景 1\n- 目标时长: 100s\n## 场景 2\n- 目标时长: 120s\n'
+  );
+  try {
+    const r = run(file, '--target', '240');
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /PASS/);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('outline: 单值 240s, sum=280s → FAIL 超 ±10%', () => {
+  const { dir, file } = setupTmp(
+    '## 场景 1\n- 目标时长: 140s\n## 场景 2\n- 目标时长: 140s\n'
+  );
+  try {
+    const r = run(file, '--target', '240');
+    assert.notEqual(r.status, 0);
+    assert.match(r.stdout, /FAIL/);
+  } finally { rmSync(dir, { recursive: true }); }
+});
