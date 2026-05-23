@@ -26,6 +26,14 @@ describe('ShortVideoDirectorPlugin', () => {
     assert.ok(output.env.SVD_PLUGIN_DIR.includes('ShortVideoDirector'));
   });
 
+  test('shell.env hook sets CLAUDE_PLUGIN_ROOT', async () => {
+    const plugin = await ShortVideoDirectorPlugin({ client: null, directory: '/tmp' });
+    const output = { env: {} };
+    await plugin['shell.env']({}, output);
+    assert.ok(output.env.CLAUDE_PLUGIN_ROOT);
+    assert.ok(output.env.CLAUDE_PLUGIN_ROOT.includes('ShortVideoDirector'));
+  });
+
   test('messages.transform injects bootstrap idempotently', async () => {
     const plugin = await ShortVideoDirectorPlugin({ client: null, directory: '/tmp' });
     const output = {
