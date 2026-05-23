@@ -31,7 +31,7 @@
 6. 若图像模型非 `none`：
    - `creator-generate-images`，参数 `{ep}`
    - `director-review-assets-visual`，参数 `{ep} --type=keyframes`
-   - 若 review return 以 `needs_revision` 开头 → `creator-fix-asset-image`，参数 `{ep}`（≤2 轮；fix skill 自动读 `.review-assets-visual.md` 最后一轮 dirty list + 意见）
+   - 若 review return 以 `needs_revision` 开头 → `creator-fix-asset-image`，参数 `{ep}` + 对应 review 文件路径（basic asset 阶段 = `story/episodes/{ep}/.review-basic-assets-visual.md`；keyframe 阶段 = `story/episodes/{ep}/.review-keyframes-visual.md`）。≤2 轮；fix skill 自动读最后一轮 dirty list + 意见
 7. 继续"从分镜开始恢复"
 
 ### 从资产文件开始恢复（keyframes 完整但 assets 缺失）
