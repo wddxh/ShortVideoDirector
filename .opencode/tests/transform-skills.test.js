@@ -254,6 +254,26 @@ describe('transformAllSkills (integration)', () => {
     assert.equal(exists, true);
   });
 
+  test('.md aux files have ${CLAUDE_PLUGIN_ROOT} inline-substituted', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    // 扫描所有 cache 内的 .md aux（非 SKILL.md），断言无字面残留
+    const skillDirs = await readdir(tmpDir);
+    let checkedAny = false;
+    for (const sd of skillDirs) {
+      const skillPath = path.join(tmpDir, sd);
+      const files = await readdir(skillPath).catch(() => []);
+      for (const f of files) {
+        if (f === 'SKILL.md' || !f.endsWith('.md')) continue;
+        const content = await readFileAsync(path.join(skillPath, f), 'utf-8');
+        checkedAny = true;
+        assert.ok(!content.includes('${CLAUDE_PLUGIN_ROOT}'),
+          `aux 文件 ${sd}/${f} 仍含字面 \${CLAUDE_PLUGIN_ROOT}`);
+        // 若源文件含此 token，则 cache 必含已替换的 PROJECT_ROOT 路径
+      }
+    }
+    assert.ok(checkedAny, '应至少检查到一个 .md aux 文件');
+  });
+
   test('OC override 文件被使用并覆盖 CC 源', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(

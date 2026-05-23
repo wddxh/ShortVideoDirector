@@ -165,9 +165,16 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
 
     const auxFiles = (await readdir(srcDir)).filter(f => f !== 'SKILL.md');
     for (const aux of auxFiles) {
-      const auxStat = await stat(path.join(srcDir, aux));
-      if (auxStat.isFile()) {
-        await copyFile(path.join(srcDir, aux), path.join(dstDir, aux));
+      const srcPath = path.join(srcDir, aux);
+      const dstPath = path.join(dstDir, aux);
+      const auxStat = await stat(srcPath);
+      if (!auxStat.isFile()) continue;
+      if (aux.endsWith('.md')) {
+        const content = await readFile(srcPath, 'utf8');
+        const substituted = inlineSubstitutePluginRoot(content, pluginRoot);
+        await writeFile(dstPath, substituted);
+      } else {
+        await copyFile(srcPath, dstPath);
       }
     }
   }
