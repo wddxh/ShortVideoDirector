@@ -20,17 +20,19 @@ DURATION="$4"
 RATIO="${5:-16:9}"
 MODEL="${6:-seedance2.0fast}"
 
-# Build --image flags from comma-separated list
-IMAGE_FLAGS=""
+# Build --image flags as an array (no eval needed; preserves arbitrary chars
+# in PROMPT including double quotes, spaces, shell metachars).
+IMAGE_FLAGS=()
 IFS=',' read -ra IMG_ARRAY <<< "$IMAGES"
 for img in "${IMG_ARRAY[@]}"; do
-  IMAGE_FLAGS="$IMAGE_FLAGS --image $img"
+  IMAGE_FLAGS+=( --image "$img" )
 done
 
-# Submit task (no --poll, returns immediately)
-RESULT=$(eval dreamina multimodal2video \
-  $IMAGE_FLAGS \
-  --prompt="\"$PROMPT\"" \
+# Submit task (no --poll, returns immediately). PROMPT is passed via array,
+# so any chars in it (including ", ', spaces, $) are preserved verbatim.
+RESULT=$(dreamina multimodal2video \
+  "${IMAGE_FLAGS[@]}" \
+  --prompt="$PROMPT" \
   --duration="$DURATION" \
   --ratio="$RATIO" \
   --video_resolution=720p \
