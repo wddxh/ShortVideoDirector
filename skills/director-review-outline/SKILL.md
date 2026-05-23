@@ -44,9 +44,30 @@ model: opus
 - mode∈series: Read `story/arc.md`
 - Glob `assets/characters/*.md`, `assets/locations/*.md` 建立已注册 asset 集合
 
+### Phase 2.5: scene-duration.sh 硬校验（必跑）
+
+```bash
+DURATION=$(bash scripts/read-config.sh "每集时长目标")
+# 按 DURATION 字符串两种格式调用:
+# 范围 X-Y 分钟 → --target-min <X*60> --target-max <Y*60>
+# 单值 N 分钟 → --target <N*60>
+# 单值 Ns / N秒 → --target N
+
+bash scripts/scene-duration.sh story/episodes/{ep}/outline.md \
+  [--target-min M --target-max X] | [--target N]
+```
+
+退出码非 0 → 意见列表第一条引用脚本输出（"场景目标时长 sum 偏离 config"），强制 director-fix-outline 调整。
+
 ### Phase 3: 按当前 mode 文件列出的 review 项逐项检查
 
 只列**框架级**问题；微调措辞类不入清单。意见会被 director-fix-outline 直接消化重写 outline，所以每条意见 = 工作单。
+
+**质性检查项（四维）**（与 director-review-novel 三维统一术语，本 review 额外多 1 维 arc 覆盖）:
+1. 前后场景因果是否承接（场景 N+1 的因 = 场景 N 的果）
+2. 场景过渡是否自然（时空切换有铺垫 / 交代）
+3. 是否存在被砍掉的因果关键环节
+4. **arc 必需事件覆盖**（仅 series 模式）：对照 arc 节点的"必需" bullet 列表，逐项确认每个必需事件在 outline 中可识别（专门场景 / 或被分散吸收到某场景的动作/铺垫中）
 
 ### Phase 4: 输出 .review-outline.md
 
