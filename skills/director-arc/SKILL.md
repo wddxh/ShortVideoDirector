@@ -34,7 +34,7 @@ continue-series 同样从 config.md 读（不再从 arc.md 推断）。
 series 模式下**必生成** `story/arc.md`，作为后续 director-outline / scriptwriter-script / director-review-script / continue-series 定位的唯一叙事骨架来源。
 
 ### 范围边界
-- 只规划 arc 级骨架（主线 / 副线节点、人物弧、世界观要点），不展开单集场景
+- 只规划 arc 级骨架（剧情节点、人物弧、世界观要点），不展开单集场景
 - **不在节点上挂"节奏角色"字段**（节奏是单集 outline / scriptwriter 的事）
 - **不写独立的"关键转折点 (跨节点)" section**，关键转折并入各节点的"关键转折"字段
 - 单集详细规划由 director-outline 在生成 epNN/outline.md 时按 arc 节点展开
@@ -44,15 +44,14 @@ series 模式下**必生成** `story/arc.md`，作为后续 director-outline / s
 - 节点划分均衡（避免铺垫过长 / 高潮收束被压缩）
 - 人物弧起点与终点状态有可见差异
 - 关键转折分布于全 arc，不集中前段
-- 副线（如有）必须服务主线
 - continue-series 时与已有 outline / novel 保持逻辑连贯
 
 ## 工作流
 
 ### Phase 1: 读 config + 算预算
 1. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"` 取 N
-2. 规划主线节点的集数分布（节点数 + 每节点集数）
-3. 对**每个**主线 / 副线节点，`bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-budget.sh <节点集数>` 取预算秒
+2. 规划剧情节点的集数分布（节点数 + 每节点集数）
+3. 对**每个**节点，`bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-budget.sh <节点集数>` 取预算秒
 4. 在节点 header 写入 `(epXX-YY, 节点预算 ~Zs)`
 
 ### Phase 2: 列核心事件 bullet
