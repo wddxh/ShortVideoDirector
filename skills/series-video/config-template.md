@@ -24,4 +24,3 @@
 - 单镜头资产上限: 5           # 每个分镜镜头中引用资产的最大数量
 - 上下文集数: 1              # continue mode时Director读取前N集novel.md
 - 默认模式: default           # default / full-auto
-- 每集小说字数: 4000-5000     # 范围格式；单个数字视为上限，下限自动取80%
