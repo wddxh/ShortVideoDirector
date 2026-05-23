@@ -115,7 +115,7 @@ rm -rf ~/.cache/opencode/node_modules/short-video-director/
     "build": {
       "permission": {
         "bash": {
-          "bash $SVD_PLUGIN_DIR/scripts/*": "allow",
+          "bash ${CLAUDE_PLUGIN_ROOT}/scripts/*": "allow",
           "mkdir -p story/episodes/*": "allow",
           "opencode run*": "allow",
           "*": "ask"
@@ -139,19 +139,28 @@ rm -rf ~/.cache/opencode/node_modules/short-video-director/
 插件做 3 件事：
 
 1. **`config` hook**：把 cache 目录注册到 `config.skills.paths`，把 5 个子代理注册到 `config.agent`
-2. **`shell.env` hook**：注入 `SVD_PLUGIN_DIR=<插件根目录>` 环境变量给所有 bash 调用，使转换后的 `bash $SVD_PLUGIN_DIR/scripts/X.sh` 能定位脚本
+2. **`shell.env` hook**：注入 `CLAUDE_PLUGIN_ROOT=<插件根目录>` 环境变量给所有 bash 调用，作为 bash subprocess 的兜底（与 CC 原生 env var 同名同义），使源 skill 中 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/X.sh` 之类的调用在 OC 下也能定位脚本
 3. **`experimental.chat.messages.transform` hook**：在首条 user message 前注入 bootstrap 文本（列出 7 个 user-invocable workflow + 5 个子代理），用 `SVD_BOOTSTRAP_MARKER` 实现幂等
 
 转换规则（源 CC skill → OC cache skill）：
 
 - **frontmatter**：CC 字段（`context: fork`, `agent`, `user-invocable` 等）移到 `metadata.svd-*`，description 截断到 1024 字符
 - **`使用 Skill tool 调用 X`**：若 X 有 `context: fork` → 重写为 `task({ subagent_type: ..., prompt: "..." })`；否则重写为 `调用 \`skill({ name: "X" })\``
-- **`bash scripts/X.sh`** → **`bash $SVD_PLUGIN_DIR/scripts/X.sh`**
+- **`${CLAUDE_PLUGIN_ROOT}` inline 替换**：transform-time 把源 skill / agent 中的 `${CLAUDE_PLUGIN_ROOT}` 字面量替换为插件根目录绝对路径，与 CC 原生 inline 替换行为对齐（CC 在 prompt 注入时也是直接 substitute 这个 token）
 - **9 个 user-invocable workflow 顶部**：注入"派发约束"指引（按语义单元 chapter/scene/shot/JSON 条目分段派发给子代理，避免单次 Write 过长在 OC 下挂起）—— **注意**：管线重构后实际为 7 个（`series-video` / `short-video` / `edit-story` / `repair-story` / `generate-video` / `check-video` / `auto-video`），见 `tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS`
 - **fork-context skill 顶部**：注入"执行上下文：本 skill 已在 X 子代理中"提示
 - **auto-video skill**：CC 的 `CronCreate/List/Delete` 原语替换为基于 nohup loop + HTTP `/session/{SID}/prompt_async` 的调度（OC override 实现，见 `.opencode/skill-overrides/auto-video/`）
 
 cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 的前 16 hex 字符；保留最新 3 个 cache。
+
+## Inline 替换 `${CLAUDE_PLUGIN_ROOT}`
+
+源 skill / agent / aux 文件中**统一**用 `${CLAUDE_PLUGIN_ROOT}` 表达任何插件内绝对路径（bash 命令、文档引用、配置示例皆然）。跨 runtime 兼容靠两条机制：
+
+1. **Transform-time inline 替换**：plugin 转换源文件到 cache 时，把字面量 `${CLAUDE_PLUGIN_ROOT}` 替换成插件根目录绝对路径（如 `/home/x/repos/ShortVideoDirector`）写进 cache 文件。LLM 看到的就是绝对路径，无需运行时 shell 展开——和 CC 原生 prompt 注入时的 inline substitute 行为完全对齐。
+2. **`shell.env` 注入兜底**：plugin 同时在 `shell.env` hook 里给 bash subprocess 注入 `CLAUDE_PLUGIN_ROOT=<同一绝对路径>`。这条仅作为兜底（防 LLM 偶发直接 emit 未替换的 `${CLAUDE_PLUGIN_ROOT}` 字面量到 bash），正常路径已被 #1 覆盖。
+
+→ 零 adapter、零自定义 env var（历史上的自定义 `SVD_*` env var 已废）；CC 原生支持、OC 模拟、Codex 用原生 env var（详见 `.codex/tool-mapping.md`）。
 
 ## Troubleshooting
 
@@ -169,7 +178,7 @@ cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 
 
 **问题：bash 脚本调用失败说找不到文件**
 
-- 检查 `$SVD_PLUGIN_DIR` 是否正确：在 OC 会话里跑 `bash -c 'echo $SVD_PLUGIN_DIR'`，应输出插件根目录绝对路径
+- 检查 `$CLAUDE_PLUGIN_ROOT` 是否正确：在 OC 会话里跑 `bash -c 'echo $CLAUDE_PLUGIN_ROOT'`，应输出插件根目录绝对路径
 - 如果输出为空，可能是 OC 版本不支持 `shell.env` hook，请升级 OC（≥ 1.15）
 
 **问题：auto-video 的 nohup loop 没执行 / OC TUI 没收到自动 prompt**
@@ -288,9 +297,9 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 
 | 改动 | 同步位置 | 失败征兆 |
 |------|----------|---------|
-| **加新 script `scripts/X.sh`** | 如果某 agent 需要调用，添加到 `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG[agent].allowScripts` 数组（director/writer/scriptwriter/storyboarder；creator 设为 `'ALL'` 自动放行） | OC 运行时该 agent 调用 `bash $SVD_PLUGIN_DIR/scripts/X.sh` 被 `bash: deny` 拦 |
+| **加新 script `scripts/X.sh`** | 如果某 agent 需要调用，添加到 `.opencode/lib/load-agents.js` 的 `AGENT_BASH_CONFIG[agent].allowScripts` 数组（director/writer/scriptwriter/storyboarder；creator 设为 `'ALL'` 自动放行） | OC 运行时该 agent 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/X.sh` 被 `bash: deny` 拦 |
 | **重命名/删除 script** | 同上：从 `AGENT_BASH_CONFIG` 中移除 | 无测试失败，但 skill 调用旧名会运行时 fail |
-| **`bash scripts/X.sh` 调用方式不变** | 自动处理；`rewriteBashPaths` 注入 `$SVD_PLUGIN_DIR/` 前缀 | 无 |
+| **源里 bash 调用路径** | 一律写 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/X.sh`；transform-time inline 替换为绝对路径，`shell.env` 注入同名 env 兜底（详见上文「工作原理」） | 写成相对 `bash scripts/X.sh` → CC 走 cwd 解析可能失败；OC 在 plugin-dir 之外 cwd 也找不到脚本 |
 | **scripts/ 文件改动触发 cache 重建** | 自动处理；`computeSourceHash` 包含 scripts/ 全部文件 `path:mtime:size`，改动 → 新 hash → cache miss → 重建 → 实复制 scripts/ 到 `cacheDir/scripts/`（保留源文件 mode 位） | 无；若 cache 中 scripts 缺失，强制 `rm -rf ~/.cache/short-video-director/` 重建 |
 
 ### 加 / 改 OC skill override
@@ -302,7 +311,7 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 | **加新 OC override `<name>`** | 建目录 `.opencode/skill-overrides/<name>/` 含 `SKILL.md` + 可选 aux 文件（`.sh` `.txt` 等）；`transformAllSkills` 自动检测优先使用 | 无（自动生效）；可用 `rm -rf ~/.cache/short-video-director/ && opencode debug agent director` 验证 cache 内容 |
 | **改 OC override SKILL.md** | 直接编辑 `.opencode/skill-overrides/<name>/SKILL.md` | 同上；cache hash 自动跟随源文件 mtime 变化 |
 | **CC 源改了共享段（如 `## 失败处理`）** | 必须同步到 OC override SKILL.md 同 heading 下；测试 `OC auto-video override shares core sections with CC source` 会 detect 脱钩 | npm test 失败提示不一致段名 + diff |
-| **加 aux 文件** | 放进 OC override 目录；`transformAllSkills` 自动 copy 到 cache | LLM 通过 `$SVD_PLUGIN_DIR/.opencode/skill-overrides/<name>/<aux>` 引用 |
+| **加 aux 文件** | 放进 OC override 目录；`transformAllSkills` 自动 copy 到 cache | LLM 通过 `${CLAUDE_PLUGIN_ROOT}/.opencode/skill-overrides/<name>/<aux>` 引用 |
 
 ### OC commands 自动 derive
 

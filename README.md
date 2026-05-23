@@ -335,6 +335,16 @@ plot-options → input-confirm → [arc (series only)] → outline
 
 **退出条件（满足任一）：** 新增集数达标 或 总集数达标
 
+## 源 skill 引用约定
+
+源 `skills/` / `agents/` / `scripts/` 中**一律**用 `${CLAUDE_PLUGIN_ROOT}/...` 表达插件内绝对路径（bash 命令、文档引用、配置示例皆然），不要写相对路径，也不要使用任何自定义 env var。三种 runtime 各自的兼容方式：
+
+- **Claude Code**：原生支持。CC 在 prompt 注入时把 `${CLAUDE_PLUGIN_ROOT}` inline 替换为插件根目录绝对路径；同时也作为 env var 暴露给 bash subprocess。
+- **OpenCode**：plugin-side 模拟。`.opencode/` 兼容层在 transform-time 做 inline 替换（与 CC 行为对齐），同时通过 `shell.env` hook 注入同名 env var 给 bash 兜底。详见 `.opencode/README.md` 的「Inline 替换 `${CLAUDE_PLUGIN_ROOT}`」段。
+- **Codex**：使用原生 `CLAUDE_PLUGIN_ROOT` env var。详见 `.codex/tool-mapping.md`。
+
+零 adapter、零自定义 env var、零运行时 path-rewrite——单一约定贯穿三个 runtime。
+
 ## 插件结构
 
 ```
