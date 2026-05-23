@@ -32,6 +32,10 @@ export function rewriteBashPaths(text) {
   );
 }
 
+export function inlineSubstitutePluginRoot(text, pluginRoot) {
+  return text.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginRoot);
+}
+
 // 匹配 "使用 Skill tool 调用 <skill-name>"，包含可选反引号/包裹词
 const SKILL_CALL_RE = /使用\s+Skill\s+tool\s+(?:重新|再次|依次)?调用\s+`?([a-z][a-z0-9-]*)`?(?:\s+skill)?/g;
 
