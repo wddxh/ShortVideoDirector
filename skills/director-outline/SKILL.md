@@ -69,7 +69,7 @@ outline.md **末尾必须含 `## 本集新增资产` 段**（写入位置：所�
 
 该段是 director-review-outline 做 dangling check 的依据。scriptwriter Phase 5 会读取本段 + 剧本提取的 asset → 合并 dedupe → 重写为 `## 本集资产清单` superset 终态（含「### 新增资产」+「### 已有资产（本集出场）」两子段）。
 
-### Phase 6: 输出 + (可选) 同步全局
+### Phase 6: 输出 + (按 mode) 同步全局
 按 mode 指引
 
 ## 通用规则
