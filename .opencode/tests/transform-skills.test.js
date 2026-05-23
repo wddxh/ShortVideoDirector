@@ -12,7 +12,6 @@ import os from 'os';
 import {
   parseSkillFile,
   rewriteFrontmatter,
-  rewriteBashPaths,
   rewriteSkillCalls,
   injectLeafHint,
   injectDispatchDiscipline,
@@ -59,34 +58,6 @@ describe('rewriteFrontmatter', () => {
   test('clips description to 1024 chars', () => {
     const fm = rewriteFrontmatter({ name: 'x', description: 'a'.repeat(2000) });
     assert.equal(fm.description.length, 1024);
-  });
-});
-
-describe('rewriteBashPaths', () => {
-  test('prefixes scripts/ with $SVD_PLUGIN_DIR/', () => {
-    const out = rewriteBashPaths('bash scripts/foo.sh arg1 arg2');
-    assert.equal(out, 'bash $SVD_PLUGIN_DIR/scripts/foo.sh arg1 arg2');
-  });
-
-  test('handles multiple occurrences', () => {
-    const input = 'bash scripts/a.sh\nbash scripts/b.sh';
-    const out = rewriteBashPaths(input);
-    assert.equal(out, 'bash $SVD_PLUGIN_DIR/scripts/a.sh\nbash $SVD_PLUGIN_DIR/scripts/b.sh');
-  });
-
-  test('does not touch already-prefixed paths', () => {
-    const input = 'bash $SVD_PLUGIN_DIR/scripts/foo.sh';
-    assert.equal(rewriteBashPaths(input), input);
-  });
-
-  test('does not touch non-scripts paths', () => {
-    const input = 'bash other/foo.sh';
-    assert.equal(rewriteBashPaths(input), input);
-  });
-
-  test('does not touch markdown prose mentions of scripts/', () => {
-    const input = '本步骤需要项目中的 scripts/foo.sh 脚本';
-    assert.equal(rewriteBashPaths(input), input);
   });
 });
 

@@ -24,14 +24,6 @@ export function rewriteFrontmatter(cc) {
   return result;
 }
 
-export function rewriteBashPaths(text) {
-  // 严格匹配 "bash scripts/<filename>" 前缀，避免误改 prose
-  return text.replace(
-    /(\bbash\s+)scripts\//g,
-    '$1$SVD_PLUGIN_DIR/scripts/'
-  );
-}
-
 export function inlineSubstitutePluginRoot(text, pluginRoot) {
   return text.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginRoot);
 }
@@ -163,7 +155,6 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
 
     let newBody = body;
     newBody = rewriteSkillCalls(newBody, meta);
-    newBody = rewriteBashPaths(newBody);
     newBody = injectLeafHint(newBody, myMeta);
     newBody = injectDispatchDiscipline(newBody, { ...myMeta, name: skillName });
     newBody = inlineSubstitutePluginRoot(newBody, pluginRoot);
