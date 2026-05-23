@@ -37,3 +37,11 @@ python3 .codex/build-codex-skills.py --check
 - 所有源 skills 都保留在 `skills/`，包括内部工作流和角色 skill，因为用户入口工作流会按名称调用它们。
 - `allowed-tools` 和 `model` 等 Claude 专用头部元数据继续保留在源 skill 中供 Claude Code 使用。Codex 适配层的头部元数据只保留跨运行时的发现信息。
 - `/auto-video` 的源 skill 仍描述 Claude Cron 行为。Codex 通过 `.codex/tool-mapping.md` 解释这些运行时差异。
+
+## Troubleshoot
+
+**症状**：Codex LLM 报 "Cannot read file `${CLAUDE_PLUGIN_ROOT}/...`"。
+
+**验证**：在 Codex 会话里跑 `echo $CLAUDE_PLUGIN_ROOT`，应输出绝对路径。
+
+**Fallback**：若 env var 未正确注入，可在 `.codex/skills/<name>/SKILL.md` 头部插入 `export CLAUDE_PLUGIN_ROOT=<absolute path>`（gen-time 由 `build-codex-skills.py` 注入；具体改法见 `docs/superpowers/specs/2026-05-23-pluginroot-compat-design.md` §Risk & Rollback）。

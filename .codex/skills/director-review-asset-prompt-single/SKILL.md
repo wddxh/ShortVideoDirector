@@ -1,12 +1,12 @@
 ---
-name: creator-image-dreamina
-description: 使用即梦CLI为指定的资产列表生成参考图片，包含登录检查、生成、轮询和超时处理。
+name: director-review-asset-prompt-single
+description: Director审核单个 asset 的图像提示词表达质量（无 negative phrasing / 无文学比喻 / 显式分解 / 资产引用分场景 / 语言合 config）。不读图，仅看 .md 卡。
 user-invocable: false
 ---
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/creator-image-dreamina/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/director-review-asset-prompt-single/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -72,7 +72,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"
 
 ## 执行源 Skill
 
-1. 读取 `skills/creator-image-dreamina/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/creator-image-dreamina/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+1. 读取 `skills/director-review-asset-prompt-single/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `skills/director-review-asset-prompt-single/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
 3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

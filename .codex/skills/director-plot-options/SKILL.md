@@ -1,6 +1,6 @@
 ---
 name: director-plot-options
-description: 生成 3 个差异化剧情候选并与用户协商选定。按 mode 自动加载 series.md 或 short.md 专属指南。
+description: 生成 3 个差异化剧情候选 (action='generate') 或按 modification 修订候选 (action='modify')。按 mode 自动加载 series.md 或 short.md 专属指南。
 user-invocable: false
 ---
 
@@ -53,6 +53,22 @@ user-invocable: false
 
 - 源 skill 中的 Claude `allowed-tools` 元数据在 Codex 中仅作为提示信息。
 - 如果某个 Claude 工具名在 Codex 中不可用，不要仅因为工具名不同而失败，应按本映射执行。
+
+## Plugin-rooted Path 解析
+
+源 skill 使用 `${CLAUDE_PLUGIN_ROOT}/...` 引用 plugin 内文件（meta rules / 跨 skill rules / scripts）。Codex 已**原生**为 plugin 进程设置 `CLAUDE_PLUGIN_ROOT` 环境变量（与 Claude Code 兼容；详见 OpenAI Codex plugins 文档）。
+
+**bash 工具调用**：`${CLAUDE_PLUGIN_ROOT}` 由 bash 直接展开。例：
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"
+```
+
+**Read 工具调用 plugin 内文件**：Codex 不在 skill content 做 inline 替换。LLM 需先取得 literal 路径再用 Read：
+1. 跑 bash `echo $CLAUDE_PLUGIN_ROOT` 取得绝对路径
+2. 拼接构造完整路径
+3. 用 Read 工具读取该绝对路径
+
+或更简：用 bash `cat ${CLAUDE_PLUGIN_ROOT}/path/to/file` 一次性读取并加入上下文。
 
 ## 执行源 Skill
 

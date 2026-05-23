@@ -124,7 +124,8 @@ def expected_wrappers() -> dict[Path, str]:
     for source_dir in sorted(path for path in SOURCE_SKILLS.iterdir() if path.is_dir()):
         source_skill = source_dir / "SKILL.md"
         if not source_skill.is_file():
-            raise SkillFormatError(f"{source_dir} 中缺少 SKILL.md")
+            # 跳过非 skill 目录（如 _meta 共享 rules 容器）
+            continue
 
         target = CODEX_SKILLS / source_dir.name / "SKILL.md"
         wrappers[target] = render_wrapper(source_skill, mapping)
