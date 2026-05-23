@@ -49,6 +49,7 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 - **出场人物声音特征 verbatim 不核** — 漂移浓缩会导致跨 shot TTS 不一致 — 拿 character 卡 `## 声音特征` section 与 storyboard 出场人物逐字对照
 - **越权改剧本** — 发现剧本对白超时本能想"让 storyboard 缩台词"，但对白权威在剧本 — 报回 director-review-script，不写入 storyboard review
 - **逐字改写式意见** — fix skill 会照搬作为镜头描述，剥夺 Storyboarder 设计空间 — 说清问题方向，不替 Storyboarder 写最终描述
+- **prose 资产引用只查超引不查漏引** — 第 7 项管"prose 引用了剧本未声明的资产"，但 prose 实际指代了某已注册资产却忘写进字段的情况由第 8 项专管 — 两个方向独立检查
 
 ## 分镜技术审核清单（12 项，rules.md 之外的硬约束）
 
@@ -61,6 +62,7 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 - **镜头多样性**：避免连续 5 个"中景固定"等同质堆叠
 - **speech-rate.sh 通过**：每 shot 对白调 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/speech-rate.sh "start-end:speed:text" ...` 批量验证，OVER 即拦
 - **引用 asset 完整性**：storyboard 只引用剧本已声明的 asset；不引入剧本未覆盖的 character / location / item
+- **画面描述资产引用完整性（漏引检查）**：shot 的「画面与声音描述」中**指代**已注册资产（character / location / item / building）的，必须在该 shot 的「出场人物」（character）或「引用资产」（其他三类）字段中对应引用。指代用 LLM 语义判断（含裸名、代称如"那把短剑"、关系称谓如"少年"指张三等）。漏引以 shot 为单位打回。注：KF 标记的对应一致性由清单第 9 项「内联 KF 与「引用资产」一致」（原第 8 项）覆盖，本项只管非 KF 的四类资产。
 - **内联 KF 与「引用资产」一致**：prose 内联的 [KF-id] 集合 == 头部「引用资产」KF 列表
 - **出场人物字段正确性**：character 在「出场人物」字段（不在「引用资产」），每条目附完整声音特征 verbatim copy 自 character 卡 `## 声音特征` section（含 音色/语速/语调 三项）
 - **临场表演正确分层**：基线属性（音色/语速/语调）在出场人物字段，临场偏离（颤抖/急促/沙哑加剧等）在 prose `角色 (临场描述): "..."`
