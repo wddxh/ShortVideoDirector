@@ -10,16 +10,16 @@ function grepCount(pattern, paths) {
 }
 
 test('no SVD_PLUGIN_DIR refs in source', () => {
-  assert.equal(grepCount('SVD_PLUGIN_DIR', ['skills/', 'agents/']), 0);
+  assert.equal(grepCount('SVD_PLUGIN_DIR', ['skills/', 'agents/', '.opencode/skill-overrides/']), 0);
 });
 
 test('no bare bash scripts/ refs in source', () => {
-  assert.equal(grepCount('bash scripts/', ['skills/', 'agents/']), 0);
+  assert.equal(grepCount('bash scripts/', ['skills/', 'agents/', '.opencode/skill-overrides/']), 0);
 });
 
 test('no bare backtick skills/X.md refs in source', () => {
   assert.equal(
-    grepCount('`skills/[a-z][^`]*\\.md`', ['skills/', 'agents/']),
+    grepCount('`skills/[a-z][^`]*\\.md`', ['skills/', 'agents/', '.opencode/skill-overrides/']),
     0
   );
 });

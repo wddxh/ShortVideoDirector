@@ -6,7 +6,7 @@ set -euo pipefail
 DRY=0
 [[ "${1:-}" == "--dry-run" ]] && DRY=1
 
-mapfile -t FILES < <(find skills agents -name '*.md' -type f 2>/dev/null)
+mapfile -t FILES < <(find skills agents .opencode/skill-overrides -name '*.md' -type f 2>/dev/null)
 
 # 三类需迁移的 pattern (OR 起来检测)
 PATTERN='\$SVD_PLUGIN_DIR/|\bbash scripts/|`skills/[^`]+\.md`'
