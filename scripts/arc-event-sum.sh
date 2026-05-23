@@ -15,7 +15,7 @@ usage() {
 FILE="$1"
 [ -f "$FILE" ] || { echo "FAIL (file not found: $FILE)"; exit 1; }
 
-awk '
+gawk '
 function fail(msg) { printf "FAIL: %s\n", msg; status = 1 }
 function warn(msg) { printf "WARN: %s\n", msg }
 function pass(msg) { printf "PASS: %s\n", msg }
