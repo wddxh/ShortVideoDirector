@@ -133,7 +133,7 @@ opencode --port 4096 -s YOUR_SESSION_ID
 
 2. **从模板生成 cron prompt 写入 PROMPT_FILE**（用 bash 内置变量替换，不用 sed）：
    ```bash
-   TEMPLATE=$(cat "$SVD_PLUGIN_DIR/.opencode/skill-overrides/auto-video/cron-prompt.txt")
+   TEMPLATE=$(cat "${CLAUDE_PLUGIN_ROOT}/.opencode/skill-overrides/auto-video/cron-prompt.txt")
    PROMPT="${TEMPLATE//\{\{TARGET\}\}/$TARGET}"
    PROMPT="${PROMPT//\{\{SID\}\}/$SID}"
    printf '%s' "$PROMPT" > "$PROMPT_FILE"
@@ -143,7 +143,7 @@ opencode --port 4096 -s YOUR_SESSION_ID
    ```bash
    PORT="$PORT" SID="$SID" INTERVAL="$INTERVAL" \
    PID_FILE="$PID_FILE" PROMPT_FILE="$PROMPT_FILE" LOG_FILE="$LOG_FILE" \
-   nohup bash "$SVD_PLUGIN_DIR/.opencode/skill-overrides/auto-video/loop.sh" \
+   nohup bash "${CLAUDE_PLUGIN_ROOT}/.opencode/skill-overrides/auto-video/loop.sh" \
      > "$LOG_FILE" 2>&1 &
    echo $! > "$PID_FILE"
    ```

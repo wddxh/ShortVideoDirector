@@ -20,9 +20,9 @@ export const ShortVideoDirectorPlugin = async ({ client, directory }) => {
         config.skills.paths.push(cacheSkillsDir);
       }
       // Main session needs external_directory access too — SKILL.md references
-      // resources under $SVD_PLUGIN_DIR (plugin install dir), which is outside
+      // resources under ${CLAUDE_PLUGIN_ROOT} (plugin install dir), which is outside
       // the user's story project cwd. Without this, main session can't Read
-      // shared rule files like $SVD_PLUGIN_DIR/skills/_meta/rules/X.md.
+      // shared rule files like ${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/X.md.
       config.permission = config.permission || {};
       if (config.permission.external_directory === undefined) {
         config.permission.external_directory = 'allow';
