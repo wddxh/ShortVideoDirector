@@ -46,12 +46,31 @@ grep -nE '^## 第 [0-9]+ 轮' $ARGUMENTS[0]
 - 维持 schema 合规 (按 director-arc/rules.md 节点定义)
 - 修订后节点总集数严格等于 N
 
+### Phase 3.5: schema 升级（针对旧 arc.md, 必做）
+
+若现有 arc.md 节点 header 缺 `节点预算 ~Zs` 字段，或核心事件不是 bullet 列表带 `(~Ns, 必需|可选)` 标记，本 phase 主动升级到新 schema：
+
+1. 对每节点 `bash scripts/arc-budget.sh <节点集数>` 取预算秒，写入 header (epXX-YY, 节点预算 ~Zs)
+2. 把核心事件 prose 段拆为 bullet 列表
+3. 为每 bullet 加 `(~Ns, 必需|可选)` 标记（LLM 重新决策估时与必需/可选分类）
+4. 校验 sum ≤ 预算; 若超, 按 director-arc/rules.md §3.5 创作引导取舍 (拆细 / 合并相似 / 删次要可选 / 重新拆分节点划分, 不改集数)
+
+**不做"宽容补字段"** — 即使本轮 review 意见没明说 schema 升级也要主动做, 否则下游 director-review-arc 立即 FAIL (节点预算字段缺失 / bullet schema 违规)。
+
 ### Phase 4: 自检
 
 按 director-arc/rules.md 失败模式清单逐项自查:
 - 节点数 / 集数分布合规
 - 节点描述完整 (主题 / 冲突 / 收束)
 - 与 config.md 总集数一致
+
+**必跑脚本兜底**:
+
+```bash
+bash scripts/arc-event-sum.sh story/arc.md
+```
+
+退出码非 0 → 回 Phase 3 / Phase 3.5 重做（schema 违规 / sum 超预算两类）。
 
 不通过则回 Phase 3。
 
