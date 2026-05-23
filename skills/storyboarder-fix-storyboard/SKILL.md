@@ -16,11 +16,11 @@ model: sonnet
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（含「本集资产清单」）
 - `config.md` — 必须读取
 - 从 outline.md 的「本集资产清单」中提取本集引用的资产名称，使用 Glob 获取 `assets/**/*.md` 全部文件路径列表，仅读取文件名与清单中资产名称匹配的文件
-- `skills/storyboarder-storyboard/rules.md` — 必须读取并严格遵循（输出 schema、字段顺序、字段约束、自检清单）
+- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md` — 必须读取并严格遵循（输出 schema、字段顺序、字段约束、自检清单）
 - `story/episodes/$ARGUMENTS[0]/.review-storyboard.md` — 必须读取（含本轮 review 意见）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）
@@ -61,7 +61,7 @@ model: sonnet
 
 ## 规则参考
 
-- `skills/storyboarder-storyboard/rules.md` — 必须读取并严格遵循（输出 schema、字段顺序、字段约束、自检清单、失败模式）
+- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md` — 必须读取并严格遵循（输出 schema、字段顺序、字段约束、自检清单、失败模式）
 
 ## 输出
 

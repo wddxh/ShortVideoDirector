@@ -16,8 +16,8 @@ model: sonnet
 - `config.md` — 必须读取
 - `assets/characters/*.md` — 若 `assets/characters/` 下有文件则全部读取（角色一致性参考）
 - 最近 M 集 novel.md — 若 `assets/characters/` 下有文件（说明非第一集），根据 config.md 中 `上下文集数` M，使用 Glob 匹配 `story/episodes/ep*/novel.md` 找到最近 M 集并读取
-- `skills/writer-novel/rules.md` — 必须读取并严格遵循（输出格式、输出约束、规则）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/writer-novel/rules.md` — 必须读取并严格遵循（输出格式、输出约束、规则）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）
@@ -46,7 +46,7 @@ model: sonnet
 
 ## 规则参考
 
-- `skills/writer-novel/rules.md` — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/writer-novel/rules.md` — 必须读取并严格遵循
 
 ## 输出
 

@@ -18,11 +18,11 @@ model: opus
 - `story/episodes/{ep}/outline.md` — 必读 (剧本骨架对照)
 - `config.md` — 必读 (每集时长目标)
 - `assets/characters/*.md`, `assets/locations/*.md`, `assets/items/*.md`, `assets/buildings/*.md` — Glob 列出 (asset 引用核对)
-- `skills/scriptwriter-script/rules.md` — 必读 (公共机械规则)
-- `skills/director-review-script/series.md` (when mode in {new-series, continue-series}) — 必读
-- `skills/director-review-script/short.md` (when mode=short) — 必读
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/rules.md` — 必读 (公共机械规则)
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-review-script/series.md` (when mode in {new-series, continue-series}) — 必读
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-review-script/short.md` (when mode=short) — 必读
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ## 接管说明
 本 skill **同时承担叙事 (narrative) 审核职责**。新架构下 keyframes 已不作为独立 narrative 审核节点——script 即叙事骨架，narrative review 在此层一次完成。

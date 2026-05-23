@@ -34,13 +34,13 @@ COUNT=$(ls -d story/episodes/ep* 2>/dev/null | wc -l)
 ```
 
 - `COUNT = 0` → `mode='new-series'`, `ep='ep01'`
-- `COUNT > 0` → `mode='continue-series'`, `ep=$(bash scripts/latest-episode.sh | awk -F'ep' '{printf "ep%02d", $2+1}')`
+- `COUNT > 0` → `mode='continue-series'`, `ep=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/latest-episode.sh | awk -F'ep' '{printf "ep%02d", $2+1}')`
 
 若 `latest-episode.sh` 非零退出但 COUNT>0，报错停止。
 
 ## 阶段 4：总集数检测（mode='new-series' only）
 
-1. 用 `bash scripts/read-config.sh "总集数"` 读 config 总集数值 (整数 N)
+1. 用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"` 读 config 总集数值 (整数 N)
 2. 若 `mode='new-series'` 且 N == 1 (默认值) → 问用户:
    > 本剧总集数 (整数, 例: 20):
 3. 用户回复 N (≥2) → 用 Edit 把 config.md 中 `- 总集数: 1` 改为 `- 总集数: <N>`

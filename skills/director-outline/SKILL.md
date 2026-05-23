@@ -15,10 +15,10 @@ model: sonnet
 - plot_option: plot-options 返回的选定候选结构
 
 ## 必读文件
-- `skills/director-outline/rules.md` — 必须读取并严格遵循 (公共规则)
-- `skills/director-outline/series.md` (when mode=series) — 必须读取并严格遵循
-- `skills/director-outline/short.md` (when mode=short) — 必须读取并严格遵循
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-outline/rules.md` — 必须读取并严格遵循 (公共规则)
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-outline/series.md` (when mode=series) — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-outline/short.md` (when mode=short) — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 
@@ -46,14 +46,14 @@ model: sonnet
 ### Phase 4.5: 时长 sum 硬校验（必跑）
 
 ```bash
-DURATION=$(bash scripts/read-config.sh "每集时长目标")
+DURATION=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "每集时长目标")
 # 解析 DURATION 字符串:
 # 范围 X-Y 分钟 → --target-min <X*60> --target-max <Y*60>
 # 范围 X-Y 秒 → --target-min X --target-max Y
 # 单值 N 分钟 → --target <N*60>
 # 单值 Ns / N秒 → --target N
 
-bash scripts/scene-duration.sh story/episodes/{ep}/outline.md \
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/scene-duration.sh story/episodes/{ep}/outline.md \
   [--target-min M --target-max X] | [--target N]
 ```
 
@@ -61,10 +61,10 @@ bash scripts/scene-duration.sh story/episodes/{ep}/outline.md \
 
 ### Phase 5: 写「本集新增资产」段（必产出）
 
-outline.md **末尾必须含 `## 本集新增资产` 段**（写入位置：所有 mode 专属字段——如 series 的「集尾钩子」、short 的「结局设计」——之后，作为文件最末段），按 `skills/director-outline/rules.md` 「新增资产规则」段 写入：
+outline.md **末尾必须含 `## 本集新增资产` 段**（写入位置：所有 mode 专属字段——如 series 的「集尾钩子」、short 的「结局设计」——之后，作为文件最末段），按 `${CLAUDE_PLUGIN_ROOT}/skills/director-outline/rules.md` 「新增资产规则」段 写入：
 - 4 类型行（characters / locations / items / buildings）齐全
 - 无内容写 `(无)`
-- asset id 按 `skills/director-outline/rules.md`「asset id 规则」编写（=资产名，跟随 config.md 「语言」设置）
+- asset id 按 `${CLAUDE_PLUGIN_ROOT}/skills/director-outline/rules.md`「asset id 规则」编写（=资产名，跟随 config.md 「语言」设置）
 - 写入前 Glob `assets/{characters,locations,items,buildings}/*.md` 复用判断（精确匹配 / 相近名优先复用既有）
 
 该段是 director-review-outline 做 dangling check 的依据。scriptwriter Phase 5 会读取本段 + 剧本提取的 asset → 合并 dedupe → 重写为 `## 本集资产清单` superset 终态（含「### 新增资产」+「### 已有资产（本集出场）」两子段）。

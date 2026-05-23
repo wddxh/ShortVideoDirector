@@ -18,9 +18,9 @@ model: sonnet
 ## 必读文件
 
 - `config.md` — 必读
-- `skills/director-input-confirm/series.md` (when mode ∈ {new-series, continue-series}) — 必读并严格遵循
-- `skills/director-input-confirm/short.md` (when mode = short) — 必读并严格遵循
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-input-confirm/series.md` (when mode ∈ {new-series, continue-series}) — 必读并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-input-confirm/short.md` (when mode = short) — 必读并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 

@@ -21,11 +21,11 @@ model: sonnet
 - `story/episodes/{ep}/outline.md` — 必读
 - `config.md` — 必读
 - `assets/characters/*.md` — 若存在则全部读取 (角色声音一致性)
-- `skills/scriptwriter-script/rules.md` — 必读并严格遵循 (公共规则)
-- `skills/scriptwriter-fix-script/series.md` (when mode in {new-series, continue-series}) — 必读
-- `skills/scriptwriter-fix-script/short.md` (when mode=short) — 必读
+- `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/rules.md` — 必读并严格遵循 (公共规则)
+- `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-fix-script/series.md` (when mode in {new-series, continue-series}) — 必读
+- `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-fix-script/short.md` (when mode=short) — 必读
 - `$ARGUMENTS[0]` — 必读 (含多轮 review; 仅取最大轮号那段意见)
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 

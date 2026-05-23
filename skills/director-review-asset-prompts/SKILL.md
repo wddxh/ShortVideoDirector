@@ -13,8 +13,8 @@ model: opus
 ### 文件读取
 - `config.md` — 必须读取（确认语言设置）
 - 本集所有 asset .md 卡列表（由 Glob 收集）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 集数（如 `ep01`）或全局范围（`assets`）

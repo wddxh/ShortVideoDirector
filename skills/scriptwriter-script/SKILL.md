@@ -14,10 +14,10 @@ model: sonnet
 - ep: 'epXX'
 
 ## 必读文件
-- `skills/scriptwriter-script/rules.md` — 必须读取并严格遵循 (公共规则)
-- `skills/scriptwriter-script/series.md` (when mode in {new-series, continue-series}) — 含 novel 输入处理
-- `skills/scriptwriter-script/short.md` (when mode=short) — 无 novel 输入
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/rules.md` — 必须读取并严格遵循 (公共规则)
+- `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/series.md` (when mode in {new-series, continue-series}) — 含 novel 输入处理
+- `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/short.md` (when mode=short) — 无 novel 输入
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 
@@ -49,7 +49,7 @@ ls -1 assets/{characters,locations,items,buildings}/*.md 2>/dev/null
 
 ### Phase 5: 写「本集资产清单」superset 到 outline (含 detect-then-write)
 
-完整流程详见 `skills/scriptwriter-script/rules.md` 「scriptwriter Phase 5」段。摘要：
+完整流程详见 `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/rules.md` 「scriptwriter Phase 5」段。摘要：
 
 1. Read outline.md 末尾 `## 本集新增资产` 段（director-outline 阶段产物）
 2. Grep 本集 script.md 所有 `assets/{characters,locations,items,buildings}/<名称>.md` 引用路径（**不兜底**，未带路径的 asset 名不识别 → 依赖 director-review-script hard gate 拦截）

@@ -45,7 +45,7 @@ prompt 必须按以下顺序拼接（用空格或合适标点分隔，不要换�
 
 ## 字段约束
 
-- **prompt 语言** — 见 `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md`（规约所有产出文本含 prompt 字段的语言）
+- **prompt 语言** — 见 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md`（规约所有产出文本含 prompt 字段的语言）
 - **`## 引用资产` 区块** — 列出 storyboard shot 字段「出场人物」+「引用资产」中所有非 KF asset，按出现顺序、去重
 - **prompt 正文格式** — 纯自然语言，asset 名以裸名字出现
 - **不出现具体文字数字** — 招牌、屏幕、车牌等具体文字数字不写进 prompt
@@ -58,7 +58,7 @@ prompt 必须按以下顺序拼接（用空格或合适标点分隔，不要换�
 ### 步骤 A：调用 parse-storyboard-kf.sh
 
 ```
-bash scripts/parse-storyboard-kf.sh story/episodes/{集数}/storyboard.md
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/parse-storyboard-kf.sh story/episodes/{集数}/storyboard.md
 ```
 
 输出每行 TSV `KF-id<TAB>position<TAB>shot_number`，position ∈ {首帧, 尾帧, 参考}。

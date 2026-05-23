@@ -13,9 +13,9 @@ model: opus
 - 其他上下文（用户原始故事材料、plot_option 等，按 mode 透传给下游 skill）
 
 ## 必读文件 (按 mode 加载，双重保护)
-- `skills/generate-episode-pipeline/new-series.md` (when mode='new-series')
-- `skills/generate-episode-pipeline/continue-series.md` (when mode='continue-series')
-- `skills/generate-episode-pipeline/short.md` (when mode='short')
+- `${CLAUDE_PLUGIN_ROOT}/skills/generate-episode-pipeline/new-series.md` (when mode='new-series')
+- `${CLAUDE_PLUGIN_ROOT}/skills/generate-episode-pipeline/continue-series.md` (when mode='continue-series')
+- `${CLAUDE_PLUGIN_ROOT}/skills/generate-episode-pipeline/short.md` (when mode='short')
 
 ## 工作流
 

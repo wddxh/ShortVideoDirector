@@ -90,7 +90,7 @@ model: opus
 若 tasks.json 中存在 status 为 `pending` 的记录 → 输出一行提示："检测到 {N} 个 shot 为 pending 状态（已登记未提交）。请运行 `/generate-video {集数}` 完成提交。本 skill 仅处理 submitted/done/failed。" → 继续处理其他状态的 shot。
 
 对每个 status 为 `submitted` 且 submit_id 非空的任务：
-1. 查询状态：`bash scripts/video-check-dreamina.sh "{submit_id}" "story/episodes/{集数}/videos/shot{NN}.mp4"`
+1. 查询状态：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-check-dreamina.sh "{submit_id}" "story/episodes/{集数}/videos/shot{NN}.mp4"`
 2. 根据输出更新 tasks.json 中该 shot 的记录（用 Read 读取最新内容，修改后用 Write 写回）：
    - `success` → 将 status 改为 `done`
    - `fail:{原因}` → 将 status 改为 `failed`，将 fail_reason 改为 `{原因}`
@@ -115,13 +115,13 @@ model: opus
 
 ### 阶段 5: 失败处理（仅当有 failed 任务时）
 
-对每个 status 为 `failed` 的任务，按 `skills/check-video/failure-classification.md` 中的规则分类为"可自动重试"或"需人工介入"。每次失败都重新分类（同一镜头多次失败原因可能不同）。
+对每个 status 为 `failed` 的任务，按 `${CLAUDE_PLUGIN_ROOT}/skills/check-video/failure-classification.md` 中的规则分类为"可自动重试"或"需人工介入"。每次失败都重新分类（同一镜头多次失败原因可能不同）。
 
 **a. 可自动重试的任务：**
 1. 告知用户该镜头因临时原因失败，正在自动重试
 2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
-3. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
-4. 重新提交：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
+3. 读取配置：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "即梦视频模型版本"` 和 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "视频比例"`
+4. 重新提交：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
 5. 根据提交结果，用 Read 读取 tasks.json 最新内容，修改该 shot 的记录后用 Write 写回：
    - 成功 → 更新 submit_id、status 改为 `submitted`、清空 fail_reason
    - 失败 → status 保持 `failed`、更新 fail_reason
@@ -140,11 +140,11 @@ model: opus
 2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
 3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
    - 涉及分镜/画面描述修改 → 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill（统一入口，根据 `story/episodes/{集数}/script.md`（短视频）或 `story/episodes/{集数}/novel.md`（系列视频）自动判断 mode）
-   - 涉及资产/图片修改 → 使用 Bash 调用 `bash scripts/read-config.sh "图像模型"` 获取图像模型值，使用 Skill tool 调用 `creator-fix-asset` skill + 使用 Skill tool 调用 `creator-image-{图像模型值}` skill
+   - 涉及资产/图片修改 → 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "图像模型"` 获取图像模型值，使用 Skill tool 调用 `creator-fix-asset` skill + 使用 Skill tool 调用 `creator-image-{图像模型值}` skill
 4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
-5. 重新生成 prompt：`bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`
-6. 读取配置：`bash scripts/read-config.sh "即梦视频模型版本"` 和 `bash scripts/read-config.sh "视频比例"`
-7. 重新提交：`bash scripts/video-gen-dreamina.sh "{新prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
+5. 重新生成 prompt：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`
+6. 读取配置：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "即梦视频模型版本"` 和 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "视频比例"`
+7. 重新提交：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamina.sh "{新prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
 8. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt），用 Write 写回
 9. 提示用户稍后再次使用 `/check-video {集数}` 查询
 

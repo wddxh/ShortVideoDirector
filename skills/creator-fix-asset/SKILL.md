@@ -14,9 +14,9 @@ model: sonnet
 - `$ARGUMENTS[0]` 指定的资产文件 — 必须读取（现有资产）
 - `config.md` — 必须读取
 - 同目录下其他资产文件 — 选择性读取（风格一致性参考）
-- `skills/creator-create-assets/rules.md` — 必须读取并严格遵循
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
+- `${CLAUDE_PLUGIN_ROOT}/skills/creator-create-assets/rules.md` — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 资产文件路径（如 `assets/characters/林北.md`）
@@ -48,7 +48,7 @@ model: sonnet
 
 ## 规则参考
 
-- `skills/creator-create-assets/rules.md` — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/creator-create-assets/rules.md` — 必须读取并严格遵循
 
 ## 输出
 

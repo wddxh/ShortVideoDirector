@@ -102,7 +102,7 @@ mode 专属字段（如集尾钩子、开场策略、arc 节点对应、结局�
 ### asset id 规则
 
 - **asset id = 资产名**，禁止英文化 / kebab-case 转写。
-- **asset id 语言** — 见 `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md`（规约所有产出文本含 asset id 的语言；同一 outline 内不混语言）
+- **asset id 语言** — 见 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md`（规约所有产出文本含 asset id 的语言；同一 outline 内不混语言）
 - 与 `creator-create-assets/rules.md:76` 文件名一致（资产名为「张三」→ 文件名 `张三.md` → asset id `张三`）。
 - **明确禁止 LLM 自发添加英文 prefix / 转写**：
   - ❌ `char-沈昭`、`loc-地下室`、`item-旧怀表`（前缀英文化）

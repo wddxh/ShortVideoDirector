@@ -3,7 +3,7 @@
 ## 集数解析
 
 1. 若 `$ARGUMENTS[0]` 非空 → 使用指定集数（统一转为 epXX 格式）
-2. 若 `$ARGUMENTS[0]` 为空 → 使用 Bash 调用 `bash scripts/latest-episode.sh` 找到最新集数
+2. 若 `$ARGUMENTS[0]` 为空 → 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/latest-episode.sh` 找到最新集数
 3. 若无任何集目录 → 提示用户先用 `/series-video` 开始新故事，结束
 
 ## Phase 4 专属规则

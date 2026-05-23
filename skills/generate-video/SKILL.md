@@ -43,7 +43,7 @@ model: opus
 
 ### 阶段 1: 配置检查
 
-1. 使用 Bash 调用 `bash scripts/read-config.sh "视频模型"` 获取视频模型值
+1. 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "视频模型"` 获取视频模型值
 2. 若视频模型为 `none` → 进入视频模型交互式配置流程：
    a. 询问视频模型：A) none B) dreamina
    b. 若选择 none → 提示"已取消"并结束
@@ -64,7 +64,7 @@ model: opus
 ### 阶段 3: 前置检查
 
 1. 从每个目标镜头的 `**引用资产：**` 行提取所有资产链接
-2. 使用 Bash 调用 `bash scripts/asset-to-image-path.sh "{资产路径}"` 转换为图片路径
+2. 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/asset-to-image-path.sh "{资产路径}"` 转换为图片路径
 3. 使用 Glob 检查每个图片是否存在
 4. 若有缺失 → 列出缺失清单，提示用户先生成图片（使用 `/edit-story 重新生成XXX的参考图片` 或确保图像模型已配置），结束
 5. 全部存在 → 继续
@@ -74,7 +74,7 @@ model: opus
 1. 使用 Bash 执行 `mkdir -p story/episodes/{集数}/videos`
 2. 使用 Read 读取 `story/episodes/{集数}/videos/tasks.json`（不存在视为空数组 `[]`）
 3. 对每个目标镜头：
-   a. 使用 Bash 调用 `bash scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取 prompt / images / duration
+   a. 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}` 获取 prompt / images / duration
    b. 查找 tasks.json 中是否存在该 shot 记录：
       - **不存在** → 添加 `{shot: N, submit_id: "", status: "pending", prompt, images, duration, fail_reason: ""}`
       - **status == pending** → 用新值刷新 prompt / images / duration（保持 status 为 pending）

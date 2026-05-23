@@ -25,7 +25,7 @@ model: sonnet
 
 ### 阶段 1: 准备
 
-1. 使用 Bash 调用 `bash scripts/read-config.sh "即梦模型版本"` 等获取配置值（即梦模型版本、图片比例、图片分辨率）
+1. 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "即梦模型版本"` 等获取配置值（即梦模型版本、图片比例、图片分辨率）
 2. 若模型版本非 `4.0`（即使用付费模型），计算预估积分消耗（资产数 × 3），提醒用户并等待确认
 3. 使用 Bash 执行 `dreamina user_credit`，检查返回是否成功
    - 失败 → 输出"即梦CLI未登录，请先执行 `dreamina login` 完成登录"并结束
@@ -52,8 +52,8 @@ model: sonnet
 
 对每个基础资产路径：
 1. 读取资产文件中 `## 图像生成提示` 部分的内容
-2. 根据资产路径推导输出图片路径（使用 Bash 调用 `bash scripts/asset-to-image-path.sh "{资产路径}"`）
-3. 使用 Bash 执行：`bash scripts/image-gen-dreamina.sh "{提示词}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" ""`（第 6 参数为空字符串 → text2image）
+2. 根据资产路径推导输出图片路径（使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/asset-to-image-path.sh "{资产路径}"`）
+3. 使用 Bash 执行：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/image-gen-dreamina.sh "{提示词}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" ""`（第 6 参数为空字符串 → text2image）
 4. 按三态处理结果
 
 #### 档 2：造型变体
@@ -63,19 +63,19 @@ model: sonnet
 2. 根据资产路径推导输出图片路径（同档 1）
 3. 从 `## 基本信息` 中的 `基础角色` 链接提取基础角色名，推导基础角色图片路径 `assets/images/characters/{基础角色名}.png`，确认该图片存在后作为参考图
 4. 若基础角色图片不存在 → 记录失败（"基础角色图片缺失，无法生成变装图"），跳过该资产
-5. 使用 Bash 执行：`bash scripts/image-gen-dreamina.sh "{提示词}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" "{基础角色图片路径}"`（第 6 参数为单个 png 路径）
+5. 使用 Bash 执行：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/image-gen-dreamina.sh "{提示词}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" "{基础角色图片路径}"`（第 6 参数为单个 png 路径）
 6. 按三态处理结果
 
 #### 档 3：关键帧
 
 对每个关键帧资产路径（路径形如 `assets/keyframes/{集数}/{KF-id}.md`）：
-1. 使用 Bash 调用 `bash scripts/keyframe-to-prompt.sh "{关键帧 .md 路径}"`
+1. 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/keyframe-to-prompt.sh "{关键帧 .md 路径}"`
    - 退出码非 0 → 记录失败（"keyframe-to-prompt 失败：{stdout 第 1 行}"），跳过该关键帧
    - 退出码 0 → 解析 stdout：第 1 行 `IMAGES:逗号分隔图片路径`、`---` 之后是最终 prompt（含头部 `**引用资产：**` 行 + 空行 + 正文）
 2. 依赖图存在性校验：用 Bash `test -f "{png}"` 逐张检查 `IMAGES:` 行里每个 .png 是否存在
    - 任一缺失 → 记录失败（"依赖资产图缺失：{第一个缺失的 png}"），跳过该关键帧（不阻塞其他关键帧）
-3. 推导输出路径：`bash scripts/asset-to-image-path.sh "{关键帧 .md 路径}"` → `assets/images/keyframes/{集数}/{KF-id}.png`
-4. 使用 Bash 执行：`bash scripts/image-gen-dreamina.sh "{prompt 文本}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" "{IMAGES 逗号分隔字符串}"`
+3. 推导输出路径：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/asset-to-image-path.sh "{关键帧 .md 路径}"` → `assets/images/keyframes/{集数}/{KF-id}.png`
+4. 使用 Bash 执行：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/image-gen-dreamina.sh "{prompt 文本}" "{输出路径}" "{比例}" "{分辨率}" "{模型版本}" "{IMAGES 逗号分隔字符串}"`
    - 第 1 参数 `{prompt 文本}` 是 step 1 中 `---` 之后的整段（从 `**引用资产：**` 行到末尾），原样传递，**不要剥离头部**——dreamina 需要看到 `[name:{图片N}]` 头部才能把名字对应到参考图槽位
 5. 按三态处理结果。**注意**：dreamina CLI 一次最多 10 张参考图，超出会 FAIL；本档不在脚本层兜底，超出由 dreamina 报错→记 FAIL→由 `creator-fix-asset-image` 阶段判断是 director 拆帧还是减资产
 

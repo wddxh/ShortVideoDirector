@@ -14,8 +14,8 @@ model: opus
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取
 - `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取
 - `assets/characters/*.md` — 若存在则读取（角色一致性审核）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）
@@ -83,7 +83,7 @@ config.md 中如存在 `每集小说字数` 字段，本 review 静默忽略（�
 
 ## 规则参考
 
-- `skills/writer-novel/rules.md` — 必须读取，按照其中的规则逐条审核
+- `${CLAUDE_PLUGIN_ROOT}/skills/writer-novel/rules.md` — 必须读取，按照其中的规则逐条审核
 
 ## 规则
 

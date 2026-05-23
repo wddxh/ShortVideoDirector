@@ -17,16 +17,16 @@ model: opus
 
 - `story/arc.md` — 必读 (现有 arc, 待修订源)
 - `$ARGUMENTS[0]` — 必读 (含多轮 review; 仅取最大轮号那段意见)
-- `skills/director-arc/rules.md` — 必读并严格遵循 (schema / 节点合规性 / 失败模式)
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-arc/rules.md` — 必读并严格遵循 (schema / 节点合规性 / 失败模式)
 - `config.md` — 必读 (取 总集数 字段)
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 
 ### Phase 1: 读现状
 
 1. Read `story/arc.md` 取现有阶段规划
-2. Read `config.md`, 用 `bash scripts/read-config.sh "总集数"` 取整数 N
+2. Read `config.md`, 用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"` 取整数 N
 3. Read `$ARGUMENTS[0]` 全文
 
 ### Phase 2: 取最新轮 review 意见
@@ -50,7 +50,7 @@ grep -nE '^## 第 [0-9]+ 轮' $ARGUMENTS[0]
 
 若现有 arc.md 节点 header 缺 `节点预算 ~Zs` 字段，或核心事件不是 bullet 列表带 `(~Ns, 必需|可选)` 标记，本 phase 主动升级到新 schema：
 
-1. 对每节点 `bash scripts/arc-budget.sh <节点集数>` 取预算秒，写入 header (epXX-YY, 节点预算 ~Zs)
+1. 对每节点 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-budget.sh <节点集数>` 取预算秒，写入 header (epXX-YY, 节点预算 ~Zs)
 2. 把核心事件 prose 段拆为 bullet 列表
 3. 为每 bullet 加 `(~Ns, 必需|可选)` 标记（LLM 重新决策估时与必需/可选分类）
 4. 校验 sum ≤ 预算; 若超, 按 director-arc/rules.md §3.5 创作引导取舍 (拆细 / 合并相似 / 删次要可选 / 重新拆分节点划分, 不改集数)
@@ -67,7 +67,7 @@ grep -nE '^## 第 [0-9]+ 轮' $ARGUMENTS[0]
 **必跑脚本兜底**:
 
 ```bash
-bash scripts/arc-event-sum.sh story/arc.md
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-event-sum.sh story/arc.md
 ```
 
 退出码非 0 → 回 Phase 3 / Phase 3.5 重做（schema 违规 / sum 超预算两类）。

@@ -29,7 +29,7 @@ argument-hint: "[故事材料|文件路径]"
 
 ## 阶段 3：总集数保底
 
-1. 用 `bash scripts/read-config.sh "总集数"` 读 config 总集数值
+1. 用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"` 读 config 总集数值
 2. 字段缺失 → 用 Edit 在 config.md 的「## 创作配置」段顶部追加 `- 总集数: 1`
 3. 字段已存在 → 不动 (尊重用户配置)
 

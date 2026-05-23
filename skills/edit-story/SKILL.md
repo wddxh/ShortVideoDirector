@@ -24,14 +24,14 @@ model: opus
 
 ## 必读文件 (按 mode 加载，双重保护)
 
-- `skills/edit-story/series.md` (when mode='series')
-- `skills/edit-story/short.md` (when mode='short')
+- `${CLAUDE_PLUGIN_ROOT}/skills/edit-story/series.md` (when mode='series')
+- `${CLAUDE_PLUGIN_ROOT}/skills/edit-story/short.md` (when mode='short')
 
 ## 工作流
 
 ### Phase 0: Mode 检测（必做，先于一切业务）
 
-1. 在仓库根目录执行 `bash scripts/detect-mode.sh`
+1. 在仓库根目录执行 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh`
 2. 捕获 stdout（'series' | 'short'），作为本次会话的 `mode`
 3. 若退出码非 0 或值非法 → 告知用户"mode 检测失败"并结束；不要猜测
 

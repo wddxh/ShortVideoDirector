@@ -88,7 +88,7 @@ prompt 文本中（由上游 storyboard-to-prompt.sh 派生），每个 keyframe
 
 ### 阶段 1: 准备
 
-1. 使用 Bash 调用 `bash scripts/read-config.sh "即梦视频模型版本"` 等获取配置值（即梦视频模型版本、视频比例、视频分辨率）
+1. 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "即梦视频模型版本"` 等获取配置值（即梦视频模型版本、视频比例、视频分辨率）
 2. 使用 Bash 执行 `dreamina user_credit` 检查登录状态并显示当前积分余额
    - 失败 → 输出"即梦CLI未登录，请先执行 `dreamina login` 完成登录"并结束
 3. 使用 Bash 确保输出目录存在：`mkdir -p story/episodes/{集数}/videos`
@@ -114,7 +114,7 @@ prompt 文本中（由上游 storyboard-to-prompt.sh 派生），每个 keyframe
    - 若该路径含 `assets/images/keyframes/` → keyframe 引用，必须有位置语义前缀（`画面首帧是` / `画面尾帧是` / `画面参考`）。检测方法：取 prompt 中该 token 起始位置往前 12 个字符的子串，搜索三个标记词之一
    - 找不到任一位置语义 → 输出"shot {N}: keyframe `{图片N}` ({路径}) 缺位置语义标记（旧格式）。请重跑 `/generate-video {集数} {N}` 重建 tasks.json。"，**跳过该 shot，pending 状态不动**，继续下一个 shot
 3. **重排 --image 顺序**：按位置语义把 keyframe 路径调整到首/中/尾，非 keyframe 路径放中间。构建新的逗号分隔字符串 `IMAGES_REORDERED`（仅用于本次提交参数，**不写回 tasks.json**）
-4. 提交视频生成：`bash scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{IMAGES_REORDERED}" "{duration}" "{比例}" "{模型版本}"`
+4. 提交视频生成：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{IMAGES_REORDERED}" "{duration}" "{比例}" "{模型版本}"`
 5. 根据退出码处理：
    - exit 0，stdout 以 `SUBMITTED` 开头 → 提取 `submit_id`，状态转移 pending → submitted
    - exit 1，stdout 以 `FAIL` 开头 → 提取失败原因，状态转移 pending → failed

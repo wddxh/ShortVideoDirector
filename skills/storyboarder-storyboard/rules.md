@@ -65,7 +65,7 @@ Storyboarder 是**翻译层**：把 Scriptwriter 剧本的场景/对白/节奏�
 
 ## 字段约束
 
-- **输出语言**：见 `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md`（规约所有产出文本含 prompt 字段的语言）。
+- **输出语言**：见 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md`（规约所有产出文本含 prompt 字段的语言）。
 - **镜头类型可选值**：特写、全景、中景、近景、远景、俯拍、仰拍
 - **镜头运动可选值**：推、拉、摇、移、固定、跟、升、降
 - **转场可选值**：切、淡入淡出、叠化、划像。仅描述当前镜头过渡效果类型，禁止引用其他镜头编号。
@@ -178,7 +178,7 @@ KF 不是每 shot 必须 —— shot 可以没有 KF 引用。**只有以下两�
 汇总所有 shot 所有对白的 `(起始秒-结束秒, 语速类型, 台词文本)` 三元组，**单引号**包裹每个参数，**一次性**调用：
 
 ```bash
-bash scripts/speech-rate.sh '0-3:normal:台词A' '3-7:slow:台词B' '7-12:fast:台词C' ...
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/speech-rate.sh '0-3:normal:台词A' '3-7:slow:台词B' '7-12:fast:台词C' ...
 ```
 
 **禁止**逐条或逐镜头分多次调用。脚本输出每条 OVER / OK 结论；OVER 的对白必须精简文字或拆分 shot。
@@ -200,7 +200,7 @@ bash scripts/speech-rate.sh '0-3:normal:台词A' '3-7:slow:台词B' '7-12:fast:�
 - 对白前必须有临场表演描述：`角色 (临场描述): "..."`
 - 音效融入 prose（如 "远处响起雷声"），无需 `[音效]` 标签
 - 视觉描述使用 AI 视频模型能理解的**具体、直白**语言，禁止文学比喻
-- 禁止画面文字 → 节制使用：画面文字（招牌/屏幕/信件/字幕等需 AI 渲染的文字）按 `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-video.md` 「画面文字模板」描述；优先用于关键信息（招牌点题、关键台词字幕），节制使用——文字过多会失控（错字/字形扭曲/串字）
+- 禁止画面文字 → 节制使用：画面文字（招牌/屏幕/信件/字幕等需 AI 渲染的文字）按 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-video.md` 「画面文字模板」描述；优先用于关键信息（招牌点题、关键台词字幕），节制使用——文字过多会失控（错字/字形扭曲/串字）
 - 禁止不可感知信息（气味/温度/触感/味道），必须通过角色台词表达
 
 ---

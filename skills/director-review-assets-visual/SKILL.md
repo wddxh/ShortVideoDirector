@@ -15,8 +15,8 @@ metadata:
 ### 文件读取
 - `story/config.md` — 必须读取（取 `视觉_review_并发数` 字段；缺省 5）
 - 按 `--type` 收集 asset .md 列表（Glob）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ### Skill 调用
 - `director-review-asset-visual-single` — 对每个 asset 调用一次
@@ -40,7 +40,7 @@ metadata:
    - `items`: Glob `assets/items/*.md`
    - `buildings`: Glob `assets/buildings/*.md`
    - `keyframes`: Glob `assets/keyframes/{ep}/*.md`（ep 必填）
-3. **计算 image path**：对每个 asset .md 调用 `bash scripts/asset-to-image-path.sh <asset.md列表>` 批量得到对应 .png 路径（每行一个）
+3. **计算 image path**：对每个 asset .md 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/asset-to-image-path.sh <asset.md列表>` 批量得到对应 .png 路径（每行一个）
 4. **读 config 取并发数**：`视觉_review_并发数`，缺省 5；上限 5（OC 单 message 并行限制）
 5. **分批 dispatch**：按 (asset_path, image_path) 对的全局顺序（type 顺序 → 同 type 内 Glob 顺序）切批，每批 ≤并发数
 6. **逐批执行**：

@@ -24,14 +24,14 @@ model: opus
 
 ## 必读文件（按 mode 加载，双重保护）
 
-- `skills/repair-story/series.md` (when mode='series')
-- `skills/repair-story/short.md` (when mode='short')
+- `${CLAUDE_PLUGIN_ROOT}/skills/repair-story/series.md` (when mode='series')
+- `${CLAUDE_PLUGIN_ROOT}/skills/repair-story/short.md` (when mode='short')
 
 ## 工作流
 
 ### Phase 0: Mode 检测（必做，先于一切业务）
 
-1. 在仓库根目录执行 `bash scripts/detect-mode.sh`
+1. 在仓库根目录执行 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh`
 2. 捕获 stdout（'series' | 'short'），作为本次会话的 `mode`
 3. 若退出码非 0 或值非法 → 告知用户"mode 检测失败"并结束；不要猜测
 
@@ -45,13 +45,13 @@ model: opus
 
 ### Phase 2: 确定目标集数 + 读取配置
 
-1. 按 mode 文件规则解析集数（series 从 $ARGUMENTS[0] 或 `bash scripts/latest-episode.sh`；short 硬编码 ep01）
+1. 按 mode 文件规则解析集数（series 从 $ARGUMENTS[0] 或 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/latest-episode.sh`；short 硬编码 ep01）
 2. 若集目录不存在 → 按 mode 文件指引提示用户先用对应入口 skill 创建，结束
-3. 使用 Bash 调用 `bash scripts/read-config.sh "每集分镜数"` 等获取所需配置值
+3. 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "每集分镜数"` 等获取所需配置值
 
 ### Phase 3: 逐项检测完整性
 
-使用 Bash 调用 `bash scripts/check-episode.sh {集数}` 一次性检查所有项目。
+使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-episode.sh {集数}` 一次性检查所有项目。
 
 脚本输出每行一项检查结果，格式为 `{检查项}:{状态}[:详情]`：
 - `outline:ok` / `outline:missing` / `outline:incomplete`

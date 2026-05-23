@@ -19,13 +19,13 @@ model: opus
 - `config.md` — 必须读取（每集时长 / 场景数量目标 / 世界观锚点）
 - `story/arc.md` — mode∈{new-series, continue-series} 必读（核对本集对应 arc 节点）
 - `assets/` 目录 — 必须扫描（核对 asset 引用是否 dangling）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ## 必读文件
 
-- `skills/director-review-outline/series.md` (when mode∈{new-series, continue-series}) — 必须读取并严格遵循
-- `skills/director-review-outline/short.md` (when mode=short) — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-review-outline/series.md` (when mode∈{new-series, continue-series}) — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-review-outline/short.md` (when mode=short) — 必须读取并严格遵循
 
 ## 工作流
 
@@ -47,13 +47,13 @@ model: opus
 ### Phase 2.5: scene-duration.sh 硬校验（必跑）
 
 ```bash
-DURATION=$(bash scripts/read-config.sh "每集时长目标")
+DURATION=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "每集时长目标")
 # 按 DURATION 字符串两种格式调用:
 # 范围 X-Y 分钟 → --target-min <X*60> --target-max <Y*60>
 # 单值 N 分钟 → --target <N*60>
 # 单值 Ns / N秒 → --target N
 
-bash scripts/scene-duration.sh story/episodes/{ep}/outline.md \
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/scene-duration.sh story/episodes/{ep}/outline.md \
   [--target-min M --target-max X] | [--target N]
 ```
 

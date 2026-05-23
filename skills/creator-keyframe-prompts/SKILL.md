@@ -15,9 +15,9 @@ model: sonnet
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（本集资产清单，验证「出场人物 / 引用资产」中的 asset）
 - `config.md` — 必须读取（语言、视频风格、目标图像模型）
 - `assets/**/*.md` — Glob 列出现有 asset 文件路径（用于解析 character / location / item asset 到 .md 路径）
-- `skills/creator-keyframe-prompts/rules.md` — 必须读取并严格遵循
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
+- `${CLAUDE_PLUGIN_ROOT}/skills/creator-keyframe-prompts/rules.md` — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 `ep01`）
@@ -34,7 +34,7 @@ storyboard.md 中每个 shot 的 prose 含 `画面首帧是 [KF-id]` / `画面�
 
 ### 工作思路（5 步）
 
-1. **读 storyboard.md**，使用 `bash scripts/parse-storyboard-kf.sh story/episodes/{集数}/storyboard.md` 抽取所有 `(KF-id, position, shot_number)` 三元组
+1. **读 storyboard.md**，使用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/parse-storyboard-kf.sh story/episodes/{集数}/storyboard.md` 抽取所有 `(KF-id, position, shot_number)` 三元组
    - 退出码 2 → 解析失败（KF 缺位置语义）：明确报错 + 列出 stderr，终止处理；不静默跳过
    - 退出码 0 但输出为空 → 本集无 KF 引用：输出"无需生成"并结束
 2. **读 config**，确定目标图像模型、视频风格、语言
@@ -62,7 +62,7 @@ storyboard.md 中每个 shot 的 prose 含 `画面首帧是 [KF-id]` / `画面�
 
 ## 规则参考
 
-- `skills/creator-keyframe-prompts/rules.md` — 必须读取并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/creator-keyframe-prompts/rules.md` — 必须读取并严格遵循
 
 ## 输出
 

@@ -1,6 +1,6 @@
 # director-arc 规则
 
-本文件由 `skills/director-arc/SKILL.md` 强制读取。规定 `story/arc.md` 的输出 schema、节点集数标注约定与常见误区。
+本文件由 `${CLAUDE_PLUGIN_ROOT}/skills/director-arc/SKILL.md` 强制读取。规定 `story/arc.md` 的输出 schema、节点集数标注约定与常见误区。
 
 ## 1. 输出 schema
 
@@ -78,7 +78,7 @@
 
 节点 header 必须含 `节点预算 ~Zs` 字段，Z = 节点集数 × 每集时长上限。
 
-`bash scripts/arc-budget.sh <ep_count>` 输出节点预算秒数。LLM 确定每个节点集数范围后, 必须立即调用一次 `bash scripts/arc-budget.sh <ep_count>` 取得该节点预算秒数, 再写入 header。
+`bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-budget.sh <ep_count>` 输出节点预算秒数。LLM 确定每个节点集数范围后, 必须立即调用一次 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-budget.sh <ep_count>` 取得该节点预算秒数, 再写入 header。
 
 config `每集时长目标` 两种写法均支持：
 - 范围 `3-5 分钟` / `60-120 秒` → 取上限

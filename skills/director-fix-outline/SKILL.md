@@ -20,10 +20,10 @@ model: sonnet
 - `story/episodes/{ep}/outline.md` — 必读 (现有大纲)
 - `$ARGUMENTS[0]` — 必读 (含多轮 review; 仅取最大轮号那段意见)
 - `config.md` — 必读
-- `skills/director-outline/rules.md` — 必读并严格遵循 (公共规则)
-- `skills/director-fix-outline/series.md` (when mode=series) — 必读
-- `skills/director-fix-outline/short.md` (when mode=short) — 必读
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-outline/rules.md` — 必读并严格遵循 (公共规则)
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-fix-outline/series.md` (when mode=series) — 必读
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-fix-outline/short.md` (when mode=short) — 必读
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
 
@@ -53,7 +53,7 @@ model: sonnet
 若现有 outline.md 场景缺 `- **目标时长:** Ns` 字段，本 phase 主动升级：
 
 1. 对每场景估时（按 rules.md `## 时长规划原则` 7 条 + 节奏角色 + 剧情密度自决），加 `- **目标时长:** Ns` 字段，紧贴 `### 场景 N: <标题>` 之下
-2. 跑 `bash scripts/scene-duration.sh story/episodes/{ep}/outline.md [--target-min M --target-max X] | [--target N]` (DURATION 字符串解析见 director-outline/SKILL.md Phase 4.5)
+2. 跑 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/scene-duration.sh story/episodes/{ep}/outline.md [--target-min M --target-max X] | [--target N]` (DURATION 字符串解析见 director-outline/SKILL.md Phase 4.5)
 3. FAIL 按 rules.md `## 时长规划原则` 7 条优先级取舍调整 (分散吸收 > 砍场景数 > 压缩时长), 再次校验直到 PASS
 
 **不做"宽容补字段"** — 即使本轮 review 意见没明说 schema 升级也要主动做, 否则下游 director-review-outline Phase 2.5 立即 FAIL (scene-duration.sh 不通过)。
@@ -67,7 +67,7 @@ model: sonnet
 **必跑脚本兜底**:
 
 ```bash
-bash scripts/scene-duration.sh story/episodes/{ep}/outline.md \
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/scene-duration.sh story/episodes/{ep}/outline.md \
   [--target-min M --target-max X] | [--target N]
 ```
 

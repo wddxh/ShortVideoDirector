@@ -15,11 +15,11 @@ model: opus
 - `story/episodes/$ARGUMENTS[0]/storyboard.md` — 必须读取
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（含本集资产清单）
 - 从 outline.md 的「本集资产清单」中提取本集引用的资产名称，使用 Glob 获取 `assets/**/*.md` 全部文件路径列表，仅读取文件名与清单匹配的文件
-- `skills/storyboarder-storyboard/rules.md` — 必须读取（输出 schema、字段顺序、字段约束）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 通用原则，用于 phase 12 video prompt 表达审核）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则，用于 phase 12 video prompt 表达审核）
+- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md` — 必须读取（输出 schema、字段顺序、字段约束）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 通用原则，用于 phase 12 video prompt 表达审核）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则，用于 phase 12 video prompt 表达审核）
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 当前集数（如 ep01）
@@ -59,7 +59,7 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 - **切片合理性**：每场景 sum(shot 时长) 落在剧本目标 ±10% 容差内；场景头部「切片 sum Ys ✓」标注与实际计算一致
 - **单 shot ≤15s**：硬约束，超时即拦
 - **镜头多样性**：避免连续 5 个"中景固定"等同质堆叠
-- **speech-rate.sh 通过**：每 shot 对白调 `bash scripts/speech-rate.sh "start-end:speed:text" ...` 批量验证，OVER 即拦
+- **speech-rate.sh 通过**：每 shot 对白调 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/speech-rate.sh "start-end:speed:text" ...` 批量验证，OVER 即拦
 - **引用 asset 完整性**：storyboard 只引用剧本已声明的 asset；不引入剧本未覆盖的 character / location / item
 - **内联 KF 与「引用资产」一致**：prose 内联的 [KF-id] 集合 == 头部「引用资产」KF 列表
 - **出场人物字段正确性**：character 在「出场人物」字段（不在「引用资产」），每条目附完整声音特征 verbatim copy 自 character 卡 `## 声音特征` section（含 音色/语速/语调 三项）

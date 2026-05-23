@@ -14,15 +14,15 @@ model: sonnet
 - `config.md` — 必须读取
 - `story/outline.md` — 若存在则读取（continue-series 时参考）
 - 最近 M 集 novel.md — 若 `story/outline.md` 存在，按 config.md 中 `上下文集数` M，用 Glob 匹配 `story/episodes/ep*/novel.md` 取最近 M 集读取
-- `skills/director-arc/rules.md` — 必须读取并严格遵循（输出 schema、节点集数标注约定、常见误区）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-arc/rules.md` — 必须读取并严格遵循（输出 schema、节点集数标注约定、常见误区）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ### 通过 prompt 接收
 - mode: 'new-series' | 'continue-series'
 - 选定的剧情方向（引号包裹的完整文本，必填）
 
 ### 总集数
-总集数从 `config.md` 的 `总集数` 字段读取（用 `bash scripts/read-config.sh "总集数"` 获取整数 N）：
+总集数从 `config.md` 的 `总集数` 字段读取（用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"` 获取整数 N）：
 - 若 N == 1 → 报错退出："series 必须 >1, 请先跑 series-video 入口设定总集数"
 - 若 N > 1 → 作为节点分布的总集数
 
@@ -50,9 +50,9 @@ series 模式下**必生成** `story/arc.md`，作为后续 director-outline / s
 ## 工作流
 
 ### Phase 1: 读 config + 算预算
-1. `bash scripts/read-config.sh "总集数"` 取 N
+1. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"` 取 N
 2. 规划主线节点的集数分布（节点数 + 每节点集数）
-3. 对**每个**主线 / 副线节点，`bash scripts/arc-budget.sh <节点集数>` 取预算秒
+3. 对**每个**主线 / 副线节点，`bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-budget.sh <节点集数>` 取预算秒
 4. 在节点 header 写入 `(epXX-YY, 节点预算 ~Zs)`
 
 ### Phase 2: 列核心事件 bullet

@@ -13,10 +13,10 @@ model: opus
 ### 文件读取
 - `story/arc.md` — 必须读取（review 目标）
 - `config.md` — 必须读取（总集数 N、世界观锚点等核对依据）
-- `skills/director-arc/rules.md` — 必须读取（schema / 节点集数标注约定 / 5 类失败模式定义在此）
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-arc/rules.md` — 必须读取（schema / 节点集数标注约定 / 5 类失败模式定义在此）
 - `story/outline.md` — 若存在（continue-series）则读取，核对 arc 与已播出内容一致
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `$SVD_PLUGIN_DIR/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
 ### 动态参数（$ARGUMENTS）
 - 无。arc 是 series 级文件，无集数参数
@@ -30,7 +30,7 @@ model: opus
 ### Phase 0: 脚本硬校验（必跑）
 
 ```bash
-bash scripts/arc-event-sum.sh story/arc.md
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-event-sum.sh story/arc.md
 ```
 
 任何 FAIL → review 直接 fail，意见列表第一条引用脚本输出。退出码 0 + WARN（可选 sum > 40%）算 PASS，但意见列表追加该 WARN 说明。
