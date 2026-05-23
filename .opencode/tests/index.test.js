@@ -18,14 +18,6 @@ describe('ShortVideoDirectorPlugin', () => {
     assert.ok(Object.keys(config.agent).includes('director'));
   });
 
-  test('shell.env hook sets SVD_PLUGIN_DIR', async () => {
-    const plugin = await ShortVideoDirectorPlugin({ client: null, directory: '/tmp' });
-    const output = { env: {} };
-    await plugin['shell.env']({}, output);
-    assert.ok(output.env.SVD_PLUGIN_DIR);
-    assert.ok(output.env.SVD_PLUGIN_DIR.includes('ShortVideoDirector'));
-  });
-
   test('shell.env hook sets CLAUDE_PLUGIN_ROOT', async () => {
     const plugin = await ShortVideoDirectorPlugin({ client: null, directory: '/tmp' });
     const output = { env: {} };

@@ -35,7 +35,6 @@ export const ShortVideoDirectorPlugin = async ({ client, directory }) => {
     },
 
     'shell.env': async (input, output) => {
-      output.env.SVD_PLUGIN_DIR = PLUGIN_ROOT;
       output.env.CLAUDE_PLUGIN_ROOT = PLUGIN_ROOT;
     },
 
