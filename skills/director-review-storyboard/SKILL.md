@@ -15,7 +15,7 @@ model: opus
 - `story/episodes/$ARGUMENTS[0]/storyboard.md` — 必须读取
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（含本集资产清单）
 - 从 outline.md 的「本集资产清单」中提取本集引用的资产名称，使用 Glob 获取 `assets/**/*.md` 全部文件路径列表，仅读取文件名与清单匹配的文件
-- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md` — 必须读取（分镜创作硬约束全集——schema / 字段 / 失败模式 / 写作要求 等；与下文「分镜技术审核清单」13 项并列查验）
+- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md` — 必须读取（分镜创作硬约束全集——schema / 字段 / 失败模式 / 写作要求 等；与下文「分镜技术审核清单」14 项并列查验）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 通用原则，用于 phase 12 video prompt 表达审核）
@@ -35,7 +35,7 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 
 1. 先做观众视角终极判断（凌驾于其他规则）：从普通观众视角整体审视，剧情精彩吗？流畅吗？吸引人继续看吗？若整体平淡或突兀——即使 rules 全过仍要打回
 2. 对照 outline 和 script：叙事完整吗？剧本场景全部覆盖？关键铺垫都到位吗？人物言行符合性格吗？
-3. 过 storyboarder-storyboard/rules.md 逐条审核 + 过下文「分镜技术审核清单」13 项（两套均为硬约束，独立查验，互不替代）
+3. 过 storyboarder-storyboard/rules.md 逐条审核 + 过下文「分镜技术审核清单」14 项（两套均为硬约束，独立查验，互不替代）
 4. 决定值得拦截的问题——所有进入意见列表的项都会被 fix skill 执行；只拦"会让视频生成失败"或"会让剧情断裂"或"会让下游 keyframe / TTS 出错"的问题
 5. 第二轮 review（fix 修过一次后）：聚焦仍影响视频生成或剧情连贯的关键问题
 
@@ -50,8 +50,9 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 - **越权改剧本** — 发现剧本对白超时本能想"让 storyboard 缩台词"，但对白权威在剧本 — 报回 director-review-script，不写入 storyboard review
 - **逐字改写式意见** — fix skill 会照搬作为镜头描述，剥夺 Storyboarder 设计空间 — 说清问题方向，不替 Storyboarder 写最终描述
 - **prose 资产引用只查超引不查漏引** — 第 7 项管"prose 引用了剧本未声明的资产"，但 prose 实际指代了某已注册资产却忘写进字段的情况由第 8 项专管 — 两个方向独立检查
+- **漏引检查只查本 shot 不溯前 shot** — 第 8 项漏引检查的指代锚点候选包含**前镜出场实体**（视觉前置场景），单看本 shot prose 可能误判"没指代任何注册资产"，必须回溯前 shot 出场列表作为代称锚点候选
 
-## 分镜技术审核清单（13 项，rules.md 之外的硬约束）
+## 分镜技术审核清单（14 项，rules.md 之外的硬约束）
 
 逐条核查，问题进入意见列表：
 
@@ -62,7 +63,11 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 - **镜头多样性**：避免连续 5 个"中景固定"等同质堆叠
 - **speech-rate.sh 通过**：每 shot 对白调 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/speech-rate.sh "start-end:speed:text" ...` 批量验证，OVER 即拦
 - **引用 asset 完整性**：storyboard 只引用剧本已声明的 asset；不引入剧本未覆盖的 character / location / item
-- **画面描述资产引用完整性（漏引检查）**：shot 的「画面与声音描述」中**指代**已注册资产（character / location / item / building）的，必须在该 shot 的「出场人物」（character）或「引用资产」（其他三类）字段中对应引用。指代用 LLM 语义判断（含裸名、代称如"那把短剑"、关系称谓如"少年"指张三等）。漏引以 shot 为单位打回。注：KF 标记的对应一致性由清单第 9 项「内联 KF 与「引用资产」一致」（原第 8 项）覆盖，本项只管非 KF 的四类资产。
+- **画面描述资产引用完整性（漏引检查）**：shot 的「画面与声音描述」中**指代**已注册资产（character / location / item / building）的，必须在该 shot 的「出场人物」（character）或「引用资产」（其他三类）字段中对应引用。指代用 LLM 语义判断（含裸名、代称如"那把短剑"、关系称谓如"少年"指张三等）。漏引以 shot 为单位打回。注：KF 标记的对应一致性由清单第 9 项「内联 KF 与「引用资产」一致」（原第 8 项）覆盖，本项只管非 KF 的四类资产。**含跨镜延续场景**：前镜出场的实体（character / item / location / KF）若本镜画面仍可见，本镜 prose 中的回指代称（"她 / 那位 / 死者 / 这位姐姐 / 尸体"等）必须能被语义关联到前镜资产，且本镜字段必须重列该资产——单看本 shot 字段就应自包含。本项触发不局限于本 shot prose 内部，须回溯前 shot 实体作为指代锚点候选。
+- **shot 前向 + 后向自洽审核**（与 rules.md「镜头自洽」段对应）：逐 shot 独立模拟视频模型消费——
+  - **后向自洽**：本 shot prose 中所有视觉元素（人 / 物 / 场景）是否在本 shot 内点名具体形态，无"两件物品 / 一个身影 / 某道具"模糊指代依赖后续 shot 揭晓
+  - **前向自洽**：本 shot 画面延续的前镜实体（含已死亡角色 / 静置物品 / 同一场景），本 shot prose 是否明示资产名或回指代称是否可关联到前镜资产，且本 shot「出场人物 / 引用资产」字段是否已重列
+  - 判定方法：把本 shot prose + 字段**独立**抽出（屏蔽前后 shot），问"视频模型仅凭这些能否渲染出与导演意图一致的画面"——若出现"姐姐是谁 / 道具长什么样 / 尸体在哪"等歧义，即违反
 - **内联 KF 与「引用资产」一致**：prose 内联的 [KF-id] 集合 == 头部「引用资产」KF 列表
 - **出场人物字段正确性**：character 在「出场人物」字段（不在「引用资产」），每条目附完整声音特征 verbatim copy 自 character 卡 `## 声音特征` section（含 音色/语速/语调 三项）
 - **临场表演正确分层**：基线属性（音色/语速/语调）在出场人物字段，临场偏离（颤抖/急促/沙哑加剧等）在 prose `角色 (临场描述): "..."`
@@ -78,7 +83,7 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
   - 音视频事件是否显式指定（音效触发时间 + 音色 / 对白 / BGM）
   - 事件密度是否匹配 shot 时长（1-15s 单 shot，事件量随时长线性）
 
-## 导演专属审核重点（rules.md 与上述 13 项之外）
+## 导演专属审核重点（rules.md 与上述 14 项之外）
 
 - **叙事完整性** — 分镜完整覆盖剧本场景，无遗漏关键画面节点
 - **剧情节奏** — 切片未让某场景过碎裂或过聚合，破坏剧本节奏意图
