@@ -34,11 +34,11 @@ if [ ! -f "$STORYBOARD" ]; then
   exit 1
 fi
 
-# Extract shot block: from "### 镜头 N" to next "### 镜头" or end of file
+# Extract shot block: from "### shot N" to next "### shot" or end of file
 SHOT_BLOCK=$(awk -v n="$SHOT_NUM" '
-  /^### 镜头 / {
+  /^### shot / {
     if (found) exit
-    match($0, /镜头 ([0-9]+)/, arr)
+    match($0, /shot ([0-9]+)/, arr)
     if (arr[1] == n) found=1
   }
   found { print }

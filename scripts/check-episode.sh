@@ -205,7 +205,7 @@ if [ ! -f "$STORYBOARD" ]; then
   echo "storyboard:missing"
   HAS_ISSUE=1
 else
-  ACTUAL_SHOTS=$(grep -c '### 镜头' "$STORYBOARD")
+  ACTUAL_SHOTS=$(grep -c '### shot' "$STORYBOARD")
   if [ -n "$TARGET_SHOTS" ]; then
     THRESHOLD=$((TARGET_SHOTS / 2))
     if [ "$ACTUAL_SHOTS" -lt "$THRESHOLD" ]; then
