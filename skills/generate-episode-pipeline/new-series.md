@@ -106,12 +106,13 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 20. **director-review-assets-visual** — `--type=keyframes ep01`（review 文件 = `story/episodes/ep01/.review-keyframes-visual.md`）
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
 
-### Phase E: 视频生成
-21. **creator-video-dreamina** — 派发本集所有镜头到即梦 multimodal2video，pending → submitted/failed 状态转移
-
 ## 完成
-所有步骤通过后，向用户报告：
+
+向用户报告：
 - 集号 ep01
 - 各阶段产物路径 (outline / novel / script / storyboard / 资产清单)
-- video tasks.json 路径
-- 提示用户后续用 `/check-video ep01` 或 `/auto-video ep01` 跟踪视频任务
+
+视频生成不由 pipeline 自动派发，请用户手动启动：
+1. **检查本集产物质量**：通读 outline / novel / script / storyboard / 资产图片（character / location / item / building / keyframe），确认无明显错漏
+2. **如发现问题**：用 `/edit-story` 提出修改意见，pipeline 会按 DAG 级联修复相关产物（含资产图重生）
+3. **质量确认后**：用 `/generate-video ep01` 启动视频生成；启动后用 `/check-video ep01` 或 `/auto-video ep01` 跟踪任务状态
