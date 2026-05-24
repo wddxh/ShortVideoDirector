@@ -15,7 +15,7 @@ model: opus
 - `story/episodes/$ARGUMENTS[0]/storyboard.md` — 必须读取
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（含本集资产清单）
 - 从 outline.md 的「本集资产清单」中提取本集引用的资产名称，使用 Glob 获取 `assets/**/*.md` 全部文件路径列表，仅读取文件名与清单匹配的文件
-- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md` — 必须读取（输出 schema、字段顺序、字段约束）
+- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md` — 必须读取（分镜创作硬约束全集——schema / 字段 / 失败模式 / 写作要求 等；与下文「分镜技术审核清单」13 项并列查验）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 通用原则，用于 phase 12 video prompt 表达审核）
@@ -35,7 +35,7 @@ Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长
 
 1. 先做观众视角终极判断（凌驾于其他规则）：从普通观众视角整体审视，剧情精彩吗？流畅吗？吸引人继续看吗？若整体平淡或突兀——即使 rules 全过仍要打回
 2. 对照 outline 和 script：叙事完整吗？剧本场景全部覆盖？关键铺垫都到位吗？人物言行符合性格吗？
-3. 过 storyboarder-storyboard/rules.md 逐条审核（见下文「分镜技术审核清单」13 项）
+3. 过 storyboarder-storyboard/rules.md 逐条审核 + 过下文「分镜技术审核清单」13 项（两套均为硬约束，独立查验，互不替代）
 4. 决定值得拦截的问题——所有进入意见列表的项都会被 fix skill 执行；只拦"会让视频生成失败"或"会让剧情断裂"或"会让下游 keyframe / TTS 出错"的问题
 5. 第二轮 review（fix 修过一次后）：聚焦仍影响视频生成或剧情连贯的关键问题
 
