@@ -41,6 +41,11 @@ model: opus
 - **挑刺到不可能通过** — 每段都能想出"更优写法"，所有列入意见的项都会被 fix skill 执行；2 轮 fix 上限内反复挑刺 → fix skill 在打补丁之间反复重写，质量反而可能下降 — 仅列愿意为之耗一轮 fix 的问题；审美瑕疵忍下
 - **跳过 outline 对照** — 模型容易先按"小说审美"评价，忘了对照 outline 检查"本集要做的事都做了吗" — 每条意见前自问"这是 outline 偏离还是审美偏好"
 - **逐句改写式意见** — 写"这句话可以改成..."，fix skill 会照搬作为最终文字，反而剥夺 Writer 的创作空间，且上下文衔接和情绪连续性会出问题 — 意见说清问题方向（"这段画面感稀薄需要补具体动作"），不替 Writer 写最终文字
+- **全集字数密度校验**：调 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/novel-budget.sh {ep}`（输出含 actual / expected_lower / expected_upper / status / duration_sum）：
+  - status=ok（±30% 内）→ 通过
+  - status=warn（30-40% 越界）→ 列入意见但 director 综合判（结合场景内容质量决定是否打回）
+  - status=fail（>±40% 越界）→ 必打回，意见描述 actual vs expected_lower-expected_upper 差距 + 建议 writer 增/删的场景方向
+- **场景级密度质性核查**：通读 novel，对照 outline 每场景 `目标时长`，质性判每场景内容厚度是否匹配（无脚本兜底，依赖 director 阅读判断）。识别信号：短场景塞大段独白 / 长场景仅一句对白带过
 
 ## 三维质性校验（必跑）
 
@@ -52,7 +57,7 @@ model: opus
 | (b) 因果链 | 顺序读 novel, 标记每场景"因"和"果", 前场果在后场因中被引用 |
 | (c) 过渡自然 | 场景切换处是否有过渡句 / 时空转场描述 / 视角切换提示 |
 
-config.md 中如存在 `每集小说字数` 字段，本 review 静默忽略（不再用作硬阈值）。
+config.md 中 `每集小说字数` 字段已废弃（本 review 不读取；字数预算改由 outline 场景 `目标时长` 推导，见上「全集字数密度校验」/「场景级密度质性核查」）。
 
 ## 输出格式
 

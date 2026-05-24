@@ -31,23 +31,17 @@ else
   HAS_ISSUE=1
 fi
 
-# 2. Check novel
+# 2. Check novel (uses novel-budget.sh derived from outline 目标时长, not config field)
 NOVEL="$EP_DIR/novel.md"
 SCRIPT_FILE="$EP_DIR/script.md"
-WORD_RANGE=$(read_config "每集小说字数")
 
 if [ -f "$NOVEL" ]; then
-  if [ -n "$WORD_RANGE" ]; then
-    # Extract lower bound: "4000-5000" -> 4000, single number -> 80% of it
-    LOWER=$(echo "$WORD_RANGE" | grep -oE '^[0-9]+')
-    if echo "$WORD_RANGE" | grep -q '-'; then
-      LOWER=$(echo "$WORD_RANGE" | sed 's/-.*//')
-    else
-      LOWER=$((LOWER * 80 / 100))
-    fi
+  BUDGET=$(bash scripts/novel-budget.sh "$EP" "$CONFIG" 2>/dev/null)
+  ACTUAL=$(echo "$BUDGET" | grep '^actual:' | cut -d: -f2)
+  LOWER=$(echo "$BUDGET" | grep '^expected_lower:' | cut -d: -f2)
+  if [ -n "$ACTUAL" ] && [ -n "$LOWER" ]; then
     THRESHOLD=$((LOWER / 2))
-    ACTUAL=$(bash scripts/word-count.sh "$NOVEL" 2>/dev/null)
-    if [ -n "$ACTUAL" ] && [ "$ACTUAL" -lt "$THRESHOLD" ]; then
+    if [ "$ACTUAL" -lt "$THRESHOLD" ]; then
       echo "novel:incomplete:${ACTUAL}/${LOWER}"
       HAS_ISSUE=1
     else
