@@ -65,6 +65,12 @@ model: opus
 
 5. **mode 专属 review 项**: 见 series.md / short.md
 
+6. **场景级字数密度校验**
+   - 调 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/script-budget.sh {ep}`，解析每场景 status：
+   - `summary.status=ok` → 通过本项
+   - `summary.status=fail` → 把每个 fail 场景列入意见，说明 actual vs expected_lower-expected_upper 差距与方向（偏低/偏高）+ 建议 scriptwriter 增/删的内容方向
+   - 任何场景 `status=missing:duration` → 列入意见说明缺字段
+
 **不审核** assets 卡描述一致性 (由 creator-create-assets 模板保证, spec §10 Q10 决策)。
 
 ### Phase 4: 决策与输出

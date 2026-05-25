@@ -53,6 +53,30 @@
    - 通过条件: 场景"目标时长"字段累加 sum ∈ target × [0.9, 1.1] 或落在 [target_min, target_max] 范围
    - 退出码 0=PASS, 1=FAIL；FAIL 必须调整场景时长重写并再次校验直到通过
 
+## 场景级内容密度预算
+
+每场景写完后按目标时长算字数预算。
+
+**密度档位：6-10 字 / 秒**（中位 8；含视觉摘要 + prose 场景内容 + 对白 + 内心独白；不计 markdown 章节标题等结构字符）
+
+| 场景目标时长 | 字数预算（中位 8 字/秒，单边 0~+30%） |
+|---|---|
+| ≤10s | 80-104 字 |
+| 10-25s | 80-260 字 |
+| 25-60s | 200-624 字 |
+| >60s | 按 8 字/秒线性，单边 0~+30% |
+
+**单边 0~+30% 容差**：
+- 不允许下浮（actual < duration × 8 即 fail，必补）—— 写不足导致 storyboarder 无内容拆切片
+- 允许上浮 0~+30%（actual ≤ duration × 10.4 即 ok）—— 适度厚度给 storyboarder 留删减空间
+- 超 +30%（actual > duration × 10.4）即 fail，必删 —— 远超内容会让 storyboarder 砍剧情或加 shot 数
+
+**自检方法**：写完每场景后心算字数 (`< duration × 8` 必补；`> duration × 10.4` 必删)。
+
+**全集兜底**：下游 director-review-script Phase 3 调 `scripts/script-budget.sh` 算每场景字数 vs 预算；任一场景 fail → 整集打回。
+
+**与「节奏 → 时长映射」+ scene-duration.sh 关系**：节奏映射 + scene-duration.sh 校验**时长**分配；本段校验**字数**密度。两者独立硬约束，必须同时通过。
+
 ## Asset 复用与新增
 
 - **优先复用**：在写剧本前必须扫描 `assets/{characters,locations,items,buildings}/` 目录，剧本中引用的角色/地点/物品/建筑若已存在，直接复用既有 asset 路径，**不重复创建**。

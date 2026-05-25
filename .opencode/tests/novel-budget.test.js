@@ -89,3 +89,27 @@ test('status=missing:duration 当 outline 无目标时长字段', () => {
     assert.match(r.stdout, /^status:missing:duration$/m);
   } finally { rmSync(dir, { recursive: true }); }
 });
+
+test('status=ok with no-bold outline format (- 目标时长: 45s)', () => {
+  const outline = `## 场景 1\n- 目标时长: 45s\n## 场景 2\n- 目标时长: 40s\n`;
+  const novel = '中'.repeat(800);
+  const dir = setupEp(outline, novel);
+  try {
+    const r = run(dir, 'ep01');
+    const out = parse(r.stdout);
+    assert.equal(out.status, 'ok');
+    assert.equal(out.duration_sum, '85');
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('status=ok with 全角 colon + 秒 unit', () => {
+  const outline = `## 场景 1\n- **目标时长**：45 秒\n## 场景 2\n- **目标时长**：40 秒\n`;
+  const novel = '中'.repeat(800);
+  const dir = setupEp(outline, novel);
+  try {
+    const r = run(dir, 'ep01');
+    const out = parse(r.stdout);
+    assert.equal(out.status, 'ok');
+    assert.equal(out.duration_sum, '85');
+  } finally { rmSync(dir, { recursive: true }); }
+});

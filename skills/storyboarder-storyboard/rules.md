@@ -148,6 +148,17 @@ KF 不是每 shot 必须 —— shot 可以没有 KF 引用。**只有以下两�
 
 ---
 
+## shot 编号约定
+
+shot 编号必须**全集顺序递增**，**禁止场景内重启**。
+
+- ✅ 正确：场景 1 含 shot 1 / shot 2 / shot 3；场景 2 接 shot 4 / shot 5；场景 3 接 shot 6
+- ❌ 错误：场景 1 含 shot 1 / shot 2；场景 2 又从 shot 1 / shot 2 开始
+
+**原因**：下游 `scripts/storyboard-to-prompt.sh shot_number` 按 `### shot N` heading 抓第一匹配——场景内重启编号会让"shot 1"在多场景重复出现，脚本拿不到正确 shot 块，视频生成全部脏。
+
+**与 KF 编号风格一致**：KF id 是全集顺序（KF-01 / KF-02 / ...），shot 编号同采用全集顺序最直观。
+
 ## 切片规则（场景内的 shot 拆分）
 
 剧本（script.md）每个场景有目标时长。storyboarder 在场景内做切片，约束如下：
@@ -255,3 +266,4 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/speech-rate.sh '0-3:normal:台词A' '3-7:slow
 12. **字段顺序错乱**：不按约定顺序（镜头类型 / 运动 / 风格 / 时长 / 出场人物 / 引用资产 / 转场）
 13. **prose 视觉信息后置**：本 shot prose 用"两件物品 / 一个身影 / 某道具"等模糊指代，依赖后续 shot 才揭晓具体形态——视频模型独立消费本 shot 必然渲染失败，详见「镜头自洽」段
 14. **prose 视觉信息前置**：本 shot 画面延续前镜出场的实体（character / item / location / KF），但本 shot prose 仅用回指代称（"她 / 那位 / 死者"）且本 shot「出场人物 / 引用资产」字段未重列——视频模型逐 shot 独立消费无跨镜记忆，渲染必然缺人或臆造形态。与第 13 条「视觉信息后置」对称，详见「镜头自洽」段
+15. **shot 编号场景内重启**：场景 2 / 3 / N 又从 `### shot 1` 开始，导致下游 `storyboard-to-prompt.sh` 抓 shot 1 时永远拿到场景 1 的 shot 1，视频生成全部脏。详见「shot 编号约定」段

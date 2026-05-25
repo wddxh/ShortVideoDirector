@@ -46,6 +46,7 @@ ls -1 assets/{characters,locations,items,buildings}/*.md 2>/dev/null
 - 按场景级 schema 展开 (详见 rules.md §3.4)
 - 自由分配场景时长 (节奏角色为软引导，剧本以可拍摄性为最高目标，不硬 mapping)
 - 写入 `story/episodes/{ep}/script.md`
+- **字数密度自检**：写完每场景按 rules.md「场景级内容密度预算」段心算字数（场景目标时长 × 8 = 下限；× 10.4 = 上限）；偏低必补，偏高 +30% 内可接受，超 +30% 必删
 
 ### Phase 5: 写「本集资产清单」superset 到 outline (含 detect-then-write)
 

@@ -26,9 +26,9 @@ if [ ! -f "$NOVEL" ]; then
   exit 0
 fi
 
-# Sum 目标时长 from outline (pattern: "- **目标时长:** Ns" or "- **目标时长：** Ns")
-DURATION_SUM=$(grep -oE '\*\*目标时长[:：]\*\*[[:space:]]*[0-9]+s' "$OUTLINE" \
-  | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+# Tolerant pattern: optional bold ** ** around 目标时长 (colon may be inside or outside bold) / colon (全角 or 半角) / s or 秒 unit
+DURATION_SUM=$(grep -oE '(\*\*)?目标时长[:：]?(\*\*)?[[:space:]]*[:：]?[[:space:]]*[0-9]+[[:space:]]*(s|秒)' "$OUTLINE" \
+  | grep -oE '[0-9]+[[:space:]]*(s|秒)' | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
 
 if [ -z "$DURATION_SUM" ] || [ "$DURATION_SUM" -eq 0 ]; then
   echo "status:missing:duration"
