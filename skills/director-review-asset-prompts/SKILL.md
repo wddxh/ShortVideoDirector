@@ -34,7 +34,7 @@ model: opus
 1. **收集 asset 列表**（按 $ARGUMENTS[1] scope 过滤）：
    - $ARGUMENTS[0] = epXX:
      - scope = "" / 缺省 → 同时收 basic + keyframes（向后兼容）
-     - scope = "basic" → 仅 Glob `story/episodes/{ep}/outline.md` 提取「本集资产清单」，对清单中每个资产名 Glob `assets/**/{name}.md` 得 asset_path；**跳过** `assets/keyframes/{ep}/*.md`
+     - scope = "basic" → 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/parse-new-assets.sh story/episodes/{ep}/outline.md` 得 asset_path 列表（仅本集**新增**资产，跳过『已有资产（本集出场）』段）；脚本 exit 非零 → 立即报错退出，stderr 复述脚本错误信息并指引『请先运行 scriptwriter-script 生成本集资产清单』；**跳过** `assets/keyframes/{ep}/*.md`
      - scope = "keyframes" → 仅 Glob `assets/keyframes/{ep}/*.md`；**跳过** outline 资产清单
    - $ARGUMENTS[0] = "assets" → Glob `assets/**/*.md`（scope 参数忽略；全集合）
 2. **分批并行派发**：每批 ≤ 5 个 asset，用 `task` 工具并行调 `director-review-asset-prompt-single($ARGUMENTS[0]=asset_path)`
@@ -49,6 +49,7 @@ model: opus
 - **意见格式不规整** — 直接拼 JSON 不转可读 markdown — 输出格式见下
 - **不去重 asset** — outline 资产清单可能含重复名 — Glob 后去重再派发
 - **scope 越界** — 调用本意只审某一类（如 keyframes）但漏传 $ARGUMENTS[1]，会落入"全集"默认行为而重审其他类（basic 资产），LLM review 非确定性导致不该改的 asset 被改 — 调用前先确认 $ARGUMENTS[1] 与目标范围匹配
+- **改用旧 Glob outline 资产清单 superset** — 旧实现读「本集资产清单」整段含「已有资产（本集出场）」 → 重审已有资产浪费 token + 非确定性变更污染稳定资产 — 必须用 `parse-new-assets.sh` 仅取「新增资产」段
 
 ## 输出格式
 

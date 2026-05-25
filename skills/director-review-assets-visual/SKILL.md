@@ -54,11 +54,11 @@ metadata:
    - 若 --type 解析后既含 basic asset 类型（characters/locations/items/buildings 任一）又含 keyframes（含 `all` 展开后混合）→ 立即报错退出
    - 错误信息："不支持混合 type；请分两次调用：先 basic asset，后 keyframes"
 2. **收集 asset .md 列表**（按 type）：
-   - `characters`: Glob `assets/characters/*.md`
-   - `locations`: Glob `assets/locations/*.md`
-   - `items`: Glob `assets/items/*.md`
-   - `buildings`: Glob `assets/buildings/*.md`
-   - `keyframes`: Glob `assets/keyframes/{ep}/*.md`（ep 必填）
+   - basic 类（`characters` / `locations` / `items` / `buildings` 任一或组合）：
+     1. 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/parse-new-assets.sh story/episodes/{ep}/outline.md` 得本集新增 asset_path 列表；脚本 exit 非零 → 立即报错退出，stderr 复述脚本错误信息并指引『请先运行 scriptwriter-script 生成本集资产清单』
+     2. 按 --type 过滤：只保留路径前缀匹配 `assets/{type}/` 的 asset
+     3. 衍生资产（路径含 dash，如 `assets/locations/古宅-焚毁.md`）也算 basic 类，按基础类型归类（处于哪个目录就归哪类）
+   - `keyframes`: Glob `assets/keyframes/{ep}/*.md`（ep 必填）— 不变
 3. **计算 image path**：对每个 asset .md 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/asset-to-image-path.sh <asset.md列表>` 批量得到对应 .png 路径（每行一个）
 3.5 **缺图预扫描**（pre-dispatch filter）：
    对每对 (asset_path, image_path) 用 Bash `test -f "{image_path}"` 检查 .png 存在性
@@ -89,6 +89,7 @@ metadata:
 - **无法判定混入 dirty list** — 重试失败的 asset 也加进 dirty list 让 fix 处理 — 不能加，fix 不知道改什么方向
 - **缺图派发 review** — 对 image_path 不存在的 asset 也派发 single review → 子代理 Read PNG 报错 → 计入"无法判定"列表 → fix 永远拿不到这些 asset — 必须预扫描，缺图直接进 dirty list
 - **混合 type 调用** — 一次 `--type=characters,keyframes` 或 `--type=all` → 触发 type 互斥校验失败 — 必须分两次调用：先 basic asset 一次，后 keyframes 一次
+- **改用旧全集 Glob** — 旧实现 Glob `assets/<type>/*.md` 收全集累积资产 → N 集后审核成本线性增长 + 重审已稳定资产引入非确定性变更 — 必须用 `parse-new-assets.sh` 仅取本集新增（含本集新建衍生资产）
 
 ## 输出格式
 
