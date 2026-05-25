@@ -62,14 +62,25 @@ opencode --port 4096 -s YOUR_SESSION_ID
 
 1. 确认目标 tasks.json 存在（若为 `all`，至少有一个 `story/episodes/*/videos/tasks.json`）
 2. 若不存在 → 提示"未找到视频生成任务，请先使用 `/generate-video` 提交任务"，结束
-3. **OC server 发现（OC 专属）**：用 bash：
+3. **OC context 解析（OC 专属）**：用 bash 一次性提取 PORT 和 SID，二者缺一不可：
    ```bash
    if [ -z "$OPENCODE_PID" ]; then
      echo "ERROR: OPENCODE_PID 未设置" >&2
      exit 1
    fi
-   PORT=""
-   if command -v ss >/dev/null; then
+
+   # Read OC process args once (used for both PORT and SID parsing)
+   ARGS=$(ps -p "$OPENCODE_PID" -o args= 2>/dev/null)
+   if [ -z "$ARGS" ]; then
+     echo "ERROR: 无法读取 OC 进程参数 (PID=$OPENCODE_PID)" >&2
+     exit 1
+   fi
+
+   # Parse PORT from --port flag
+   PORT=$(echo "$ARGS" | awk '{for(i=1;i<NF;i++) if($i=="--port") {print $(i+1); exit}}')
+
+   # PORT fallback: ss / lsof（用户用配置文件而非 --port 启动场景）
+   if [ -z "$PORT" ] && command -v ss >/dev/null; then
      PORT=$(ss -tlnp 2>/dev/null \
        | awk -v pid="$OPENCODE_PID" \
            '$0 ~ "pid="pid {split($4,a,":"); print a[length(a)]; exit}')
@@ -78,11 +89,28 @@ opencode --port 4096 -s YOUR_SESSION_ID
      PORT=$(lsof -iTCP -sTCP:LISTEN -P -n -p "$OPENCODE_PID" 2>/dev/null \
        | awk 'NR==2 {split($9,a,":"); print a[length(a)]; exit}')
    fi
+
+   # Parse SID from -s / --session flag
+   SID=$(echo "$ARGS" | awk '{for(i=1;i<NF;i++) if($i=="-s" || $i=="--session") {print $(i+1); exit}}')
+
+   # SID fallback: $OPENCODE_SESSION_ID env var
+   if [ -z "$SID" ] && [ -n "$OPENCODE_SESSION_ID" ]; then
+     SID="$OPENCODE_SESSION_ID"
+   fi
+
+   # Fail-fast: both required
    if [ -z "$PORT" ]; then
-     echo "ERROR: 当前 OC 进程未监听任何 TCP 端口" >&2
-     echo "请退出 OC 并用 'opencode --port 4096 -s $OPENCODE_SESSION_ID' 重启" >&2
+     echo "ERROR: 无法获取 OC server 端口（既无 --port 启动参数也无监听端口）" >&2
+     echo "请退出 OC 并用 'opencode --port 4096 -s YOUR_SESSION_ID' 重启" >&2
      exit 1
    fi
+   if [ -z "$SID" ]; then
+     echo "ERROR: 无法获取 OC session ID（既无 -s/--session 启动参数也无 OPENCODE_SESSION_ID 环境变量）" >&2
+     echo "请退出 OC 并用 'opencode --port 4096 -s YOUR_SESSION_ID' 重启" >&2
+     exit 1
+   fi
+
+   # Health check
    if ! curl -s --max-time 2 "http://127.0.0.1:$PORT/global/health" \
           | grep -q healthy; then
      echo "ERROR: OC server (port $PORT) 不响应" >&2
@@ -125,7 +153,7 @@ opencode --port 4096 -s YOUR_SESSION_ID
 1. **准备文件路径**：
    ```bash
    TARGET={目标}
-   SID=$OPENCODE_SESSION_ID
+   # SID 已由阶段 2 OC context 解析得到，此处直接使用；不再读 $OPENCODE_SESSION_ID
    PID_FILE=/tmp/svd-auto-video-loop-${TARGET}-${SID}.pid
    PROMPT_FILE=/tmp/svd-cron-prompt-${TARGET}-${SID}.txt
    LOG_FILE=/tmp/svd-auto-video-loop-${TARGET}-${SID}.log
@@ -165,7 +193,7 @@ opencode --port 4096 -s YOUR_SESSION_ID
 视频全部完成 / user 主动取消：
 
 ```bash
-SID=$OPENCODE_SESSION_ID
+# SID 由阶段 2 解析得到（或由 cron-prompt.txt 的 {{SID}} 模板替换注入）
 TARGET={目标}
 kill $(cat /tmp/svd-auto-video-loop-${TARGET}-${SID}.pid) 2>/dev/null
 rm -f /tmp/svd-auto-video-loop-${TARGET}-${SID}.{pid,log}
