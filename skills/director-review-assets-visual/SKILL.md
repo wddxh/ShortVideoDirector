@@ -49,6 +49,15 @@ metadata:
 
 ### 工作思路
 
+0. **Round 自检 + 入参收敛**：
+   a. 推导 review md 路径（按 --type 二选一：纯 basic → `story/episodes/{ep}/.review-basic-assets-visual.md`；纯 keyframes → `story/episodes/{ep}/.review-keyframes-visual.md`）
+   b. Read 该路径
+      - 文件不存在 → 本次为第 1 轮 → 跳到 step 1（按现有方式收集全量入参）
+      - 文件存在但 grep `<!-- /round-([0-9]+) -->` 无命中 → 报错退出，stderr「review md 文件存在但缺 round footer，可能是手工编辑破坏 / 旧版本 schema；请删除该文件后重跑」
+      - 命中 → 取最大 N，本次为第 N+1 轮
+   c. **最后一轮已通过检查**：grep round-N heading 是否含「- 通过」→ 是 → 直接返回 `pass`，**不写新轮段、不派发任何 single review**
+   d. 第 N+1 轮：在 round-N 段内（grep 锁定 `## 第 N 轮` 到 `<!-- /round-N -->` 之间）提取 `### dirty list` 与 `### 无法判定` 段的 entry 列表（合并去重，每条 `{asset_path}|{image_path}` 格式；上轮「无法判定」一并重试以消除 subagent 偶然偏差）→ 作为本轮入参（替代 step 1-3.5 全量收集）
+   e. 入参为空 → 写一轮「通过」段 (M=0, K=0) + footer → 返回 `pass`
 1. **解析 --type**：拆分逗号分隔的 type 列表；`all` 等价于 `characters,locations,items,buildings,keyframes`
 1.5 **type 互斥校验**：
    - 若 --type 解析后既含 basic asset 类型（characters/locations/items/buildings 任一）又含 keyframes（含 `all` 展开后混合）→ 立即报错退出
@@ -90,6 +99,9 @@ metadata:
 - **缺图派发 review** — 对 image_path 不存在的 asset 也派发 single review → 子代理 Read PNG 报错 → 计入"无法判定"列表 → fix 永远拿不到这些 asset — 必须预扫描，缺图直接进 dirty list
 - **混合 type 调用** — 一次 `--type=characters,keyframes` 或 `--type=all` → 触发 type 互斥校验失败 — 必须分两次调用：先 basic asset 一次，后 keyframes 一次
 - **改用旧全集 Glob** — 旧实现 Glob `assets/<type>/*.md` 收全集累积资产 → N 集后审核成本线性增长 + 重审已稳定资产引入非确定性变更 — 必须用 `parse-new-assets.sh` 仅取本集新增（含本集新建衍生资产）
+- **沿用旧 anchor (末尾 30-50 字符)** — 多轮后末尾不唯一会让 Edit 报错 — 必须用 `<!-- /round-{N} -->` 严格唯一锚点
+- **漏写 round footer** — 不写 `---\n<!-- /round-{N} -->` → 下轮 append 找不到 anchor → 全链路断 — round footer 是硬约束
+- **第 N+1 轮重审全量 / 漏带「无法判定」一并重试** — 模型本能再 Glob 全集，或只收上轮 dirty list 漏掉「无法判定」 → 浪费 token + 偶然偏差 false unknown 永远无法消除 — 必须按上轮 round-N 的 dirty list **与「无法判定」段合并去重**作为本轮入参收敛
 
 ## 输出格式
 
@@ -101,7 +113,7 @@ metadata:
 | 纯 keyframes（`--type=keyframes`） | `story/episodes/{ep}/.review-keyframes-visual.md` |
 | **混合**（basic asset 与 keyframes 同时出现，含 `all`） | **拒绝执行**（已在工作思路 step 1.5 校验失败） |
 
-**Round 自检**：Read 目标文件（不存在视为第 1 轮；存在则 grep `^## 第 [0-9]+ 轮` 取最大 N，本次为 N+1）。用 Write（首次）或 Edit（append；oldString 用文件末尾 30-50 字符 anchor）追加本轮段。
+**Round 自检**：见工作思路 step 0。append anchor 改用 `<!-- /round-{N} -->`（严格唯一），不再用「文件末尾 30-50 字符」。每轮段末尾必须追加 `---\n<!-- /round-{N} -->` 作为本轮终止符（round footer）。
 
 **本轮段 heading（4 变体）**：
 
@@ -131,11 +143,24 @@ assets/keyframes/ep01/KF-EP01-005.md|assets/images/keyframes/ep01/KF-EP01-005.pn
 
 ### 无法判定（subagent 重试失败）
 assets/locations/古宅.md|assets/images/locations/古宅.png
+
+---
+<!-- /round-{N} -->
 ```
 
 dirty list 格式：每行一个 entry，`{asset_path}|{image_path}`（管道符分隔），供下游 `creator-fix-asset-image` 直接消费。「无法判定」段同格式但 fix skill 自然跳过。
 
-通过时（M=0, K=0）仅 heading 行 + 前置空行。
+通过时（M=0, K=0）仅 heading 行 + 前置空行 + footer：
+
+```markdown
+
+## 第 {N} 轮 ({YYYY-MM-DD HH:MM}) - 通过
+
+---
+<!-- /round-{N} -->
+```
+
+通过+K / 需修改+M / 需修改+M+K 三变体 body 末尾同样追加 `\n\n---\n<!-- /round-{N} -->\n` 作为 round footer（4 变体一律带 footer）。
 
 ## 规则
 
@@ -149,7 +174,11 @@ dirty list 格式：每行一个 entry，`{asset_path}|{image_path}`（管道符
 
 ### 文件操作
 - 使用 Bash 调 `scripts/asset-to-image-path.sh` 批量算 image path
-- 使用 Write 或 Edit 维护对应的 review 文件（`.review-basic-assets-visual.md` 或 `.review-keyframes-visual.md`，append 模式）
+- 使用 Write 或 Edit 维护对应的 review 文件（`.review-basic-assets-visual.md` 或 `.review-keyframes-visual.md`）：
+  - 第 1 轮 (文件不存在)：Write 完整文件 = 本轮段 + `\n\n---\n<!-- /round-1 -->\n`
+  - 第 N+1 轮：Edit append
+    - oldString: `<!-- /round-{N} -->` (严格唯一锚点)
+    - newString: 同 oldString + `\n\n## 第 {N+1} 轮 ...` + body + `\n\n---\n<!-- /round-{N+1} -->`
 
 ### 返回内容
 

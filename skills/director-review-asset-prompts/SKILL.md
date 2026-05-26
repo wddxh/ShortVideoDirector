@@ -31,6 +31,15 @@ model: opus
 
 ### 工作流
 
+0. **Round 自检 + 入参收敛**：
+   a. 推导 review md 路径（按 $ARGUMENTS[0]：epXX → `story/episodes/{ep}/.review-asset-prompts.md`；"assets" → `assets/.review-asset-prompts.md`）
+   b. Read 该路径
+      - 文件不存在 → 本次为第 1 轮 → 跳到 step 1（按现有方式收集全量入参）
+      - 文件存在但 grep `<!-- /round-([0-9]+) -->` 无命中 → 报错退出，stderr「review md 文件存在但缺 round footer，可能是手工编辑破坏 / 旧版本 schema；请删除该文件后重跑」
+      - 命中 → 取最大 N，本次为第 N+1 轮
+   c. **最后一轮已通过检查**：grep round-N heading 是否含「- 通过」→ 是 → 直接返回 `pass`，**不写新轮段、不派发任何 single review**（防止重复触发累积通过段）
+   d. 第 N+1 轮：在 round-N 段内 (grep 锁定 `## 第 N 轮` 到 `<!-- /round-N -->` 之间) 提取 `### dirty list` 段每行 asset_path → 作为本轮入参（替代 step 1 全量收集）
+   e. 入参为空 → 写一轮「通过」段 + footer → 返回 `pass`
 1. **收集 asset 列表**（按 $ARGUMENTS[1] scope 过滤）：
    - $ARGUMENTS[0] = epXX:
      - scope = "" / 缺省 → 同时收 basic + keyframes（向后兼容）
@@ -39,7 +48,11 @@ model: opus
    - $ARGUMENTS[0] = "assets" → Glob `assets/**/*.md`（scope 参数忽略；全集合）
 2. **分批并行派发**：每批 ≤ 5 个 asset，用 `task` 工具并行调 `director-review-asset-prompt-single($ARGUMENTS[0]=asset_path)`
 3. **聚合结果**：收集所有子任务返回值——空字符串（通过）和 JSON 对象（需修改）
-4. **写入 review md**（append 模式，每轮追加一段）
+4. **写入 review md**：
+   - 第 1 轮 (文件不存在)：Write 完整文件 = 本轮段 + `\n\n---\n<!-- /round-1 -->\n`
+   - 第 N+1 轮：Edit append
+     - oldString: `<!-- /round-{N} -->` (严格唯一锚点)
+     - newString: 同 oldString + `\n\n## 第 {N+1} 轮 ...` + body + `\n\n---\n<!-- /round-{N+1} -->`
 5. **返回简报**给 workflow：`pass` 或 `needs_revision {M}`（M = 本轮 dirty asset 数）
 
 ### 常见误区
@@ -50,6 +63,9 @@ model: opus
 - **不去重 asset** — outline 资产清单可能含重复名 — Glob 后去重再派发
 - **scope 越界** — 调用本意只审某一类（如 keyframes）但漏传 $ARGUMENTS[1]，会落入"全集"默认行为而重审其他类（basic 资产），LLM review 非确定性导致不该改的 asset 被改 — 调用前先确认 $ARGUMENTS[1] 与目标范围匹配
 - **改用旧 Glob outline 资产清单 superset** — 旧实现读「本集资产清单」整段含「已有资产（本集出场）」 → 重审已有资产浪费 token + 非确定性变更污染稳定资产 — 必须用 `parse-new-assets.sh` 仅取「新增资产」段
+- **沿用旧 anchor (末尾 50 字符)** — 多轮后末尾不唯一会让 Edit 报错 — 必须用 `<!-- /round-{N} -->` 严格唯一锚点
+- **漏写 round footer** — 不写 `---\n<!-- /round-{N} -->` → 下轮 append 找不到 anchor → 全链路断 — round footer 是硬约束
+- **第 N+1 轮重审全量** — 模型本能再次 Glob 收全量 → 浪费 + 误判 — 必须按上轮 round-N dirty list 收敛
 
 ## 输出格式
 
@@ -57,7 +73,7 @@ model: opus
 - $ARGUMENTS[0] = epXX → `story/episodes/{ep}/.review-asset-prompts.md`
 - $ARGUMENTS[0] = "assets" → `assets/.review-asset-prompts.md`
 
-**Round 自检**：Read 文件（不存在则本次为第 1 轮；存在则 grep `^## 第 [0-9]+ 轮` 找最大 N，本次为 N+1 轮）。用 Write（首次）或 Edit（append，oldString 用文件末 50 字符 anchor）追加。
+**Round 自检**：见工作流 step 0。append anchor 改用 `<!-- /round-{N} -->`（严格唯一），不再用「文件末 50 字符」。每轮段末尾必须追加 `---\n<!-- /round-{N} -->` 作为本轮终止符（round footer）。
 
 **本轮段格式**（前留空行）：
 
@@ -65,6 +81,9 @@ model: opus
 ```markdown
 
 ## 第 {N} 轮 ({YYYY-MM-DD HH:MM}) - 通过
+
+---
+<!-- /round-{N} -->
 ```
 
 不通过时：
@@ -83,6 +102,8 @@ model: opus
 - **assets/characters/沈昭.md**：
   - issue: ...
   - prompt_direction: ...
+---
+<!-- /round-{N} -->
 ```
 
 ## 规则
