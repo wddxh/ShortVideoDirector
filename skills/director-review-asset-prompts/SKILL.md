@@ -39,7 +39,7 @@ model: opus
       - 命中 → 取最大 N，本次为第 N+1 轮
    c. **最后一轮已通过检查**：grep round-N heading 是否含「- 通过」→ 是 → 直接返回 `pass`，**不写新轮段、不派发任何 single review**（防止重复触发累积通过段）
    d. 第 N+1 轮：在 round-N 段内 (grep 锁定 `## 第 N 轮` 到 `<!-- /round-N -->` 之间) 提取 `### dirty list` 段每行 asset_path → 作为本轮入参（替代 step 1 全量收集）
-   e. 入参为空 → 写一轮「通过」段 + footer → 返回 `pass`
+   e. 入参为空 → 执行 step 10 写一轮「通过」段 + footer → 跑 step 11 自检 → 返回 `pass`（自检失败则报错退出，不返回 pass）
 1. **收集 asset 列表**（按 $ARGUMENTS[1] scope 过滤）：
    - $ARGUMENTS[0] = epXX:
      - scope = "" / 缺省 → 同时收 basic + keyframes（向后兼容）
@@ -48,12 +48,27 @@ model: opus
    - $ARGUMENTS[0] = "assets" → Glob `assets/**/*.md`（scope 参数忽略；全集合）
 2. **分批并行派发**：每批 ≤ 5 个 asset，用 `task` 工具并行调 `director-review-asset-prompt-single($ARGUMENTS[0]=asset_path)`
 3. **聚合结果**：收集所有子任务返回值——空字符串（通过）和 JSON 对象（需修改）
-4. **写入 review md**：
+4. **写入 review md**（实际执行入口见 step 10；本段仅定义模板规则）：
    - 第 1 轮 (文件不存在)：Write 完整文件 = 本轮段 + `\n\n---\n<!-- /round-1 -->\n`
    - 第 N+1 轮：Edit append
      - oldString: `<!-- /round-{N} -->` (严格唯一锚点)
-     - newString: 同 oldString + `\n\n## 第 {N+1} 轮 ...` + body + `\n\n---\n<!-- /round-{N+1} -->`
-5. **返回简报**给 workflow：`pass` 或 `needs_revision {M}`（M = 本轮 dirty asset 数）
+      - newString: 同 oldString + `\n\n## 第 {N+1} 轮 ...` + body + `\n\n---\n<!-- /round-{N+1} -->`
+
+10. **写入 review md**（强制步骤，必须执行）：按 step 4 模板规则执行：
+    a. 推导路径（同 step 0.a）
+    b. 构造完整 round 段（heading + body + footer `\n\n---\n<!-- /round-{N} -->\n`）
+    c. 第 1 轮 → Write 创建
+    d. 第 N+1 轮 → Edit append（oldString = `<!-- /round-{N} -->`；newString = 同 + `\n\n` + 本轮段）
+
+11. **写入自检**（subagent 返回前硬约束）：
+    a. Read review md 文件
+    b. grep `<!-- /round-{当前轮号} -->` 必须命中且仅 1 次
+       - 未命中 → 报错退出 + stderr「review 写入失败：本轮 round footer 未落盘，请检查 review md 路径权限或 Edit anchor 是否漂移」
+       - 命中 ≥2 次 → 报错退出 + stderr「review 写入异常：本轮 round footer 出现多次，可能 anchor 不唯一」
+
+12. **返回简报**（仅 step 11 通过后执行）：
+    - 通过 → 返回 `pass`
+    - 需修改 → 返回 `needs_revision {M}`（M = 本轮 dirty asset 数）
 
 ### 常见误区
 
@@ -66,6 +81,8 @@ model: opus
 - **沿用旧 anchor (末尾 50 字符)** — 多轮后末尾不唯一会让 Edit 报错 — 必须用 `<!-- /round-{N} -->` 严格唯一锚点
 - **漏写 round footer** — 不写 `---\n<!-- /round-{N} -->` → 下轮 append 找不到 anchor → 全链路断 — round footer 是硬约束
 - **第 N+1 轮重审全量** — 模型本能再次 Glob 收全量 → 浪费 + 误判 — 必须按上轮 round-N dirty list 收敛
+- **跳过 step 10 写入步骤** — subagent 跑完 step 9 聚合后直接 return 简报，没执行 step 10 → review md 无新轮次 → 上层卡死循环 — step 10 是强制步骤；step 11 自检兜底
+- **跳过 step 11 自检** — subagent 执行了 step 10 但没验证 footer 是否真落盘 → Edit anchor 漂移 / 权限错时假象返回 pass — step 11 必须 grep 验证后才允许返回
 
 ## 输出格式
 
