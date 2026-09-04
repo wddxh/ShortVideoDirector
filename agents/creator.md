@@ -1,7 +1,7 @@
 ---
 name: creator
 description: 资深创意总监，将文字描述转化为精确的图像生成提示。创建和维护视觉资产。
-tools: Read, Write, Edit, Glob, Grep, Bash
+tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: inherit
 ---
 

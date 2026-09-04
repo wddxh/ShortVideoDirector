@@ -32,11 +32,23 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 - 如果不能直接调用 skill，则读取 `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/SKILL.md`，并带着原始参数执行其中的说明。
 - 传递参数时保留源 skill 的 `$ARGUMENTS` 约定。
 
-## Agent 调用
+## Task 调用协议
 
-- Claude `Agent` 表示在可用时委托给 Codex sub-agent。
-- 如果存在匹配的角色，则使用 `agents/<role>.md` 中的角色意图。
-- 如果当前环境不支持自定义角色注入，则在当前 Codex 会话中执行委托任务，并遵循对应角色提示词。
+```json
+{
+  "task": {
+    "with_subagent": "dispatch_apply_role_full_payload_wait",
+    "role_source": "agents/<role>.md",
+    "payload": ["skill", "params"],
+    "isolated_without_subagent": "fail_closed",
+    "ordinary_without_subagent": "current_session_with_role"
+  }
+}
+```
+
+- Claude `Task` 或 `Agent` 在 Codex sub-agent 可用时必须派发 sub-agent，应用目标 role 的 `agents/<role>.md`，传递完整 skill 和 params，并等待 result 后再继续。
+- 明确要求隔离的 single visual review（包括逐 sheet image review）在无 sub-agent 支持时必须报告能力缺失并停止该 review；不得在当前会话读取多图冒充隔离。
+- 不要求隔离的普通 Task 在无 sub-agent 支持时，可在当前会话加载 `agents/<role>.md` 并按该 role 执行完整 skill 和 params。
 
 ## 定时任务和自动化
 
@@ -54,6 +66,7 @@ argument-hint: "[集数|all] [检查间隔秒数]"
 
 - 源 skill 中的 Claude `allowed-tools` 元数据在 Codex 中仅作为提示信息。
 - 如果某个 Claude 工具名在 Codex 中不可用，不要仅因为工具名不同而失败，应按本映射执行。
+- `Task`/`Agent` 以“Task 调用协议”为准；明确要求隔离的任务不得使用当前会话 fallback。
 
 ## Plugin-rooted Path 解析
 

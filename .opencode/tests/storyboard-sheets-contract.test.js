@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const read = (path) => readFileSync(join(process.cwd(), path), 'utf8');
@@ -37,8 +37,8 @@ test('storyboard sheet leaves have stable frontmatter', () => {
     assert.match(text, new RegExp(`^model: ${model}$`, 'm'));
     assert.match(text, new RegExp(`^allowed-tools: ${tools}$`, 'm'));
   }
-  assert.match(read('agents/creator.md'), /^tools: Read, Write, Edit, Glob, Grep, Bash$/m);
-  assert.match(read('agents/director.md'), /^tools: Read, Write, Edit, Glob, Grep, Bash$/m);
+  assert.match(read('agents/creator.md'), /^tools: Read, Write, Edit, Glob, Grep, Bash, Task$/m);
+  assert.match(read('agents/director.md'), /^tools: Read, Write, Edit, Glob, Grep, Bash, Task$/m);
 });
 
 test('standard director reviewers allow deterministic Bash checks', () => {
@@ -50,6 +50,23 @@ test('standard director reviewers allow deterministic Bash checks', () => {
       assert.match(fm['allowed-tools'], /(?:^|, )Bash(?:,|$)/, name);
     }
   }
+});
+
+test('skills that allow Task have Task-enabled agents', () => {
+  const root = join(process.cwd(), 'skills');
+  const covered = new Set();
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (!existsSync(join(root, entry.name, 'SKILL.md'))) continue;
+    const text = read(`skills/${entry.name}/SKILL.md`);
+    const fm = frontmatter(text);
+    if (!fm.agent || !fm['allowed-tools']?.split(', ').includes('Task')) continue;
+    const agent = frontmatter(read(`agents/${fm.agent}.md`));
+    assert.ok(agent.tools.split(', ').includes('Task'), entry.name);
+    covered.add(fm.agent);
+  }
+  assert.ok(covered.has('director'));
+  assert.ok(covered.has('creator'));
 });
 
 test('generator has stable output and full argument protocol', () => {
