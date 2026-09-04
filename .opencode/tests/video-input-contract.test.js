@@ -66,3 +66,11 @@ test('interactive correction rebuilds sheet stages before converter retry', () =
   assert.ok(interactive.includes('creator-generate-images` skill，参数 `{集数} paths'));
   assert.equal(interactive.includes('creator-image-{图像模型值}'), false);
 });
+
+test('interactive correction passes the user target and instruction through direct mode', () => {
+  const interactive = read('skills/check-video/SKILL.md').slice(
+    read('skills/check-video/SKILL.md').indexOf('**交互模式（默认）：**'),
+  );
+  assert.ok(interactive.includes('storyboarder-fix-storyboard` skill，参数 `{集数} --direct {target} {instruction}`'));
+  assert.ok(interactive.includes('creator-fix-storyboard-sheet-prompt` skill，参数 `{集数} --direct {card} {instruction}`'));
+});

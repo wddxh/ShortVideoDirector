@@ -17,11 +17,13 @@ model: sonnet
 - `config.md` — 必须读取
 - `assets/characters/*.md` — 若存在则全部读取（角色一致性参考）
 - `${CLAUDE_PLUGIN_ROOT}/skills/writer-novel/rules.md` — 必须读取并严格遵循
-- `story/episodes/$ARGUMENTS[0]/.review-novel.md` — 必须读取（含本轮 review 意见）
+- `story/episodes/$ARGUMENTS[0]/.review-novel.md` — 仅 review mode 必须读取；direct mode 不读取
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 当前集数（如 ep01）
+- review mode CLI：`ep`。读取 latest `.review-novel.md`，保持 pipeline 现有行为。
+- direct mode CLI：`ep + --direct + target + instruction`。`target` 是段落/场景定位，`instruction` 是 Phase 3 已确认的具体修改描述。
+- 参数数量或 `--direct` 位置不符时失败；direct mode 不读取或拼接旧 review 意见。
 
 ## 职责描述
 
@@ -31,7 +33,7 @@ model: sonnet
 
 ### 工作思路
 
-1. 完整通读 novel.md 现状，再读 `.review-novel.md`，**定位最后一个 `## 第 N 轮` heading**（用 grep `^## 第 [0-9]+ 轮` 找最大 N 段），用该段内的意见列表，把每条意见映射到具体段落 / 行
+1. review mode 读取 `.review-novel.md` 最大轮意见；direct mode 仅使用传入 target/instruction。完整通读 novel.md 后把当前模式的意见映射到具体段落。
 2. 评估每条修正的连锁影响：改某一段的事件细节，是否让后续基于此事件的对白 / 状态 / 转场失去因果？
 3. 必要时把"修正一处"扩展为"修正这一处 + 后续被影响的段落"——但不擅自修改与意见无关的章节
 4. 动笔时仍用 writer-novel 的"画面在前，对白在后"原则；画面密度不能因为是"小修"而稀薄

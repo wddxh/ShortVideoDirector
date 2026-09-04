@@ -342,3 +342,73 @@ test('sheet card schema defines the complete panel label fields', () => {
   }
   assert.ok(schema.includes('P03 · 5.0s · CU · LOW ANGLE · DOLLY IN'));
 });
+
+test('content fixers expose review and direct CLI modes', () => {
+  const cases = [
+    ['writer-fix-novel', 'ep + --direct + target + instruction'],
+    ['storyboarder-fix-storyboard', 'ep + --direct + target + instruction'],
+    ['scriptwriter-fix-script', 'mode + ep + --direct + target + instruction'],
+    ['creator-fix-storyboard-sheet-prompt', 'ep + --direct + card + instruction'],
+  ];
+  for (const [name, cli] of cases) {
+    const text = read(`skills/${name}/SKILL.md`);
+    assert.ok(text.includes(cli), name);
+    assert.ok(text.includes('review mode'), name);
+    assert.ok(text.includes('direct mode'), name);
+  }
+});
+
+test('pipeline fixer calls remain in review mode', () => {
+  const text = read('skills/generate-episode-pipeline/SKILL.md');
+  for (const fixer of ['storyboarder-fix-storyboard', 'creator-fix-storyboard-sheet-prompt']) {
+    const line = text.split('\n').find((value) => value.includes(`\`${fixer}\``));
+    assert.ok(line, fixer);
+    assert.equal(line.includes('--direct'), false, fixer);
+  }
+});
+
+test('edit routes direct modifications and asset creation in dependency order', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/edit-story/${mode}`);
+    for (const fixer of ['storyboarder-fix-storyboard', 'scriptwriter-fix-script',
+      'creator-fix-storyboard-sheet-prompt']) {
+      assert.ok(text.includes(`${fixer}\` skill，参数`), `${mode}: ${fixer}`);
+      assert.ok(text.includes('--direct'), `${mode}: direct mode`);
+    }
+    const create = text.indexOf('creator-create-assets` skill');
+    const update = text.indexOf('creator-update-records` skill');
+    const image = text.indexOf('creator-generate-images` skill');
+    assert.ok(create >= 0 && image > create, `${mode}: create before image`);
+    if (mode === 'series.md') assert.ok(update > create && update < image);
+  }
+  assert.ok(read('skills/edit-story/series.md').includes('writer-fix-novel` skill，参数 `{ep} --direct'));
+});
+
+test('series outline review mode is selected by episode number', () => {
+  const text = read('skills/edit-story/series.md');
+  const marker = 'outline review mode map';
+  const start = text.indexOf(marker);
+  assert.ok(start >= 0);
+  const lines = text.slice(start).split('\n').slice(0, 4).join('\n');
+  assert.ok(lines.includes('ep01=new-series'));
+  assert.ok(lines.includes('ep02+=continue-series'));
+  const reviewerCall = lines.split('\n').find((line) => line.includes('director-review-outline'));
+  assert.ok(reviewerCall.includes('{outline_review_mode} {ep}'));
+  assert.equal(reviewerCall.includes('参数 `series'), false);
+});
+
+test('repair routes failed sheet review states to the matching review loop', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    assert.ok(text.includes('storyboard-sheet-prompt-review:missing|needs_revision'), mode);
+    assert.ok(text.includes('creator-fix-storyboard-sheet-prompt'), mode);
+    assert.ok(text.includes('storyboard-sheet-visual-review:missing|needs_revision'), mode);
+    assert.ok(text.includes('creator-fix-storyboard-sheet-image'), mode);
+  }
+});
+
+test('asset creation reads script in both modes and novel only for series', () => {
+  const text = read('skills/creator-create-assets/SKILL.md');
+  assert.ok(text.includes('script.md` — 必须读取'));
+  assert.ok(text.includes('novel.md` — series mode'));
+});

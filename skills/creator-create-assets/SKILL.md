@@ -11,7 +11,8 @@ model: sonnet
 ## 输入
 
 ### 文件读取
-- `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取
+- `story/episodes/$ARGUMENTS[0]/script.md` — 必须读取（series / short 的资产事实源）
+- `story/episodes/$ARGUMENTS[0]/novel.md` — series mode 必须读取；short mode 不存在时跳过
 - `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（从「本集资产清单」的「新增资产」部分获取资产列表）
 - `config.md` — 必须读取（目标图像模型）
 - `assets/**/*.md` — 使用 Glob 列出所有已有文件，选择性读取（风格一致性 + 查重）

@@ -76,7 +76,13 @@ describe('computeSourceHash includes scripts/', () => {
 });
 
 describe('computeSourceHash includes OpenCode transform inputs', () => {
-  for (const relative of ['.opencode/lib/helper.js', '.opencode/skill-overrides/demo/SKILL.md']) {
+  for (const relative of [
+    '.opencode/lib/helper.js',
+    '.opencode/lib/helper.txt',
+    '.opencode/skill-overrides/demo/SKILL.md',
+    '.opencode/skill-overrides/demo/loop.sh',
+    '.opencode/skill-overrides/demo/cron-prompt.txt',
+  ]) {
     test(`changes when ${relative} changes`, async () => {
       const tmp = await mkdtemp(path.join(os.tmpdir(), 'svd-oc-hash-'));
       await writeFile(path.join(tmp, 'package.json'), '{"version":"0.0.1"}');

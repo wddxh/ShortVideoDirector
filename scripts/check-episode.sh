@@ -28,6 +28,22 @@ read_config() {
   bash "$SCRIPT_DIR/read-config.sh" "$1" "$CONFIG" 2>/dev/null
 }
 
+review_status() {
+  REVIEW_FILE=$1
+  if [ ! -f "$REVIEW_FILE" ]; then
+    printf '%s\n' 'missing'
+    return
+  fi
+  LAST_HEADING=$(awk '/^## 第 [0-9]+ 轮 .* - / { line=$0 } END { print line }' "$REVIEW_FILE")
+  ROUND=$(printf '%s\n' "$LAST_HEADING" | sed -nE 's/^## 第 ([0-9]+) 轮 .*/\1/p')
+  if [ -n "$ROUND" ] && printf '%s\n' "$LAST_HEADING" | grep -Eq '^## 第 [0-9]+ 轮 .+ - 通过$' \
+      && [ "$(grep -c "^<!-- /round-$ROUND -->$" "$REVIEW_FILE")" -eq 1 ]; then
+    printf '%s\n' 'ok'
+  else
+    printf '%s\n' 'needs_revision'
+  fi
+}
+
 OUTLINE="$EP_DIR/outline.md"
 if [ ! -f "$OUTLINE" ]; then
   echo 'outline:missing'; HAS_ISSUE=1
@@ -147,6 +163,17 @@ SHEET_OUTPUT=$(node "$SCRIPT_DIR/check-storyboard-sheets.mjs" "$EP" "$IMAGE_MODE
 SHEET_STATUS=$?
 printf '%s\n' "$SHEET_OUTPUT"
 [ "$SHEET_STATUS" -eq 0 ] || HAS_ISSUE=1
+
+PROMPT_REVIEW=$(review_status "$EP_DIR/.review-storyboard-sheet-prompts.md")
+echo "storyboard-sheet-prompt-review:$PROMPT_REVIEW"
+[ "$PROMPT_REVIEW" = 'ok' ] || HAS_ISSUE=1
+if [ "$IMAGE_MODEL" = 'none' ] || [ -z "$IMAGE_MODEL" ]; then
+  echo 'storyboard-sheet-visual-review:skipped'
+else
+  VISUAL_REVIEW=$(review_status "$EP_DIR/.review-storyboard-sheets-visual.md")
+  echo "storyboard-sheet-visual-review:$VISUAL_REVIEW"
+  [ "$VISUAL_REVIEW" = 'ok' ] || HAS_ISSUE=1
+fi
 
 if printf '%s\n' "$SHEET_OUTPUT" | grep -q '^storyboard:invalid:'; then
   :

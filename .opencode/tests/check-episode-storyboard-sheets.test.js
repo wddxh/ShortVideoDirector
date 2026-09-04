@@ -36,6 +36,10 @@ function setup(root, { shots = [1, 2, 3], cards = shots, images = cards,
     card(cards[index], declared[name] ?? cards[index])));
   images.forEach((n) => write(root,
     `assets/images/storyboard-sheets/ep01/shot${String(n).padStart(2, '0')}.png`, 'png'));
+  write(root, 'story/episodes/ep01/.review-storyboard-sheet-prompts.md',
+    '## 第 1 轮 (test) - 通过\n\n---\n<!-- /round-1 -->\n');
+  write(root, 'story/episodes/ep01/.review-storyboard-sheets-visual.md',
+    '## 第 1 轮 (test) - 通过\n\n---\n<!-- /round-1 -->\n');
 }
 
 function run(root) {
@@ -43,7 +47,8 @@ function run(root) {
 }
 
 function sheetLines(result) {
-  return result.stdout.split('\n').filter((line) => line.startsWith('storyboard-'));
+  return result.stdout.split('\n').filter((line) =>
+    line.startsWith('storyboard-sheets:') || line.startsWith('storyboard-sheet-images:'));
 }
 
 function project(options, check) {
@@ -56,10 +61,14 @@ test('enabled and none modes expose exact terminal statuses', () => {
   project({}, (result) => {
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.deepEqual(sheetLines(result), ['storyboard-sheets:ok', 'storyboard-sheet-images:ok']);
+    assert.match(result.stdout, /^storyboard-sheet-prompt-review:ok$/m);
+    assert.match(result.stdout, /^storyboard-sheet-visual-review:ok$/m);
   });
   project({ model: 'none', images: [] }, (result) => {
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.deepEqual(sheetLines(result), ['storyboard-sheets:ok', 'storyboard-sheet-images:skipped']);
+    assert.match(result.stdout, /^storyboard-sheet-prompt-review:ok$/m);
+    assert.match(result.stdout, /^storyboard-sheet-visual-review:skipped$/m);
   });
 });
 
@@ -184,6 +193,23 @@ test('basic image checks include existing assets listed by this episode', () => 
     const checked = run(root);
     assert.equal(checked.status, 1);
     assert.match(checked.stdout, /^images:missing:阿青$/m);
+  });
+});
+
+test('review gates require the latest round to be a pure pass', () => {
+  const cases = [
+    ['.review-storyboard-sheet-prompts.md', '', 'storyboard-sheet-prompt-review:missing'],
+    ['.review-storyboard-sheet-prompts.md', '## 第 1 轮 (test) - 通过\n<!-- /round-1 -->\n## 第 2 轮 (test) - 需修改\n<!-- /round-2 -->\n', 'storyboard-sheet-prompt-review:needs_revision'],
+    ['.review-storyboard-sheets-visual.md', '', 'storyboard-sheet-visual-review:missing'],
+    ['.review-storyboard-sheets-visual.md', '## 第 2 轮 (test) - 通过 (1 项无法判定)\n<!-- /round-2 -->\n', 'storyboard-sheet-visual-review:needs_revision'],
+  ];
+  for (const [name, content, expected] of cases) project({}, (result, root) => {
+    const path = join(root, 'story/episodes/ep01', name);
+    if (content === '') rmSync(path);
+    else writeFileSync(path, content);
+    const checked = run(root);
+    assert.equal(checked.status, 1);
+    assert.match(checked.stdout, new RegExp(`^${expected}$`, 'm'));
   });
 });
 

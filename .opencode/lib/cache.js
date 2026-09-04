@@ -26,7 +26,7 @@ export async function computeSourceHash(pluginRoot) {
       for (const e of entries) {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) await walk(p);
-        else if (subdir === 'scripts' || subdir === '.opencode/lib' || e.name.endsWith('.md')) {
+        else if (subdir === 'scripts' || subdir.startsWith('.opencode/') || e.name.endsWith('.md')) {
           const st = await fs.stat(p);
           sources.push(`${p}:${st.mtimeMs}:${st.size}`);
         }

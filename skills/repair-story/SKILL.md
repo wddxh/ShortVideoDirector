@@ -63,8 +63,10 @@ model: opus
 - `storyboard:ok` / `storyboard:missing` / `storyboard:incomplete:{实际数}/{目标数}`
 - `storyboard-sheets:ok` / `storyboard-sheets:invalid:{详情}`
 - `storyboard-sheet-images:ok` / `storyboard-sheet-images:invalid:{详情}` / `storyboard-sheet-images:skipped`
+- `storyboard-sheet-prompt-review:ok` / `storyboard-sheet-prompt-review:missing` / `storyboard-sheet-prompt-review:needs_revision`
+- `storyboard-sheet-visual-review:ok` / `storyboard-sheet-visual-review:missing` / `storyboard-sheet-visual-review:needs_revision` / `storyboard-sheet-visual-review:skipped`
 
-根据输出判断第一个非 ok 状态，按基础资产卡→基础资产图片→storyboard→sheet card→sheet PNG 的依赖顺序恢复。
+根据输出判断第一个非 ok 状态，按基础资产卡→基础资产图片→storyboard→sheet card→sheet prompt review→sheet PNG→sheet visual review 的依赖顺序恢复。
 
 ### Phase 4: 报告 + 确认
 

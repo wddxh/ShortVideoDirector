@@ -10,11 +10,10 @@ model: sonnet
 
 ## 输入
 
-通过 prompt 接收:
-- mode: 'new-series' | 'continue-series' | 'short'
-- ep: 'epXX'
-- $ARGUMENTS[0] — `.review-script.md` 路径 (一般 `story/episodes/{ep}/.review-script.md`)
-- (可选) extra_instructions — 用户额外编辑请求 (edit-story 调用时传)
+明确 CLI：
+- review mode：`mode + ep`。读取 latest `.review-script.md`，保持 pipeline 现有行为。
+- direct mode：`mode + ep + --direct + target + instruction`。target 定位场景/台词/动作，instruction 是 Phase 3 具体修改描述。
+- mode 为 `new-series|continue-series|short`；direct mode 不读取或拼接旧 review。
 
 ## 必读文件
 - `story/episodes/{ep}/script.md` — 必读 (现有剧本)
@@ -24,7 +23,7 @@ model: sonnet
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/rules.md` — 必读并严格遵循 (公共规则)
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-fix-script/series.md` (when mode in {new-series, continue-series}) — 必读
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-fix-script/short.md` (when mode=short) — 必读
-- `$ARGUMENTS[0]` — 必读 (含多轮 review; 仅取最大轮号那段意见)
+- review mode 必读 `.review-script.md`；direct mode 不读该文件
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 工作流
@@ -40,8 +39,7 @@ model: sonnet
 ### Phase 2: 读 script + 修订意见
 - Read `story/episodes/{ep}/script.md` 现状
 - Read `story/episodes/{ep}/outline.md`, `config.md`
-- Read `$ARGUMENTS[0]`, 用 `grep -nE '^## 第 [0-9]+ 轮' $ARGUMENTS[0]` 找最大 N, 取该段意见 (前几轮忽略)
-- 若 prompt 含 extra_instructions, 与 review 意见合并为完整修订意见集
+- review mode 读取 `.review-script.md` 最大 N 段；direct mode 仅使用 target/instruction
 - 通读意见，把每条映射到具体场景 / 台词 / 动作描写
 - 按 mode 文件指引读其余上下文 (series 需 arc.md / novel.md / 上集 script)
 

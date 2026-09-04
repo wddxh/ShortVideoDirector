@@ -32,14 +32,17 @@
 
 按入口执行需要的下列标准调用，不在影响清单中的节点跳过：
 
-- 使用 Skill tool 调用 `director-fix-outline` skill，传 mode、ep、review path、extra instructions。随后使用 Skill tool 调用 `director-review-outline` skill，参数 `series {ep}`。
-- 使用 Skill tool 调用 `writer-fix-novel` skill，参数 `{ep}`。随后使用 Skill tool 调用 `director-review-novel` skill，参数 `{ep}`。
-- 使用 Skill tool 调用 `scriptwriter-fix-script` skill，传 mode、ep、review path、extra instructions。随后使用 Skill tool 调用 `director-review-script` skill，参数 `continue-series {ep}`。
+- outline review mode map: `ep01=new-series`; `ep02+=continue-series`。
+- script mode 使用同一映射：`ep01=new-series`; `ep02+=continue-series`。
+- 使用 Skill tool 调用 `director-fix-outline` skill，传 mode=series、ep、review path、extra instructions。随后使用 Skill tool 调用 `director-review-outline` skill，参数 `{outline_review_mode} {ep}`。
+- 使用 Skill tool 调用 `writer-fix-novel` skill，参数 `{ep} --direct {target} {instruction}`。随后使用 Skill tool 调用 `director-review-novel` skill，参数 `{ep}`。
+- 使用 Skill tool 调用 `scriptwriter-fix-script` skill，参数 `{script_mode} {ep} --direct {target} {instruction}`。随后使用 Skill tool 调用 `director-review-script` skill，参数 `{script_mode} {ep}`。
+- Outline/novel/script 修改后重新读取终态资产清单；存在新增且缺失的资产卡时，先使用 Skill tool 调用 `creator-create-assets` skill，参数 `{ep}`。非 ep01 随后使用 Skill tool 调用 `creator-update-records` skill，参数 `{ep}`。只有已存在且被直接修改的卡才使用 `creator-fix-asset`。
 - 使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} {意见}`。随后使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `{ep} basic`。
 - 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {asset_paths...}`。随后使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {ep}`。
-- 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，参数 `{ep}`。随后使用 Skill tool 调用 `director-review-storyboard` skill，参数 `{ep}`。
+- 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，参数 `{ep} --direct {target} {instruction}`。随后使用 Skill tool 调用 `director-review-storyboard` skill，参数 `{ep}`。
 - 使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `{ep} incremental {shots...}`；编号集合变化改用 full。随后使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill，参数 `{ep}`，按 owner 修复。
-- 对 prompt-fix owner 使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{ep} {review_path} {cards...}`。
+- 对直接 card 修改使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{ep} --direct {card} {instruction}`；review owner 修复仍使用无 direct 的 review mode。
 - 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {card_paths...}`。随后使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep}`，按 dirty 修复。
 - 对 visual dirty 使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{ep} {review_path} {shots...}`。
 - 使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill，参数 `{ep} {upstream_shot}`。

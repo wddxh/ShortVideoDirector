@@ -23,6 +23,9 @@ outline → novel → script → 基础资产卡 → 基础资产图片 → stor
 5. sheet.md 缺失、不 canonical 或 metadata 不符时使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `{ep} full`。再使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill；按 owner 顺序修复，最多 2 轮。
 6. sheet.png 缺失时使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} storyboard-sheets`。再使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，最多 2 轮修复。
 
+- `storyboard-sheet-prompt-review:missing|needs_revision`：使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill，参数 `{ep}`；prompt-fix owner 使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{ep}`（review mode），最多 2 轮。
+- `storyboard-sheet-visual-review:missing|needs_revision`：图片完整时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep}`；dirty 使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{ep} {review_path} {shots...}`，最多 2 轮。
+
 图像模型 `none` 时步骤 3 基础图、步骤 6 sheet.png 与 visual review 均以 `skipped` 成功终态报告；sheet.md 与 prompt review 仍必须完成，不执行 impact。
 
 恢复链只从首个失败节点开始，但不得跨过其上游。首次补齐整批 sheet 不做 impact。
