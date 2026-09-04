@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -11,6 +12,16 @@ const visual = () => read('skills/director-review-storyboard-sheets-visual/SKILL
 const visualSingle = () => read('skills/director-review-storyboard-sheet-visual-single/SKILL.md');
 const imageFix = () => read('skills/creator-fix-storyboard-sheet-image/SKILL.md');
 const impact = () => read('skills/director-review-storyboard-sheet-impact/SKILL.md');
+
+test('storyboard sheet generator script exposes a stable CLI', () => {
+  const script = join(process.cwd(), 'scripts/generate-storyboard-sheets-dreamina.sh');
+  assert.ok(existsSync(script));
+  const result = spawnSync('bash', [script], { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr,
+    'FAIL usage: generate-storyboard-sheets-dreamina.sh <resolution> <model> <card...>\n');
+});
 
 function frontmatter(text) {
   const end = text.indexOf('\n---', 4);
