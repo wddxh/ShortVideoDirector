@@ -45,7 +45,7 @@
 - 使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill，参数 `{ep} {upstream_shot}`。
 
 - direct sheet sequence: 使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{ep} --direct {card} {instruction}`；使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill 并按 owner loop；通过后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {card}`。
-- storyboard sequence: 使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `{ep} incremental {shots...}`（集合变化用 full）；随后使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill 并按 owner loop；通过后重生 cards。
+- storyboard sequence: 使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `{ep} incremental {shots...}`（集合变化用 full）；随后使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill 并按 owner loop。收集 generator/fix 实际写入的 `actual_changed_card_paths`；通过后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {actual_changed_card_paths...}`。读取 `successful shots`，使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep} {successful_shots...}`；随后使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill，参数 `{ep} {successful_shot}`。
 - asset sheet sequence: 基础资产成功重生后，读取直接引用 cards，使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {direct_card_paths...}`。
 - 每次重生读取 router 的 `successful shots`；仅非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep} {successful_shots...}`。Impact 也只从实际成功 shots 开始。
 

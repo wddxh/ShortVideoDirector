@@ -93,3 +93,19 @@ test('interactive visual review receives only successful regeneration scope', ()
   assert.ok(text.includes('director-review-storyboard-sheets-visual` skill，参数 `{集数} {successful_shots...}`'));
   assert.ok(text.includes('successful_shots 为空则不调用 visual review'));
 });
+
+test('interactive asset repair regenerates direct sheets before converter retry', () => {
+  const text = read('skills/check-video/SKILL.md');
+  const block = text.slice(text.indexOf('asset target gate'), text.indexOf('direct sheet retry sequence'));
+  const stages = ['creator-fix-asset', 'creator-generate-images',
+    'direct_affected_card_paths', 'creator-generate-images` skill，参数',
+    'paths {direct_affected_card_paths...}', 'successful shots',
+    'director-review-storyboard-sheets-visual', 'director-review-storyboard-sheet-impact'];
+  let previous = -1;
+  for (const stage of stages) {
+    const index = block.indexOf(stage, previous + 1);
+    assert.ok(index > previous, stage);
+    previous = index;
+  }
+  assert.ok(block.includes('为空则错误并停止'));
+});

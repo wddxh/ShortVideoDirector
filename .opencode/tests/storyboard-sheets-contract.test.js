@@ -507,3 +507,42 @@ test('edit flows order prompt review and regeneration by entry type', () => {
       boardBlock.indexOf('director-review-storyboard-sheet-prompts'));
   }
 });
+
+test('storyboard edit explicitly regenerates actual changed cards before review and impact', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/edit-story/${mode}`);
+    const block = text.slice(text.indexOf('storyboard sequence'));
+    const stages = [
+      'creator-storyboard-sheet-prompts',
+      'director-review-storyboard-sheet-prompts',
+      'creator-generate-images` skill，参数',
+      'actual_changed_card_paths',
+      'successful shots',
+      'director-review-storyboard-sheets-visual',
+      'director-review-storyboard-sheet-impact',
+    ];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = block.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+  }
+});
+
+test('repair owner changes force sheet regeneration before scoped review and impact', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    const block = text.slice(text.indexOf('prompt owner loop'));
+    const stages = ['changed_card_paths', 'creator-generate-images` skill，参数',
+      'paths {changed_card_paths...}', 'successful shots',
+      'director-review-storyboard-sheets-visual', 'director-review-storyboard-sheet-impact'];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = block.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+    assert.ok(block.includes('图像模型 `none`'));
+  }
+});
