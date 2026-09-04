@@ -35,24 +35,22 @@ function dependency(root, path) {
   write(root, path);
 }
 
-function fixture(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'svd-sheet-generation-'));
-  const scripts = join(root, 'scripts');
-  mkdirSync(scripts);
+function installScripts(scripts) {
+  mkdirSync(scripts, { recursive: true });
   copyFileSync(SOURCE, join(scripts, 'generate-storyboard-sheets-dreamina.sh'));
-  write(root, 'scripts/storyboard-sheet-to-prompt.sh', `#!/usr/bin/env bash
+  write(scripts, 'storyboard-sheet-to-prompt.sh', `#!/usr/bin/env bash
 card=$1
 [ -f "$card" ] || { printf 'FAIL converter rejected %s\\n' "$card" >&2; exit 1; }
 IFS= read -r images < "$card"
 [ "$images" != FAIL ] || { printf 'FAIL converter rejected %s\\n' "$card" >&2; exit 1; }
 printf 'IMAGES:%s\\n---\\nprompt for %s\\n' "$images" "$card"
 `);
-  write(root, 'scripts/asset-to-image-path.sh', `#!/usr/bin/env bash
+  write(scripts, 'asset-to-image-path.sh', `#!/usr/bin/env bash
 for card in "$@"; do
   printf '%s\\n' "$card" | sed 's|^assets/|assets/images/|; s|\\.md$|.png|'
 done
 `);
-  write(root, 'scripts/image-gen-dreamina.sh', `#!/usr/bin/env bash
+  write(scripts, 'image-gen-dreamina.sh', `#!/usr/bin/env bash
 prompt=$1 output=$2
 printf '%s\\0' "$@" >> "$CALLS"
 prior=-
@@ -69,18 +67,26 @@ case "$status" in
   pending:*) printf 'PENDING %s\\n' "\${status#pending:}"; exit 2 ;;
 esac
 `);
+}
+
+function fixture(fn) {
+  const workspace = mkdtempSync(join(tmpdir(), 'svd-sheet-generation-'));
+  const root = join(workspace, 'story');
+  mkdirSync(root);
+  const scripts = join(root, 'scripts');
+  installScripts(scripts);
   const env = {
     ...process.env,
     CALLS: join(root, 'calls'),
     ORDER: join(root, 'order'),
     SCENARIOS: join(root, 'scenarios'),
   };
-  try { fn({ root, env }); } finally { rmSync(root, { recursive: true, force: true }); }
+  try { fn({ root, env }); } finally { rmSync(workspace, { recursive: true, force: true }); }
 }
 
-function run(root, env, cards, resolution = '2k', model = '4.0') {
+function run(root, env, cards, resolution = '2k', model = '4.0', script = 'scripts/generate-storyboard-sheets-dreamina.sh') {
   return spawnSync('bash', [
-    'scripts/generate-storyboard-sheets-dreamina.sh', resolution, model, ...cards,
+    script, resolution, model, ...cards,
   ], { cwd: root, env, encoding: 'utf8' });
 }
 
@@ -213,5 +219,30 @@ test('invalid arguments and converter failure never invoke provider', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /^FAIL converter rejected /);
     assert.deepEqual(calls(env.CALLS), []);
+  });
+});
+
+test('rejects a noncanonical shot filename before invoking provider', () => {
+  fixture(({ root, env }) => {
+    const invalid = 'assets/storyboard-sheets/ep01/shot001.md';
+    write(root, invalid, 'assets/images/characters/base.png\n');
+    const result = run(root, env, [invalid]);
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr, `FAIL noncanonical card: ${invalid}\n`);
+    assert.deepEqual(calls(env.CALLS), []);
+  });
+});
+
+test('resolves helper scripts beside coordinator outside the story project', () => {
+  fixture(({ root, env }) => {
+    const pluginScripts = join(dirname(root), 'plugin', 'scripts');
+    installScripts(pluginScripts);
+    rmSync(join(root, 'scripts'), { recursive: true });
+    const path = card(root, 1);
+    dependency(root, 'assets/images/characters/base.png');
+    const script = join(pluginScripts, 'generate-storyboard-sheets-dreamina.sh');
+    const result = run(root, env, [path], '2k', '4.0', script);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, 'OK generated 1 skipped 0\n');
   });
 });
