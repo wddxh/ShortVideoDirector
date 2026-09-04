@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 const SOURCE = join(process.cwd(), 'scripts/generate-storyboard-sheets-dreamina.sh');
+const PENDING_STATE = join(process.cwd(), 'scripts/image-pending-state.mjs');
 
 function write(root, path, content = '') {
   const target = join(root, path);
@@ -38,6 +39,7 @@ function dependency(root, path) {
 function installScripts(scripts) {
   mkdirSync(scripts, { recursive: true });
   copyFileSync(SOURCE, join(scripts, 'generate-storyboard-sheets-dreamina.sh'));
+  copyFileSync(PENDING_STATE, join(scripts, 'image-pending-state.mjs'));
   write(scripts, 'storyboard-sheet-to-prompt.sh', `#!/usr/bin/env bash
 card=$1
 [ -f "$card" ] || { printf 'FAIL converter rejected %s\\n' "$card" >&2; exit 1; }
@@ -208,17 +210,85 @@ test('pending stops exactly and reruns from the first missing output', () => {
     assert.equal(result.stdout, `PENDING job-17 ${cards[0]} ${outputFor(cards[0])}\n`);
     assert.equal(result.stderr, '');
     assert.equal(calls(env.CALLS).length, 1);
+    assert.deepEqual(JSON.parse(readFileSync(join(root,
+      'assets/images/pending.json'), 'utf8')), [{
+      submit_id: 'job-17',
+      card_path: cards[0],
+      output_path: outputFor(cards[0]),
+      type: 'storyboard-sheet',
+    }]);
 
     result = run(root, env, cards);
     assert.equal(result.status, 2);
-    assert.equal(calls(env.CALLS).length, 2);
+    assert.equal(result.stdout, `PENDING job-17 ${cards[0]} ${outputFor(cards[0])}\n`);
+    assert.equal(calls(env.CALLS).length, 1);
 
     dependency(root, outputFor(cards[0]));
     result = run(root, env, cards);
+    assert.equal(result.status, 2);
+    assert.equal(calls(env.CALLS).length, 1);
+    const removed = spawnSync('node', [
+      'scripts/image-pending-state.mjs', 'remove', outputFor(cards[0]),
+    ], { cwd: root, encoding: 'utf8' });
+    assert.equal(removed.status, 0, removed.stderr);
+    assert.deepEqual(JSON.parse(readFileSync(join(root,
+      'assets/images/pending.json'), 'utf8')), []);
+    result = run(root, env, cards);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(calls(env.CALLS).length, 3);
-    assert.equal(calls(env.CALLS)[2][1], outputFor(cards[1]));
+    assert.equal(calls(env.CALLS).length, 2);
+    assert.equal(calls(env.CALLS)[1][1], outputFor(cards[1]));
     assert.equal(result.stdout, 'OK generated 1 skipped 1\n');
+  });
+});
+
+test('force rerun finds a later pending before deleting earlier outputs', () => {
+  fixture(({ root, env }) => {
+    const cards = [card(root, 1), card(root, 2)];
+    dependency(root, 'assets/images/characters/base.png');
+    dependency(root, outputFor(cards[0]));
+    const pending = spawnSync('node', [
+      'scripts/image-pending-state.mjs', 'upsert', 'job-22', cards[1],
+      outputFor(cards[1]), 'storyboard-sheet',
+    ], { cwd: root, encoding: 'utf8' });
+    assert.equal(pending.status, 0, pending.stderr);
+
+    const result = run(root, env, cards, '2k', '4.0', undefined, true);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout,
+      `PENDING job-22 ${cards[1]} ${outputFor(cards[1])}\n`);
+    assert.equal(existsSync(join(root, outputFor(cards[0]))), true);
+    assert.equal(calls(env.CALLS).length, 0);
+  });
+});
+
+test('ordinary rerun finds any pending before invoking the provider', () => {
+  fixture(({ root, env }) => {
+    const cards = [card(root, 1), card(root, 2)];
+    dependency(root, 'assets/images/characters/base.png');
+    const pending = spawnSync('node', [
+      'scripts/image-pending-state.mjs', 'upsert', 'job-23', cards[1],
+      outputFor(cards[1]), 'storyboard-sheet',
+    ], { cwd: root, encoding: 'utf8' });
+    assert.equal(pending.status, 0, pending.stderr);
+
+    const result = run(root, env, cards);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout,
+      `PENDING job-23 ${cards[1]} ${outputFor(cards[1])}\n`);
+    assert.equal(calls(env.CALLS).length, 0);
+  });
+});
+
+test('malformed pending state fails before invoking the provider', () => {
+  fixture(({ root, env }) => {
+    const path = card(root, 1);
+    dependency(root, 'assets/images/characters/base.png');
+    write(root, 'assets/images/pending.json', '{not-json');
+
+    const result = run(root, env, [path]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /cannot read pending state/);
+    assert.equal(calls(env.CALLS).length, 0);
   });
 });
 

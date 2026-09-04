@@ -237,6 +237,13 @@ test('visual handoff records impact without contaminating clean statuses', () =>
   assert.match(text, /no_dependency.*unaffected.*不.*dirty/s);
   assert.match(text, /成功.*enqueue/s);
   assert.match(text, /失败.*停止/s);
+  const match = text.match(/## Impact Round 合同\n\n```json\n([\s\S]*?)\n```/);
+  assert.ok(match);
+  const contract = JSON.parse(match[1]);
+  assert.equal(contract.affected_write, 'append needs_revision round');
+  assert.equal(contract.mutate_closed_pass, false);
+  assert.equal(contract.fix_failure_latest, 'needs_revision');
+  assert.equal(contract.fix_success, 'scoped review appends next round');
 });
 
 test('all episode modes use the same ordered sheet subchain', () => {
@@ -473,10 +480,9 @@ test('asset creation reads script in both modes and novel only for series', () =
   assert.ok(text.includes('novel.md` — series mode'));
 });
 
-test('targeted sheet generation is forceful while basic paths retain existing policy', () => {
+test('targeted sheet generation remains forceful', () => {
   const router = read('skills/creator-generate-images/SKILL.md');
   assert.ok(router.includes('sheet card paths: force'));
-  assert.ok(router.includes('basic asset paths: caller-managed'));
   assert.ok(read('skills/creator-image-dreamina/SKILL.md').includes(
     'generate-storyboard-sheets-dreamina.sh "{图片分辨率}" "{模型版本}" --force'));
   assert.ok(read('skills/creator-image-dreamina/SKILL.md').includes(
@@ -486,6 +492,17 @@ test('targeted sheet generation is forceful while basic paths retain existing po
   const fix = imageFix();
   assert.equal(fix.includes('rm '), false);
   assert.ok(fix.includes('router owns targeted PNG deletion'));
+});
+
+test('targeted basic paths force replacement while basic scope still skips existing', () => {
+  const router = read('skills/creator-generate-images/SKILL.md');
+  const provider = read('skills/creator-image-dreamina/SKILL.md');
+  assert.ok(router.includes('basic asset paths: force'));
+  assert.ok(router.includes('normal basic: skip existing'));
+  assert.ok(router.includes('provider failure leaves target missing'));
+  assert.ok(provider.includes('image-gen-dreamina.sh --force'));
+  assert.ok(provider.includes('`basic` 不传 `--force`'));
+  assert.doesNotMatch(read('skills/creator-fix-asset-image/SKILL.md'), /删除对应 PNG/);
 });
 
 test('repair generation steps do not use unscoped visual review', () => {
@@ -620,6 +637,21 @@ test('basic image pending contract drains each tier before advancing', () => {
   assert.equal(contract.persist_path, 'assets/images/pending.json');
   assert.equal(contract.advance_when_pending, false);
   assert.equal(contract.resubmit_pending, false);
+  assert.equal(contract.persist_before_poll, true);
+  assert.equal(contract.resume_pending_first, true);
+});
+
+test('sheet pending contract persists before returning or polling', () => {
+  const text = read('skills/creator-image-dreamina/SKILL.md');
+  const match = text.match(/## Sheet Pending 状态合同\n\n```json\n([\s\S]*?)\n```/);
+  assert.ok(match);
+  const contract = JSON.parse(match[1]);
+  assert.equal(contract.persist_before_return, true);
+  assert.equal(contract.persist_before_poll, true);
+  assert.equal(contract.resume_pending_first, true);
+  assert.equal(contract.remove_before_resume, true);
+  assert.deepEqual(contract.entry_fields,
+    ['submit_id', 'card_path', 'output_path', 'type']);
 });
 
 test('repair basic image recovery runs scoped visual fix loop in both modes', () => {
@@ -676,6 +708,47 @@ test('basic visual reviewer supports explicit paths without changing its default
   assert.equal(contract.explicit_may_include_existing, true);
   assert.equal(contract.validate_path_type, true);
   assert.doesNotMatch(text, /\$ARGUMENTS\[[0-9]+\.\.\.?\]/);
+});
+
+test('basic prompt reviewer dispatches explicit existing paths after a pass', () => {
+  const text = read('skills/director-review-asset-prompts/SKILL.md');
+  const match = text.match(/## Scope 优先级合同\n\n```json\n([\s\S]*?)\n```/);
+  assert.ok(match);
+  const contract = JSON.parse(match[1]);
+  assert.equal(contract.argument_parser, 'complete $ARGUMENTS token sequence');
+  assert.deepEqual(contract.candidate_sources, ['explicit', 'previous_dirty']);
+  assert.equal(contract.default_source, 'parse-new-assets.sh');
+  assert.equal(contract.explicit_may_include_existing, true);
+  assert.equal(contract.pure_pass_without_explicit, 'short_circuit');
+  assert.equal(contract.pure_pass_with_explicit, 'dispatch_explicit');
+  assert.doesNotMatch(text, /\$ARGUMENTS\[[0-9]+\.\.\.?\]/);
+});
+
+test('existing asset edit callers pass explicit paths to prompt review', () => {
+  for (const [path, args] of [
+    ['skills/edit-story/series.md', '{ep} basic {asset_path}'],
+    ['skills/edit-story/short.md', 'ep01 basic {asset_path}'],
+    ['skills/check-video/SKILL.md', '{集数} basic {asset_path}'],
+  ]) {
+    const text = read(path);
+    const fix = text.indexOf('creator-fix-asset` skill');
+    const review = text.indexOf(
+      `director-review-asset-prompts\` skill，参数 \`${args}\``, fix);
+    assert.ok(fix >= 0 && review > fix, path);
+  }
+});
+
+test('deprecated repair commands and novel word config are absent', () => {
+  for (const path of [
+    'skills/generate-episode-pipeline/new-series.md',
+    'skills/generate-episode-pipeline/continue-series.md',
+    'skills/generate-episode-pipeline/short.md',
+  ]) {
+    const text = read(path);
+    assert.ok(text.includes('/repair-story <ep>'), path);
+    assert.doesNotMatch(text, /\/(?:series|short)-repair-story/, path);
+  }
+  assert.doesNotMatch(read('README.md'), /^\| 每集小说字数 \|/m);
 });
 
 test('basic image routing reports actual successful asset paths', () => {

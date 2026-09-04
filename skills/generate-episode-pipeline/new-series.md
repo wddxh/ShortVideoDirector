@@ -22,7 +22,7 @@
 **中断 pipeline 行为**: main session 直接 print:
 > ❌ <ep> <step name> 子代理任务连续 4 次失败 (3 次自动重试均未成功)
 > 最后一次错误: <error 摘要>
-> Pipeline 已中断。请检查日志, 修复问题后用 /series-repair-story <ep> 续跑。
+> Pipeline 已中断。请检查日志, 修复问题后用 /repair-story <ep> 续跑。
 
 print 后立即返回, **不再派发任何后续 step**, 不再调用 review / fix / Phase X 任何后续逻辑。
 

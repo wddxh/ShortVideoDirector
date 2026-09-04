@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const SCRIPT = join(process.cwd(), 'scripts/image-gen-dreamina.sh');
 
-function runImage({ refs = '', response, prompt = 'draw this' }) {
+function runImage({ refs = '', response, prompt = 'draw this', force = false,
+  existing = false }) {
   const dir = mkdtempSync(join(tmpdir(), 'svd-image-dreamina-'));
   const fake = join(dir, 'dreamina');
   const argsFile = join(dir, 'args');
@@ -17,8 +18,10 @@ printf '%s\\n' "$DREAMINA_RESPONSE"
 `);
   chmodSync(fake, 0o755);
 
+  const output = join(dir, 'output.png');
+  if (existing) writeFileSync(output, 'old');
   const result = spawnSync('bash', [
-    SCRIPT, prompt, join(dir, 'output.png'), '4:3', '2k', '4.0', refs,
+    SCRIPT, ...(force ? ['--force'] : []), prompt, output, '4:3', '2k', '4.0', refs,
   ], {
     encoding: 'utf8',
     env: {
@@ -29,7 +32,8 @@ printf '%s\\n' "$DREAMINA_RESPONSE"
     },
   });
   const args = readFileSync(argsFile).toString('utf8').split('\0').slice(0, -1);
-  return { result, args, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+  return { result, args, output,
+    cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
 const QUERYING = '{"gen_status":"querying","submit_id":"image-123"}';
@@ -62,6 +66,18 @@ test('prints PENDING and the submit id for querying responses', () => {
   try {
     assert.equal(run.result.status, 2);
     assert.equal(run.result.stdout, 'PENDING image-123\n');
+  } finally {
+    run.cleanup();
+  }
+});
+
+test('force removes an existing target before a provider failure', () => {
+  const run = runImage({ response: '{"gen_status":"fail","fail_reason":"rejected"}',
+    force: true, existing: true });
+  try {
+    assert.equal(run.result.status, 1);
+    assert.equal(run.args.includes('--prompt=draw this'), true);
+    assert.equal(existsSync(run.output), false);
   } finally {
     run.cleanup();
   }

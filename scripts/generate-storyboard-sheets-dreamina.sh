@@ -23,6 +23,7 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 CONVERTER="$SCRIPT_DIR/storyboard-sheet-to-prompt.sh"
 PATH_CONVERTER="$SCRIPT_DIR/asset-to-image-path.sh"
 IMAGE_GENERATOR="$SCRIPT_DIR/image-gen-dreamina.sh"
+PENDING_STATE="$SCRIPT_DIR/image-pending-state.mjs"
 
 RECORDS=()
 for CARD in "$@"; do
@@ -43,6 +44,19 @@ while IFS= read -r RECORD; do
   SORTED_RECORDS+=("$RECORD")
 done <<< "$(printf '%s\n' "${RECORDS[@]}" | sort -s -t '|' -k1,1n)"
 RECORDS=("${SORTED_RECORDS[@]}")
+
+for RECORD in "${RECORDS[@]}"; do
+  CARD=${RECORD#*|}
+  OUTPUT=$(bash "$PATH_CONVERTER" "$CARD") || fail "cannot derive output: $CARD"
+  EXISTING_PENDING=$(node "$PENDING_STATE" get "$OUTPUT" 2>/dev/null)
+  PENDING_STATUS=$?
+  if [ "$PENDING_STATUS" -eq 0 ]; then
+    printf '%s\n' "$EXISTING_PENDING"
+    exit 2
+  elif [ "$PENDING_STATUS" -ne 1 ]; then
+    fail 'cannot read pending state'
+  fi
+done
 
 if "$FORCE"; then
   for RECORD in "${RECORDS[@]}"; do
@@ -87,6 +101,8 @@ for RECORD in "${RECORDS[@]}"; do
       ;;
     2)
       ID=${RESULT#PENDING }
+      node "$PENDING_STATE" upsert "$ID" "$CARD" "$OUTPUT" storyboard-sheet || \
+        fail "cannot persist pending: $CARD"
       printf 'PENDING %s %s %s\n' "$ID" "$CARD" "$OUTPUT"
       exit 2
       ;;

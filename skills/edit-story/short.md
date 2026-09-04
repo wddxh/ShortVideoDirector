@@ -33,7 +33,7 @@
 - 使用 Skill tool 调用 `director-fix-outline` skill，传 mode=short、ep01、review path、extra instructions。随后使用 Skill tool 调用 `director-review-outline` skill，参数 `short ep01`。
 - 使用 Skill tool 调用 `scriptwriter-fix-script` skill，参数 `short ep01 --direct {target} {instruction}`。随后使用 Skill tool 调用 `director-review-script` skill，参数 `short ep01`。
 - Outline/script 修改后重新读取终态资产清单；存在新增且缺失的资产卡时，先使用 Skill tool 调用 `creator-create-assets` skill，参数 `ep01`。只有已存在且被直接修改的卡才使用 `creator-fix-asset`。
-- 使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} {意见}`。随后使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `ep01 basic`。
+- 使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} {意见}`。随后使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `ep01 basic {asset_path}`。
 - 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {asset_paths...}`，其中 ep=ep01。随后使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings ep01`。
 - 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，参数 `ep01 --direct {target} {instruction}`。随后使用 Skill tool 调用 `director-review-storyboard` skill，参数 `ep01`。
 - 对 visual dirty 使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `ep01 {review_path} {shots...}`。

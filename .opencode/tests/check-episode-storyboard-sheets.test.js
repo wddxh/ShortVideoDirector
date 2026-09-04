@@ -231,6 +231,31 @@ test('review gates require the latest round to be a pure pass', () => {
   });
 });
 
+test('an affected impact failure keeps the visual review nonterminal', () => {
+  project({}, (result, root) => {
+    write(root, 'story/episodes/ep01/.review-storyboard-sheets-visual.md', `## 第 1 轮 (test) - 通过
+
+---
+<!-- /round-1 -->
+
+## 第 2 轮 (test) - 需修改 (1 shots)
+
+### 连续性影响评估
+shot01|shot02|affected|align state|fix_failed
+
+### dirty list
+assets/storyboard-sheets/ep01/shot02.md|assets/images/storyboard-sheets/ep01/shot02.png
+
+---
+<!-- /round-2 -->
+`);
+    const checked = run(root);
+    assert.equal(checked.status, 1);
+    assert.match(checked.stdout,
+      /^storyboard-sheet-visual-review:needs_revision$/m);
+  });
+});
+
 test('legacy detector runs first and propagates actionable exit 2', () => {
   project({}, (result, root) => {
     write(root, 'story/episodes/ep01/keyframes.json', '{}');

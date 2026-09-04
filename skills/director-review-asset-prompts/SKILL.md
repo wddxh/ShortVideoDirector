@@ -12,13 +12,27 @@ model: opus
 
 ### 文件读取
 - `config.md` — 必须读取（确认语言设置）
-- 本集所有 asset .md 卡列表（由 Glob 收集）
+- 按下方 Scope 合同得到的候选 asset .md 卡；显式 scope 不 Glob 扩大
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取
 
 ### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 集数（如 `ep01`）或全局范围（`assets`）
-- `$ARGUMENTS[1]` — 必须为 `basic`。本 generic reviewer 是 basic-only，仅处理 character / location / item / building。
+- 本 reviewer 是 basic-only。解析完整 `$ARGUMENTS` token 序列：token 0 为集数（如 `ep01`）或全局范围（`assets`）；token 1 必须为 `basic`；其余 token 是可选显式 basic asset card paths。
+
+## Scope 优先级合同
+
+```json
+{
+  "argument_parser": "complete $ARGUMENTS token sequence",
+  "candidate_sources": ["explicit", "previous_dirty"],
+  "default_source": "parse-new-assets.sh",
+  "explicit_may_include_existing": true,
+  "pure_pass_without_explicit": "short_circuit",
+  "pure_pass_with_explicit": "dispatch_explicit"
+}
+```
+
+显式路径必须 canonical、存在且属于 character/location/item/building；按 path 去重，不 Glob 扩大范围。无显式路径且无 previous dirty 时，默认仍只调用 `parse-new-assets.sh` 收集本集新增资产。
 
 ## 职责描述
 
@@ -34,11 +48,12 @@ model: opus
       - 文件不存在 → 本次为第 1 轮 → 跳到 step 1（按现有方式收集全量入参）
       - 文件存在但 grep `<!-- /round-([0-9]+) -->` 无命中 → 报错退出，stderr「review md 文件存在但缺 round footer，可能是手工编辑破坏 / 旧版本 schema；请删除该文件后重跑」
       - 命中 → 取最大 N，本次为第 N+1 轮
-   c. **最后一轮已通过检查**：grep round-N heading 是否含「- 通过」→ 是 → 直接返回 `pass`，**不写新轮段、不派发任何 single review**（防止重复触发累积通过段）
-   d. 第 N+1 轮：在 round-N 段内 (grep 锁定 `## 第 N 轮` 到 `<!-- /round-N -->` 之间) 提取 `### dirty list` 段每行 asset_path → 作为本轮入参（替代 step 1 全量收集）
+   c. **最后一轮已通过检查**：仅无 explicit paths 时直接返回 `pass`，不写新轮段、不派发 single；有 explicit paths 时仍 dispatch explicit，不能被历史 pass 短路。
+   d. 第 N+1 轮：在 round-N 段内提取 `### dirty list` 每行 asset_path，与 explicit paths 合并去重作为本轮入参。
    e. 入参为空 → 执行 step 10 写一轮「通过」段 + footer → 跑 step 11 自检 → 返回 `pass`（自检失败则报错退出，不返回 pass）
-1. **收集 asset 列表**（按 $ARGUMENTS[1] scope 过滤）：
-   - $ARGUMENTS[0] = epXX：scope 必须为 `basic`，调用 `parse-new-assets.sh` 得本集新增 basic asset 列表。
+1. **收集 asset 列表**（按 scope 合同）：
+   - epXX 无 explicit 且无 previous dirty：调用 `parse-new-assets.sh` 得本集新增 basic asset 列表。
+   - epXX 有 explicit 或 previous dirty：只用二者 union，允许 existing assets。
    - $ARGUMENTS[0] = "assets" → Glob `assets/**/*.md`（scope 参数忽略；全集合）
 2. **分批并行派发**：每批 ≤ 5 个 asset，用 `task` 工具并行调 `director-review-asset-prompt-single($ARGUMENTS[0]=asset_path)`
 3. **聚合结果**：收集所有子任务返回值——空字符串（通过）和 JSON 对象（需修改）
@@ -71,7 +86,7 @@ model: opus
 - **意见格式不规整** — 直接拼 JSON 不转可读 markdown — 输出格式见下
 - **不去重 asset** — outline 资产清单可能含重复名 — Glob 后去重再派发
 - **scope 越界** — 漏传 `basic` 或传入其他 scope 会污染职责边界；立即拒绝。
-- **改用旧 Glob outline 资产清单 superset** — 旧实现读「本集资产清单」整段含「已有资产（本集出场）」 → 重审已有资产浪费 token + 非确定性变更污染稳定资产 — 必须用 `parse-new-assets.sh` 仅取「新增资产」段
+- **默认 scope 改用 outline 资产清单 superset** — 无 explicit paths 时读整段会无差别重审已有资产 — 默认必须用 `parse-new-assets.sh` 仅取新增资产；调用方明确传入的 existing paths 仍按显式 scope 审核
 - **沿用旧 anchor (末尾 50 字符)** — 多轮后末尾不唯一会让 Edit 报错 — 必须用 `<!-- /round-{N} -->` 严格唯一锚点
 - **漏写 round footer** — 不写 `---\n<!-- /round-{N} -->` → 下轮 append 找不到 anchor → 全链路断 — round footer 是硬约束
 - **第 N+1 轮重审全量** — 模型本能再次 Glob 收全量 → 浪费 + 误判 — 必须按上轮 round-N dirty list 收敛

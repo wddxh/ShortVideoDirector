@@ -86,14 +86,25 @@ assets/storyboard-sheets/{ep}/shotNN.md|assets/images/storyboard-sheets/{ep}/sho
 
 ## 连续性影响评估 Handoff
 
-图片修复成功后，orchestrator 仅对卡片中直接引用当前 sheet 的下游调用 impact skill；不得按编号机械选择 N+1。使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill，并把 exact JSON 追加到本轮 `### 连续性影响评估`：
+## Impact Round 合同
 
-使用 Edit 将记录插入当前轮 footer 之前；section 不存在时先创建该 heading。保留 `<!-- /round-{N} -->` 唯一且仍位于轮次末尾；每次写后 Read 自检。
+```json
+{
+  "affected_write": "append needs_revision round",
+  "mutate_closed_pass": false,
+  "fix_failure_latest": "needs_revision",
+  "fix_success": "scoped review appends next round"
+}
+```
+
+图片修复成功后，orchestrator 仅对卡片中直接引用当前 sheet 的下游调用 impact skill；不得按编号机械选择 N+1。使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill。
+
+`no_dependency` / `unaffected` 仅在当前 handoff 尚未关闭时记录；若 latest pass 已关闭则不写回该轮。`affected` 必须按下方规则 append 新 round，不得把 dirty 插入任何已关闭 pass round。每次写后 Read 自检新 footer 唯一。
 
 - `no_dependency` 或 `unaffected`：记录 reason，不加入 dirty，并停止该分支。
-- `affected`：追加 `card|image|impact|{fix_direction}`，同时把 `card|image` 加入 `### dirty list`；使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{ep} {review-path} shotNN`（执行协议：`creator-fix-storyboard-sheet-image {ep} {review-path} shotNN`）。
-- fix 失败：记录失败并停止该分支，不 enqueue。
+- `affected`：严禁修改已关闭的 pass round。Append 一个新 `需修改` round，写入 impact record、`card|image|impact|{fix_direction}`、`card|image` dirty 和唯一 footer；再使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{ep} {review-path} shotNN`（执行协议：`creator-fix-storyboard-sheet-image {ep} {review-path} shotNN`）。
+- fix 失败：在该非 pass round 记录失败并停止，latest 保持 needs_revision，不 enqueue。
 - fix 成功：记录成功并 enqueue 该 shot，继续检查卡片中直接引用它的依赖项。
-- 每次 affected fix 后读取 `successful regenerated shots`；仅非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep} {successful_regenerated_shots...}`，再继续 impact branch。
+- 每次 affected fix 后读取 `successful regenerated shots`；仅非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep} {successful_regenerated_shots...}`，由 scoped review append 下一轮（成功时为 pass），再继续 impact branch。
 
 不得从关键词机械判定影响状态；只消费 impact reviewer JSON。初次全量生成不运行影响传播。
