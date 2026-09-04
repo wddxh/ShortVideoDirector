@@ -14,7 +14,7 @@
 ## Skill 调用
 
 - `使用 Skill tool 调用 <skill-name> skill` 表示调用或执行名为 `<skill-name>` 的 Codex 适配层 skill。
-- 如果不能直接调用 skill，则读取 `skills/<skill-name>/SKILL.md`，并带着原始参数执行其中的说明。
+- 如果不能直接调用 skill，则读取 `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/SKILL.md`，并带着原始参数执行其中的说明。
 - 传递参数时保留源 skill 的 `$ARGUMENTS` 约定。
 
 ## Agent 调用

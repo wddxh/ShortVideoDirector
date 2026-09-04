@@ -26,7 +26,9 @@ model: sonnet
 
 不得修改基本信息、引用资产、heading、文件名、Panel 数量或 storyboard；不得创建/删除 card。不生图；不得读取、生成、删除或重生成任何图片，不调用生图 skill。
 
-`owner=generator|upstream-storyboard` 的意见不处理，并在结果中明示“由 orchestrator 处理”：generator 项应重跑 generator，upstream-storyboard 项应先修 storyboard 再 full 生成。没有 `owner=prompt-fix` 项时不编辑任何文件并正常返回。
+读取最后一轮 `### orchestrator handoff`。执行顺序必须是 upstream-storyboard → generator → prompt-fix → 一次 review；每个 owner 工作单都包含精确完整 card paths 和 review path。先核验 upstream-storyboard 和 generator 的问题在当前 storyboard/cards 中已解决；任一未解决则返回 blocked。两者均已解决后才处理 prompt-fix；**Fix 不得先跑**。
+
+`owner=generator|upstream-storyboard` 的意见不处理，并在结果中明示由 orchestrator 处理。没有 `owner=prompt-fix` 项时不编辑任何文件并正常返回。
 
 ## 流程
 
@@ -41,8 +43,11 @@ model: sonnet
 ```text
 changed shots: shotNN ... | none
 no_image_generated: true
-orchestrator handles owner=generator: shotNN ... | none
-orchestrator handles owner=upstream-storyboard: shotNN ... | none
+orchestrator handles owner=generator: assets/storyboard-sheets/{ep}/shot03.md, assets/storyboard-sheets/{ep}/shot08.md | none
+orchestrator handles owner=upstream-storyboard: assets/storyboard-sheets/{ep}/shot09.md | none
+orchestrator handles owner=prompt-fix: assets/storyboard-sheets/{ep}/shot10.md | none
+review path: story/episodes/{ep}/.review-storyboard-sheet-prompts.md
+next: once upstream-storyboard, generator, and prompt-fix complete, run 一次 review
 unhandled prompt-fix: location: reason ... | none
 ```
 

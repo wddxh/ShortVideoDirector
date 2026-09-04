@@ -85,16 +85,16 @@ def render_wrapper(source_skill: Path, mapping: str) -> str:
     frontmatter_lines, _body = split_frontmatter(source_text, source_skill)
     frontmatter_values = parse_frontmatter(frontmatter_lines, source_skill)
 
-    skill_dir = source_skill.parent
-    relative_source = source_skill.relative_to(ROOT).as_posix()
-    relative_skill_dir = skill_dir.relative_to(ROOT).as_posix()
+    skill_name = source_skill.parent.name
+    plugin_source = f"${{CLAUDE_PLUGIN_ROOT}}/skills/{skill_name}/SKILL.md"
+    plugin_skill_dir = f"${{CLAUDE_PLUGIN_ROOT}}/skills/{skill_name}/"
 
     return (
         render_frontmatter(frontmatter_values, source_skill)
         + "\n"
         + "# Codex 适配器\n\n"
         + "这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 "
-        + f"`{relative_source}`。\n\n"
+        + f"`{plugin_source}`。\n\n"
         + "不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改"
         + "源 skill，然后运行 `python3 .codex/build-codex-skills.py` "
         + "重新生成适配层。\n\n"
@@ -102,12 +102,12 @@ def render_wrapper(source_skill: Path, mapping: str) -> str:
         + mapping.rstrip()
         + "\n\n"
         + "## 执行源 Skill\n\n"
-        + f"1. 读取 `{relative_source}`，并使用用户的原始参数执行该 skill 的说明。\n"
-        + f"2. 将 `{relative_skill_dir}/` 视为源 skill 目录。"
+        + f"1. 读取 `{plugin_source}`，并使用用户的原始参数执行该 skill 的说明。\n"
+        + f"2. 将 `{plugin_skill_dir}` 视为源 skill 目录。"
         + "当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，"
         + "相对该目录解析。\n"
-        + "3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` "
-        + "等仓库根路径视为相对当前工作区根目录的路径。\n"
+        + "3. plugin directory 是 `${CLAUDE_PLUGIN_ROOT}`；plugin 内 scripts/agents/skills "
+        + "相对它解析。项目的 story/assets/config.md 仍相对当前工作区根目录。\n"
         + "4. 执行本适配层时，不要复制或修改源 skill 说明。\n"
     )
 

@@ -7,7 +7,7 @@ argument-hint: "[故事材料|文件路径]"
 
 # Codex 适配器
 
-这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `skills/series-video/SKILL.md`。
+这是生成的 Codex 适配层。源 skill 仍是唯一事实来源，位置为 `${CLAUDE_PLUGIN_ROOT}/skills/series-video/SKILL.md`。
 
 不要手动编辑这个适配层。只有在确实需要改变 Claude 行为时才修改源 skill，然后运行 `python3 .codex/build-codex-skills.py` 重新生成适配层。
 
@@ -29,7 +29,7 @@ argument-hint: "[故事材料|文件路径]"
 ## Skill 调用
 
 - `使用 Skill tool 调用 <skill-name> skill` 表示调用或执行名为 `<skill-name>` 的 Codex 适配层 skill。
-- 如果不能直接调用 skill，则读取 `skills/<skill-name>/SKILL.md`，并带着原始参数执行其中的说明。
+- 如果不能直接调用 skill，则读取 `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/SKILL.md`，并带着原始参数执行其中的说明。
 - 传递参数时保留源 skill 的 `$ARGUMENTS` 约定。
 
 ## Agent 调用
@@ -73,7 +73,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "总集数"
 
 ## 执行源 Skill
 
-1. 读取 `skills/series-video/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
-2. 将 `skills/series-video/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
-3. 将 `scripts/`、`agents/`、`story/`、`assets/` 和 `config.md` 等仓库根路径视为相对当前工作区根目录的路径。
+1. 读取 `${CLAUDE_PLUGIN_ROOT}/skills/series-video/SKILL.md`，并使用用户的原始参数执行该 skill 的说明。
+2. 将 `${CLAUDE_PLUGIN_ROOT}/skills/series-video/` 视为源 skill 目录。当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，相对该目录解析。
+3. plugin directory 是 `${CLAUDE_PLUGIN_ROOT}`；plugin 内 scripts/agents/skills 相对它解析。项目的 story/assets/config.md 仍相对当前工作区根目录。
 4. 执行本适配层时，不要复制或修改源 skill 说明。

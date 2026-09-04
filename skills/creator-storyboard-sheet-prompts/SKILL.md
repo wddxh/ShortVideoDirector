@@ -22,11 +22,15 @@ model: sonnet
 
 - `$ARGUMENTS[0]`：ep，如 `ep01`。
 - `$ARGUMENTS[1]`：模式，`full` 或 `incremental`；缺省 `full`。
-- `$ARGUMENTS[2]`：`incremental` 必填的 shots，空格分隔 canonical shot 编号，如 `shot03 shot08`。
+- `$ARGUMENTS[2...]`：`incremental` 必填的 shots；从索引 2 到末尾，每个 token 必须是 canonical `shotNN`（如 `shot03` `shot08`）。非法、重复、缺失或不属于当前 storyboard 的 token 均拒绝整个运行，不做部分写入。
+
+示例参数：`ep01 incremental shot03 shot08`。必须保留多个独立 token；不得把多个 shot 合并成一个未解析字符串。
 
 ## 边界
 
 唯一可写产物是 `assets/storyboard-sheets/{ep}/shotNN.md`。不修改 `storyboard.md`、config、资产卡、review 文件或 pipeline；不生图，也不删除或读取图片。旧 pipeline 未调用本 skill 时行为保持不变。
+
+skill frontmatter 的 `allowed-tools` 只会收窄 skill 权限，不能恢复 `agents/creator.md` 未授予的 agent tools；因此 Creator agent 必须同时具备 Grep 和 Bash。
 
 编号有两种严格用途：文件名保持 canonical `shotNN.md`；card H1 写 `# shotNN Storyboard Sheet`，基本信息的对应分镜展示为 `shot N`（N 是无前导零整数），Panel heading 从 `### PANEL 01` 起连续编号，数量字段写 `- Panel 数量：M`。不得把对应分镜写成 `shotNN`，也不得省略 `Panel` 后的空格。
 
@@ -36,12 +40,13 @@ model: sonnet
 
 1. 解析 storyboard 的全集顺序 `### shot N`；仅为文件名将 N 格式化为 `shotNN`，card 的“对应分镜”保留 `shot N` 整数展示。提取时长、景别、机位/摄影机运动、出场人物、引用资产及带时间码的画面 beat。
 2. 校验每个 shot 的 character、location、item、building 等资产均可唯一解析到现有 `.md`。KF 不是 sheet card 的参考资产；不要把它当作 current asset link。
-3. `full`：为 storyboard 中所有 shot 创建或覆盖 card；删除目录中不再对应任何 storyboard shot 的孤儿 orphan card。全覆盖不表示无条件改写：内容相同计 preserved。
-4. `incremental`：只处理 `$ARGUMENTS[2]` 的 shots，其他 card 保持不动。开始前比较 storyboard shot 集合和现有 card 集合；发现新增、删除、重排或编号变化，拒绝增量并要求 `full`。不得删除 orphan。
-5. 按 rules 分解动态 Panel，无固定数量和上限；生成完整 prompt 后写 card。失败 shot 不写半成品，其他 shot 可继续。
-6. 写后重新读取目标 card，确认 section 顺序、时间覆盖、链接路径与 Markdown 子集；只报告磁盘实际变化。
+3. 写任何 card 前用 Bash 执行 `mkdir -p "assets/storyboard-sheets/{ep}"`；首次 `full` 不能假设目录已存在。
+4. `full`：为 storyboard 中所有 shot 创建或覆盖 card；用 Bash `rm -- "{orphan_path}"` 删除已确认的孤儿 orphan card。全覆盖不表示无条件改写：内容相同计 preserved。
+5. `incremental`：只处理 `$ARGUMENTS[2...]` 的 canonical unique tokens，其他 card 保持不动。比较 storyboard shot 集合和现有 card 集合；发现新增、删除、重排或编号变化，拒绝增量并要求 `full`。不得删除 orphan。
+6. 按 rules 分解动态 Panel，无固定数量和上限；生成完整 prompt 后写 card。失败 shot 不写半成品，其他 shot 可继续。
+7. 写后重新读取目标 card，确认 section 顺序、时间覆盖、链接路径与 Markdown 子集；只报告磁盘实际变化。
 
-禁止用 Bash 写文件；Bash 仅可用于只读校验及在 `full` 中删除已确认的 orphan `.md`。
+禁止用 Bash 写 card；Bash 仅可用于 `mkdir -p` 创建目标目录、只读校验，以及在 `full` 中用 `rm --` 删除已确认的 orphan `.md`。
 
 ## 返回
 

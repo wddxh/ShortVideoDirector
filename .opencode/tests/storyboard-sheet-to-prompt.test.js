@@ -380,7 +380,32 @@ test('rejects a card symlink escaping the expected episode directory', () => {
     mkdirSync(join(root, 'assets/storyboard-sheets/ep01'), { recursive: true });
     symlinkSync('../../../outside/shot01.md',
       join(root, 'assets/storyboard-sheets/ep01/shot01.md'));
-    fail(run(root, 'assets/storyboard-sheets/ep01/shot01.md'), /card path escapes/);
+    fail(run(root, 'assets/storyboard-sheets/ep01/shot01.md'), /regular file/);
+  });
+});
+
+test('rejects the card itself when it is a symlink inside the episode directory', () => {
+  project((root) => {
+    write(root, 'assets/storyboard-sheets/ep01/source.md',
+      card('- [甲](../../characters/甲.md)'));
+    symlinkSync('source.md', join(root, 'assets/storyboard-sheets/ep01/shot01.md'));
+    fail(run(root, 'assets/storyboard-sheets/ep01/shot01.md'), /regular file/);
+  });
+});
+
+test('rejects a FIFO card without blocking', (t) => {
+  project((root) => {
+    const target = join(root, 'assets/storyboard-sheets/ep01/shot01.md');
+    mkdirSync(dirname(target), { recursive: true });
+    const made = spawnSync('mkfifo', [target], { encoding: 'utf8' });
+    if (made.error?.code === 'ENOENT') return t.skip('mkfifo unavailable');
+    assert.equal(made.status, 0, made.stderr);
+    const result = spawnSync('node', [join(process.cwd(),
+      'scripts/storyboard-sheet-to-prompt.mjs'),
+    'assets/storyboard-sheets/ep01/shot01.md', 'ep01'], {
+      cwd: root, encoding: 'utf8', timeout: 500,
+    });
+    fail(result, /regular file/);
   });
 });
 
@@ -457,6 +482,36 @@ ${card('- [真](../../characters/真.md)', '无', '真提示')}`;
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(images(result), ['assets/images/characters/真.png']);
     assert.match(result.stdout, /真提示\n$/);
+  });
+});
+
+test('accepts tabs after a closing fence before real sections', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    const source = `\`\`\`
+## 引用资产
+\`\`\`\t
+${card('- [真](../../characters/真.md)', '无', '真提示')}`;
+    write(root, path, source);
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(images(result), ['assets/images/characters/真.png']);
+  });
+});
+
+test('rejects tabs outside closing fence whitespace', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, card('- [甲](../../characters/甲.md)', '无', '前\t后'));
+    fail(run(root, path), /invalid control byte/);
+  });
+});
+
+test('rejects script, pre, and style raw HTML blocks anywhere', () => {
+  for (const tag of ['script', 'pre', 'style']) project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, `${card('- [甲](../../characters/甲.md)')}\n<${tag}>bad</${tag}>`);
+    fail(run(root, path), /unsafe raw HTML/);
   });
 });
 
