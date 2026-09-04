@@ -640,3 +640,83 @@ test('repair basic image recovery runs scoped visual fix loop in both modes', ()
     assert.ok(block.includes('图像模型 `none`'));
   }
 });
+
+test('short repair restores script and asset cards before basic images', () => {
+  const text = read('skills/repair-story/short.md');
+  const block = text.slice(text.indexOf('## 恢复顺序'),
+    text.indexOf('basic visual recovery'));
+  const stages = [
+    'script:missing|incomplete',
+    'scriptwriter-script` skill，参数 `short ep01`',
+    'director-review-script` skill，参数 `short ep01`',
+    'scriptwriter-fix-script` skill，参数 `short ep01`',
+    'assets:missing',
+    'creator-create-assets` skill，参数 `ep01`',
+  ];
+  let previous = -1;
+  for (const stage of stages) {
+    const index = block.indexOf(stage, previous + 1);
+    assert.ok(index > previous, stage);
+    previous = index;
+  }
+  const afterFix = block.slice(block.indexOf('scriptwriter-fix-script'));
+  assert.ok(afterFix.includes(
+    'director-review-script` skill，参数 `short ep01`'));
+});
+
+test('basic visual reviewer supports explicit paths without changing its default', () => {
+  const text = read('skills/director-review-assets-visual/SKILL.md');
+  const match = text.match(/## Scope 合同\n\n```json\n([\s\S]*?)\n```/);
+  assert.ok(match);
+  const contract = JSON.parse(match[1]);
+  assert.equal(contract.argument_parser, 'complete $ARGUMENTS token sequence');
+  assert.equal(contract.default_source, 'parse-new-assets.sh');
+  assert.equal(contract.explicit_source, 'remaining asset path tokens');
+  assert.equal(contract.explicit_replaces_default, true);
+  assert.equal(contract.explicit_may_include_existing, true);
+  assert.equal(contract.validate_path_type, true);
+  assert.doesNotMatch(text, /\$ARGUMENTS\[[0-9]+\.\.\.?\]/);
+});
+
+test('basic image routing reports actual successful asset paths', () => {
+  for (const path of [
+    'skills/creator-generate-images/SKILL.md',
+    'skills/creator-image-dreamina/SKILL.md',
+  ]) {
+    const text = read(path);
+    assert.ok(text.includes('successful asset paths: {asset_path...} | none'), path);
+    assert.ok(text.includes('本次实际落盘成功'), path);
+  }
+  const router = read('skills/creator-generate-images/SKILL.md');
+  assert.match(router,
+    /图像模型.*none[^\n]*successful asset paths: none/);
+  assert.ok(read('skills/creator-fix-asset-image/SKILL.md').includes(
+    'successful asset paths: {asset_path...} | none'));
+});
+
+test('repair reviews only actual regenerated base asset paths', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    const start = text.indexOf('basic visual recovery');
+    const block = text.slice(start, text.indexOf('storyboard recovery', start));
+    const stages = [
+      'creator-generate-images',
+      'successful asset paths',
+      'director-review-assets-visual',
+      '{successful_asset_paths...}',
+      'creator-fix-asset-image',
+    ];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = block.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+    const afterFix = block.slice(block.indexOf('creator-fix-asset-image'));
+    assert.ok(afterFix.includes('successful asset paths'), `${mode}: fix output`);
+    assert.ok(afterFix.includes(
+      'director-review-assets-visual` skill，参数'), `${mode}: re-review`);
+    assert.ok(afterFix.includes('{successful_fixed_asset_paths...}'),
+      `${mode}: fixed scope`);
+  }
+});

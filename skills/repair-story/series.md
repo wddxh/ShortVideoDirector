@@ -18,7 +18,7 @@ outline → novel → script → 基础资产卡 → 基础资产图片 → stor
    - 使用 Skill tool 调用 `scriptwriter-script` skill。
    - 使用 Skill tool 调用 `director-review-script` skill。
 2. 基础资产卡缺失时使用 Skill tool 调用 `creator-create-assets` skill。非 ep01 再使用 Skill tool 调用 `creator-update-records` skill。
-3. basic visual recovery：图像模型 `none` 时 skipped。否则使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} basic`；再使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {ep}`。Needs_revision 时使用 Skill tool 调用 `creator-fix-asset-image` skill，参数 `story/episodes/{ep}/.review-basic-assets-visual.md {ep}`；复审，共享 `fix_attempts=2`。
+3. basic visual recovery：图像模型 `none` 时 skipped。否则使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} basic`；读取 `successful asset paths`，仅非空时使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {ep} {successful_asset_paths...}`。Needs_revision 时使用 Skill tool 调用 `creator-fix-asset-image` skill，参数 `story/episodes/{ep}/.review-basic-assets-visual.md {ep}`；读取其 `successful asset paths`，仅非空时使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {ep} {successful_fixed_asset_paths...}`；共享 `fix_attempts=2`。
 4. storyboard recovery：Storyboard 缺失或不完整时使用 Skill tool 调用 `storyboarder-storyboard` skill。再使用 Skill tool 调用 `director-review-storyboard` skill。
 5. sheet.md 缺失、不 canonical 或 metadata 不符时使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `{ep} full`。再使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill；按 owner 顺序修复，最多 2 轮。
 6. sheet.png 缺失时使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} storyboard-sheets`。读取 successful shots，并按下方 scoped visual 规则审核，最多 2 轮修复。

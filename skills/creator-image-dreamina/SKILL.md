@@ -80,6 +80,8 @@ Coordinator 固定 16:9 sheet 画布、验证全部基础引用和可选前镜 s
 
 按 scope 返回成功、跳过、失败、pending 数量及原始失败原因。Sheet 调用记录本次 provider 生成成功或 pending 下载成功且已落盘的 shots；历史 existing skip 不计入，只输出：
 
+基础资产调用同时输出 `successful asset paths: {asset_path...} | none`，只列本次实际落盘成功（含 pending 恢复成功）的基础资产卡；历史 existing skip、失败、仍 pending 与 sheet cards 不进入该集合。
+
 ```text
 successful shots: shotNN ... | none
 ```

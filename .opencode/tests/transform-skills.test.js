@@ -288,6 +288,22 @@ describe('transformAllSkills (integration)', () => {
     assert.ok(aux.includes('subagent_type: "creator"'));
   });
 
+  test('short repair standard recovery calls become OpenCode tasks', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const content = await readFileAsync(
+      path.join(tmpDir, 'repair-story/short.md'), 'utf8');
+    for (const [skill, agent] of [
+      ['scriptwriter-script', 'scriptwriter'],
+      ['director-review-script', 'director'],
+      ['scriptwriter-fix-script', 'scriptwriter'],
+      ['creator-create-assets', 'creator'],
+    ]) {
+      assert.ok(content.includes(`description: "执行 ${skill}"`), skill);
+      assert.ok(content.includes(`subagent_type: "${agent}"`), agent);
+    }
+    assert.ok(content.includes('short ep01'));
+  });
+
   test('sheet image fix routes generation through a creator task', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(
