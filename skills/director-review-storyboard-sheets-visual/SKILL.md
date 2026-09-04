@@ -20,8 +20,18 @@ model: opus
 
 ## Scope 与调度
 
+## Scope 优先级协议
+
+```json
+{
+  "explicit_scope_precedes_terminal_pass": true,
+  "explicit_scope_dispatch": "always",
+  "scope_source": "successful_regenerated_shots"
+}
+```
+
 1. review 不存在时，未指定 scope 则 Glob 全部 cards；指定 scope 时只取对应 cards。
-2. review 已存在时，定位最大 N 和唯一 `<!-- /round-N -->`。显式 scope 优先；否则合并最后一轮 `### dirty list` 与 `### 无法判定` 中的 cards，按 card_path 去重。仅最后一轮 M=0 且 K=0 的纯通过轮可直接返回 `pass`，不追加空轮。标题为 `通过 ({K} 项无法判定)` 或返回为 `pass {K}_unknown` 均不是终态；下次默认调用必须重派 unknown scope。
+2. review 已存在时，定位最大 N 和唯一 `<!-- /round-N -->`。显式 scope 必须重新 dispatch，即使最后一轮纯 pass；只有未给显式 scope 时，最后一轮 M=0 且 K=0 才可直接返回 `pass`。否则合并最后一轮 dirty/unknown，按 card_path 去重。
 3. 映射每个 card/image pair。缺图预扫描直接产生 dirty issue，不派发 single。
 4. 其余每 sheet 一个 Task，参数为 `{card_path} {image_path}`。每批 ≤5 个并行 Task；技术失败或非约定 JSON 重试 1 次，仍失败进入无法判定，不进入 dirty。
 5. single 返回空字符串即通过；合法 JSON 原样聚合。同一卡多个 issues 只产生一个 dirty entry。
@@ -83,5 +93,6 @@ assets/storyboard-sheets/{ep}/shotNN.md|assets/images/storyboard-sheets/{ep}/sho
 - `affected`：追加 `card|image|impact|{fix_direction}`，同时把 `card|image` 加入 `### dirty list`；使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{ep} {review-path} shotNN`（执行协议：`creator-fix-storyboard-sheet-image {ep} {review-path} shotNN`）。
 - fix 失败：记录失败并停止该分支，不 enqueue。
 - fix 成功：记录成功并 enqueue 该 shot，继续检查卡片中直接引用它的依赖项。
+- 每次 affected fix 后读取 `successful regenerated shots`；仅非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep} {successful_regenerated_shots...}`，再继续 impact branch。
 
 不得从关键词机械判定影响状态；只消费 impact reviewer JSON。初次全量生成不运行影响传播。

@@ -283,7 +283,8 @@ describe('transformAllSkills (integration)', () => {
     assert.ok(content.includes('description: "执行 creator-generate-images"'));
     assert.ok(content.includes('subagent_type: "creator"'));
     assert.ok(content.includes('{ep} paths {cards...}'));
-    assert.ok(content.indexOf('验证调用可执行') < content.indexOf('删除整张'));
+    assert.ok(content.includes('router owns targeted PNG deletion'));
+    assert.equal(content.includes('rm -f'), false);
   });
 
   test('.md aux files have ${CLAUDE_PLUGIN_ROOT} inline-substituted', async () => {

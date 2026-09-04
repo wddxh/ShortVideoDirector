@@ -20,7 +20,7 @@ test('storyboard sheet generator script exposes a stable CLI', () => {
   assert.equal(result.status, 1);
   assert.equal(result.stdout, '');
   assert.equal(result.stderr,
-    'FAIL usage: generate-storyboard-sheets-dreamina.sh <resolution> <model> <card...>\n');
+    'FAIL usage: generate-storyboard-sheets-dreamina.sh <resolution> <model> [--force] <card...>\n');
 });
 
 function frontmatter(text) {
@@ -168,6 +168,16 @@ test('visual aggregate persists rounds and dispatches isolated singles', () => {
   assert.match(text, /dirty list.*无法判定/s);
   assert.match(text, /Task.*director-review-storyboard-sheet-visual-single/s);
   assert.match(text, /严禁.*PNG/s);
+});
+
+test('explicit visual scope overrides a prior pure pass', () => {
+  const text = visual();
+  const match = text.match(/## Scope 优先级协议\n\n```json\n([\s\S]*?)\n```/);
+  assert.ok(match, 'missing visual scope precedence contract');
+  const contract = JSON.parse(match[1]);
+  assert.equal(contract.explicit_scope_precedes_terminal_pass, true);
+  assert.equal(contract.explicit_scope_dispatch, 'always');
+  assert.equal(contract.scope_source, 'successful_regenerated_shots');
 });
 
 test('unknown-only visual round stays nonterminal and retries unknown scope', () => {
@@ -407,8 +417,93 @@ test('repair routes failed sheet review states to the matching review loop', () 
   }
 });
 
+test('repair prompt review owner loop uses one ordered budget', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    const start = text.indexOf('prompt owner loop');
+    assert.ok(start >= 0, mode);
+    const block = text.slice(start);
+    let previous = -1;
+    for (const owner of ['upstream-storyboard', 'generator', 'prompt-fix',
+      'director-review-storyboard-sheet-prompts']) {
+      const index = block.indexOf(owner, previous + 1);
+      assert.ok(index > previous, `${mode}: ${owner}`);
+      previous = index;
+    }
+    assert.ok(block.includes('fix_attempts=2'));
+    assert.ok(block.includes('orchestrator handoff'));
+    for (const skill of ['storyboarder-fix-storyboard', 'director-review-storyboard',
+      'creator-storyboard-sheet-prompts', 'creator-fix-storyboard-sheet-prompt']) {
+      assert.ok(block.includes(`使用 Skill tool 调用 \`${skill}\` skill`), `${mode}: ${skill}`);
+    }
+  }
+});
+
+test('regeneration callers scope visual review to actual successes', () => {
+  const cases = [
+    ['skills/generate-episode-pipeline/SKILL.md', '{successful_shots...}'],
+    ['skills/edit-story/series.md', '{successful_shots...}'],
+    ['skills/edit-story/short.md', '{successful_shots...}'],
+    ['skills/check-video/SKILL.md', '{successful_shots...}'],
+    ['skills/repair-story/series.md', '{successful_shots...}'],
+    ['skills/repair-story/short.md', '{successful_shots...}'],
+    ['skills/director-review-storyboard-sheets-visual/SKILL.md', '{successful_regenerated_shots...}'],
+  ];
+  for (const [path, scope] of cases) {
+    const text = read(path);
+    assert.ok(text.includes('successful shots') || text.includes('successful regenerated shots'), path);
+    assert.ok(text.includes(`director-review-storyboard-sheets-visual\` skill，参数`), path);
+    assert.ok(text.includes(scope), `${path}: ${scope}`);
+  }
+});
+
 test('asset creation reads script in both modes and novel only for series', () => {
   const text = read('skills/creator-create-assets/SKILL.md');
   assert.ok(text.includes('script.md` — 必须读取'));
   assert.ok(text.includes('novel.md` — series mode'));
+});
+
+test('targeted sheet generation is forceful while basic paths retain existing policy', () => {
+  const router = read('skills/creator-generate-images/SKILL.md');
+  assert.ok(router.includes('sheet card paths: force'));
+  assert.ok(router.includes('basic asset paths: caller-managed'));
+  assert.ok(read('skills/creator-image-dreamina/SKILL.md').includes(
+    'generate-storyboard-sheets-dreamina.sh "{图片分辨率}" "{模型版本}" --force'));
+  assert.ok(read('skills/creator-image-dreamina/SKILL.md').includes(
+    'pending success resume: no --force'));
+  assert.ok(read('skills/creator-image-dreamina/SKILL.md').includes(
+    'successful shots: shotNN ... | none'));
+  const fix = imageFix();
+  assert.equal(fix.includes('rm '), false);
+  assert.ok(fix.includes('router owns targeted PNG deletion'));
+});
+
+test('repair generation steps do not use unscoped visual review', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    const generation = text.indexOf('creator-generate-images` skill');
+    const scoped = text.indexOf('{successful_shots...}', generation);
+    assert.ok(generation >= 0 && scoped > generation, mode);
+  }
+});
+
+test('edit flows order prompt review and regeneration by entry type', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/edit-story/${mode}`);
+    const direct = text.indexOf('direct sheet sequence');
+    const storyboard = text.indexOf('storyboard sequence');
+    assert.ok(direct >= 0 && storyboard >= 0, mode);
+    const directBlock = text.slice(direct, storyboard);
+    const directOrder = ['creator-fix-storyboard-sheet-prompt',
+      'director-review-storyboard-sheet-prompts', 'creator-generate-images'];
+    let previous = -1;
+    for (const step of directOrder) {
+      const index = directBlock.indexOf(step, previous + 1);
+      assert.ok(index > previous, `${mode}: direct ${step}`);
+      previous = index;
+    }
+    const boardBlock = text.slice(storyboard);
+    assert.ok(boardBlock.indexOf('creator-storyboard-sheet-prompts') <
+      boardBlock.indexOf('director-review-storyboard-sheet-prompts'));
+  }
 });

@@ -33,11 +33,10 @@ model: sonnet
 
 1. 校验 review round、路径、scope 和 section 边界，Edit cards。
 2. 验证调用可执行：确认 `creator-generate-images` skill 可加载，参数严格为 `{ep} paths {cards...}`，cards 使用完整路径。验证失败时保留旧 PNG 并返回可恢复失败。
-3. 验证通过后，对每个选中 shot 用 Bash 删除整张 `assets/images/storyboard-sheets/{ep}/shotNN.png`，旧图不存在也继续。
-4. 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {cards...}`；一次调用整批 cards，禁止逐 panel 生图。
-5. 依据接口结果和实际 PNG 落盘情况，只把真实成功的 shots 计入成功集合。失败项保持可恢复失败，不声称已更新，不由本 skill enqueue impact。
+3. 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {cards...}`；一次调用整批 cards，禁止逐 panel 生图。`router owns targeted PNG deletion`，本 skill 不重复删除。
+4. 依据接口结果和实际 PNG 落盘情况，只把真实成功的 shots 计入成功集合。失败项保持可恢复失败，不声称已更新，不由本 skill enqueue impact。
 
-Bash 仅用于删除选中 PNG 和只读存在性校验；不得用 Bash 写 card/review。
+Bash 仅用于只读存在性校验；不得用 Bash 删除 PNG 或写 card/review。
 
 ## 返回
 

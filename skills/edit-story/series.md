@@ -41,10 +41,12 @@
 - 使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} {意见}`。随后使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `{ep} basic`。
 - 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {asset_paths...}`。随后使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {ep}`。
 - 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，参数 `{ep} --direct {target} {instruction}`。随后使用 Skill tool 调用 `director-review-storyboard` skill，参数 `{ep}`。
-- 使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `{ep} incremental {shots...}`；编号集合变化改用 full。随后使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill，参数 `{ep}`，按 owner 修复。
-- 对直接 card 修改使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{ep} --direct {card} {instruction}`；review owner 修复仍使用无 direct 的 review mode。
-- 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {card_paths...}`。随后使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep}`，按 dirty 修复。
 - 对 visual dirty 使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{ep} {review_path} {shots...}`。
 - 使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill，参数 `{ep} {upstream_shot}`。
+
+- direct sheet sequence: 使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{ep} --direct {card} {instruction}`；使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill 并按 owner loop；通过后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {card}`。
+- storyboard sequence: 使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `{ep} incremental {shots...}`（集合变化用 full）；随后使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill 并按 owner loop；通过后重生 cards。
+- asset sheet sequence: 基础资产成功重生后，读取直接引用 cards，使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {direct_card_paths...}`。
+- 每次重生读取 router 的 `successful shots`；仅非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep} {successful_shots...}`。Impact 也只从实际成功 shots 开始。
 
 Storyboard 变化只重建真实 changed/added/deleted/renumbered shots；编号集合变化用 `full`。基础资产变化只重建直接引用 sheets；panel/prompt 变化只重建当前 sheet。先完成整个 dirty batch，只有 batch 外直接依赖者才 impact；`unaffected` 停止，`affected` 修复后逐层传播。submitted/done 视频不自动重提。图像模型 `none` 时 card/prompt review 仍执行，图片、visual、impact 报告 `skipped`。

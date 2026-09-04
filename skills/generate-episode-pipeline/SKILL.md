@@ -47,4 +47,4 @@ Sheet prompt review 的 dirty entries 按 owner 固定顺序处理，共享一�
 - `generator`：使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，缺卡/编号集合问题用 full，现存 card 问题用 incremental。
 - `prompt-fix`：使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill。
 
-每一轮所有 owner 执行完后，只使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill 一次。Visual dirty 时使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill。再使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill；最多 2 轮。首次生成不调用 impact。
+每一轮所有 owner 执行完后，只使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill 一次。Visual dirty 时使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，读取其 `successful regenerated shots`；仅非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{ep} {successful_shots...}`。最多 2 轮。首次生成不调用 impact。

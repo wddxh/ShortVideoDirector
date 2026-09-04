@@ -29,9 +29,19 @@ model: sonnet
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate-storyboard-sheets-dreamina.sh "{图片分辨率}" "{模型版本}" {cards...}
 ```
 
+当 scope=`paths` 且输入为明确 sheet cards 时使用：
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate-storyboard-sheets-dreamina.sh "{图片分辨率}" "{模型版本}" --force {cards...}
+```
+
+`--force` 只传 targeted sheet cards。基础资产 paths 不使用此 flag。
+
 Coordinator 固定 16:9 sheet 画布、验证全部基础引用和可选前镜 sheet、跳过已有 PNG，并在第一个失败或 pending 处停止。不得绕过 coordinator 单独生成后续 shot。
 
 若返回 `PENDING <id> <card> <output>`，每 30 秒调用 `dreamina query_result`，最多 5 轮：成功则把下载文件移动到 output 后重新调用 coordinator，靠已有 PNG 断点续跑；失败则记录 provider 原因并停止；仍 querying 则写入 `assets/images/pending.json` 后停止，不启动后续 shot。再次执行时先处理 pending.json 中对应 output，成功落盘后再从第一张缺失 PNG 续跑。
+
+`pending success resume: no --force`：targeted 首次调用可带 `--force`；pending 成功移动 output 后，续跑 coordinator 必须去掉 `--force`，保留刚落盘图并从下一缺失 shot 继续。
 
 生成前和完成后删除 `assets/images/storyboard-sheets/{ep}/` 下没有 canonical card 的 orphan sheet PNG。
 
@@ -47,4 +57,10 @@ Coordinator 固定 16:9 sheet 画布、验证全部基础引用和可选前镜 s
 
 ## 输出
 
-按 scope 返回成功、跳过、失败、pending 数量及原始失败原因。
+按 scope 返回成功、跳过、失败、pending 数量及原始失败原因。Sheet 调用记录本次 provider 生成成功或 pending 下载成功且已落盘的 shots；历史 existing skip 不计入，只输出：
+
+```text
+successful shots: shotNN ... | none
+```
+
+Provider FAIL/pending 未落盘和未请求 shots 不进入该集合。

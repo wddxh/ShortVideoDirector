@@ -7,11 +7,17 @@ fail() {
   exit 1
 }
 
-[ "$#" -ge 3 ] || fail 'usage: generate-storyboard-sheets-dreamina.sh <resolution> <model> <card...>'
+[ "$#" -ge 3 ] || fail 'usage: generate-storyboard-sheets-dreamina.sh <resolution> <model> [--force] <card...>'
 
 RESOLUTION=$1
 MODEL=$2
 shift 2
+FORCE=false
+if [ "${1:-}" = '--force' ]; then
+  FORCE=true
+  shift
+fi
+[ "$#" -ge 1 ] || fail 'at least one card is required'
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 CONVERTER="$SCRIPT_DIR/storyboard-sheet-to-prompt.sh"
@@ -23,6 +29,7 @@ for CARD in "$@"; do
   if [[ ! "$CARD" =~ ^assets/storyboard-sheets/ep(0[1-9]|[1-9][0-9]+)/shot(0[1-9]|[1-9][0-9]+)\.md$ ]]; then
     fail "noncanonical card: $CARD"
   fi
+  [ -f "$CARD" ] || fail "card not found: $CARD"
   DUPLICATE=false
   for RECORD in "${RECORDS[@]}"; do
     [ "${RECORD#*|}" = "$CARD" ] && DUPLICATE=true
@@ -36,6 +43,14 @@ while IFS= read -r RECORD; do
   SORTED_RECORDS+=("$RECORD")
 done <<< "$(printf '%s\n' "${RECORDS[@]}" | sort -s -t '|' -k1,1n)"
 RECORDS=("${SORTED_RECORDS[@]}")
+
+if "$FORCE"; then
+  for RECORD in "${RECORDS[@]}"; do
+    CARD=${RECORD#*|}
+    OUTPUT=$(bash "$PATH_CONVERTER" "$CARD") || fail "cannot derive output: $CARD"
+    rm -f -- "$OUTPUT"
+  done
+fi
 
 GENERATED=0
 SKIPPED=0

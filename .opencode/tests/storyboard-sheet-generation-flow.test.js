@@ -84,11 +84,39 @@ function fixture(fn) {
   try { fn({ root, env }); } finally { rmSync(workspace, { recursive: true, force: true }); }
 }
 
-function run(root, env, cards, resolution = '2k', model = '4.0', script = 'scripts/generate-storyboard-sheets-dreamina.sh') {
+function run(root, env, cards, resolution = '2k', model = '4.0', script = 'scripts/generate-storyboard-sheets-dreamina.sh', force = false) {
   return spawnSync('bash', [
-    script, resolution, model, ...cards,
+    script, resolution, model, ...(force ? ['--force'] : []), ...cards,
   ], { cwd: root, env, encoding: 'utf8' });
 }
+
+test('force removes only targeted existing outputs and invokes provider', () => {
+  fixture(({ root, env }) => {
+    const one = card(root, 1);
+    const two = card(root, 2);
+    dependency(root, 'assets/images/characters/base.png');
+    dependency(root, outputFor(one));
+    dependency(root, outputFor(two));
+    const result = run(root, env, [one], '2k', '4.0', undefined, true);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(calls(env.CALLS).map((args) => args[1]), [outputFor(one)]);
+    assert.equal(existsSync(join(root, outputFor(two))), true);
+    assert.equal(result.stdout, 'OK generated 1 skipped 0\n');
+  });
+});
+
+test('force provider failure leaves targeted output missing', () => {
+  fixture(({ root, env }) => {
+    const one = card(root, 1);
+    dependency(root, 'assets/images/characters/base.png');
+    dependency(root, outputFor(one));
+    write(root, `scenarios/${outputFor(one)}`, 'fail\n');
+    const result = run(root, env, [one], '2k', '4.0', undefined, true);
+    assert.equal(result.status, 1);
+    assert.equal(existsSync(join(root, outputFor(one))), false);
+    assert.equal(calls(env.CALLS).length, 1);
+  });
+});
 
 function lines(path) {
   return existsSync(path) ? readFileSync(path, 'utf8').trimEnd().split('\n') : [];
