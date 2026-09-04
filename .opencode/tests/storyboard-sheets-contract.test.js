@@ -720,3 +720,60 @@ test('repair reviews only actual regenerated base asset paths', () => {
       `${mode}: fixed scope`);
   }
 });
+
+test('asset-list recovery reruns its script owner before assets in both modes', () => {
+  for (const [mode, scriptArgs] of [
+    ['short.md', 'short ep01'],
+    ['series.md', '{series_script_mode} {ep}'],
+  ]) {
+    const text = read(`skills/repair-story/${mode}`);
+    const start = text.indexOf('asset-list:missing');
+    assert.ok(start >= 0, mode);
+    const block = text.slice(start, text.indexOf('storyboard recovery', start));
+    const stages = [
+      `scriptwriter-script\` skill，参数 \`${scriptArgs}\``,
+      `director-review-script\` skill，参数 \`${scriptArgs}\``,
+      'scriptwriter-fix-script` skill',
+      `director-review-script\` skill，参数 \`${scriptArgs}\``,
+      'creator-create-assets` skill',
+      'basic visual recovery',
+    ];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = block.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+  }
+});
+
+test('series repair maps episode mode and passes legal content arguments', () => {
+  const text = read('skills/repair-story/series.md');
+  assert.ok(text.includes('ep01=new-series'));
+  assert.ok(text.includes('ep02+=continue-series'));
+  const block = text.slice(text.indexOf('novel:missing|incomplete'),
+    text.indexOf('asset-list:missing'));
+  const stages = [
+    'writer-novel` skill，参数 `{ep}`',
+    'director-review-novel` skill，参数 `{ep}`',
+    'writer-fix-novel` skill，参数 `{ep}`',
+    'scriptwriter-script` skill，参数 `{series_script_mode} {ep}`',
+    'director-review-script` skill，参数 `{series_script_mode} {ep}`',
+    'scriptwriter-fix-script` skill，参数 `{series_script_mode} {ep}`',
+  ];
+  let previous = -1;
+  for (const stage of stages) {
+    const index = block.indexOf(stage, previous + 1);
+    assert.ok(index > previous, stage);
+    previous = index;
+  }
+  const numbered = ['3. `asset-list:missing`', '4. `assets:missing`',
+    '5. basic visual recovery', '6. storyboard recovery'];
+  previous = -1;
+  for (const stage of numbered) {
+    const index = text.indexOf(stage, previous + 1);
+    assert.ok(index > previous, stage);
+    previous = index;
+  }
+  assert.ok(text.includes('步骤 5 基础图、步骤 8 sheet.png'));
+});

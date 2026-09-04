@@ -63,6 +63,7 @@ describe('rewriteSkillCalls', () => {
   const skillMeta = {
     'director-arc': { agent: 'director', fork: true },
     'creator-image-dreamina': { agent: 'creator', fork: true },
+    'writer-novel': { agent: 'writer', fork: true },
     'series-video': { agent: null, fork: false },
   };
 
@@ -74,11 +75,25 @@ describe('rewriteSkillCalls', () => {
     assert.ok(out.includes('director-arc'));
   });
 
+  test('fork-skill task prompt receives explicit standard call parameters', () => {
+    const input = '使用 Skill tool 调用 `writer-novel` skill，参数 `{ep}`。';
+    const out = rewriteSkillCalls(input, skillMeta);
+    assert.ok(out.includes('参数：\n{ep}\n'));
+    assert.ok(!out.includes('<由调用方填充>'));
+  });
+
   test('non-fork skill call becomes skill() invocation', () => {
     const input = '1. 使用 Skill tool 调用 series-video skill';
     const out = rewriteSkillCalls(input, skillMeta);
     assert.ok(out.includes('skill({ name: "series-video" })'));
     assert.ok(!out.includes('task('));
+  });
+
+  test('non-fork skill call preserves explicit standard call parameters', () => {
+    const input = '使用 Skill tool 调用 `series-video` skill，参数 `ep02`。';
+    const out = rewriteSkillCalls(input, skillMeta);
+    assert.ok(out.includes('skill({ name: "series-video" })'));
+    assert.ok(out.includes('参数 `ep02`'));
   });
 
   test('does not affect prose mentions', () => {
@@ -302,6 +317,23 @@ describe('transformAllSkills (integration)', () => {
       assert.ok(content.includes(`subagent_type: "${agent}"`), agent);
     }
     assert.ok(content.includes('short ep01'));
+  });
+
+  test('repair aux tasks embed actual content-stage parameters', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    for (const [file, expected] of [
+      ['short.md', ['short ep01', 'ep01']],
+      ['series.md', ['{ep}', '{series_script_mode} {ep}']],
+    ]) {
+      const content = await readFileAsync(
+        path.join(tmpDir, `repair-story/${file}`), 'utf8');
+      const beforeImages = content.slice(0, content.indexOf('basic visual recovery'));
+      assert.ok(!beforeImages.includes('<由调用方填充>'), file);
+      for (const params of expected) {
+        assert.ok(beforeImages.includes(`参数：\n${params}\n`),
+          `${file}: ${params}`);
+      }
+    }
   });
 
   test('sheet image fix routes generation through a creator task', async () => {
