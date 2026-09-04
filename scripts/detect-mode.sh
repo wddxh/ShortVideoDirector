@@ -13,9 +13,9 @@ set -euo pipefail
 MODE=""
 
 if [ -f config.md ]; then
-  MODE=$(grep -E '^mode:[[:space:]]*' config.md 2>/dev/null \
+  MODE=$(grep -E '^(- )?mode:[[:space:]]*' config.md 2>/dev/null \
          | head -n1 \
-         | sed -E 's/^mode:[[:space:]]*//' \
+         | sed -E 's/^(- )?mode:[[:space:]]*//' \
          | tr -d '[:space:]' || true)
 fi
 

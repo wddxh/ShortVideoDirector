@@ -160,6 +160,7 @@ for (let index = continuityRange.start; index < continuityRange.end; index++) {
 const previousPattern = /^- \[(shot(?:0[1-9]|[1-9]\d+))\]\(\.\/(shot(?:0[1-9]|[1-9]\d+))\.md\)$/u;
 const previousLines = continuityLines.filter((line) => line.includes(']('));
 let previousImage = null;
+let inheritance = null;
 if (previousLines.length === 0) {
   if (continuityLines.length !== 1 || continuityLines[0] !== '无') {
     fail('continuity without dependency must be 无');
@@ -174,6 +175,12 @@ if (previousLines.length === 0) {
   const previousNumber = shotNumber - 1;
   const expected = `shot${String(previousNumber).padStart(2, '0')}`;
   if (previous[1] !== expected) fail('continuity must reference adjacent previous sheet');
+  const inheritanceLines = continuityLines.filter((line) => line.startsWith('- 继承元素：'));
+  if (continuityLines.length !== 2 || inheritanceLines.length !== 1) {
+    fail('previous sheet requires exactly one inheritance declaration');
+  }
+  inheritance = inheritanceLines[0].slice('- 继承元素：'.length).trim();
+  if (inheritance === '') fail('previous sheet inheritance declaration is empty');
   previousImage = `assets/images/storyboard-sheets/${episode}/${expected}.png`;
 }
 
@@ -192,7 +199,7 @@ if (previousImage) bindings.push(`[PREVIOUS_SHOT_SHEET:{图片${images.length}}]
 const output = [`IMAGES:${images.join(',')}`, '---', `**参考资产：** ${bindings.join('、')}`];
 if (previousImage) {
   output.push(`**连续性约束：** [PREVIOUS_SHOT_SHEET:{图片${images.length}}] ` +
-    '只继承本卡声明元素，不复制前板网格、panel、构图、机位。');
+    `继承元素：${inheritance}；只继承本卡声明元素，不复制前板网格、panel、构图、机位。`);
 }
 output.push('', prompt);
 process.stdout.write(`${output.join('\n')}\n`);

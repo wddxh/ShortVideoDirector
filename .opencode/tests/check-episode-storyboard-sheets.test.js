@@ -27,8 +27,8 @@ function card(fileNumber, declared = fileNumber) {
 
 function setup(root, { shots = [1, 2, 3], cards = shots, images = cards,
   model = 'dreamina', names = cards.map((n) => `shot${String(n).padStart(2, '0')}.md`),
-  declared = {} } = {}) {
-  write(root, 'config.md', `- 图像模型: ${model}\n`);
+  declared = {}, mode = 'short' } = {}) {
+  write(root, 'config.md', `- mode: ${mode}\n- 图像模型: ${model}\n`);
   write(root, 'story/episodes/ep01/outline.md', '## 结局设计\n完成\n\n## 本集资产清单\n### 新增资产\n');
   write(root, 'story/episodes/ep01/script.md', '## 场景 1\n内容\n');
   write(root, 'story/episodes/ep01/storyboard.md', shots.map((n) => `### shot ${n}\n- 时长：5s`).join('\n\n'));
@@ -113,6 +113,77 @@ test('reports required card metadata beyond the declared shot number', () => {
     const checked = run(root);
     assert.equal(checked.status, 1);
     assert.match(checked.stdout, /metadata=shot02\.md:type/);
+  });
+});
+
+test('series requires both novel and script while short requires script', () => {
+  project({ mode: 'series' }, (result, root) => {
+    write(root, 'story/episodes/ep01/novel.md', '小说正文');
+    rmSync(join(root, 'story/episodes/ep01/script.md'));
+    const checked = run(root);
+    assert.equal(checked.status, 1);
+    assert.match(checked.stdout, /^novel:ok$/m);
+    assert.match(checked.stdout, /^script:missing$/m);
+  });
+  project({ mode: 'short' }, (result, root) => {
+    write(root, 'story/episodes/ep01/script.md', '不完整');
+    const checked = run(root);
+    assert.equal(checked.status, 1);
+    assert.match(checked.stdout, /^script:incomplete$/m);
+    assert.doesNotMatch(checked.stdout, /^novel:/m);
+  });
+});
+
+test('series reports a materially incomplete novel', () => {
+  project({ mode: 'series' }, (result, root) => {
+    write(root, 'story/episodes/ep01/outline.md', `## 结局设计
+完成
+- 目标时长: 10s
+## 本集资产清单
+### 新增资产
+`);
+    write(root, 'story/episodes/ep01/novel.md', '太短');
+    const checked = run(root);
+    assert.equal(checked.status, 1);
+    assert.match(checked.stdout, /^novel:incomplete:/m);
+    assert.match(checked.stdout, /^script:ok$/m);
+  });
+});
+
+test('sheet card duration must match its storyboard shot', () => {
+  project({}, (result, root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot02.md';
+    write(root, path, card(2).replace('- 时长：5s', '- 时长：6s'));
+    const checked = run(root);
+    assert.equal(checked.status, 1);
+    assert.match(checked.stdout, /metadata=shot02\.md:duration-6\/5/);
+  });
+});
+
+test('basic image checks are limited to assets listed by this episode', () => {
+  project({}, (result, root) => {
+    write(root, 'assets/characters/other-episode.md', '# unrelated');
+    const checked = run(root);
+    assert.equal(checked.status, 0, checked.stdout + checked.stderr);
+    assert.match(checked.stdout, /^images:ok$/m);
+  });
+});
+
+test('basic image checks include existing assets listed by this episode', () => {
+  project({}, (result, root) => {
+    write(root, 'story/episodes/ep01/outline.md', `## 结局设计
+完成
+
+## 本集资产清单
+### 新增资产
+- characters: (无)
+### 已有资产（本集出场）
+- characters: 阿青 (assets/characters/阿青.md)
+`);
+    write(root, 'assets/characters/阿青.md', '# 阿青');
+    const checked = run(root);
+    assert.equal(checked.status, 1);
+    assert.match(checked.stdout, /^images:missing:阿青$/m);
   });
 });
 

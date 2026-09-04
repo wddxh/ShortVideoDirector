@@ -44,7 +44,15 @@ function sequenceProblems(values) {
 
 let board = '';
 try { board = fs.readFileSync(boardPath, 'utf8'); } catch {}
-const shots = [...board.matchAll(/^### shot ([1-9]\d*)$/gmu)].map((match) => Number(match[1]));
+const shotHeadings = [...board.matchAll(/^### shot ([1-9]\d*)$/gmu)];
+const shots = shotHeadings.map((match) => Number(match[1]));
+const shotDurations = new Map();
+for (let index = 0; index < shotHeadings.length; index++) {
+  const heading = shotHeadings[index];
+  const block = board.slice(heading.index, shotHeadings[index + 1]?.index ?? board.length);
+  const duration = /^- 时长：([1-9]\d*)s$/mu.exec(block);
+  if (duration) shotDurations.set(Number(heading[1]), Number(duration[1]));
+}
 const shotProblems = sequenceProblems(shots);
 if (shots.length === 0) shotProblems.push('empty');
 detail('storyboard', shotProblems);
@@ -77,7 +85,11 @@ for (const file of canonicalCards) {
   if (!text.includes(`- 所属集数：${episode}`)) metadata.push(`${file}:episode`);
   if (!text.startsWith(`# ${stem} Storyboard Sheet\n`)) metadata.push(`${file}:title`);
   if (!text.includes('- 类型：分镜板')) metadata.push(`${file}:type`);
-  if (!/^- 时长：[1-9]\d*s$/mu.test(text)) metadata.push(`${file}:duration`);
+  const duration = /^- 时长：([1-9]\d*)s$/mu.exec(text);
+  if (!duration) metadata.push(`${file}:duration`);
+  else if (shotDurations.has(expected) && Number(duration[1]) !== shotDurations.get(expected)) {
+    metadata.push(`${file}:duration-${duration[1]}/${shotDurations.get(expected)}`);
+  }
   if (!/^- Panel 数量：[1-9]\d*$/mu.test(text)) metadata.push(`${file}:panel-count`);
 }
 if (metadata.length) cardParts.push(`metadata=${metadata.join(',')}`);

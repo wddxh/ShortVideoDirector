@@ -94,6 +94,7 @@ test('converts full sheet with ordered assets and previous sheet last', () => {
     ]);
     assert.match(result.stdout, /\*\*参考资产：\*\* \[阿青:\{图片1\}\].*\[PREVIOUS_SHOT_SHEET:\{图片6\}\]/);
     assert.match(result.stdout, /只继承本卡声明元素，不复制前板网格、panel、构图、机位/);
+    assert.match(result.stdout, /继承元素：服装、持有物/);
     assert.match(result.stdout, /第一行。\n\n  第二行两端空格保留。  \n$/);
   });
 });
@@ -261,6 +262,14 @@ test('requires 无 when continuity has no dependency', () => {
     const path = 'assets/storyboard-sheets/ep01/shot02.md';
     write(root, path, card('- [甲](../../characters/甲.md)', continuity));
     fail(run(root, path), /continuity/);
+  });
+});
+
+test('requires a nonempty inheritance declaration with previous sheet', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot02.md';
+    write(root, path, card('- [甲](../../characters/甲.md)', '- [shot01](./shot01.md)'));
+    fail(run(root, path), /inheritance/);
   });
 });
 

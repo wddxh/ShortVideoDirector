@@ -50,5 +50,7 @@ describe('ENTRY_WORKFLOW_DISPATCH_DISCIPLINE', () => {
     assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('不限制最终文件总长度'));
     assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('反例'));
     assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('oldString'));
+    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('.json 数组型（tasks）'));
+    assert.equal(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('keyframes / tasks'), false);
   });
 });

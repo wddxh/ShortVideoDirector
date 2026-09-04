@@ -94,7 +94,7 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 9. **creator-create-assets** — ep='ep0X'，登记本集**新增**资产
 10. **creator-update-records** — ep='ep0X'，为本集出场的**已有**资产追加出场记录条目（非 ep01 必做）
 11. **director-review-asset-prompts** — `$ARGUMENTS[1]=basic`，审本集 character/location/item/building 资产 .md 卡的 `## 图像生成提示` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt section 不生图)
-12. **creator-generate-images** — 为本集新增的 character / location / item / building 资产生成图片
+12. 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} basic`。
 13. **director-review-assets-visual** — `--type=characters,locations,items,buildings {ep}`（review 文件 = `story/episodes/{ep}/.review-basic-assets-visual.md`）
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
 

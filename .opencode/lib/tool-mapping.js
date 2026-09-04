@@ -78,7 +78,7 @@ export const ENTRY_WORKFLOW_DISPATCH_DISCIPLINE = `## 派发约束（OC 专用�
 | 文件类型 | 分段单元 | 写入模式 |
 |---|---|---|
 | 长 .md（novel / script / storyboard / outline / asset 描述）| 逐章 / 逐场 / 逐镜头 / 逐 asset | 首段 Write，后续段 Edit 追加 |
-| .json 数组型（keyframes / tasks）| 逐条目 | 首条 \`Write('[\\n  <e1>\\n]')\`；后续 Edit oldString=\`'\\n]'\` newString=\`',\\n  <eN>\\n]'\` |
+| .json 数组型（tasks）| 逐条目 | 首条 \`Write('[\\n  <e1>\\n]')\`；后续 Edit oldString=\`'\\n]'\` newString=\`',\\n  <eN>\\n]'\` |
 | .json 对象嵌数组（\`{"shots":[…]}\`）| 逐条目 | 首 Write 完整骨架含 1 条；后续 Edit 数组结束括号片段 |
 | .yaml / .toml | 逐顶层 key | 首 key Write 骨架，后 Edit 追加 |
 

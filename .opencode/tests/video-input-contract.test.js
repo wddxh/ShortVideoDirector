@@ -42,3 +42,27 @@ test('auto-video invokes check-video through the standard skill call sentence', 
     assert.ok(read(path).includes('使用 Skill tool 调用 `check-video` skill'), path);
   }
 });
+
+test('interactive correction rebuilds sheet stages before converter retry', () => {
+  const text = read('skills/check-video/SKILL.md');
+  const interactive = text.slice(text.indexOf('**交互模式（默认）：**'), text.indexOf('## JSON 摘要契约'));
+  const stages = [
+    'creator-storyboard-sheet-prompts',
+    'director-review-storyboard-sheet-prompts',
+    'creator-fix-storyboard-sheet-prompt',
+    'creator-generate-images',
+    'director-review-storyboard-sheets-visual',
+    'creator-fix-storyboard-sheet-image',
+    'director-review-storyboard-sheet-impact',
+    'storyboard-to-prompt.sh',
+    'video-gen-dreamina.sh',
+  ];
+  let previous = -1;
+  for (const stage of stages) {
+    const index = interactive.indexOf(stage, previous + 1);
+    assert.ok(index > previous, stage);
+    previous = index;
+  }
+  assert.ok(interactive.includes('creator-generate-images` skill，参数 `{集数} paths'));
+  assert.equal(interactive.includes('creator-image-{图像模型值}'), false);
+});

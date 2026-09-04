@@ -198,7 +198,7 @@ test('single, image fix, and impact expose stable machine contracts', () => {
 
   const fixText = imageFix();
   assert.match(fixText, /card\|image/);
-  assert.match(fixText, /creator-generate-images \{ep\} paths/);
+  assert.ok(fixText.includes('creator-generate-images` skill，参数 `{ep} paths'));
   assert.match(fixText, /successful regenerated shots:/);
 
   const impactText = impact();
@@ -231,6 +231,7 @@ test('all episode modes use the same ordered sheet subchain', () => {
   ];
   for (const file of ['new-series.md', 'continue-series.md', 'short.md']) {
     const text = read(`skills/generate-episode-pipeline/${file}`);
+    const ep = file === 'continue-series.md' ? '{ep}' : 'ep01';
     let previous = -1;
     for (const step of steps) {
       const index = text.indexOf(step, previous + 1);
@@ -238,6 +239,10 @@ test('all episode modes use the same ordered sheet subchain', () => {
       previous = index;
     }
     assert.match(text, /creator-generate-images[^\n]*storyboard-sheets/);
+    assert.ok(text.includes(
+      `使用 Skill tool 调用 \`creator-generate-images\` skill，参数 \`${ep} basic\``),
+      `${file}: basic image scope`,
+    );
     assert.match(text, /upstream-storyboard[\s\S]*generator[\s\S]*prompt-fix/);
     assert.match(text, /fix_attempts[\s\S]*2/);
     assert.match(text, /首次生成[\s\S]*不.*impact/);
@@ -296,4 +301,44 @@ test('edit and repair expose direct-impact and ordered recovery contracts', () =
     }
     assert.match(repair, /none[\s\S]*skipped/);
   }
+});
+
+test('edit mode guides expose executable entry and routing tables', () => {
+  const expected = {
+    'series.md': ['outline', 'novel', 'script', 'base-asset-card', 'base-asset-image', 'storyboard', 'sheet-prompt', 'sheet-image', 'impact'],
+    'short.md': ['outline', 'script', 'base-asset-card', 'base-asset-image', 'storyboard', 'sheet-prompt', 'sheet-image', 'impact'],
+  };
+  for (const [file, nodes] of Object.entries(expected)) {
+    const text = read(`skills/edit-story/${file}`);
+    const entry = text.slice(text.indexOf('## 可执行入口表'), text.indexOf('## 节点路由表'));
+    const routes = text.slice(text.indexOf('## 节点路由表'));
+    const firstColumn = (table) => new Set(table.split('\n')
+      .filter((line) => line.startsWith('|'))
+      .map((line) => line.split('|')[1].trim()));
+    const entryNodes = firstColumn(entry);
+    const routeNodes = firstColumn(routes);
+    for (const node of nodes) {
+      assert.ok(entryNodes.has(node), `${file} entry ${node}`);
+      assert.ok(routeNodes.has(node), `${file} route ${node}`);
+    }
+    assert.ok(routes.includes('使用 Skill tool 调用'));
+    assert.ok(routes.includes('creator-generate-images` skill，参数 `{ep} paths'));
+    for (const skill of [
+      'creator-storyboard-sheet-prompts',
+      'director-review-storyboard-sheet-prompts',
+      'creator-fix-storyboard-sheet-prompt',
+      'director-review-storyboard-sheets-visual',
+      'creator-fix-storyboard-sheet-image',
+      'director-review-storyboard-sheet-impact',
+    ]) assert.ok(text.includes(`\`${skill}\``), `${file}: ${skill}`);
+  }
+});
+
+test('sheet card schema defines the complete panel label fields', () => {
+  const rules = read('skills/creator-storyboard-sheet-prompts/rules.md');
+  const schema = rules.slice(rules.indexOf('## 整板协议'), rules.indexOf('## Markdown 安全子集'));
+  for (const field of ['Panel 编号', '时间码', '景别', '机位', '运动']) {
+    assert.ok(schema.includes(field), field);
+  }
+  assert.ok(schema.includes('P03 · 5.0s · CU · LOW ANGLE · DOLLY IN'));
 });

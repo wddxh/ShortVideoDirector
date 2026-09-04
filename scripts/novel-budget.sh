@@ -15,6 +15,11 @@ EP="$1"
 EP_DIR="story/episodes/$EP"
 OUTLINE="$EP_DIR/outline.md"
 NOVEL="$EP_DIR/novel.md"
+case "$0" in
+  */*) SCRIPT_DIR=${0%/*} ;;
+  *) SCRIPT_DIR=. ;;
+esac
+SCRIPT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR" && pwd)
 
 # Check inputs
 if [ ! -f "$OUTLINE" ]; then
@@ -42,7 +47,7 @@ FAIL_LOWER=$((DURATION_SUM * 6))
 FAIL_UPPER=$((DURATION_SUM * 14))
 
 # Actual word count
-ACTUAL=$(bash scripts/word-count.sh "$NOVEL" 2>/dev/null)
+ACTUAL=$(bash "$SCRIPT_DIR/word-count.sh" "$NOVEL" 2>/dev/null)
 if [ -z "$ACTUAL" ]; then
   ACTUAL=0
 fi

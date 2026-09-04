@@ -39,12 +39,33 @@ fi
 
 NOVEL="$EP_DIR/novel.md"
 SCRIPT_FILE="$EP_DIR/script.md"
-if [ -f "$NOVEL" ]; then
-  echo 'novel:ok'
-elif [ -f "$SCRIPT_FILE" ] && grep -q '^## 场景' "$SCRIPT_FILE"; then
+MODE=$(read_config 'mode')
+if [ "$MODE" != 'series' ] && [ "$MODE" != 'short' ]; then
+  MODE=$(bash "$SCRIPT_DIR/detect-mode.sh" 2>/dev/null)
+fi
+if [ "$MODE" = 'series' ]; then
+  if [ ! -f "$NOVEL" ]; then
+    echo 'novel:missing'; HAS_ISSUE=1
+  elif [ ! -s "$NOVEL" ]; then
+    echo 'novel:incomplete'; HAS_ISSUE=1
+  else
+    NOVEL_RESULT=$(bash "$SCRIPT_DIR/novel-budget.sh" "$EP" "$CONFIG" 2>/dev/null)
+    NOVEL_STATUS=$(printf '%s\n' "$NOVEL_RESULT" | grep '^status:' | cut -d: -f2)
+    NOVEL_ACTUAL=$(printf '%s\n' "$NOVEL_RESULT" | grep '^actual:' | cut -d: -f2)
+    NOVEL_LOWER=$(printf '%s\n' "$NOVEL_RESULT" | grep '^expected_lower:' | cut -d: -f2)
+    if [ "$NOVEL_STATUS" = 'fail' ]; then
+      echo "novel:incomplete:${NOVEL_ACTUAL:-0}/${NOVEL_LOWER:-unknown}"; HAS_ISSUE=1
+    else
+      echo 'novel:ok'
+    fi
+  fi
+fi
+if [ ! -f "$SCRIPT_FILE" ]; then
+  echo 'script:missing'; HAS_ISSUE=1
+elif grep -q '^## 场景' "$SCRIPT_FILE"; then
   echo 'script:ok'
 else
-  echo 'script:missing'; HAS_ISSUE=1
+  echo 'script:incomplete'; HAS_ISSUE=1
 fi
 
 if [ -f "$OUTLINE" ] && grep -q '^## 本集资产清单' "$OUTLINE"; then
@@ -54,15 +75,34 @@ else
 fi
 
 MISSING_ASSETS=''
+EP_ASSETS=''
 if [ -f "$OUTLINE" ] && grep -q '^## 本集资产清单' "$OUTLINE"; then
-  ASSET_NAMES=$(bash "$SCRIPT_DIR/parse-new-assets.sh" "$OUTLINE" 2>/dev/null)
+  EP_ASSETS=$(awk '
+    /^## 本集资产清单[[:space:]]*$/ { in_list=1; next }
+    in_list && /^## / { exit }
+    in_list && /^- (characters|locations|items|buildings):/ {
+      type=$0; sub(/^- /, "", type); sub(/:.*/, "", type)
+      values=$0; sub(/^- [^:]+:[[:space:]]*/, "", values)
+      count=split(values, entries, /,[[:space:]]*/)
+      for (i=1; i<=count; i++) {
+        value=entries[i]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+        if (value == "" || value == "(无)") continue
+        marker=index(value, "(assets/")
+        if (marker > 0) {
+          asset=substr(value, marker+1); sub(/\)[[:space:]]*$/, "", asset); print asset
+        } else {
+          print "assets/" type "/" value ".md"
+        }
+      }
+    }
+  ' "$OUTLINE")
   while IFS= read -r ASSET_PATH; do
     [ -n "$ASSET_PATH" ] || continue
     NAME=${ASSET_PATH##*/}
     NAME=${NAME%.md}
     [ -f "$ASSET_PATH" ] || MISSING_ASSETS="${MISSING_ASSETS}${MISSING_ASSETS:+,}$NAME"
   done <<EOF
-$ASSET_NAMES
+$EP_ASSETS
 EOF
 fi
 if [ -n "$MISSING_ASSETS" ]; then
@@ -76,11 +116,15 @@ if [ "$IMAGE_MODEL" = 'none' ] || [ -z "$IMAGE_MODEL" ]; then
   echo 'images:skipped'
 else
   MISSING_IMAGES=''
-  for MD in assets/characters/*.md assets/items/*.md assets/locations/*.md assets/buildings/*.md; do
+  while IFS= read -r MD; do
     [ -f "$MD" ] || continue
     IMAGE=$(bash "$SCRIPT_DIR/asset-to-image-path.sh" "$MD")
-    [ -f "$IMAGE" ] || MISSING_IMAGES="${MISSING_IMAGES}${MISSING_IMAGES:+,}${MD##*/}"
-  done
+    NAME=${MD##*/}
+    NAME=${NAME%.md}
+    [ -f "$IMAGE" ] || MISSING_IMAGES="${MISSING_IMAGES}${MISSING_IMAGES:+,}$NAME"
+  done <<EOF
+$EP_ASSETS
+EOF
   if [ -n "$MISSING_IMAGES" ]; then
     echo "images:missing:$MISSING_IMAGES"; HAS_ISSUE=1
   else

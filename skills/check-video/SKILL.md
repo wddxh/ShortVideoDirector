@@ -139,14 +139,17 @@ model: opus
 1. 显示镜头编号和 `fail_reason` 原文
 2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
 3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
-   - 涉及分镜/画面描述修改 → 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill（统一入口，根据 `story/episodes/{集数}/script.md`（短视频）或 `story/episodes/{集数}/novel.md`（系列视频）自动判断 mode）
-   - 涉及资产/图片修改 → 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "图像模型"` 获取图像模型值，使用 Skill tool 调用 `creator-fix-asset` skill + 使用 Skill tool 调用 `creator-image-{图像模型值}` skill
+   - 涉及分镜/画面描述修改 → 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，参数 `{集数}`，记录真实 changed/added/deleted/renumbered shots
+   - 涉及资产卡/图片修改 → 使用 Skill tool 调用 `creator-fix-asset` skill。随后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {asset_paths...}`；根据 sheet cards 的直接引用确定受影响 shots
 4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
-5. 重新生成 prompt：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`，解析并刷新新 prompt / images / duration，验证每张图存在且 sheet 为第一张
-6. 读取配置：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "即梦视频模型版本"` 和 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "视频比例"`
-7. 重新提交：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamina.sh "{新prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-8. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt、images、duration），用 Write 写回
-9. 提示用户稍后再次使用 `/check-video {集数}` 查询
+5. 使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill：编号集合变化传 `{集数} full`，否则传 `{集数} incremental {受影响 shots...}`
+6. 使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill。对 `prompt-fix` owner 使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{集数} {review_path} {cards...}`；其他 owner 按 review handoff 执行。最多 2 轮
+7. 图像模型启用时，使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {受影响 card_paths...}`。随后使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill；dirty 时使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{集数} {review_path} {shots...}`。最多 2 轮
+8. 对 dirty batch 外直接依赖使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill；仅 `affected` 继续修复传播。图像模型 `none` 时 PNG/visual/impact skipped，因视频缺 sheet PNG 停止重试
+9. 重建链全部成功后运行 `storyboard-to-prompt.sh`，解析并刷新新 prompt / images / duration，验证每张图存在且 sheet 为第一张
+10. 读取配置并运行 `video-gen-dreamina.sh` 重新提交
+11. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt、images、duration），用 Write 写回
+12. 提示用户稍后再次使用 `/check-video {集数}` 查询
 
 ## JSON 摘要契约（仅 `--auto` 模式）
 

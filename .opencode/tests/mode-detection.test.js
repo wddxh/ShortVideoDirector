@@ -41,6 +41,17 @@ test('config.md mode=short → short', () => {
   } finally { rmSync(dir, { recursive: true }); }
 });
 
+test('accepts the bullet mode format written by entry workflows', () => {
+  for (const mode of ['series', 'short']) {
+    const dir = setupTmpProject(`- mode: ${mode}\n`, false);
+    try {
+      const result = runIn(dir);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout.trim(), mode);
+    } finally { rmSync(dir, { recursive: true }); }
+  }
+});
+
 test('config.md 无 mode 字段 + story/arc.md 存在 → series', () => {
   const dir = setupTmpProject('其他: x\n非 mode 字段: y', true);
   try {

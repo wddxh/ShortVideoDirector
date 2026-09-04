@@ -1,6 +1,6 @@
 # ShortVideoDirector — OpenCode 插件
 
-短视频创作工作流插件，提供 5 个子代理（director, writer, scriptwriter, storyboarder, creator）与 35 个 skills。
+短视频创作工作流插件。子代理来自 `agents/*.md`，skills 来自 `skills/*/SKILL.md`，均按当前源码动态加载。
 
 源代码是 Claude Code 插件，OC 兼容层在 `.opencode/` 下，运行时把源 skills 转换到 `~/.cache/short-video-director/<hash>/` 供 OC 加载，不污染源仓库。
 
@@ -84,7 +84,7 @@ storyboarder (subagent)
 writer (subagent)
 ```
 
-进一步验证 skills 是否加载（应输出 35 个 skill，路径在 `~/.cache/short-video-director/<hash>/skills/`）：
+进一步验证 skills 是否从 `~/.cache/short-video-director/<hash>/skills/` 加载，并与当前源码集合一致：
 
 ```bash
 opencode debug skill | head -30
@@ -138,20 +138,32 @@ rm -rf ~/.cache/opencode/node_modules/short-video-director/
 
 插件做 3 件事：
 
-1. **`config` hook**：把 cache 目录注册到 `config.skills.paths`，把 5 个子代理注册到 `config.agent`
+1. **`config` hook**：把 cache 目录注册到 `config.skills.paths`，把 `agents/*.md` 动态注册到 `config.agent`
 2. **`shell.env` hook**：注入 `CLAUDE_PLUGIN_ROOT=<插件根目录>` 环境变量给所有 bash 调用，作为 bash subprocess 的兜底（与 CC 原生 env var 同名同义），使源 skill 中 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/X.sh` 之类的调用在 OC 下也能定位脚本
-3. **`experimental.chat.messages.transform` hook**：在首条 user message 前注入 bootstrap 文本（列出 7 个 user-invocable workflow + 5 个子代理），用 `SVD_BOOTSTRAP_MARKER` 实现幂等
+3. **`experimental.chat.messages.transform` hook**：在首条 user message 前注入动态 workflow/agent bootstrap，用 `SVD_BOOTSTRAP_MARKER` 实现幂等
 
 转换规则（源 CC skill → OC cache skill）：
 
 - **frontmatter**：CC 字段（`context: fork`, `agent`, `user-invocable` 等）移到 `metadata.svd-*`，description 截断到 1024 字符
 - **`使用 Skill tool 调用 X`**：若 X 有 `context: fork` → 重写为 `task({ subagent_type: ..., prompt: "..." })`；否则重写为 `调用 \`skill({ name: "X" })\``
 - **`${CLAUDE_PLUGIN_ROOT}` inline 替换**：transform-time 把源 skill / agent 中的 `${CLAUDE_PLUGIN_ROOT}` 字面量替换为插件根目录绝对路径，与 CC 原生 inline 替换行为对齐（CC 在 prompt 注入时也是直接 substitute 这个 token）
-- **9 个 user-invocable workflow 顶部**：注入"派发约束"指引（按语义单元 chapter/scene/shot/JSON 条目分段派发给子代理，避免单次 Write 过长在 OC 下挂起）—— **注意**：管线重构后实际为 7 个（`series-video` / `short-video` / `edit-story` / `repair-story` / `generate-video` / `check-video` / `auto-video`），见 `tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS`
+- **user-invocable workflow 顶部**：按 `USER_INVOCABLE_ENTRY_WORKFLOWS` 当前集合注入派发约束，无独立计数常量
 - **fork-context skill 顶部**：注入"执行上下文：本 skill 已在 X 子代理中"提示
 - **auto-video skill**：CC 的 `CronCreate/List/Delete` 原语替换为基于 nohup loop + HTTP `/session/{SID}/prompt_async` 的调度（OC override 实现，见 `.opencode/skill-overrides/auto-video/`）
 
-cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 的前 16 hex 字符；保留最新 3 个 cache。
+cache 失效逻辑：sha256(`skills/`、`agents/`、`scripts/`、`.opencode/skill-overrides/`、`.opencode/lib/` 的转换输入 path+mtime+size + plugin version) 的前 16 hex 字符；保留最新 3 个 cache。
+
+Storyboard sheet 链由当前源码中的这些 skills 组成：
+
+- `creator-storyboard-sheet-prompts`
+- `director-review-storyboard-sheet-prompts`
+- `creator-fix-storyboard-sheet-prompt`
+- `director-review-storyboard-sheets-visual`
+- `director-review-storyboard-sheet-visual-single`
+- `creator-fix-storyboard-sheet-image`
+- `director-review-storyboard-sheet-impact`
+
+图片统一经过 `creator-generate-images` 的 `basic`、`storyboard-sheets` 或 `paths` scope 路由。
 
 ## Inline 替换 `${CLAUDE_PLUGIN_ROOT}`
 
@@ -164,7 +176,7 @@ cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 
 
 ## Troubleshooting
 
-**问题：启动后看不到 5 个子代理**
+**问题：启动后看不到源码中定义的子代理**
 
 - `opencode agent list` 看输出，若没有 director/writer 等说明 plugin 未加载
 - 检查 `opencode.json` 的 plugin 配置正确性
@@ -174,7 +186,7 @@ cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 
 **问题：调用 skill 时报"unknown skill"**
 
 - 可能 cache 不完整。手动清 cache：`rm -rf ~/.cache/short-video-director/`，重启 OC 触发重建
-- 验证转换是否产出 44 个 skill：`opencode debug skill | grep -c '"name":'`
+- 用 `opencode debug skill` 核对输出与当前 `skills/*/SKILL.md` 动态集合一致
 
 **问题：bash 脚本调用失败说找不到文件**
 
@@ -202,7 +214,7 @@ cache 失效逻辑：sha256(所有 .md 文件 path+mtime+size + plugin version) 
 测试零依赖 —— 用 Node 内置 `node --test` runner（Node 18+）：
 
 ```bash
-# 跑单元测试（90 个）
+# 跑完整单元测试
 npm test
 # 或直接：
 node --test .opencode/tests/*.test.js
@@ -236,11 +248,11 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 
 **为什么没有文件类型例外**：OC 卡死 root cause 是 LLM emit 长字符串参数时的 streaming 中断，跟文件内容类型无关。JSON / YAML 同样按增量模式分段（详见 `ENTRY_WORKFLOW_DISPATCH_DISCIPLINE`）。
 
-### 管线重构变更记录（2026-05-21）
+### 管线与 Storyboard Sheets 变更记录
 
 - `USER_INVOCABLE_ENTRY_WORKFLOWS` 从 9 → 7：合并 `series-edit-story` + `short-edit-story` → `edit-story`；`series-repair-story` + `short-repair-story` → `repair-story`。`tool-mapping.js` 中 Set 已更新，对应 OC commands 自动 derive。
-- skill 总数 44 → 34：删除 `new-story` / `continue-story` / `short-*` 系列分流 skill，由 `generate-episode-pipeline` 统一承载，`series-video` / `short-video` 仅作入口透传 mode 参数。
-- skill 总数 34 → 35：新增 `director-fix-arc`（pipeline review 循环新增 arc 修复路径，对齐 outline/novel/script/storyboard/asset 五条已有 fix 链）。
+- 删除 `new-story` / `continue-story` 等分流 skill，由 `generate-episode-pipeline` 统一承载；skill 集合由目录动态发现。
+- Storyboard sheet 链包含 card 生成、prompt review/fix、串行生图、visual review/fix 和 direct-impact review。
 - pipeline mode 文件加 `review 循环 (通用模式)`：每个 `review-*` 步骤遵循"≤2 轮修复 + 自动跳过"模式，2 轮仍 dirty 则 main session print 警告并继续，用户后续可用 `/edit-story` 手动修订。
 - 子 skill 严格 stateless functional：`director-plot-options` 加 `action` 参数（generate/modify）+ `previous_options_path`；`director-input-confirm` 加 `selected_plot_option` 参数；两者均删除"等待用户回应/重新执行本 skill"等交互指令，由 main session 处理。
 - `generate-episode-pipeline` 不再 fork（删 `context: fork` + `agent: director`），运行在调用方（`series-video` / `short-video`） session 中，使 review 失败时主 session 可直接 print 警告并自动跳过。
@@ -269,19 +281,19 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
     └── short.md         # short mode 专属步骤（若入口同时支持两种 mode）
   ```
 - **SKILL.md Phase 1 强制 Read 当前 mode 文件**：避免 LLM 凭印象执行；mode 不匹配会立即 fail-fast
-- **transform-skills 自动复制 sibling 文件**：所有 `.md` / `.txt` / `.sh` aux 文件随 SKILL.md 一起 copy 到 cache，无需改 transform logic
+- **transform-skills 处理 sibling 文件**：`.md` aux 同样执行标准 skill-call rewrite 与 plugin-root 替换；其他 aux 原样复制
 - 维护契约：改 mode-specific 文件不需要动 `.opencode/` 任何代码；只要文件落在 skill 目录下即自动生效
 
 
 
 | 改动 | 同步位置 | 失败征兆 |
 |------|----------|---------|
-| **加/减 skill 目录** | `.opencode/tests/transform-skills.test.js` 的 `assert.equal(dirs.length, 35)` | `produces SKILL.md for all 35 skills` 失败，错误显示实际目录数 |
+| **加/减 skill 目录** | 无手工计数；transform test 动态比较 source/output `*/SKILL.md` 集合 | source/output 集合不一致 |
 | **新 skill 带 `user-invocable: true`** | `.opencode/lib/tool-mapping.js` 的 `USER_INVOCABLE_ENTRY_WORKFLOWS` Set（同时 `.opencode/tests/tool-mapping.test.js` 的硬编码列表） | `USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 7 entries` 失败 |
 | **删除已有的 `user-invocable` skill** | 同上 | 同上 |
-| **改 skill 间 `使用 Skill tool 调用 X` 引用** | 自动处理；但 X 必须存在于 `skills/` 否则 transform throws | integration test `produces SKILL.md for all 35 skills` 整个崩，错误显示 "Unknown skill referenced: X" |
+| **改 skill 间 `使用 Skill tool 调用 X` 引用** | SKILL.md 和 aux Markdown 都自动处理；X 必须存在 | transform integration 报 unknown skill |
 | **新 fork skill（`context: fork`）被其他 skill 引用** | 引用位置**必须**用 `使用 Skill tool 调用 \`<name>\` skill[, 传递参数：\`<args>\`]` 标准模板。`transform-skills.js` 只识别此模板，会改写为 `task` 派发；自然语言"调用 X"会让 OC LLM 选 `skill()` 同上下文加载，破坏 fork 隔离语义（fork→fork 嵌套场景会导致下游 subagent 全部图片/数据塞进单一上下文，附件压缩中断） | 无测试失败（沉默 bug）；只在实际跑 OC 工作流时表现为"该 fork 的下游没被 fork 出去"。verify: wipe cache + `grep "task(" ~/.cache/.../skills/<caller>/SKILL.md` 应有 task 代码块 |
-| **新 review→fix 链路** | review skill 必须 append 写入 `story/episodes/{集数}/.review-{type}.md`（自检 round 用 grep `^## 第 [0-9]+ 轮` + Edit anchor），return 简报 `pass` / `needs_revision M`；fix skill 必须从该文件读最后一轮意见；entry workflow 的派发参数只传 `{集数}`（不传 `"{修改意见}"`）。**目的**：避免大段 review 意见做为 task prompt 参数时 OC 卡死。**核心约定一致性**：6 个 review skill + 6 个 fix skill + 6 个 entry workflow 三层必须同步改 | 无测试失败（沉默 bug）；表现为 fix skill 拿不到意见或 task prompt 卡好几小时。verify: 实际跑一次 review-fix loop，检查 `.review-*.md` 是否生成；fix skill 是否能找到意见列表 |
+| **新 review→fix 链路** | review skill append `.review-{type}.md` 并返回稳定状态；fix 读取最后一轮；entry 仅传短参数。同步 reviewer/fixer/caller 三层 | fix 拿不到意见或派发 prompt 过长 |
 | **改 skill `description` 字段超 1024 字符** | 自动 clip 到 1024（无错，但用户可能看到截断的描述） | 无测试失败，但 `opencode debug skill` 看到的 description 被截断 |
 | **删除 `writer-novel/rules.md`** 或类似 aux 文件 | `.opencode/tests/transform-skills.test.js:272` 的 `aux files (rules.md) are copied` test 用了它 | aux test 失败；改用另一个 skill 的 aux 文件即可 |
 

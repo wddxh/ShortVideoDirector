@@ -38,8 +38,8 @@
 | **Director** | 总导演 | 全局统筹、生成剧情大纲、审核 Writer/Scriptwriter 和 Storyboarder 输出 |
 | **Writer** | 网络小说作家 | 根据剧情大纲生成小说原文，擅长悬念设置和人物描写 |
 | **Scriptwriter** | 短视频编剧 | 将大纲转化为剧本，擅长在极短篇幅内构建完整故事 |
-| **Storyboarder** | 分镜师 | 负责资产清单和分镜提示词生成 |
-| **Creator** | 创意总监 | 识别并视觉化人物和资产，生成图像提示词和声音特征描述 |
+| **Storyboarder** | 分镜师 | 把剧本翻译为七字段 shot 时间线和完整视听 prose，不规划 panel |
+| **Creator** | 创意总监 | 创建基础视觉资产，并为每个 shot 规划和生成 storyboard sheet |
 
 ## 安装
 
@@ -61,7 +61,7 @@ claude --plugin-dir /path/to/ShortVideoDirector
 }
 ```
 
-启动 OC 即自动注册 5 个子代理与 34 个 skills。完整安装/升级/troubleshooting 说明见 [`.opencode/README.md`](./.opencode/README.md)。
+启动 OC 即按 `agents/` 与 `skills/*/SKILL.md` 动态注册当前子代理和 skills。完整安装/升级/troubleshooting 说明见 [`.opencode/README.md`](./.opencode/README.md)。
 
 ## Codex
 
@@ -77,11 +77,7 @@ python3 .codex/build-codex-skills.py
 
 ## 模型要求
 
-本插件按任务复杂度分配模型：
-
-- Opus（编排、Director 审核）：13 个 skill
-- Sonnet（内容生成、机械执行）：18 个 skill
-- 未指定（继承调用方）：3 个 skill
+本插件按任务复杂度分配模型：编排与 Director 审核通常使用 Opus，内容生成和机械执行通常使用 Sonnet；以各源 skill frontmatter 为准。
 
 **前置条件**：账号需同时有 Opus 和 Sonnet 访问权限。
 
@@ -173,7 +169,7 @@ your-project/
 │       ├── ep01/
 │       │   ├── outline.md      # 本集剧情大纲（含资产清单）
 │       │   ├── novel.md        # 本集小说原文（系列视频）
-│       │   ├── script.md       # 本集剧本（单集短视频）
+│       │   ├── script.md       # 本集可拍摄剧本（series / short 均生成）
 │       │   ├── storyboard.md   # 本集分镜提示词
 │       │   ├── videos/
 │       │   │   ├── tasks.json    # 视频生成任务跟踪
@@ -186,11 +182,13 @@ your-project/
 │   ├── items/                  # 重要物品提示词
 │   ├── locations/              # 场景提示词
 │   ├── buildings/              # 建筑提示词
+│   ├── storyboard-sheets/      # 每 shot 的多 panel sheet 卡
 │   └── images/                 # 生成的参考图片（按类型分子目录）
 │       ├── characters/
 │       ├── items/
 │       ├── locations/
-│       └── buildings/
+│       ├── buildings/
+│       └── storyboard-sheets/  # 每 shot 的 16:9 sheet PNG
 └── config.md                   # 项目配置
 ```
 
@@ -246,9 +244,9 @@ plot-options → input-confirm → [arc (series only)] → outline
 5. Director 生成本集剧情大纲（参考 arc 如有）
 6. Writer 生成小说原文 → Director 审核（最多 2 轮）
 7. Scriptwriter 基于 outline + novel 生成剧本 → Director 审核（最多 2 轮）
-8. Storyboarder 生成资产清单 + 分镜 → Director 审核（最多 2 轮）
-9. Creator 创建并生成基础资产图
-10. Storyboarder 生成分镜；Creator 为每 shot 规划并生成 storyboard sheet
+8. Creator 创建基础资产并生成参考图，Director 完成 prompt/visual 审核
+9. Storyboarder 生成分镜 → Director 审核（最多 2 轮）
+10. Creator 为每 shot 规划 sheet，经过 prompt review 后串行生图并 visual review
 11. （触发 `/generate-video` 时）提交视频任务并跟踪
 
 ### Continue Story（续写，series）
@@ -260,23 +258,23 @@ plot-options → input-confirm → [arc (series only)] → outline
 5. Director 生成新集大纲（append-only 追加到总大纲）
 6. Writer 生成小说原文 → Director 审核（最多 2 轮）
 7. Scriptwriter 生成剧本 → Director 审核（最多 2 轮）
-8. Storyboarder 生成资产清单（含新增/已有）+ 分镜 → Director 审核（最多 2 轮）
-9. Creator 创建新资产、更新记录、生成基础图，再为每个 shot 生成 storyboard sheet
+8. Creator 创建新资产、更新记录并生成基础图
+9. Storyboarder 生成分镜并审核；Creator 再生成和审核每 shot storyboard sheet
 
 ### Short Story（单集短视频）
 
 1. 创建目录结构 + 交互式配置引导
 2. plot-options → input-confirm → outline（无 arc）
 3. **跳过 novel** → Scriptwriter 基于 outline 直接生成剧本 → Director 审核
-4. Storyboarder 生成资产清单 + 分镜 → Director 审核
-5. Creator 生成基础资产与每 shot storyboard sheet
+4. Creator 生成并审核基础资产图
+5. Storyboarder 生成分镜并审核；Creator 生成并审核每 shot storyboard sheet
 6. 视频生成同上
 
 ### 重大变更（vs 旧版本，clean break）
 
 - **管线统一**：旧的 `new-story` / `continue-story` / `short-*` / `series-*` 分流 workflow 合并为单一 `generate-episode-pipeline`，由 `series-video` / `short-video` 入口透传 mode 参数（`series` / `short`）
 - **命令简化**：9 → 7 个 user-invocable command；`series-edit-story` + `short-edit-story` → `edit-story`；`series-repair-story` + `short-repair-story` → `repair-story`
-- **Skill 数量**：44 → 34；删除冗余/分流 skill，合并 review/fix 链路
+- **Skill 发现**：运行时从 `skills/*/SKILL.md` 动态发现，不维护手工总数
 - **Storyboard sheets clean break**：每 shot 一张多 panel sheet，视频输入固定 sheet 第一、基础资产随后；旧项目由 detector 明确拒绝
 - **mode-specific 内容外置**：管线 SKILL.md 主体保持通用，差异化指令拆到 sibling 文件（`series.md` / `short.md`），Phase 1 强制 Read 当前 mode 文件
 - **不向后兼容**：旧 `episodes/` 目录若用新 skill 触发会报错——旧项目请固定到上一个 release tag 使用，或迁移到新结构
@@ -364,7 +362,7 @@ ShortVideoDirector/
 │   ├── scriptwriter.md          # Scriptwriter（短视频编剧）
 │   ├── storyboarder.md          # Storyboarder（分镜师）
 │   └── creator.md               # Creator（创意总监）
-├── skills/                          # 34 个 skills，按职责分组
+├── skills/                          # 源 skills，运行时动态发现
 │   ├── series-video/                # 系列视频入口（user-invocable，含 series.md）
 │   ├── short-video/                 # 单集短视频入口（user-invocable，含 short.md）
 │   ├── generate-episode-pipeline/   # 统一管线（series/short 共用骨架）
@@ -396,6 +394,12 @@ ShortVideoDirector/
 │   ├── creator-fix-asset/           # Creator 修正资产
 │   ├── creator-fix-asset-image/     # Creator 修订资产 prompt 并重抽图
 │   ├── creator-storyboard-sheet-prompts/ # Creator 生成每 shot 的 sheet 卡
+│   ├── creator-fix-storyboard-sheet-prompt/ # Creator 修订 sheet prompt
+│   ├── creator-fix-storyboard-sheet-image/  # Creator 重生整张 sheet
+│   ├── director-review-storyboard-sheet-prompts/ # Sheet prompt 审核
+│   ├── director-review-storyboard-sheets-visual/ # Sheet 视觉审核汇总
+│   ├── director-review-storyboard-sheet-visual-single/ # 单 sheet 视觉审核
+│   ├── director-review-storyboard-sheet-impact/ # 下游连续性影响审核
 │   ├── creator-generate-images/     # Creator 批量生成图片（路由层）
 │   ├── creator-image-dreamina/      # Creator 即梦图片生成（模型编排层）
 │   └── creator-video-dreamina/      # Creator 即梦视频生成（模型编排层）
@@ -403,13 +407,15 @@ ShortVideoDirector/
 │   ├── run-batch.ps1            # 批量生成脚本
 │   ├── image-gen-dreamina.sh    # 即梦单张图片生成脚本（支持参考图）
 │   ├── video-gen-dreamina.sh    # 即梦单镜头视频提交脚本（异步）
-│   ├── auto-video-check.sh      # 视频生成状态检查脚本（定时任务用）
+│   ├── video-check-dreamina.sh  # 视频生成状态查询与下载
 │   ├── read-config.sh           # config.md 键值提取
-│   ├── check-episode.sh         # 集文件完整性检查
-│   ├── storyboard-to-prompt.sh  # 分镜资产链接替换为图片引用
+│   ├── check-episode.sh         # 集文件完整性入口
+│   ├── check-storyboard-sheets.mjs # shot/card/PNG 完整性
+│   ├── storyboard-sheet-to-prompt.sh # sheet 生图输入转换
+│   ├── generate-storyboard-sheets-dreamina.sh # 串行 sheet 生图
+│   ├── storyboard-to-prompt.sh  # sheet-first 视频输入转换
 │   ├── asset-to-image-path.sh   # 资产路径转图片路径
 │   ├── latest-episode.sh        # 最新集数检测
-│   ├── task-status.sh           # JSON 任务文件操作（query/update/remove/add/upsert）
 │   ├── word-count.sh            # 字数统计脚本
 │   └── speech-rate.sh           # 台词语速检查脚本
 └── README.md
