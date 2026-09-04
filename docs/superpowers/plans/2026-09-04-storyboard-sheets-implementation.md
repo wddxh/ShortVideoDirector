@@ -16,6 +16,9 @@
 - Follow `docs/superpowers/specs/2026-09-04-storyboard-sheets-design.md`.
 - Use TDD for scripts and source contracts. Never call real Dreamina in tests.
 - Do not cap reference images. Return provider limits as provider errors.
+- Follow repository `AGENTS.md`: mechanically test only deterministic paths, schemas, states, ordering, and tool boundaries.
+- Do not encode natural-language quality or LLM judgment as keyword/regex tests. Panel quality, continuity meaning, and prompt quality belong to semantic Director review.
+- Add defensive tests only for observed bugs or credible inputs produced by supported callers; do not expand tasks for contrived unreachable cases.
 - Regenerate `.codex/skills/` in every commit that changes the source skill set.
 - Tasks 1-6 add inactive foundations while the old pipeline stays operational.
 - Task 7 is the single atomic cutover; do not commit a partial Task 7.
@@ -216,7 +219,7 @@ git commit -m "feat: add storyboard sheet prompt converter"
 
 - [ ] **Step 1: Write failing skill/schema tests**
 
-Assert roles/models, paths, modes, card skeleton, dynamic panels, full-time coverage, fixed 16:9 equal-width grid, project-ratio panels, color style, English labels, current assets, adjacent previous reference, and `无` when absent.
+Assert deterministic frontmatter, output/review paths, argument schema, card section/field names, dirty-list shape, review footer, and fix write boundaries. Do not mechanically score prose quality, visual beat selection, color style, or continuity meaning; the skill instructions delegate those judgments to the Creator/Director LLM roles.
 
 Use this frontmatter matrix:
 
@@ -244,7 +247,7 @@ Before adding them, replace the transform integration's hard-coded directory cou
 
 - [ ] **Step 4: Write prompt review and fix skills**
 
-Reviewer checks card identity, panel count/timing, beats, references, adjacent continuity, board protocol, and converter slots. Persist round footers and card-path dirty list. Tag issue owner `generator`, `prompt-fix`, or `upstream-storyboard`. Fix edits only `Panel 规划`, `连续性参考`, and `图像生成提示`; generator issues rerun incremental generation.
+Reviewer semantically checks card identity, panel timing and beats, references, adjacent continuity, board protocol, and converter slots. Mechanical tests verify only that this review stage is routed, persists round/status/owner fields, and exposes card-path dirty entries. Tag owner `generator`, `prompt-fix`, or `upstream-storyboard`. Fix edits only `Panel 规划`, `连续性参考`, and `图像生成提示`.
 
 - [ ] **Step 5: Verify source and regenerate wrappers**
 
@@ -277,7 +280,7 @@ git commit -m "feat: add storyboard sheet planning loop"
 
 - [ ] **Step 1: Write failing role and output tests**
 
-Assert aggregate review dispatches one isolated reviewer per sheet and writes `card|image` dirty entries. Single issues locate `PANEL NN` or `整板` and tolerate minor label spelling. Impact has read-only tools and exact JSON:
+Assert deterministic review plumbing only: aggregate dispatches one isolated reviewer per sheet, persists a review round, and writes `card|image` dirty entries; impact has read-only tools and exact JSON. Do not use word matching to determine whether a generated image should pass.
 
 ```json
 {"upstream":"shot01","downstream":"shot02","status":"affected","reason":"...","fix_direction":"..."}
@@ -298,7 +301,7 @@ All are non-user-invocable fork skills. The impact skill must not contain Write/
 
 - [ ] **Step 2: Write failing impact-boundary tests**
 
-Fixture: shot02 depends on shot01; shot03 does not depend on shot02. Assert incompatible clothing/held item/screen direction/action pose/spatial/light state is affected. Composition-only change, label typo, border change, and undeclared element change is unaffected. No dependency stops without touching shot03.
+Fixture: shot02 declares a dependency on shot01; shot03 declares none on shot02. Feed predetermined reviewer statuses into the harness. Do not mechanically infer `affected` from clothing, pose, lighting, labels, or other natural-language descriptions; that classification belongs to the Director LLM.
 
 Add an executable pure test harness in the test file: feed fixed reviewer JSON into an orchestrator function that appends impact records and invokes fake regenerate callbacks. Verify `unaffected` stops, `affected` regenerates/enqueues shot02, regeneration failure stops, and shot03 is never touched without a declared dependency. This tests state transitions without asking an LLM to judge images.
 
@@ -427,7 +430,7 @@ Create/replace:
 - `storyboard-to-prompt.test.js`: sheet first, assets after, prose intact, reading instruction, strict errors.
 - `video-input-contract.test.js`: `### shot N` selection, converter CSV source, order stable across all submissions.
 - `check-episode-storyboard-sheets.test.js`: exact shot/card/PNG sets, malformed sets, none skipped, legacy exit 2.
-- `no-legacy-storyboard-contract.test.js`: no old files/runtime text except detector/test regex.
+- `no-legacy-storyboard-contract.test.js`: check removed file/path identifiers and active skill references only; do not ban generic historical prose by broad natural-language matching.
 - Extend `storyboard-sheets-contract.test.js`: pipelines, roles, generic review separation, edit/repair order, impact queue.
 
 All paths are under `.opencode/tests/`.
@@ -479,7 +482,7 @@ When image model is `none`, edit and repair still create/review sheet cards, tre
 
 - [ ] **Step 7: Remove old runtime and separate generic reviews**
 
-Delete old scripts/skill/test. Generic asset reviews become basic-only. Remove KF text from shared rules, auto-video, agent injection, config templates, README files, and OpenCode docs. Remove `单镜头资产上限`. Keep detector literals only in detector/test regex. Correct bootstrap to nohup plus OpenCode HTTP prompting.
+Delete old scripts/skill/test. Generic asset reviews become basic-only. Remove active references to deleted files/skills from shared rules, auto-video, agent injection, config templates, README files, and OpenCode docs. Remove `单镜头资产上限`. The no-legacy test checks deterministic identifiers, not every occurrence of words such as “关键帧”. Correct bootstrap to nohup plus OpenCode HTTP prompting.
 
 - [ ] **Step 8: Fix OpenCode cache/discovery while source set changes**
 
