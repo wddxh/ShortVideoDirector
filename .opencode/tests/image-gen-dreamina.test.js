@@ -12,7 +12,7 @@ function runImage({ refs = '', response, prompt = 'draw this' }) {
   const fake = join(dir, 'dreamina');
   const argsFile = join(dir, 'args');
   writeFileSync(fake, `#!/usr/bin/env bash
-printf '%s\\n' "$@" > "$DREAMINA_ARGS"
+printf '%s\\0' "$@" > "$DREAMINA_ARGS"
 printf '%s\\n' "$DREAMINA_RESPONSE"
 `);
   chmodSync(fake, 0o755);
@@ -28,7 +28,7 @@ printf '%s\\n' "$DREAMINA_RESPONSE"
       DREAMINA_RESPONSE: response,
     },
   });
-  const args = readFileSync(argsFile, 'utf8').trimEnd().split('\n');
+  const args = readFileSync(argsFile).toString('utf8').split('\0').slice(0, -1);
   return { result, args, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
@@ -73,6 +73,17 @@ test('returns the provider fail reason unchanged', () => {
   try {
     assert.equal(run.result.status, 1);
     assert.equal(run.result.stdout, `FAIL ${reason}\n`);
+  } finally {
+    run.cleanup();
+  }
+});
+
+test('decodes escaped quotes in the provider fail reason', () => {
+  const response = String.raw`{"gen_status":"fail","fail_reason":"provider rejected \"11 references\""}`;
+  const run = runImage({ response });
+  try {
+    assert.equal(run.result.status, 1);
+    assert.equal(run.result.stdout, 'FAIL provider rejected "11 references"\n');
   } finally {
     run.cleanup();
   }

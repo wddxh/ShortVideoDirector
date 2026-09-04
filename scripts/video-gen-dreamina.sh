@@ -6,10 +6,6 @@
 # limits are returned as provider errors.
 # Exit codes: 0=SUBMITTED (stdout has "SUBMITTED submit_id"), 1=FAIL
 
-# grep -P (PCRE) requires a UTF-8 or C locale. Force it to avoid silent
-# "grep: -P supports only unibyte and UTF-8 locales" on systems with legacy locale.
-export LC_ALL=C.UTF-8
-
 if [ $# -lt 4 ]; then
   echo "Usage: bash scripts/video-gen-dreamina.sh \"prompt\" \"output_path\" \"img1,img2,...\" \"duration\" [ratio] [model_version]"
   exit 1
@@ -21,11 +17,14 @@ IMAGES="$3"
 DURATION="$4"
 RATIO="${5:-16:9}"
 MODEL="${6:-seedance2.0fast}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -z "$IMAGES" ]; then
-  echo "FAIL images list is empty"
-  exit 1
-fi
+case ",$IMAGES," in
+  *,,*)
+    echo "FAIL images list is empty"
+    exit 1
+    ;;
+esac
 
 # Build --image flags as an array (no eval needed; preserves arbitrary chars
 # in PROMPT including double quotes, spaces, shell metachars).
@@ -45,18 +44,22 @@ RESULT=$(dreamina multimodal2video \
   --video_resolution=720p \
   --model_version="$MODEL" 2>&1)
 
+json_field() {
+  printf '%s' "$RESULT" | bash "$SCRIPT_DIR/json-string-field.sh" "$1"
+}
+
 # Parse gen_status
-STATUS=$(printf '%s' "$RESULT" | grep -oP '"gen_status"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"gen_status"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
+STATUS=$(json_field gen_status)
 
 case "$STATUS" in
   fail)
-    REASON=$(printf '%s' "$RESULT" | grep -oP '"fail_reason"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"fail_reason"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
+    REASON=$(json_field fail_reason)
     echo "FAIL ${REASON:-unknown error}"
     exit 1
     ;;
   *)
     # Any non-fail status (querying, success, etc.) means submission succeeded
-    SUBMIT_ID=$(printf '%s' "$RESULT" | grep -oP '"submit_id"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"submit_id"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
+    SUBMIT_ID=$(json_field submit_id)
     if [ -z "$SUBMIT_ID" ]; then
       echo "FAIL no submit_id in response"
       echo "$RESULT" >&2

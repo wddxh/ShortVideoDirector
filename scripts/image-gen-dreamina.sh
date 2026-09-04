@@ -19,6 +19,11 @@ RATIO="${3:-1:1}"
 RESOLUTION="${4:-2k}"
 MODEL="${5:-4.0}"
 REF_IMAGES="$6"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+json_field() {
+  printf '%s' "$RESULT" | bash "$SCRIPT_DIR/json-string-field.sh" "$1"
+}
 
 # Generate image
 if [ -n "$REF_IMAGES" ]; then
@@ -41,11 +46,11 @@ else
 fi
 
 # Parse gen_status
-STATUS=$(printf '%s' "$RESULT" | grep -o '"gen_status"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"gen_status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+STATUS=$(json_field gen_status)
 
 case "$STATUS" in
   success)
-    URL=$(printf '%s' "$RESULT" | grep -o '"image_url"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"image_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+    URL=$(json_field image_url)
     if [ -z "$URL" ]; then
       echo "FAIL no image_url in response"
       exit 1
@@ -60,12 +65,12 @@ case "$STATUS" in
     fi
     ;;
   fail)
-    REASON=$(printf '%s' "$RESULT" | grep -o '"fail_reason"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"fail_reason"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+    REASON=$(json_field fail_reason)
     echo "FAIL ${REASON:-unknown error}"
     exit 1
     ;;
   querying)
-    SUBMIT_ID=$(printf '%s' "$RESULT" | grep -o '"submit_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"submit_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+    SUBMIT_ID=$(json_field submit_id)
     echo "PENDING $SUBMIT_ID"
     exit 2
     ;;
