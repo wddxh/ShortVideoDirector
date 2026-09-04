@@ -169,6 +169,24 @@ test('sheet card duration must match its storyboard shot', () => {
   });
 });
 
+test('each storyboard shot requires exactly one valid duration', () => {
+  const cases = [
+    ['- 时长：5s', '', 'shot02:missing'],
+    ['- 时长：5s', '- 时长：5s\n- 时长：6s', 'shot02:duplicate'],
+    ['- 时长：5s', '- 时长：0s', 'shot02:invalid'],
+  ];
+  for (const [original, replacement, detail] of cases) project({}, (result, root) => {
+    const path = 'story/episodes/ep01/storyboard.md';
+    const source = `### shot 1\n- 时长：5s\n\n### shot 2\n${original}\n\n### shot 3\n- 时长：5s`;
+    write(root, path, source.replace(`### shot 2\n${original}`,
+      `### shot 2\n${replacement}`));
+    const checked = run(root);
+    assert.equal(checked.status, 1);
+    assert.match(checked.stdout, new RegExp(`^storyboard:incomplete:duration=${detail}$`, 'm'));
+    assert.doesNotMatch(checked.stdout, /^storyboard:ok$/m);
+  });
+});
+
 test('basic image checks are limited to assets listed by this episode', () => {
   project({}, (result, root) => {
     write(root, 'assets/characters/other-episode.md', '# unrelated');

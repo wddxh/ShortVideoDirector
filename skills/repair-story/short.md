@@ -8,7 +8,10 @@
 outline → script → 基础资产卡 → 基础资产图片 → storyboard → sheet.md → sheet.png → visual review
 ```
 
-按第一个失败节点恢复：使用 Skill tool 调用 `scriptwriter-script` skill；使用 Skill tool 调用 `creator-create-assets` skill；使用 Skill tool 调用 `creator-generate-images` skill，参数 `ep01 basic`；使用 Skill tool 调用 `storyboarder-storyboard` skill并 review；使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `ep01 full`，再做 prompt owner loop；随后使用 Skill tool 调用 `creator-generate-images` skill，参数 `ep01 storyboard-sheets`。Sheet 生图后按 successful shots scoped visual 规则审核。所有 review 最多修复 2 轮。
+按第一个失败节点恢复：先处理 script 和基础资产卡。
+
+- basic visual recovery：图像模型 `none` 时 skipped。否则使用 Skill tool 调用 `creator-generate-images` skill，参数 `ep01 basic`；再使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings ep01`。Needs_revision 时使用 Skill tool 调用 `creator-fix-asset-image` skill，参数 `story/episodes/ep01/.review-basic-assets-visual.md ep01`；复审，共享 `fix_attempts=2`。
+- storyboard recovery：使用 Skill tool 调用 `storyboarder-storyboard` skill并 review；随后生成 sheet cards/prompt，调用 `creator-generate-images ep01 storyboard-sheets`，再按 successful shots scoped visual 规则审核。
 
 - `storyboard-sheet-prompt-review:missing|needs_revision`：使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill，参数 `ep01`；prompt-fix owner 使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `ep01`（review mode），最多 2 轮。
 - visual missing recovery：使用 Skill tool 调用 `creator-generate-images` skill，参数 `ep01 storyboard-sheets`。补图全部完成后 Glob 全部现有 canonical cards 得 `all_canonical_sheet_shots`，使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `ep01 {all_canonical_sheet_shots...}`。这是首次视觉审核，不能只审本次 successful。

@@ -608,3 +608,35 @@ test('repair owner changes force sheet regeneration before scoped review and imp
     assert.ok(block.includes('图像模型 `none`'));
   }
 });
+
+test('basic image pending contract drains each tier before advancing', () => {
+  const text = read('skills/creator-image-dreamina/SKILL.md');
+  const match = text.match(/## Basic Pending 状态合同\n\n```json\n([\s\S]*?)\n```/);
+  assert.ok(match);
+  const contract = JSON.parse(match[1]);
+  assert.deepEqual(contract.tuple, ['submit_id', 'asset_path', 'output_path']);
+  assert.deepEqual(contract.statuses, ['success', 'fail', 'querying']);
+  assert.equal(contract.max_rounds, 5);
+  assert.equal(contract.persist_path, 'assets/images/pending.json');
+  assert.equal(contract.advance_when_pending, false);
+  assert.equal(contract.resubmit_pending, false);
+});
+
+test('repair basic image recovery runs scoped visual fix loop in both modes', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    const start = text.indexOf('basic visual recovery');
+    assert.ok(start >= 0, mode);
+    const block = text.slice(start, text.indexOf('storyboard recovery', start));
+    const stages = ['creator-generate-images', 'director-review-assets-visual',
+      '--type=characters,locations,items,buildings', 'creator-fix-asset-image'];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = block.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+    assert.ok(block.includes('fix_attempts=2'));
+    assert.ok(block.includes('图像模型 `none`'));
+  }
+});

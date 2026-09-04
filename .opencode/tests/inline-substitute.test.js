@@ -9,6 +9,13 @@ test('replaces ${CLAUDE_PLUGIN_ROOT} with absolute path', () => {
   assert.equal(out, '读取 /abs/plugin/skills/_meta/rules/X.md');
 });
 
+test('maps skill resources to cache while scripts remain in plugin source', () => {
+  const input = '${CLAUDE_PLUGIN_ROOT}/skills/x/rules.md\n' +
+    '${CLAUDE_PLUGIN_ROOT}/scripts/tool.sh';
+  assert.equal(inlineSubstitutePluginRoot(input, '/plugin', '/cache/skills'),
+    '/cache/skills/x/rules.md\n/plugin/scripts/tool.sh');
+});
+
 test('replaces multiple occurrences', () => {
   const input = 'A ${CLAUDE_PLUGIN_ROOT}/a B ${CLAUDE_PLUGIN_ROOT}/b';
   assert.equal(inlineSubstitutePluginRoot(input, '/p'), 'A /p/a B /p/b');

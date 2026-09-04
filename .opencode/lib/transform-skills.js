@@ -24,8 +24,13 @@ export function rewriteFrontmatter(cc) {
   return result;
 }
 
-export function inlineSubstitutePluginRoot(text, pluginRoot) {
-  return text.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginRoot);
+export function inlineSubstitutePluginRoot(text, pluginRoot, cacheSkillsDir) {
+  let result = text;
+  if (cacheSkillsDir) {
+    result = result.replace(/\$\{CLAUDE_PLUGIN_ROOT\}\/skills\//g,
+      `${cacheSkillsDir}/`);
+  }
+  return result.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginRoot);
 }
 
 // 匹配 "使用 Skill tool 调用 <skill-name>"，包含可选反引号/包裹词
@@ -157,7 +162,7 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
     newBody = rewriteSkillCalls(newBody, meta);
     newBody = injectLeafHint(newBody, myMeta);
     newBody = injectDispatchDiscipline(newBody, { ...myMeta, name: skillName });
-    newBody = inlineSubstitutePluginRoot(newBody, pluginRoot);
+    newBody = inlineSubstitutePluginRoot(newBody, pluginRoot, cacheSkillsDir);
 
     const newFm = rewriteFrontmatter(frontmatter);
     const out = stringifyFrontmatter(newFm) + '\n\n' + newBody;
@@ -172,7 +177,8 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
       if (aux.endsWith('.md')) {
         const content = await readFile(srcPath, 'utf8');
         const rewritten = rewriteSkillCalls(content, meta);
-        const substituted = inlineSubstitutePluginRoot(rewritten, pluginRoot);
+        const substituted = inlineSubstitutePluginRoot(
+          rewritten, pluginRoot, cacheSkillsDir);
         await writeFile(dstPath, substituted);
       } else {
         await copyFile(srcPath, dstPath);

@@ -275,6 +275,19 @@ describe('transformAllSkills (integration)', () => {
     assert.ok(!content.includes('使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill'));
   });
 
+  test('main skill resolves and reads transformed aux from cache', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const main = await readFileAsync(
+      path.join(tmpDir, 'generate-episode-pipeline/SKILL.md'), 'utf8');
+    const expected = path.join(tmpDir, 'generate-episode-pipeline/new-series.md');
+    assert.ok(main.includes(`\`${expected}\``));
+    assert.ok(!main.includes(
+      `${PROJECT_ROOT}/skills/generate-episode-pipeline/new-series.md`));
+    const aux = await readFileAsync(expected, 'utf8');
+    assert.ok(aux.includes('description: "执行 creator-storyboard-sheet-prompts"'));
+    assert.ok(aux.includes('subagent_type: "creator"'));
+  });
+
   test('sheet image fix routes generation through a creator task', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(

@@ -47,15 +47,25 @@ try { board = fs.readFileSync(boardPath, 'utf8'); } catch {}
 const shotHeadings = [...board.matchAll(/^### shot ([1-9]\d*)$/gmu)];
 const shots = shotHeadings.map((match) => Number(match[1]));
 const shotDurations = new Map();
+const durationProblems = [];
 for (let index = 0; index < shotHeadings.length; index++) {
   const heading = shotHeadings[index];
   const block = board.slice(heading.index, shotHeadings[index + 1]?.index ?? board.length);
-  const duration = /^- 时长：([1-9]\d*)s$/mu.exec(block);
-  if (duration) shotDurations.set(Number(heading[1]), Number(duration[1]));
+  const durationLines = block.split('\n').filter((line) => line.startsWith('- 时长：'));
+  const valid = durationLines.filter((line) => /^- 时长：[1-9]\d*s$/u.test(line));
+  const label = `shot${String(Number(heading[1])).padStart(2, '0')}`;
+  if (durationLines.length === 0) durationProblems.push(`${label}:missing`);
+  else if (durationLines.length > 1) durationProblems.push(`${label}:duplicate`);
+  else if (valid.length !== 1) durationProblems.push(`${label}:invalid`);
+  else shotDurations.set(Number(heading[1]), Number(valid[0].match(/[1-9]\d*/u)[0]));
 }
 const shotProblems = sequenceProblems(shots);
 if (shots.length === 0) shotProblems.push('empty');
 detail('storyboard', shotProblems);
+if (durationProblems.length) {
+  issue = true;
+  console.log(`storyboard:incomplete:duration=${durationProblems.join(',')}`);
+}
 
 const allCards = fs.existsSync(cardDir) ? fs.readdirSync(cardDir).filter((file) => file.endsWith('.md')) : [];
 const cardFiles = allCards.filter((file) => /^shot(?:0[1-9]|[1-9]\d+)\.md$/u.test(file));

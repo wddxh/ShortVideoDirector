@@ -19,7 +19,28 @@ model: sonnet
 
 ## 基础资产
 
-`basic` 和 `paths` 中的基础资产按基础卡再衍生卡的依赖顺序处理：基础资产 text2image，衍生资产读取基础资产图片后 image2image。调用 `image-gen-dreamina.sh`，不截断引用。每档必须消化 pending 后才能进入下一档。
+`basic` 和 `paths` 中的基础资产按基础卡再衍生卡的依赖顺序处理：基础资产 text2image，衍生资产读取基础资产图片后 image2image。调用 `image-gen-dreamina.sh`，不截断引用。
+
+## Basic Pending 状态合同
+
+```json
+{
+  "tuple": ["submit_id", "asset_path", "output_path"],
+  "statuses": ["success", "fail", "querying"],
+  "max_rounds": 5,
+  "persist_path": "assets/images/pending.json",
+  "advance_when_pending": false,
+  "resubmit_pending": false
+}
+```
+
+每档提交时：exit 0 记录成功；exit 1 记录失败；exit 2 的 `PENDING id` 解析为上述 tuple，加入本档待查集合。不得再次调用 image wrapper 提交该 tuple。
+
+本档提交结束后才轮询：每 30 秒对 tuple 调用 `dreamina query_result --submit_id={id} --download_dir=/tmp/dreamina-pending`。`success` 将 `{id}_image_1.png` 移到 output_path 并移除；`fail` 记录 provider 原因并移除；`querying` 保留。最多 5 轮。
+
+5 轮后仍 querying 时，Read `assets/images/pending.json`（不存在为 `[]`），按 submit_id 去重写入 `{submit_id,output_path,asset_name,asset_path}`。本档仍有 querying 时停止本次 skill，不进入衍生档；下次先恢复 pending.json，查询终态后才考虑新提交，避免重复付费。
+
+只有本档 pending 全部 success/fail 终态后才进入下一档。`paths` 混合输入同样先基础资产、再衍生资产、最后 sheet cards。
 
 ## Storyboard Sheets
 

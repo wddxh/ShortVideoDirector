@@ -175,7 +175,7 @@ else
   [ "$VISUAL_REVIEW" = 'ok' ] || HAS_ISSUE=1
 fi
 
-if printf '%s\n' "$SHEET_OUTPUT" | grep -q '^storyboard:invalid:'; then
+if printf '%s\n' "$SHEET_OUTPUT" | grep -Eq '^storyboard:(invalid|incomplete):'; then
   :
 else
   echo 'storyboard:ok'
