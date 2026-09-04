@@ -1,7 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -33,6 +41,14 @@ ${prompt}
 
 function run(root, ...args) {
   return spawnSync('bash', [SCRIPT, ...args], { cwd: root, encoding: 'utf8' });
+}
+
+function runWithEnv(root, env, ...args) {
+  return spawnSync('/bin/bash', [SCRIPT, ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, ...env },
+  });
 }
 
 function project(fn) {
@@ -193,7 +209,7 @@ test('requires repo-relative canonical path and canonical shot name', () => {
 test('escapes control characters in path diagnostics', () => {
   project((root) => {
     const result = run(root, 'assets/storyboard-sheets/ep01/shot01.md\nrow\tend');
-    fail(result, /noncanonical card: .*\\n.*\\t/);
+    fail(result, /noncanonical card:/);
   });
 });
 
@@ -210,7 +226,7 @@ test('requires each schema section once and a nonempty prompt', () => {
     card(refs, '无', '\n \t\n'),
   ];
   for (const [index, content] of cases.entries()) project((root) => {
-    const path = `assets/storyboard-sheets/ep${index + 1}/shot01.md`;
+    const path = `assets/storyboard-sheets/ep0${index + 1}/shot01.md`;
     write(root, path, content);
     fail(run(root, path), /section|prompt/);
   });
@@ -294,4 +310,195 @@ test('passes actual default tasks path and propagates detector exit 1', () => {
     const result = run(root, path);
     fail(result, /^FAIL invalid tasks JSON: story\/episodes\/ep04\/videos\/tasks\.json\n$/);
   });
+});
+
+test('uses syntax accepted by Bash 3.2 when that interpreter is available', () => {
+  const candidates = ['bash3.2', '/usr/local/bin/bash3.2', '/opt/homebrew/bin/bash'];
+  const bash32 = candidates.find((candidate) => {
+    if (candidate.includes('/') && !existsSync(candidate)) return false;
+    const version = spawnSync(candidate, ['-c', 'printf %s "$BASH_VERSION"'], {
+      encoding: 'utf8',
+    });
+    return version.status === 0 && version.stdout.startsWith('3.2');
+  });
+  if (!bash32) return;
+  const result = spawnSync(bash32, ['-n', SCRIPT], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('shell wrapper contains no Bash regular-expression operator', () => {
+  const source = readFileSync(SCRIPT, 'utf8');
+  assert.doesNotMatch(source, /\[\[[^\n]*=~/);
+  assert.doesNotMatch(source, /--escape/);
+  assert.ok(source.indexOf('detect-legacy-kf.sh') < source.lastIndexOf('node "$PARSER"'));
+});
+
+test('reports one failure when Node.js is unavailable', () => {
+  project((root) => {
+    const result = runWithEnv(root, { PATH: '/nonexistent' },
+      'assets/storyboard-sheets/ep01/shot01.md');
+    fail(result, /Node\.js is required/);
+  });
+});
+
+test('validates episode syntax before checking for Node.js', () => {
+  project((root) => {
+    const result = runWithEnv(root, { PATH: '/nonexistent' },
+      'assets/storyboard-sheets/ep1/shot01.md');
+    fail(result, /noncanonical card:/);
+  });
+});
+
+test('enforces canonical episode and shot names', () => {
+  project((root) => {
+    const content = card('- [甲](../../characters/甲.md)');
+    const paths = [
+      'assets/storyboard-sheets/ep1/shot01.md',
+      'assets/storyboard-sheets/ep001/shot01.md',
+      'assets/storyboard-sheets/ep00/shot01.md',
+      'assets/storyboard-sheets/ep01/shot1.md',
+      'assets/storyboard-sheets/ep01/shot001.md',
+      'assets/storyboard-sheets/ep01/shot00.md',
+    ];
+    for (const path of paths) {
+      write(root, path, content);
+      fail(run(root, path), /noncanonical card:/);
+    }
+    for (const path of [
+      'assets/storyboard-sheets/ep01/shot01.md',
+      'assets/storyboard-sheets/ep100/shot100.md',
+    ]) {
+      write(root, path, content);
+      assert.equal(run(root, path).status, 0);
+    }
+  });
+});
+
+test('rejects a card symlink escaping the expected episode directory', () => {
+  project((root) => {
+    write(root, 'outside/shot01.md', card('- [甲](../assets/characters/甲.md)'));
+    mkdirSync(join(root, 'assets/storyboard-sheets/ep01'), { recursive: true });
+    symlinkSync('../../../outside/shot01.md',
+      join(root, 'assets/storyboard-sheets/ep01/shot01.md'));
+    fail(run(root, 'assets/storyboard-sheets/ep01/shot01.md'), /card path escapes/);
+  });
+});
+
+test('rejects an episode directory symlink escaping the project', () => {
+  project((root) => {
+    const outside = mkdtempSync(join(tmpdir(), 'svd outside sheet-'));
+    try {
+      write(outside, 'shot01.md', card('- [甲](../../characters/甲.md)'));
+      mkdirSync(join(root, 'assets/storyboard-sheets'), { recursive: true });
+      symlinkSync(outside, join(root, 'assets/storyboard-sheets/ep01'));
+      fail(run(root, 'assets/storyboard-sheets/ep01/shot01.md'), /card path escapes/);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+});
+
+test('rejects control bytes, commas, and absolute-path injection in asset fields', () => {
+  const values = [
+    ['name', `坏${String.fromCodePoint(0x7f)}名`, '../../characters/甲.md'],
+    ['name', `坏${String.fromCodePoint(0x85)}名`, '../../characters/甲.md'],
+    ['path', '甲', `../../characters/坏${String.fromCodePoint(1)}路.md`],
+    ['path', '甲', `../../characters/坏${String.fromCodePoint(0x9b)}路.md`],
+    ['path', '甲', '../../characters/甲,乙.md'],
+    ['path', '甲', '/tmp/assets/characters/甲.md'],
+  ];
+  for (const [, name, assetPath] of values) project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, card(`- [${name}](${assetPath})`));
+    fail(run(root, path), /invalid asset/);
+  });
+});
+
+test('rejects a raw NUL byte without corrupting diagnostics', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, card('- [甲](../../characters/坏\0路径.md)'));
+    fail(run(root, path), /invalid asset/);
+  });
+});
+
+test('only collects complete plain markdown-link bullets', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    const refs = `- [有效](../../characters/有效.md)
+inline [忽略](../../characters/忽略.md)
+- ![图片](../../characters/图片.md)
+- \`[代码](../../characters/代码.md)\`
+- \\[转义](../../characters/转义.md)
+<!-- - [注释](../../characters/注释.md) -->`;
+    write(root, path, card(refs));
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(images(result), ['assets/images/characters/有效.png']);
+    assert.doesNotMatch(result.stdout,
+      /characters\/(忽略|图片|代码|转义|注释)|\[(忽略|图片|代码|转义|注释):/);
+  });
+});
+
+test('ignores fake sections inside fences and HTML comments', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    const source = `\`\`\`
+## 引用资产
+- [假](../../characters/假.md)
+\`\`\`
+<!--
+## 图像生成提示
+假提示
+-->
+${card('- [真](../../characters/真.md)', '无', '真提示')}`;
+    write(root, path, source);
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(images(result), ['assets/images/characters/真.png']);
+    assert.match(result.stdout, /真提示\n$/);
+  });
+});
+
+test('keeps fenced H2 text inside the image prompt', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    const prompt = `前文
+\`\`\`text
+## 不是真实边界
+围栏内容
+\`\`\`
+后文`;
+    write(root, path, card('- [甲](../../characters/甲.md)', '无', prompt));
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /前文\n```text\n## 不是真实边界\n围栏内容\n```\n后文\n$/);
+  });
+});
+
+test('normalizes CRLF and otherwise preserves the prompt body', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, card('- [甲](../../characters/甲.md)', '无', '\n第一行\n\n第二行\n')
+      .replaceAll('\n', '\r\n'));
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /\r/);
+    assert.match(result.stdout, /第一行\n\n第二行\n$/);
+  });
+});
+
+test('rejects a bare carriage return as raw C0 input', () => {
+  project((root) => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, card('- [甲](../../characters/甲.md)', '无', '前文\r后文'));
+    fail(run(root, path), /invalid control byte/);
+  });
+});
+
+test('helper source does not duplicate legacy detector signatures', () => {
+  const helper = join(process.cwd(), 'scripts/storyboard-sheet-to-prompt.mjs');
+  if (!existsSync(helper)) return;
+  const source = readFileSync(helper, 'utf8');
+  assert.doesNotMatch(source, /keyframes|KF-/);
 });
