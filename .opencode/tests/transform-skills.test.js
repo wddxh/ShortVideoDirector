@@ -336,6 +336,31 @@ describe('transformAllSkills (integration)', () => {
     }
   });
 
+  test('repair aux tasks embed storyboard-stage episode parameters', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    for (const [file, ep] of [['short.md', 'ep01'], ['series.md', '{ep}']]) {
+      const content = await readFileAsync(
+        path.join(tmpDir, `repair-story/${file}`), 'utf8');
+      const start = content.indexOf('storyboard recovery');
+      const block = content.slice(start, content.indexOf('visual missing recovery', start));
+      assert.ok(start >= 0, file);
+      assert.ok(!block.includes('<由调用方填充>'), file);
+      for (const skill of [
+        'storyboarder-storyboard',
+        'director-review-storyboard',
+        'storyboarder-fix-storyboard',
+        'creator-storyboard-sheet-prompts',
+        'creator-fix-storyboard-sheet-prompt',
+        'director-review-storyboard-sheet-prompts',
+        'creator-generate-images',
+        'director-review-storyboard-sheets-visual',
+      ]) assert.ok(block.includes(`description: "执行 ${skill}"`), `${file}: ${skill}`);
+      assert.ok(block.includes(`参数：\n${ep}\n`), `${file}: ${ep}`);
+      assert.ok(block.includes(`参数：\n${ep} full\n`), `${file}: full`);
+      assert.ok(block.includes(`参数：\n${ep} storyboard-sheets\n`), `${file}: images`);
+    }
+  });
+
   test('sheet image fix routes generation through a creator task', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(

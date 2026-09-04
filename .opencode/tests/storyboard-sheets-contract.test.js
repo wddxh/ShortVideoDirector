@@ -777,3 +777,34 @@ test('series repair maps episode mode and passes legal content arguments', () =>
   }
   assert.ok(text.includes('步骤 5 基础图、步骤 8 sheet.png'));
 });
+
+test('repair storyboard recovery uses explicit ordered calls in both modes', () => {
+  for (const [mode, ep] of [['short.md', 'ep01'], ['series.md', '{ep}']]) {
+    const text = read(`skills/repair-story/${mode}`);
+    const start = text.indexOf('storyboard recovery');
+    const block = text.slice(start, text.indexOf('visual missing recovery', start));
+    const stages = [
+      `storyboarder-storyboard\` skill，参数 \`${ep}\``,
+      `director-review-storyboard\` skill，参数 \`${ep}\``,
+      `storyboarder-fix-storyboard\` skill，参数 \`${ep}\``,
+      `director-review-storyboard\` skill，参数 \`${ep}\``,
+      `creator-storyboard-sheet-prompts\` skill，参数 \`${ep} full\``,
+      `director-review-storyboard-sheet-prompts\` skill，参数 \`${ep}\``,
+      'prompt owner loop',
+      `storyboarder-fix-storyboard\` skill，参数 \`${ep}\``,
+      `director-review-storyboard\` skill，参数 \`${ep}\``,
+      `creator-storyboard-sheet-prompts\` skill，参数 \`${ep} incremental {shots...}\``,
+      `creator-fix-storyboard-sheet-prompt\` skill，参数 \`${ep}\``,
+      `director-review-storyboard-sheet-prompts\` skill，参数 \`${ep}\``,
+      'sheet image recovery',
+      `creator-generate-images\` skill，参数 \`${ep} storyboard-sheets\``,
+      `director-review-storyboard-sheets-visual\` skill，参数 \`${ep}\``,
+    ];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = block.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+  }
+});
