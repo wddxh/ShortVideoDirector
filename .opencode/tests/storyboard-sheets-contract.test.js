@@ -7,6 +7,22 @@ const read = (path) => readFileSync(join(process.cwd(), path), 'utf8');
 const generator = () => read('skills/creator-storyboard-sheet-prompts/SKILL.md');
 const reviewer = () => read('skills/director-review-storyboard-sheet-prompts/SKILL.md');
 const fixer = () => read('skills/creator-fix-storyboard-sheet-prompt/SKILL.md');
+const visual = () => read('skills/director-review-storyboard-sheets-visual/SKILL.md');
+const visualSingle = () => read('skills/director-review-storyboard-sheet-visual-single/SKILL.md');
+const imageFix = () => read('skills/creator-fix-storyboard-sheet-image/SKILL.md');
+const impact = () => read('skills/director-review-storyboard-sheet-impact/SKILL.md');
+
+function frontmatter(text) {
+  const end = text.indexOf('\n---', 4);
+  return Object.fromEntries(text.slice(4, end).trim().split('\n').map((line) => {
+    const colon = line.indexOf(':');
+    return [line.slice(0, colon), line.slice(colon + 1).trim()];
+  }));
+}
+
+function firstJson(text) {
+  return JSON.parse(text.match(/```json\n([^`]+)\n```/)[1]);
+}
 
 test('storyboard sheet leaves have stable frontmatter', () => {
   const cases = [
@@ -83,6 +99,64 @@ test('prompt fix keeps a strict section whitelist', () => {
   assert.match(text, /`## 图像生成提示`/);
   assert.match(text, /no_image_generated: true/);
   assert.match(text, /changed shots:/);
+});
+
+test('visual review leaves have isolated roles and tools', () => {
+  const cases = [
+    [visual(), 'director', 'opus', 'Read, Write, Edit, Glob, Grep, Task'],
+    [visualSingle(), 'director', 'opus', 'Read, Glob'],
+    [imageFix(), 'creator', 'sonnet', 'Read, Edit, Glob, Grep, Bash, Task'],
+    [impact(), 'director', 'opus', 'Read, Glob'],
+  ];
+  for (const [text, agent, model, tools] of cases) {
+    const fm = frontmatter(text);
+    assert.equal(fm['user-invocable'], 'false');
+    assert.equal(fm.context, 'fork');
+    assert.equal(fm.agent, agent);
+    assert.equal(fm.model, model);
+    assert.equal(fm['allowed-tools'], tools);
+  }
+});
+
+test('visual aggregate persists rounds and dispatches isolated singles', () => {
+  const text = visual();
+  assert.match(text, /story\/episodes\/\{ep\}\/\.review-storyboard-sheets-visual\.md/);
+  assert.match(text, /assets\/storyboard-sheets\/\{ep\}\/shotNN\.md\|assets\/images\/storyboard-sheets\/\{ep\}\/shotNN\.png/);
+  assert.match(text, /每批.*≤ ?5/);
+  assert.match(text, /重试 1 次/);
+  assert.match(text, /<!-- \/round-\{N\} -->/);
+  assert.match(text, /dirty list.*无法判定/s);
+  assert.match(text, /Task.*director-review-storyboard-sheet-visual-single/s);
+  assert.match(text, /严禁.*PNG/s);
+});
+
+test('single, image fix, and impact expose stable machine contracts', () => {
+  const singleJson = firstJson(visualSingle());
+  assert.deepEqual(Object.keys(singleJson), ['card_path', 'image_path', 'issues']);
+  assert.deepEqual(Object.keys(singleJson.issues[0]), ['location', 'issue', 'fix_direction']);
+
+  const fixText = imageFix();
+  assert.match(fixText, /card\|image/);
+  assert.match(fixText, /creator-generate-images \{ep\} paths/);
+  assert.match(fixText, /successful regenerated shots:/);
+
+  const impactText = impact();
+  const impactJson = firstJson(impactText);
+  assert.deepEqual(Object.keys(impactJson),
+    ['upstream', 'downstream', 'status', 'reason', 'fix_direction']);
+  assert.match(impactText, /no_dependency\|unaffected\|affected/);
+  assert.doesNotMatch(frontmatter(impactText)['allowed-tools'], /Write|Edit|Bash|Task/);
+});
+
+test('visual handoff records impact without contaminating clean statuses', () => {
+  const text = visual();
+  assert.match(text, /### 连续性影响评估/);
+  assert.match(text, /card\|image\|impact\|\{fix_direction\}/);
+  assert.match(text, /creator-fix-storyboard-sheet-image \{ep\} \{review-path\} shotNN/);
+  assert.match(text, /affected.*dirty/s);
+  assert.match(text, /no_dependency.*unaffected.*不.*dirty/s);
+  assert.match(text, /成功.*enqueue/s);
+  assert.match(text, /失败.*停止/s);
 });
 
 test('legacy pipeline remains unconnected', () => {
