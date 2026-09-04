@@ -14,7 +14,7 @@ model: sonnet
 
 - `$ARGUMENTS[0]`：ep，如 `ep01`。
 - 读取 `story/episodes/{ep}/.review-storyboard-sheet-prompts.md`，只解析最大 N 的最后一轮，且必须有唯一 `<!-- /round-N -->`。
-- 读取最后一轮 dirty cards、已审核 storyboard、config 和 `${CLAUDE_PLUGIN_ROOT}/skills/creator-storyboard-sheet-prompts/rules.md`。
+- 读取最后一轮 dirty list；每行必须是完整 card path `assets/storyboard-sheets/{ep}/shotNN.md`，直接读取这些 dirty cards。另读已审核 storyboard、config 和 `${CLAUDE_PLUGIN_ROOT}/skills/creator-storyboard-sheet-prompts/rules.md`。
 
 ## 严格边界
 
@@ -30,8 +30,8 @@ model: sonnet
 
 ## 流程
 
-1. 锁定最后一轮边界，按意见项读取 location、owner、observed、expected、direction；dirty list 不能替代 owner 过滤。
-2. 对每个 prompt-fix 项读取对应 card，确认定位存在且修改不要求越过 section 白名单；否则报告未处理，不扩大范围。
+1. 锁定最后一轮边界，解析 dirty list 的完整 repo-relative card paths，并拒绝短 id、其他集或非 canonical 路径；按意见项读取 location、owner、observed、expected、direction。dirty list 不能替代 owner 过滤。
+2. 将 prompt-fix 项的 shot 定位匹配到 dirty list 中唯一完整 card path 后读取；确认定位存在且修改不要求越过 section 白名单，否则报告未处理，不扩大范围。
 3. 做最小修改：保留未被点名的 PANEL、时间码、景别、机位、摄影机及其他 section。若意见定位整板，也只调整三个允许 section。
 4. Edit 后重新读取并比较，确认 schema、Panel 数量、资产 links 和非白名单 section byte-for-byte 不变；记录实际 changed shots。
 5. 不修改 review 文件；下一轮由 reviewer append。

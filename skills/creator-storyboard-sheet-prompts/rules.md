@@ -2,17 +2,17 @@
 
 ## 字面 Schema
 
-每张 card 严格采用以下 section、字段名和顺序。重复 `### PANELNN` 块，NN 从 01 连续递增；不得增加替代 section。
+每张 card 严格采用以下 section、字段名和顺序。重复 `### PANEL NN` 块，NN 从 01 连续递增；不得增加替代 section。
 
 ```markdown
-# shotNN 分镜板
+# shotNN Storyboard Sheet
 
 ## 基本信息
 - 所属集数：epNN
-- 对应分镜：shotNN
+- 对应分镜：shot N
 - 时长：Ns
 - 类型：分镜板
-- Panel数量：N
+- Panel 数量：M
 
 ## 引用资产
 - [资产名](../../characters/资产名.md)
@@ -22,7 +22,7 @@
 
 ## Panel 规划
 
-### PANEL01
+### PANEL 01
 - 时间码：0s-2s
 - 景别：中景
 - 机位：平视正侧三分之二机位
@@ -70,7 +70,7 @@ Panel 数量动态决定且无上限。所有时间码须从 `0s` 开始、严�
 
 ## 写前自检
 
-- metadata 与源 shot 的 ep、编号、时长一致，Panel数量等于 PANEL 块数。
+- metadata 与源 shot 的 ep、整数编号、时长一致，`Panel 数量` 等于 `PANEL NN` 块数。
 - 时间覆盖完整，关键 beats 无遗漏，邻格没有无意义重复。
 - current links 完整真实；previous 合法且继承元素明确。
 - prompt 明说 16:9、网格顺序、内部视频比例、彩色风格、短英文 label 和禁止复制 previous 构图。

@@ -52,6 +52,7 @@ test('generator accepts ep, mode, and shots and reads approved upstream inputs',
 
 test('generator owns only cards and defines full and incremental boundaries', () => {
   const text = source('generator');
+  assert.match(text, /文件名.*shotNN\.md.*对应分镜.*shot N.*PANEL 01/s);
   has(text, [
     /assets\/storyboard-sheets\/\{ep\}\/shotNN\.md/,
     /不修改.*storyboard\.md/,
@@ -68,13 +69,23 @@ test('generator owns only cards and defines full and incremental boundaries', ()
 
 test('card contract contains literal schema and converter-safe asset syntax', () => {
   const text = source('rules');
+  for (const literal of [
+    '# shotNN Storyboard Sheet',
+    '- 对应分镜：shot N',
+    '- Panel 数量：M',
+    '### PANEL 01',
+  ]) assert.ok(text.includes(literal), `missing literal schema: ${literal}`);
+  assert.doesNotMatch(text, /^# shotNN 分镜板$/m);
+  assert.doesNotMatch(text, /^- 对应分镜：shotNN$/m);
+  assert.doesNotMatch(text, /^- Panel数量：N$/m);
+  assert.doesNotMatch(text, /^### PANEL01$/m);
   has(text, [
     /## 基本信息/,
-    /所属集数.*对应分镜.*时长.*类型：分镜板.*Panel数量/s,
+    /所属集数.*对应分镜.*时长.*类型：分镜板.*Panel 数量/s,
     /## 引用资产/,
     /## 连续性参考/,
     /## Panel 规划/,
-    /### PANEL01/,
+    /### PANEL 01/,
     /时间码.*景别.*机位.*摄影机.*画面.*连续性/s,
     /## 图像生成提示/,
     /无 previous.*`无`/i,
@@ -101,6 +112,9 @@ test('panel and board rules define temporal, visual, and safety boundaries', () 
 
 test('reviewer checks the complete contract and writes append-only scoped rounds', () => {
   const text = source('review');
+  assert.match(text, /### dirty list\n- assets\/storyboard-sheets\/\{ep\}\/shot03\.md/);
+  assert.match(text, /dirty list.*完整.*card path/is);
+  assert.doesNotMatch(text, /### dirty list\n- shot03(?:\n|$)/);
   has(text, [
     /\.review-storyboard-sheet-prompts\.md/,
     /一对一.*metadata.*timing.*count.*beats.*repetition.*assets.*previous.*board.*slots/is,
@@ -115,6 +129,8 @@ test('reviewer checks the complete contract and writes append-only scoped rounds
 
 test('fix consumes only prompt-fix findings and changes only allowed sections', () => {
   const text = source('fix');
+  assert.match(text, /dirty list.*assets\/storyboard-sheets\/\{ep\}\/shotNN\.md/is);
+  assert.match(text, /完整.*card path/);
   has(text, [
     /最后一轮/,
     /owner=prompt-fix/,

@@ -28,11 +28,13 @@ model: sonnet
 
 唯一可写产物是 `assets/storyboard-sheets/{ep}/shotNN.md`。不修改 `storyboard.md`、config、资产卡、review 文件或 pipeline；不生图，也不删除或读取图片。旧 pipeline 未调用本 skill 时行为保持不变。
 
+编号有两种严格用途：文件名保持 canonical `shotNN.md`；card H1 写 `# shotNN Storyboard Sheet`，基本信息的对应分镜展示为 `shot N`（N 是无前导零整数），Panel heading 从 `### PANEL 01` 起连续编号，数量字段写 `- Panel 数量：M`。不得把对应分镜写成 `shotNN`，也不得省略 `Panel` 后的空格。
+
 每张 card 只规划一个已审核 storyboard shot。missing asset 是上游错误：不得臆造资产、路径或替代物；把对应 shot 记入 failed 并明确要求修复 storyboard/资产清单。
 
 ## 同步流程
 
-1. 解析 storyboard 的全集顺序 `### shot N`，将 N 格式化为 `shotNN`；提取时长、景别、机位/摄影机运动、出场人物、引用资产及带时间码的画面 beat。
+1. 解析 storyboard 的全集顺序 `### shot N`；仅为文件名将 N 格式化为 `shotNN`，card 的“对应分镜”保留 `shot N` 整数展示。提取时长、景别、机位/摄影机运动、出场人物、引用资产及带时间码的画面 beat。
 2. 校验每个 shot 的 character、location、item、building 等资产均可唯一解析到现有 `.md`。KF 不是 sheet card 的参考资产；不要把它当作 current asset link。
 3. `full`：为 storyboard 中所有 shot 创建或覆盖 card；删除目录中不再对应任何 storyboard shot 的孤儿 orphan card。全覆盖不表示无条件改写：内容相同计 preserved。
 4. `incremental`：只处理 `$ARGUMENTS[2]` 的 shots，其他 card 保持不动。开始前比较 storyboard shot 集合和现有 card 集合；发现新增、删除、重排或编号变化，拒绝增量并要求 `full`。不得删除 orphan。
