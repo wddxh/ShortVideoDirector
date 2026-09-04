@@ -1,8 +1,6 @@
-// Some assertions in this file are coupled to the source `skills/` directory
-// (e.g., total skill count = 35, specific skill names like `director-arc`,
-// `auto-video`, `writer-novel/rules.md`). If you add/remove/rename source
-// skills, expect failures here — see `.opencode/README.md` § 维护契约 for the
-// sync checklist.
+// Some assertions in this file are coupled to specific source skills such as
+// `director-arc`, `auto-video`, and `writer-novel/rules.md`. See
+// `.opencode/README.md` § 维护契约 for the sync checklist.
 import { describe, test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'path';
@@ -198,10 +196,23 @@ describe('transformAllSkills (integration)', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test('produces SKILL.md for all 38 skills', async () => {
+  test('produces one SKILL.md for every source skill', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
-    const dirs = await readdir(tmpDir);
-    assert.equal(dirs.length, 38);
+    const skillNames = async (root) => {
+      const entries = await readdir(root, { withFileTypes: true });
+      const names = [];
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const skill = path.join(root, entry.name, 'SKILL.md');
+        const exists = await readFileAsync(skill).then(() => true).catch(() => false);
+        if (exists) names.push(entry.name);
+      }
+      return names.sort();
+    };
+    assert.deepEqual(
+      await skillNames(tmpDir),
+      await skillNames(path.join(PROJECT_ROOT, 'skills')),
+    );
   });
 
   test('director-arc cache file has correct frontmatter', async () => {
