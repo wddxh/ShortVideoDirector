@@ -226,7 +226,7 @@ Use this frontmatter matrix:
 | Skill | Agent | Model | Tools |
 |---|---|---|---|
 | creator-storyboard-sheet-prompts | creator | sonnet | Read, Write, Edit, Glob, Grep, Bash |
-| director-review-storyboard-sheet-prompts | director | opus | Read, Write, Edit, Glob, Grep, Bash |
+| director-review-storyboard-sheet-prompts | director | opus | Read, Write, Edit, Glob, Grep |
 | creator-fix-storyboard-sheet-prompt | creator | sonnet | Read, Edit, Glob, Grep |
 
 All are `user-invocable: false` and `context: fork`.
