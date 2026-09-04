@@ -238,7 +238,7 @@ story/episodes/{ep}/.review-storyboard-sheet-prompts.md
 4. 兼容时记录 `unaffected` 和理由，保留下游文件，并停止该依赖分支传播。
 5. 不兼容时记录 `affected` 和理由，将下游 sheet 标脏、更新并重生；重生后继续评估它的直接依赖项。
 
-不保留旧 PNG 进行前后对照。Reviewer 依据新上游 sheet 与当前下游 sheet 的兼容性判断。Reviewer 只输出影响结论和修复方向，不修改文件或生图；`affected` 项交给 Creator 修复并重生。
+不保留旧 PNG 进行前后对照。Reviewer 依据新上游 sheet 与当前下游 sheet 的兼容性判断。Reviewer 只输出影响结论和修复方向，不修改文件或生图；可用 Bash 调用现有只读脚本、执行确定性检查或临时验证，但不得写、改、删业务产物。`affected` 项交给 Creator 修复并重生。
 
 触发 `affected` 的典型变化：
 
@@ -337,6 +337,8 @@ storyboard 的唯一连续 shot 编号集合
 - `storyboard-to-prompt.sh`：把 sheet 置于视频参考图第一项并注入读板指令。
 
 实施时 visual review 可进一步拆成聚合层与 single-review 层。上述 skill 名和职责是规范的一部分，不再由实施计划改名；规划、文本审核、生图、视觉审核、影响传播各自保持独立。
+
+Reviewer 不因最小权限原则禁用 Bash；Bash 用于确定性验证，不改变各 reviewer 的职责和业务文件读写边界。
 
 ## 14. 测试策略
 

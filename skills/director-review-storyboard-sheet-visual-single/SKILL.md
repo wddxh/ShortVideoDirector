@@ -4,7 +4,7 @@ description: Use when one storyboard-sheet card and image need an isolated seman
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Glob
+allowed-tools: Read, Glob, Bash
 model: opus
 ---
 
@@ -17,7 +17,7 @@ model: opus
 - Read 当前 card 与 PNG。
 - 从 `## 引用资产` links 定位并 Read 每个资产 card 和对应资产 image。
 - 若 `## 连续性参考` 显式声明 previous，Read previous card 和 previous PNG；内容为 `无` 时不得猜测或读取 previous。
-- 只读，不修改任何文件。
+- 业务文件只读，不修改任何业务产物。Bash 只可调用现有只读脚本、执行检查或做临时验证，不得借 Bash 写、改、删业务文件。
 
 ## 语义审核
 

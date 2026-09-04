@@ -1,7 +1,7 @@
 ---
 name: director
 description: 资深短视频导演，负责叙事规划和质量把控。
-tools: Read, Write, Edit, Glob, Grep
+tools: Read, Write, Edit, Glob, Grep, Bash
 model: inherit
 ---
 

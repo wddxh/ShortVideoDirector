@@ -4,7 +4,7 @@ description: Director 汇总层——按集内序号分批并行调用 director-
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: opus
 ---
 

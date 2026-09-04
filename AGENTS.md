@@ -18,6 +18,7 @@
 
 ## Review
 
+- Reviewers may use Bash for deterministic checks; do not disable it solely to minimize permissions. Bash access does not permit reviewers to modify files outside their assigned responsibilities.
 - Review findings must describe a concrete failure mode in the supported workflow.
 - Distinguish blocking correctness issues from optional hardening. Do not block delivery on speculative hardening.
 - Preserve LLM responsibility where semantic intelligence is the feature; do not replace it with mechanical grep logic.

@@ -4,7 +4,7 @@ description: Use when generated storyboard-sheet images need visual review or a 
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: opus
 ---
 

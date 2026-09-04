@@ -226,7 +226,7 @@ Use this frontmatter matrix:
 | Skill | Agent | Model | Tools |
 |---|---|---|---|
 | creator-storyboard-sheet-prompts | creator | sonnet | Read, Write, Edit, Glob, Grep, Bash |
-| director-review-storyboard-sheet-prompts | director | opus | Read, Write, Edit, Glob, Grep |
+| director-review-storyboard-sheet-prompts | director | opus | Read, Write, Edit, Glob, Grep, Bash |
 | creator-fix-storyboard-sheet-prompt | creator | sonnet | Read, Edit, Glob, Grep |
 
 All are `user-invocable: false` and `context: fork`.
@@ -292,12 +292,12 @@ Use this frontmatter matrix:
 
 | Skill | Agent | Model | Tools |
 |---|---|---|---|
-| director-review-storyboard-sheets-visual | director | opus | Read, Write, Edit, Glob, Grep, Task |
-| director-review-storyboard-sheet-visual-single | director | opus | Read, Glob |
+| director-review-storyboard-sheets-visual | director | opus | Read, Write, Edit, Glob, Grep, Bash, Task |
+| director-review-storyboard-sheet-visual-single | director | opus | Read, Glob, Bash |
 | creator-fix-storyboard-sheet-image | creator | sonnet | Read, Edit, Glob, Grep, Bash, Task |
-| director-review-storyboard-sheet-impact | director | opus | Read, Glob |
+| director-review-storyboard-sheet-impact | director | opus | Read, Glob, Bash |
 
-All are non-user-invocable fork skills. The impact skill must not contain Write/Edit/Bash/Task tools.
+All are non-user-invocable fork skills. The impact skill must not contain Write/Edit/Task tools. Its Bash access is limited to existing read-only scripts, checks, and temporary validation; it must not write, modify, or delete business artifacts.
 
 - [ ] **Step 2: Write failing impact-boundary tests**
 

@@ -4,7 +4,7 @@ description: Director审核单个 asset 的图像提示词表达质量（无 neg
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Glob
+allowed-tools: Read, Glob, Bash
 model: opus
 ---
 

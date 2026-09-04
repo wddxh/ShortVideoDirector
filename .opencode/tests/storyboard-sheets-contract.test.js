@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const read = (path) => readFileSync(join(process.cwd(), path), 'utf8');
@@ -27,7 +27,7 @@ function firstJson(text) {
 test('storyboard sheet leaves have stable frontmatter', () => {
   const cases = [
     [generator(), 'creator', 'sonnet', 'Read, Write, Edit, Glob, Grep, Bash'],
-    [reviewer(), 'director', 'opus', 'Read, Write, Edit, Glob, Grep'],
+    [reviewer(), 'director', 'opus', 'Read, Write, Edit, Glob, Grep, Bash'],
     [fixer(), 'creator', 'sonnet', 'Read, Edit, Glob, Grep'],
   ];
   for (const [text, agent, model, tools] of cases) {
@@ -38,6 +38,18 @@ test('storyboard sheet leaves have stable frontmatter', () => {
     assert.match(text, new RegExp(`^allowed-tools: ${tools}$`, 'm'));
   }
   assert.match(read('agents/creator.md'), /^tools: Read, Write, Edit, Glob, Grep, Bash$/m);
+  assert.match(read('agents/director.md'), /^tools: Read, Write, Edit, Glob, Grep, Bash$/m);
+});
+
+test('standard director reviewers allow deterministic Bash checks', () => {
+  const root = join(process.cwd(), 'skills');
+  const names = readdirSync(root).filter((name) => name.startsWith('director-review-'));
+  for (const name of names) {
+    const fm = frontmatter(read(`skills/${name}/SKILL.md`));
+    if (fm['allowed-tools'] !== undefined) {
+      assert.match(fm['allowed-tools'], /(?:^|, )Bash(?:,|$)/, name);
+    }
+  }
 });
 
 test('generator has stable output and full argument protocol', () => {
@@ -103,10 +115,10 @@ test('prompt fix keeps a strict section whitelist', () => {
 
 test('visual review leaves have isolated roles and tools', () => {
   const cases = [
-    [visual(), 'director', 'opus', 'Read, Write, Edit, Glob, Grep, Task'],
-    [visualSingle(), 'director', 'opus', 'Read, Glob'],
+    [visual(), 'director', 'opus', 'Read, Write, Edit, Glob, Grep, Bash, Task'],
+    [visualSingle(), 'director', 'opus', 'Read, Glob, Bash'],
     [imageFix(), 'creator', 'sonnet', 'Read, Edit, Glob, Grep, Bash, Task'],
-    [impact(), 'director', 'opus', 'Read, Glob'],
+    [impact(), 'director', 'opus', 'Read, Glob, Bash'],
   ];
   for (const [text, agent, model, tools] of cases) {
     const fm = frontmatter(text);
@@ -145,7 +157,7 @@ test('single, image fix, and impact expose stable machine contracts', () => {
   assert.deepEqual(Object.keys(impactJson),
     ['upstream', 'downstream', 'status', 'reason', 'fix_direction']);
   assert.match(impactText, /no_dependency\|unaffected\|affected/);
-  assert.doesNotMatch(frontmatter(impactText)['allowed-tools'], /Write|Edit|Bash|Task/);
+  assert.doesNotMatch(frontmatter(impactText)['allowed-tools'], /Write|Edit|Task/);
 });
 
 test('visual handoff records impact without contaminating clean statuses', () => {

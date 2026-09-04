@@ -4,7 +4,7 @@ description: Use when a regenerated storyboard sheet may invalidate the direct n
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Glob
+allowed-tools: Read, Glob, Bash
 model: opus
 ---
 
@@ -17,7 +17,7 @@ model: opus
 - 只读新 upstream card 和 PNG，以及数字上直接 N+1 downstream card。先读 downstream card 的 `## 连续性参考`。
 - downstream 不存在，或没有显式 previous 指向 upstream：返回 `no_dependency`；此时不读 downstream PNG。
 - 有显式 previous 时，再读 downstream PNG。除这两张 card/PNG 外不读 sibling、旧图、storyboard 或 review。
-- 严格只读；不写 review，不修改 card，不删图，不生图，不 dispatch。
+- 业务文件严格只读；不写 review，不修改 card，不删图，不生图，不 dispatch。Bash 只可调用现有只读脚本、执行检查或做临时验证，不得写、改、删业务产物。
 
 ## Director 判断
 

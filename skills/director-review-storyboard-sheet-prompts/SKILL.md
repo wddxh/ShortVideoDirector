@@ -4,7 +4,7 @@ description: Use when episode storyboard-sheet cards need a quality gate before 
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
 ---
 
