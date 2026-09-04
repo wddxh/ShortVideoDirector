@@ -2,3 +2,4 @@ docs/
 .claude/
 node_modules/
 .superpowers/
+.worktrees/
