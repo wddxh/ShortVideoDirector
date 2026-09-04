@@ -20,9 +20,10 @@ model: sonnet
 
 ### 动态参数
 
-- `$ARGUMENTS[0]`：ep，如 `ep01`。
-- `$ARGUMENTS[1]`：模式，`full` 或 `incremental`；缺省 `full`。
-- `$ARGUMENTS[2...]`：`incremental` 必填的 shots；从索引 2 到末尾，每个 token 必须是 canonical `shotNN`（如 `shot03` `shot08`）。非法、重复、缺失或不属于当前 storyboard 的 token 均拒绝整个运行，不做部分写入。
+- 读取完整 `$ARGUMENTS` token 序列；仅使用受支持的 `$ARGUMENTS` 与 `$ARGUMENTS[N]` 表示法。
+- token 0 / `$ARGUMENTS[0]`：ep，如 `ep01`。
+- token 1 / `$ARGUMENTS[1]`：mode，`full` 或 `incremental`；缺省为 `full`。
+- token 2 及以后：`incremental` 的 shots，每项必须是 canonical `shotNN`。缺失、非法、重复或不属于当前 storyboard 时拒绝运行。
 
 示例参数：`ep01 incremental shot03 shot08`。必须保留多个独立 token；不得把多个 shot 合并成一个未解析字符串。
 
@@ -42,7 +43,7 @@ skill frontmatter 的 `allowed-tools` 只会收窄 skill 权限，不能恢复 `
 2. 校验每个 shot 的 character、location、item、building 等资产均可唯一解析到现有 `.md`。KF 不是 sheet card 的参考资产；不要把它当作 current asset link。
 3. 写任何 card 前用 Bash 执行 `mkdir -p "assets/storyboard-sheets/{ep}"`；首次 `full` 不能假设目录已存在。
 4. `full`：为 storyboard 中所有 shot 创建或覆盖 card；用 Bash `rm -- "{orphan_path}"` 删除已确认的孤儿 orphan card。全覆盖不表示无条件改写：内容相同计 preserved。
-5. `incremental`：只处理 `$ARGUMENTS[2...]` 的 canonical unique tokens，其他 card 保持不动。比较 storyboard shot 集合和现有 card 集合；发现新增、删除、重排或编号变化，拒绝增量并要求 `full`。不得删除 orphan。
+5. `incremental`：从完整 `$ARGUMENTS` 读取 token 2 及以后的 canonical shot tokens，只处理这些 cards，其他 card 保持不动。发现新增、删除、重排或编号变化，拒绝增量并要求 `full`。不得删除 orphan。
 6. 按 rules 分解动态 Panel，无固定数量和上限；生成完整 prompt 后写 card。失败 shot 不写半成品，其他 shot 可继续。
 7. 写后重新读取目标 card，确认 section 顺序、时间覆盖、链接路径与 Markdown 子集；只报告磁盘实际变化。
 

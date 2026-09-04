@@ -4,7 +4,7 @@ description: Use when episode storyboard-sheet cards need a quality gate before 
 user-invocable: false
 context: fork
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+allowed-tools: Read, Write, Edit, Glob, Grep
 model: opus
 ---
 
@@ -13,17 +13,17 @@ model: opus
 ## 输入
 
 - `$ARGUMENTS[0]`：ep，如 `ep01`。
+- 可选 scope：调用方可在后续参数列出完整 card paths；未提供时审核全部 cards。
 - 读取已审核的 `story/episodes/{ep}/storyboard.md`、`config.md`、`assets/storyboard-sheets/{ep}/shot*.md`、卡中链接的资产，以及 `${CLAUDE_PLUGIN_ROOT}/skills/creator-storyboard-sheet-prompts/rules.md`。
 - 维护 `story/episodes/{ep}/.review-storyboard-sheet-prompts.md`；不得修改 card、storyboard、资产或图片。
 
 ## Round 控制
 
-1. 每次调用先 Glob 全部当前 cards，按 path 排序，并执行全局 card/storyboard 一对一检查；即使本轮内容审查是 dirty-only，也不得跳过每轮全局检查。
-2. 为每张 card 计算 SHA-256。优先 `sha256sum -- "$card"`；不可用时 fallback 到 `shasum -a 256 -- "$card"`，两者都不可用则报错。形成 sorted `card path | sha256` manifest。
-3. review 文件存在时定位最大 N，要求唯一 `<!-- /round-N -->` footer，并读取该轮 `### reviewed inputs`；缺 section、缺 hash 或 footer 异常均不得短路。
-4. 最后一轮通过时，只有当前 card 集合和 hash 与该轮 manifest 完全一致才短路返回 `pass`。任一路径新增、删除或内容 hash 变化，都必须开始新一轮审核变化项并重查全局集合。
-5. 最后一轮需修改时，内容审查集合为上轮完整 dirty paths 与 manifest 中新增/变化 paths 的并集；删除项由全局一对一检查报告。不得从短 id 猜路径。
-6. 本轮无问题时 append 通过轮；有问题时按完整 card path 去重后 append 需修改轮。每轮都在 footer 前写当前完整 `### reviewed inputs` manifest。
+1. 每次调用都重新 Read 当前 storyboard、config、相关 assets、rules 和 cards，并完成本轮审核。
+2. 先 Glob 全部 cards，语义复查 storyboard/card 全局一对一集合。scope 只限制后续内容审核，不能跳过缺卡、orphan 和编号检查。
+3. 未给 scope 时审核全部 cards；给出完整 card paths 时审核该 scope。scope 必须属于当前 ep 且实际存在。
+4. review 文件不存在时为第 1 轮；存在时定位最大 N，并要求唯一 `<!-- /round-N -->` footer，本次 append 第 N+1 轮。
+5. 按完整 card path 去重写 dirty list；本轮无问题写通过轮，有问题写需修改轮。
 
 第 1 轮使用 Write。后续使用 Edit，以唯一 `<!-- /round-{N} -->` 为 anchor，保留旧 footer 后追加新轮。每轮末尾必须写：
 
@@ -61,14 +61,14 @@ model: opus
 
 ## Orchestrator Handoff
 
-需修改轮必须写 `### orchestrator handoff`，按固定顺序列出可直接执行的工作单：
+需修改轮写 `### orchestrator handoff`，固定按以下顺序执行：
 
-1. `upstream-storyboard`：完整 card paths + review path；先修 storyboard。
-2. `generator`：完整 card paths + review path；上游完成后一次传递多个 shots，重跑 generator。
-3. `prompt-fix`：完整 card paths + review path；前两类完成后才运行 fix。**Fix 不得先跑**。
-4. `一次 review`：前三步完成后只调用一次 reviewer，不在 owner 之间穿插 review。
+1. `upstream-storyboard`：orchestrator 将这些意见按 `director-review-storyboard` 的意见格式 append 到 `story/episodes/{ep}/.review-storyboard.md` 新一轮；调用 `storyboarder-fix-storyboard {ep}`，再调用 `director-review-storyboard {ep}` 确认通过。
+2. `generator`：任何 upstream 修订影响 card 都要重生成。缺卡、orphan、shot 集合或编号变化用 `full`；仅现存 card 的内容问题用 `incremental`，一次传入全部相关 shots。
+3. `prompt-fix`：只处理 `owner=prompt-fix` 的完整 card paths。
+4. 前三步完成后调用一次 sheet reviewer，不在 owner 步骤之间重复审核。
 
-每个 owner 即使为空也写 `none`，不得只给数量或单一未引用字符串。返回简报须包含同一 orchestrator handoff，供未解析 review 文件的调用方执行。
+工作单必须列 sheet review path、generator mode 和每类完整 card paths；空列表写 `none`。
 
 ## 输出格式
 
@@ -76,9 +76,6 @@ model: opus
 
 ```markdown
 ## 第 {N} 轮 ({timestamp}) - 通过
-
-### reviewed inputs
-- assets/storyboard-sheets/{ep}/shot01.md | {sha256}
 
 ---
 <!-- /round-{N} -->
@@ -118,17 +115,12 @@ model: opus
   direction: 在 PANEL 02 画面和连续性中补足可见落点
 
 ### orchestrator handoff
-- upstream-storyboard: assets/storyboard-sheets/{ep}/shot09.md | review path: story/episodes/{ep}/.review-storyboard-sheet-prompts.md
-- generator: assets/storyboard-sheets/{ep}/shot03.md, assets/storyboard-sheets/{ep}/shot08.md | invoke: {ep} incremental shot03 shot08 | review path: story/episodes/{ep}/.review-storyboard-sheet-prompts.md
-- prompt-fix: assets/storyboard-sheets/{ep}/shot10.md | review path: story/episodes/{ep}/.review-storyboard-sheet-prompts.md
-- once complete: 一次 review
-
-### reviewed inputs
-- assets/storyboard-sheets/{ep}/shot01.md | {sha256}
-- assets/storyboard-sheets/{ep}/shot03.md | {sha256}
-- assets/storyboard-sheets/{ep}/shot08.md | {sha256}
-- assets/storyboard-sheets/{ep}/shot09.md | {sha256}
-- assets/storyboard-sheets/{ep}/shot10.md | {sha256}
+- review path: story/episodes/{ep}/.review-storyboard-sheet-prompts.md
+- upstream-storyboard: assets/storyboard-sheets/{ep}/shot09.md
+- generator mode: incremental
+- generator cards: assets/storyboard-sheets/{ep}/shot03.md, assets/storyboard-sheets/{ep}/shot08.md, assets/storyboard-sheets/{ep}/shot09.md
+- prompt-fix: assets/storyboard-sheets/{ep}/shot10.md
+- final: 一次 sheet reviewer
 
 ---
 <!-- /round-{N} -->
@@ -136,4 +128,4 @@ model: opus
 
 dirty list 每行必须是 `assets/storyboard-sheets/{ep}/shotNN.md` 完整 card path；禁止只写 `shotNN`。`M` 是本轮 dirty card path 去重数，不是意见条数。落盘并自检后，仅返回 `pass` 或 `needs_revision {M}`。
 
-`needs_revision {M}` 后的返回简报必须逐行复述 `orchestrator handoff`，包括每个 owner 的完整 paths、generator 多 token invoke、review path 和最终一次 review。
+`needs_revision {M}` 后的返回简报复述该 handoff。

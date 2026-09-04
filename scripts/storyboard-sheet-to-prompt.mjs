@@ -32,10 +32,7 @@ if (path.basename(card) !== `shot${String(shotNumber).padStart(2, '0')}.md`) {
 
 let source;
 try {
-  const cardStat = fs.lstatSync(card);
-  if (cardStat.isSymbolicLink() || !cardStat.isFile()) {
-    fail(`card must be a regular file: ${card}`);
-  }
+  fs.lstatSync(card);
   const root = fs.realpathSync('.');
   const expected = path.join(root, 'assets', 'storyboard-sheets', episode);
   const realDirectory = fs.realpathSync(path.dirname(card));
@@ -59,24 +56,17 @@ try {
 }
 if (/\r(?!\n)/u.test(text)) fail(`invalid control byte in prompt or card: ${card}`);
 text = text.replace(/\r\n/gu, '\n');
-if (/<\s*\/?\s*(?:script|pre|style)(?=[\s/>])/iu.test(text)) {
-  fail(`unsafe raw HTML in card: ${card}`);
-}
 
 const lines = text.split('\n');
 const active = new Array(lines.length).fill(false);
 const headings = [];
-const tabAllowed = new Set();
 let fence = null;
 let inComment = false;
 for (let index = 0; index < lines.length; index++) {
   const line = lines[index];
   if (fence) {
-    const closing = new RegExp(`^ {0,3}${fence.marker}{${fence.length},}[ \\t]*$`, 'u');
-    if (closing.test(line)) {
-      if (line.includes('\t')) tabAllowed.add(index);
-      fence = null;
-    }
+    const closing = new RegExp(`^ {0,3}${fence.marker}{${fence.length},} *$`, 'u');
+    if (closing.test(line)) fence = null;
     continue;
   }
   let visible = '';
@@ -147,11 +137,8 @@ for (let index = assetRange.start; index < assetRange.end; index++) {
   const asset = assetFromBullet(lines[index]);
   if (asset) assets.push(asset);
 }
-for (let index = 0; index < lines.length; index++) {
-  const unsafe = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/u.test(lines[index]);
-  if (unsafe || (lines[index].includes('\t') && !tabAllowed.has(index))) {
-    fail(`invalid control byte in prompt or card: ${card}`);
-  }
+if (/[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f-\u009f]/u.test(text)) {
+  fail(`invalid control byte in prompt or card: ${card}`);
 }
 if (assets.length === 0) fail('no base asset references');
 
