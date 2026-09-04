@@ -173,14 +173,20 @@ test('visual aggregate persists rounds and dispatches isolated singles', () => {
   assert.match(text, /严禁.*PNG/s);
 });
 
-test('explicit visual scope overrides a prior pure pass', () => {
+test('visual scope preserves pending work and only short-circuits pure pass without explicit scope', () => {
   const text = visual();
   const match = text.match(/## Scope 优先级协议\n\n```json\n([\s\S]*?)\n```/);
   assert.ok(match, 'missing visual scope precedence contract');
   const contract = JSON.parse(match[1]);
-  assert.equal(contract.explicit_scope_precedes_terminal_pass, true);
-  assert.equal(contract.explicit_scope_dispatch, 'always');
-  assert.equal(contract.scope_source, 'successful_regenerated_shots');
+  assert.deepEqual(contract.candidate_sources, ['explicit', 'previous_dirty', 'previous_unknown']);
+  assert.equal(contract.deduplicate_by, 'card_path');
+  assert.equal(contract.pure_pass_without_explicit, 'short_circuit');
+  assert.equal(contract.pure_pass_with_explicit, 'dispatch_explicit');
+  const previous = { dirty: ['shot01'], unknown: ['shot02'] };
+  const candidate = [...new Set([
+    'shot03', ...previous.dirty, ...previous.unknown,
+  ])];
+  assert.deepEqual(candidate, ['shot03', 'shot01', 'shot02']);
 });
 
 test('unknown-only visual round stays nonterminal and retries unknown scope', () => {
@@ -415,7 +421,8 @@ test('repair routes failed sheet review states to the matching review loop', () 
     const text = read(`skills/repair-story/${mode}`);
     assert.ok(text.includes('storyboard-sheet-prompt-review:missing|needs_revision'), mode);
     assert.ok(text.includes('creator-fix-storyboard-sheet-prompt'), mode);
-    assert.ok(text.includes('storyboard-sheet-visual-review:missing|needs_revision'), mode);
+    assert.ok(text.includes('visual missing recovery'), mode);
+    assert.ok(text.includes('visual needs_revision recovery'), mode);
     assert.ok(text.includes('creator-fix-storyboard-sheet-image'), mode);
   }
 });
@@ -487,6 +494,32 @@ test('repair generation steps do not use unscoped visual review', () => {
     const generation = text.indexOf('creator-generate-images` skill');
     const scoped = text.indexOf('{successful_shots...}', generation);
     assert.ok(generation >= 0 && scoped > generation, mode);
+  }
+});
+
+test('repair reviews all canonical sheets when visual review is missing', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    const missing = text.slice(text.indexOf('visual missing recovery'),
+      text.indexOf('visual needs_revision recovery'));
+    const stages = ['creator-generate-images', 'all_canonical_sheet_shots',
+      'director-review-storyboard-sheets-visual'];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = missing.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+  }
+});
+
+test('repair needs-revision visual recovery passes successful scope for aggregate union', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    const block = text.slice(text.indexOf('visual needs_revision recovery'));
+    assert.ok(block.includes('successful_shots'), mode);
+    assert.ok(block.includes('previous dirty + previous unknown'), mode);
+    assert.ok(block.includes('director-review-storyboard-sheets-visual` skill，参数'), mode);
   }
 });
 

@@ -24,14 +24,15 @@ model: opus
 
 ```json
 {
-  "explicit_scope_precedes_terminal_pass": true,
-  "explicit_scope_dispatch": "always",
-  "scope_source": "successful_regenerated_shots"
+  "candidate_sources": ["explicit", "previous_dirty", "previous_unknown"],
+  "deduplicate_by": "card_path",
+  "pure_pass_without_explicit": "short_circuit",
+  "pure_pass_with_explicit": "dispatch_explicit"
 }
 ```
 
 1. review 不存在时，未指定 scope 则 Glob 全部 cards；指定 scope 时只取对应 cards。
-2. review 已存在时，定位最大 N 和唯一 `<!-- /round-N -->`。显式 scope 必须重新 dispatch，即使最后一轮纯 pass；只有未给显式 scope 时，最后一轮 M=0 且 K=0 才可直接返回 `pass`。否则合并最后一轮 dirty/unknown，按 card_path 去重。
+2. review 已存在时，定位最大 N 和唯一 footer。Candidate 固定为 `explicit scope ∪ previous dirty ∪ previous unknown`，按 card path 去重；显式 scope 不能覆盖未收敛项。仅 latest 纯 pass 且无 explicit scope 时短路；latest 纯 pass + explicit 时只 dispatch explicit（previous dirty/unknown 为空）。
 3. 映射每个 card/image pair。缺图预扫描直接产生 dirty issue，不派发 single。
 4. 其余每 sheet 一个 Task，参数为 `{card_path} {image_path}`。每批 ≤5 个并行 Task；技术失败或非约定 JSON 重试 1 次，仍失败进入无法判定，不进入 dirty。
 5. single 返回空字符串即通过；合法 JSON 原样聚合。同一卡多个 issues 只产生一个 dirty entry。
