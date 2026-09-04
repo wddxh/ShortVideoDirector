@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -31,6 +32,14 @@ function run(root, ...args) {
   });
 }
 
+function runWithPath(root, bin, ...args) {
+  return spawnSync('bash', [SCRIPT, ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, PATH: `${join(root, bin)}:${process.env.PATH}` },
+  });
+}
+
 function withProject(fn) {
   const root = project();
   try {
@@ -53,6 +62,14 @@ function assertLegacy(result, ...evidence) {
     evidence.join(', '));
 }
 
+function assertInputFailure(result, message) {
+  assert.equal(result.status, 1, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr.split('\n').filter(Boolean).length, 1);
+  assert.match(result.stderr, new RegExp(`^FAIL ${message}`));
+  assert.doesNotMatch(result.stderr, /legacy KF contract detected/);
+}
+
 test('accepts a current project when optional files are missing', () => {
   withProject((root) => {
     const result = run(root, 'ep01');
@@ -67,7 +84,7 @@ test('accepts current storyboard and tasks content', () => {
     write(root, 'story/episodes/ep12/storyboard.md',
       '# storyboard\n- 引用资产: assets/storyboard-sheets/ep12/shot01.md\n');
     write(root, 'story/episodes/ep12/videos/tasks.json',
-      '{"image":"assets/images/storyboard-sheets/ep12/shot01.png"}\n');
+      '[{"images":"assets/images/storyboard-sheets/ep12/shot01.png"}]\n');
     const result = run(root, 'ep12');
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, '');
@@ -111,10 +128,10 @@ test('detects a legacy asset link in the storyboard', () => {
   });
 });
 
-test('detects a legacy image path in tasks JSON text', () => {
+test('detects a legacy path in an images field', () => {
   withProject((root) => {
     write(root, 'story/episodes/ep01/videos/tasks.json',
-      '{"image":"assets/images/keyframes/ep01/KF-EP01-001.png"}\n');
+      '[{"images":"assets/images/keyframes/ep01/KF-EP01-001.png"}]\n');
     assertLegacy(run(root, 'ep01'),
       'story/episodes/ep01/videos/tasks.json:assets/images/keyframes/');
   });
@@ -128,7 +145,7 @@ test('collects all evidence once in a stable comma-separated order', () => {
     write(root, 'story/episodes/ep07/storyboard.md',
       '[KF-EP07-001](assets/keyframes/ep07/KF-EP07-001.md)\n');
     write(root, 'story/episodes/ep07/videos/tasks.json',
-      '{"image":"assets/images/keyframes/ep07/KF-EP07-001.png"}\n');
+      '[{"images":"assets/images/keyframes/ep07/KF-EP07-001.png"}]\n');
 
     assertLegacy(run(root, 'ep07'),
       'story/episodes/ep07/keyframes.json',
@@ -145,11 +162,100 @@ test('reports custom absolute paths containing spaces as repo-relative', () => {
     const storyboard = 'custom input/board one.md';
     const tasks = 'custom input/tasks one.json';
     write(root, storyboard, '[KF-CUSTOM-1]\n');
-    write(root, tasks, '{"path":"assets/images/keyframes/old.png"}\n');
+    write(root, tasks, '[{"images":"assets/images/keyframes/old.png"}]\n');
 
     assertLegacy(run(root, 'ep02', join(root, storyboard), join(root, tasks)),
       'custom input/board one.md:[KF-...]',
       'custom input/tasks one.json:assets/images/keyframes/');
+  });
+});
+
+test('handles leading-hyphen custom paths without grep option parsing', () => {
+  withProject((root) => {
+    write(root, '-q', '[KF-OPTION-1]\n');
+    write(root, '--help', '[{"images":"assets/images/keyframes/old.png"}]\n');
+
+    assertLegacy(run(root, 'ep02', '-q', '--help'),
+      '-q:[KF-...]',
+      '--help:assets/images/keyframes/');
+  });
+});
+
+test('fails when an existing storyboard path cannot be read as a file', () => {
+  withProject((root) => {
+    mkdirSync(join(root, 'blocked storyboard'));
+    assertInputFailure(run(root, 'ep02', 'blocked storyboard'),
+      'cannot read blocked storyboard');
+  });
+});
+
+test('fails when an existing tasks path cannot be read as a file', () => {
+  withProject((root) => {
+    mkdirSync(join(root, 'blocked tasks'));
+    assertInputFailure(run(root, 'ep02', 'missing-board.md', 'blocked tasks'),
+      'cannot read blocked tasks');
+  });
+});
+
+test('normalizes grep read errors to one storyboard failure line', () => {
+  withProject((root) => {
+    write(root, 'storyboard.md', 'current\n');
+    write(root, 'fake-bin/grep', '#!/bin/sh\necho raw-grep-error >&2\nexit 2\n');
+    chmodSync(join(root, 'fake-bin/grep'), 0o755);
+    assertInputFailure(runWithPath(root, 'fake-bin', 'ep02', 'storyboard.md'),
+      'cannot read storyboard.md');
+  });
+});
+
+test('distinguishes awk read errors from invalid tasks JSON', () => {
+  withProject((root) => {
+    write(root, 'tasks.json', '[]\n');
+    write(root, 'fake-bin/awk', '#!/bin/sh\necho raw-awk-error >&2\nexit 2\n');
+    chmodSync(join(root, 'fake-bin/awk'), 0o755);
+    assertInputFailure(runWithPath(root, 'fake-bin', 'ep02',
+      'missing-board.md', 'tasks.json'), 'cannot read tasks.json');
+  });
+});
+
+test('only checks images string fields in valid tasks JSON', () => {
+  withProject((root) => {
+    write(root, 'tasks.json', JSON.stringify([{
+      image: 'assets/images/keyframes/singular.png',
+      prompt: 'mentions assets/images/keyframes/prompt.png',
+      fail_reason: 'mentions assets/images/keyframes/failure.png',
+      images: 'assets/images/characters/current.png',
+    }]));
+    const result = run(root, 'ep02', 'missing-board.md', 'tasks.json');
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, '');
+  });
+});
+
+test('detects escaped slashes in an images field', () => {
+  withProject((root) => {
+    write(root, 'tasks.json', String.raw`[{"images":"assets\/images\/keyframes\/old.png"}]`);
+    assertLegacy(run(root, 'ep02', 'missing-board.md', 'tasks.json'),
+      'tasks.json:assets/images/keyframes/');
+  });
+});
+
+test('rejects malformed tasks JSON', () => {
+  withProject((root) => {
+    write(root, 'tasks.json', '[{"images":"assets/images/current.png"}');
+    assertInputFailure(run(root, 'ep02', 'missing-board.md', 'tasks.json'),
+      'invalid tasks JSON: tasks.json');
+  });
+});
+
+test('escapes control characters in evidence paths to keep stderr on one line', () => {
+  withProject((root) => {
+    const storyboard = 'board\nrow\rcol\tend.md';
+    write(root, storyboard, '[KF-CONTROL-1]\n');
+    const result = run(root, 'ep02', storyboard);
+
+    assertLegacy(result, String.raw`board\nrow\rcol\tend.md:[KF-...]`);
+    assert.equal(result.stderr.split('\n').filter(Boolean).length, 1);
   });
 });
 
