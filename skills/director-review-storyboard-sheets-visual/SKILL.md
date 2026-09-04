@@ -21,12 +21,22 @@ model: opus
 ## Scope 与调度
 
 1. review 不存在时，未指定 scope 则 Glob 全部 cards；指定 scope 时只取对应 cards。
-2. review 已存在时，定位最大 N 和唯一 `<!-- /round-N -->`。显式 scope 优先；否则只合并最后一轮 `### dirty list` 与 `### 无法判定` 中的 cards。最后一轮通过且无显式 scope 时直接返回 `pass`，不追加空轮。
+2. review 已存在时，定位最大 N 和唯一 `<!-- /round-N -->`。显式 scope 优先；否则合并最后一轮 `### dirty list` 与 `### 无法判定` 中的 cards，按 card_path 去重。仅最后一轮 M=0 且 K=0 的纯通过轮可直接返回 `pass`，不追加空轮。标题为 `通过 ({K} 项无法判定)` 或返回为 `pass {K}_unknown` 均不是终态；下次默认调用必须重派 unknown scope。
 3. 映射每个 card/image pair。缺图预扫描直接产生 dirty issue，不派发 single。
 4. 其余每 sheet 一个 Task，参数为 `{card_path} {image_path}`。每批 ≤5 个并行 Task；技术失败或非约定 JSON 重试 1 次，仍失败进入无法判定，不进入 dirty。
 5. single 返回空字符串即通过；合法 JSON 原样聚合。同一卡多个 issues 只产生一个 dirty entry。
 
 必须使用 Task 工具派发 `director-review-storyboard-sheet-visual-single`；aggregate context 只保留文本结果。
+
+## Round 收敛协议
+
+```json
+{
+  "terminal": {"dirty_count": 0, "unknown_count": 0},
+  "retry_scope_sources": ["dirty", "unknown"],
+  "deduplicate_by": "card_path"
+}
+```
 
 ## Round 输出
 

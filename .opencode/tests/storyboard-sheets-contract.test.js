@@ -142,6 +142,27 @@ test('visual aggregate persists rounds and dispatches isolated singles', () => {
   assert.match(text, /严禁.*PNG/s);
 });
 
+test('unknown-only visual round stays nonterminal and retries unknown scope', () => {
+  const text = visual();
+  const match = text.match(/## Round 收敛协议\n\n```json\n([\s\S]*?)\n```/);
+  assert.ok(match, 'missing round convergence contract');
+  const contract = JSON.parse(match[1]);
+  const shot = 'assets/storyboard-sheets/ep01/shot02.md';
+  const previous = { dirty: [shot], unknown: [shot] };
+  const terminal = (dirtyCount, unknownCount) =>
+    dirtyCount === contract.terminal.dirty_count &&
+    unknownCount === contract.terminal.unknown_count;
+  const scope = [...new Set(contract.retry_scope_sources.flatMap(
+    (source) => previous[source],
+  ))];
+
+  assert.equal(terminal(0, 1), false);
+  assert.equal(terminal(0, 0), true);
+  assert.deepEqual(contract.retry_scope_sources, ['dirty', 'unknown']);
+  assert.deepEqual(scope, [shot]);
+  assert.equal(contract.deduplicate_by, 'card_path');
+});
+
 test('single, image fix, and impact expose stable machine contracts', () => {
   const singleJson = firstJson(visualSingle());
   assert.deepEqual(Object.keys(singleJson), ['card_path', 'image_path', 'issues']);

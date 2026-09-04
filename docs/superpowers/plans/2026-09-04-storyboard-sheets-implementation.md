@@ -313,7 +313,7 @@ Expected: FAIL because four skills are absent.
 
 - [ ] **Step 4: Implement review, fix, and impact contracts**
 
-Aggregate at most five parallel single reviews, retry once, persist dirty/unknown plus unique footer, and read only prior dirty/unknown after round one. Whole-sheet fix edits panel/prompt, deletes PNG, calls targeted generation, and returns only successful regenerated shots. Impact reads only new upstream plus direct downstream card/PNG and never writes.
+Aggregate at most five parallel single reviews, retry once, persist dirty/unknown plus unique footer, and read the prior dirty/unknown union after round one. Deduplicate that retry scope by card path. Only M=0 and K=0 is terminal; an unknown-only `pass K_unknown` round must retry its unknown scope on the next default call. Whole-sheet fix edits panel/prompt, deletes PNG, calls targeted generation, and returns only successful regenerated shots. Impact reads only new upstream plus direct downstream card/PNG and never writes.
 
 - [ ] **Step 5: Define the affected handoff exactly**
 
