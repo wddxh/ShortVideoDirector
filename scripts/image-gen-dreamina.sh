@@ -2,9 +2,10 @@
 # Generate a single image using Dreamina CLI.
 # Usage: bash scripts/image-gen-dreamina.sh "prompt" "output_path" [ratio] [resolution] [model_version] [ref_images]
 # Without ref_images: uses text2image (text-to-image)
-# With ref_images: uses image2image (1-10 reference images + prompt)
+# With ref_images: uses image2image (reference images + prompt)
 #   - Pass single path or comma-separated list (e.g. "a.png,b.png,c.png")
-#   - dreamina CLI accepts up to 10 images per request; exceeding fails the task
+#   - The complete reference list is forwarded unchanged; provider limits are
+#     returned as provider errors
 # Exit codes: 0=OK, 1=FAIL, 2=PENDING (stdout has "PENDING submit_id")
 
 if [ $# -lt 2 ]; then
@@ -21,7 +22,7 @@ REF_IMAGES="$6"
 
 # Generate image
 if [ -n "$REF_IMAGES" ]; then
-  # image2image mode: use 1-10 reference images (comma-separated)
+  # image2image mode: pass reference images as one comma-separated argument
   RESULT=$(dreamina image2image \
     --images "$REF_IMAGES" \
     --prompt="$PROMPT" \

@@ -2,6 +2,8 @@
 # Submit a single video generation task using Dreamina CLI multimodal2video.
 # Does NOT poll — returns submit_id immediately for async tracking.
 # Usage: bash scripts/video-gen-dreamina.sh "prompt" "output_path" "img1,img2,..." "duration" [ratio] [model_version]
+# The complete reference list is forwarded unchanged and in order; provider
+# limits are returned as provider errors.
 # Exit codes: 0=SUBMITTED (stdout has "SUBMITTED submit_id"), 1=FAIL
 
 # grep -P (PCRE) requires a UTF-8 or C locale. Force it to avoid silent
@@ -19,6 +21,11 @@ IMAGES="$3"
 DURATION="$4"
 RATIO="${5:-16:9}"
 MODEL="${6:-seedance2.0fast}"
+
+if [ -z "$IMAGES" ]; then
+  echo "FAIL images list is empty"
+  exit 1
+fi
 
 # Build --image flags as an array (no eval needed; preserves arbitrary chars
 # in PROMPT including double quotes, spaces, shell metachars).
