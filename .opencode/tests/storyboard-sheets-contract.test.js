@@ -91,6 +91,9 @@ test('generator has stable output and full argument protocol', () => {
   assert.doesNotMatch(text, /\$ARGUMENTS\[2\.\.\.\]/);
   assert.match(text, /mkdir -p "assets\/storyboard-sheets\/\{ep\}"/);
   assert.match(text, /rm -- "\{orphan_path\}"/);
+  for (const field of ['mode:', 'created:', 'updated:', 'deleted:']) {
+    assert.ok(text.includes(field), field);
+  }
 });
 
 test('card rules expose the literal converter schema', () => {
@@ -528,6 +531,32 @@ test('storyboard edit explicitly regenerates actual changed cards before review 
       previous = index;
     }
   }
+});
+
+test('storyboard deletion reconciles orphans without routing deleted cards through paths', () => {
+  for (const path of ['skills/edit-story/series.md', 'skills/edit-story/short.md',
+    'skills/check-video/SKILL.md', 'skills/repair-story/series.md',
+    'skills/repair-story/short.md']) {
+    const text = read(path);
+    const start = text.indexOf('generator summary routing');
+    assert.ok(start >= 0, path);
+    const block = text.slice(start);
+    const force = block.indexOf('paths {existing_changed_card_paths...}');
+    const reconcile = block.indexOf('storyboard-sheets', force);
+    assert.ok(force >= 0 && reconcile > force, path);
+    assert.ok(block.includes('created + updated'));
+    assert.ok(block.includes('deleted'));
+    assert.ok(block.includes('mode=full'));
+    assert.ok(block.includes('renumbered'));
+    assert.ok(block.includes('deleted cards never enter paths'));
+    assert.ok(block.includes('successful shots union'));
+  }
+});
+
+test('storyboard-sheets router uses the orphan reconcile helper', () => {
+  const text = read('skills/creator-generate-images/SKILL.md');
+  assert.ok(text.includes('reconcile-storyboard-sheet-images.sh'));
+  assert.ok(text.includes('storyboard-sheets'));
 });
 
 test('repair owner changes force sheet regeneration before scoped review and impact', () => {

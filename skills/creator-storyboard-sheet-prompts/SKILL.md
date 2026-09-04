@@ -51,9 +51,10 @@ skill frontmatter 的 `allowed-tools` 只会收窄 skill 权限，不能恢复 `
 
 ## 返回
 
-返回机器可辨且人类可读的摘要，六项均须出现：
+返回机器可辨且人类可读的摘要，七项均须出现：
 
 ```text
+mode: full | incremental
 created: shotNN ...
 updated: shotNN ...
 preserved: shotNN ...
@@ -62,4 +63,4 @@ failed: shotNN: reason ...
 actual changed shots: shotNN ...
 ```
 
-`actual changed shots` 是 `created + updated + deleted` 的去重集合；无项目写 `none`。incremental 返回中必须能证明未请求 shots 被 preserved。
+`actual changed shots` 是 `created + updated + deleted` 的去重集合；无项目写 `none`。调用方必须分别解析三项，不能把 deleted 映射为 card path。incremental 返回中必须能证明未请求 shots 被 preserved。

@@ -147,11 +147,12 @@ model: opus
 5. direct sheet retry sequence：使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{集数} --direct {card} {instruction}`；再使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill并完成 owner loop；通过后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {card}`
 6. storyboard retry sequence：使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，编号集合变化传 full，否则传 incremental shots；再使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill并完成 owner loop；通过后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {受影响 card_paths...}`
 7. shared regeneration sequence：读取实际 `successful shots`；successful_shots 为空则不调用 visual review。非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{集数} {successful_shots...}`；dirty 时使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，并再次只 review 其 successful shots
-8. 对 dirty batch 外直接依赖使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill；仅 `affected` 继续修复传播。图像模型 `none` 时 PNG/visual/impact skipped，因视频缺 sheet PNG 停止重试
-9. 重建链全部成功后运行 `storyboard-to-prompt.sh`，解析并刷新新 prompt / images / duration，验证每张图存在且 sheet 为第一张
-10. 读取配置并运行 `video-gen-dreamina.sh` 重新提交
-11. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt、images、duration），用 Write 写回
-12. 提示用户稍后再次使用 `/check-video {集数}` 查询
+8. generator summary routing：解析 `mode/created/updated/deleted` 和 storyboard fixer 的 `renumbered`。`created + updated` 仅转换为仍存在的 `existing_changed_card_paths`，先使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {existing_changed_card_paths...}`。有 `deleted`、`mode=full` 或 `renumbered` 时，随后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} storyboard-sheets`。`deleted cards never enter paths`。合并两次实际 `successful shots union` 后 scoped visual review，再 impact。
+9. 对 dirty batch 外直接依赖使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill；仅 `affected` 继续修复传播。图像模型 `none` 时 PNG/visual/impact skipped，因视频缺 sheet PNG 停止重试
+10. 重建链全部成功后运行 `storyboard-to-prompt.sh`，解析并刷新新 prompt / images / duration，验证每张图存在且 sheet 为第一张
+11. 读取配置并运行 `video-gen-dreamina.sh` 重新提交
+12. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt、images、duration），用 Write 写回
+13. 提示用户稍后再次使用 `/check-video {集数}` 查询
 
 ## JSON 摘要契约（仅 `--auto` 模式）
 
