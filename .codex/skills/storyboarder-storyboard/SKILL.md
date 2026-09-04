@@ -1,6 +1,6 @@
 ---
 name: storyboarder-storyboard
-description: 把剧本翻译为 storyboard.md (≤15s 切片 + 镜头创意 + KF 标记)。剥离节奏决策（剧本已分配场景时长，分镜只做拆分）。
+description: 把剧本翻译为 storyboard.md（≤15s 切片、镜头语言和完整视听 prose），不规划 storyboard sheet panel。
 user-invocable: false
 ---
 

@@ -75,13 +75,13 @@ assets/storyboard-sheets/{ep}/shotNN.md|assets/images/storyboard-sheets/{ep}/sho
 
 ## 连续性影响评估 Handoff
 
-图片修复成功后，orchestrator 对直接 N+1 调用 impact skill，并把 exact JSON 追加到本轮 `### 连续性影响评估`：
+图片修复成功后，orchestrator 仅对卡片中直接引用当前 sheet 的下游调用 impact skill；不得按编号机械选择 N+1。使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill，并把 exact JSON 追加到本轮 `### 连续性影响评估`：
 
 使用 Edit 将记录插入当前轮 footer 之前；section 不存在时先创建该 heading。保留 `<!-- /round-{N} -->` 唯一且仍位于轮次末尾；每次写后 Read 自检。
 
 - `no_dependency` 或 `unaffected`：记录 reason，不加入 dirty，并停止该分支。
-- `affected`：追加 `card|image|impact|{fix_direction}`，同时把 `card|image` 加入 `### dirty list`；调用 `creator-fix-storyboard-sheet-image {ep} {review-path} shotNN`。
+- `affected`：追加 `card|image|impact|{fix_direction}`，同时把 `card|image` 加入 `### dirty list`；使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{ep} {review-path} shotNN`（执行协议：`creator-fix-storyboard-sheet-image {ep} {review-path} shotNN`）。
 - fix 失败：记录失败并停止该分支，不 enqueue。
-- fix 成功：记录成功并 enqueue 该 shot，继续检查其直接 N+1。
+- fix 成功：记录成功并 enqueue 该 shot，继续检查卡片中直接引用它的依赖项。
 
 不得从关键词机械判定影响状态；只消费 impact reviewer JSON。初次全量生成不运行影响传播。

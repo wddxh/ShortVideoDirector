@@ -171,7 +171,8 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
       if (!auxStat.isFile()) continue;
       if (aux.endsWith('.md')) {
         const content = await readFile(srcPath, 'utf8');
-        const substituted = inlineSubstitutePluginRoot(content, pluginRoot);
+        const rewritten = rewriteSkillCalls(content, meta);
+        const substituted = inlineSubstitutePluginRoot(rewritten, pluginRoot);
         await writeFile(dstPath, substituted);
       } else {
         await copyFile(srcPath, dstPath);

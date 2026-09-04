@@ -1,6 +1,7 @@
 ---
-name: "creator-fix-asset-image"
-description: "通用 asset 图修复。消费 dirty list，按 asset 类型修改 .md 的\"图像生成提示\" section → 删旧 .png → 重新 generate。"
+name: creator-fix-asset-image
+description: 消费基础资产 visual review dirty list，修提示并重生整张资产图。
+user-invocable: false
 ---
 
 # Codex 适配器

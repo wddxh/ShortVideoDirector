@@ -254,7 +254,7 @@ Error 信息含 tool-specific advice（write / edit / task / apply_patch / bash 
 - **scriptwriter Phase 5 重写为 detect-then-write 3 态**: 状态 A（已有 `## 本集新增资产`）→ 删除 + Append；状态 B（已有 `## 本集资产清单`）→ in-place 重写；状态 C（两段都无）→ Append。按 `^## ` 严格分段定界，不破坏用户手工段。
 - **asset id 规则文档闭合**: asset id = 资产名（与 `creator-create-assets/rules.md:76` 文件名一致）；语言遵循 `config.md` 「语言」设置（auto/zh/en/自定义），en 用下划线 `Shen_Zhao`；禁止 `char-`/`loc-`/`item-` 英文 prefix 与 kebab-case 转写；同一 outline 内 asset id 语言一致（R3）。
 - **director-review-script 加 hard gate**: script.md 中任何 asset 引用必带 `(assets/<type>/<名称>.md)` 路径后缀（无路径 → review fail），与 scriptwriter Phase 5 grep 提取依赖配套。
-- **下游 8 skill / 10 文件解析逻辑不动**: storyboarder-storyboard、storyboarder-fix-storyboard、director-review-storyboard、creator-create-assets、creator-update-records、creator-generate-images、creator-keyframe-prompts、edit-story[SKILL/series/short] 继续读 `## 本集资产清单`，工程上不需任何改动。
+- **下游资产消费者**: storyboarder、Creator 基础资产流程和 storyboard sheet 流程继续读取 `## 本集资产清单`；sheet 卡按 shot 单独维护。
 - **director-review-outline 删 character ≥5 警告**（按剧情自由安排，不设硬阈值）。
 
 ### mode-specific 文件约定（series.md / short.md）

@@ -40,7 +40,7 @@ ${workflowList}
 
 ## auto-video 安全提示
 
-\`auto-video\` skill 会通过 bash + 系统 \`crontab\` 安装定时任务，每 5 分钟运行 \`opencode run --session\` 自动轮询 check-video。视频全部完成后必须删除 cron 条目（skill 内有兜底）。
+\`auto-video\` 在 OpenCode 中通过 \`nohup\` 启动本地 loop，并通过 OpenCode HTTP session/prompt 接口调用 check-video。任务完成后 loop 自动退出；skill 负责 PID、日志和失败上限。
 
 ## 子代理与 skill 间的关系
 

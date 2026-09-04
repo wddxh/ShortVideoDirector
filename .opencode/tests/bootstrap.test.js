@@ -35,4 +35,11 @@ describe('generateBootstrap', () => {
     assert.match(out, /<EXTREMELY_IMPORTANT>/);
     assert.match(out, /<\/EXTREMELY_IMPORTANT>/);
   });
+
+  test('documents the OpenCode nohup HTTP monitor', () => {
+    const out = generateBootstrap('/fake/root', sampleAgents);
+    assert.match(out, /nohup/);
+    assert.match(out, /HTTP session\/prompt/);
+    assert.doesNotMatch(out, /crontab|opencode run --session/);
+  });
 });

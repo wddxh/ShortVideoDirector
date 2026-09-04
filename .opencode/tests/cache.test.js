@@ -75,6 +75,24 @@ describe('computeSourceHash includes scripts/', () => {
   });
 });
 
+describe('computeSourceHash includes OpenCode transform inputs', () => {
+  for (const relative of ['.opencode/lib/helper.js', '.opencode/skill-overrides/demo/SKILL.md']) {
+    test(`changes when ${relative} changes`, async () => {
+      const tmp = await mkdtemp(path.join(os.tmpdir(), 'svd-oc-hash-'));
+      await writeFile(path.join(tmp, 'package.json'), '{"version":"0.0.1"}');
+      for (const dir of ['skills', 'agents', 'scripts', '.opencode/lib', '.opencode/skill-overrides/demo']) {
+        await mkdir(path.join(tmp, dir), { recursive: true });
+      }
+      const target = path.join(tmp, relative);
+      await writeFile(target, 'v1');
+      const first = await computeSourceHash(tmp);
+      await writeFile(target, 'version-two');
+      assert.notEqual(await computeSourceHash(tmp), first);
+      await rm(tmp, { recursive: true, force: true });
+    });
+  }
+});
+
 describe('loadAndTransform copies shared skill resources (skills/_*\/)', () => {
   test('cache miss creates cacheSkillsDir/_meta/rules/ with rule files', async () => {
     // 强制 cache miss：先算 hash 找到 cache dir 并删除

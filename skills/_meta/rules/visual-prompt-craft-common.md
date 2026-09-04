@@ -1,6 +1,6 @@
 # 视觉 Prompt 创作通用规则（共享）
 
-本文件被所有写视觉 prompt 的 skill（creator-create-assets / creator-fix-asset / creator-keyframe-prompts / creator-fix-asset-image / storyboarder-storyboard）必读引用。规约所有视觉 prompt（图像 + 视频共通部分）的核心表达原则。
+本文件被所有写视觉 prompt 的 skill（creator-create-assets / creator-fix-asset / creator-storyboard-sheet-prompts / creator-fix-storyboard-sheet-image / storyboarder-storyboard）必读引用。规约所有视觉 prompt（图像 + 视频共通部分）的核心表达原则。
 
 **重要前提**："prompt 能写的就假定模型能做到"——本文件聚焦"如何精确表达"，不聚焦"模型做不到什么"。Seedance 2.0 / Veo 3 / LTX-2 等新模型能力快速演化，避免硬编码"当前能力上限"。**半年内复审本文件以避免规则陈旧**。
 
@@ -57,13 +57,13 @@
 | 基础角色 / 物品 / 场景 / 建筑 prompt | 完全自包容 | 不引用其他 asset | 详尽具象描述外观（细到五官 / 服装 / 比例 / 颜色 / 材质 / 光影），保证 text2image 稳定生成 | 引用其他 asset（基础 asset 不能依赖别的卡）|
 | 衍生资产 prompt（含旧造型变体） | 重述基础视觉 + 状态变化 | `## 基本信息` 中 `基础资产: [{基础名}](...)` + `基础类型: {type}` 字段单向引用，参考图自动 = 基础 .png | **基础视觉特征**（材质/颜色/布局/标志物）+ 状态变化具体描述 | 仅描述变化（image2image 仍需 prompt 重述基础特征以维持稳定）；引用其他 asset |
 | 造型变体 prompt | 重述基础外貌 + 造型差异 | `## 基本信息` 中 `基础角色: [{角色名}](...)` 字段单向引用，参考图自动 = 基础角色 .png | **基础外貌特征**（保持与基础角色一致）+ 造型变化的具体描述（如外卖工作服款式 / 颜色 / 配饰）；**已并入衍生资产，旧文件向后兼容；新建建议用衍生资产模板** | 仅描述差异（image2image 仍需 prompt 重述基础特征以维持稳定）；**已并入衍生资产，新建建议用衍生资产模板** |
-| keyframe prompt | 引用多 asset，正文不重复外观 | `## 引用资产` 区块 markdown 链接 | 正文用**裸名字**（如「张三站在街口」）；引用关系在区块声明 | 在正文重复描述被引用 asset 外观；自己写 `{图片N}` 占位符（脚本自动）|
-| storyboard shot prose | 引用多 asset，prose 不重复外观 | 「出场人物」/「引用资产」字段 markdown 链接独立声明 + prose 裸名字 + 位置标记 | prose 用**裸名字** + 位置标记（`画面首帧是 [KF-X]` / `画面尾帧是 [KF-X]` / `画面参考 [KF-X]`）| 在 prose 重复描述被引用 asset 外观；自己写 `{图片N}` 占位符 |
+| storyboard sheet prompt | 引用多 asset，正文不重复外观 | `## 引用资产` 区块 markdown 链接 | 正文用裸名字；转换器绑定图片槽位 | 重复描述被引用 asset 外观；手写 `{图片N}` |
+| storyboard shot prose | 引用多 asset，prose 不重复外观 | 「出场人物」/「引用资产」字段链接 + prose 裸名字 | 明确动作终态、朝向与空间关系 | 重复外观；手写 `{图片N}` |
 
 **关键 anti-pattern**：
 1. **基础 asset 引用其他基础 asset** — ❌ 基础角色 prompt 引用某个 location 卡（基础 asset 必须自包容；造型变体是唯一例外）
 2. **造型变体只写差异不写基础特征** — ❌ "外卖工作服" 一句话；✅ 重述基础角色五官/发型/体型 + "外卖工作服款式"
-3. **keyframe / storyboard 正文重复描述外观** — ❌ "张三，黑色长发，杏眼，165cm，3/4 侧脸" + 引用 张三.md；✅ "张三 3/4 侧脸，凝视镜头" + 引用 张三.md
+3. **sheet / storyboard 正文重复描述外观** — ❌ 重抄资产卡全部外观；✅ 用裸名字、构图和动作引用已绑定资产
 4. **LLM 手写 `{图片N}` 占位符** — ❌ 自己在 prompt 写 `[{图片1}]` 或 `[张三:{图片1}]`；✅ 用 markdown 链接 `[张三](assets/characters/张三.md)`，让脚本自动转换
 5. **衍生资产仅描述状态变化** — ❌ "古宅被烧毁后焦黑" 一句话；✅ 重述古宅基础视觉（土黄夯土墙 / 黑瓦屋顶 / 雕花门窗）+ 状态描述（焦黑炭化 / 屋顶坍塌 / 窗棂熔毁）
 
@@ -82,15 +82,15 @@
   → image-gen-dreamina.sh (image2image, 第 6 参数=基础资产 png)
   → assets/images/{基础类型}s/{基础名}-{状态名}.png
 
-[keyframe .md `## 引用资产` + `## 图像生成提示`]
-  → keyframe-to-prompt.sh: 解析引用 → IMAGES:p1,p2,... + 头部 [name:{图片N}] tokens
+[storyboard sheet .md `## 引用资产` + `## 图像生成提示`]
+  → storyboard-sheet-to-prompt.sh: 解析引用 → IMAGES:p1,p2,... + 头部 [name:{图片N}] tokens
   → image-gen-dreamina.sh (image2image, 第 6 参数=IMAGES 逗号串)
-  → assets/images/keyframes/{ep}/{KF-id}.png
+  → assets/images/storyboard-sheets/{ep}/shotNN.png
 
 [storyboard.md shot N]
-  → storyboard-to-prompt.sh: 解析字段 + 替换 markdown 链接 → IMAGES + prompt 含 [name:{图片N}] / [{图片N}] tokens + DURATION
+  → storyboard-to-prompt.sh: sheet PNG 第一、基础资产随后 → IMAGES + DURATION + 原 shot prose
   → tasks.json (prompt + images + duration)
-  → creator-video-dreamina + video-gen-dreamina.sh (multimodal2video, 按位置语义重排 --image)
+  → creator-video-dreamina + video-gen-dreamina.sh (multimodal2video, 原顺序传递 --image)
   → submit_id → check-video 轮询下载 → mp4
 ```
 
@@ -98,7 +98,7 @@
 
 ## 适用边界
 
-- ✅ 图像生成 prompt（asset .md 卡 `## 图像生成提示` 段，包含 character/location/item/building/keyframe 全部类型）
+- ✅ 图像生成 prompt（character/location/item/building 与 storyboard sheet）
 - ✅ 视频生成 prompt（storyboard shot prose）
 - ✅ 视觉 review skill 的"prompt 表达"审核维度
 - ❌ 不直接适用：narrative 文本（novel / script / outline / arc）

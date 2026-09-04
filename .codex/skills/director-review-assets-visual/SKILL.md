@@ -1,6 +1,7 @@
 ---
-name: "director-review-assets-visual"
-description: "批量 dispatch director-review-asset-visual-single 对所有 asset 做 visual review。参数 --type 控制范围。"
+name: director-review-assets-visual
+description: 批量调度基础资产视觉审核。
+user-invocable: false
 ---
 
 # Codex 适配器

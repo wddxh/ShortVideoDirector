@@ -58,13 +58,13 @@ model: opus
 - `novel:ok` / `novel:missing` / `novel:incomplete:{实际字数}/{目标下限}`
 - `script:ok` / `script:missing` / `script:incomplete`
 - `asset-list:ok` / `asset-list:missing`
-- `keyframes:ok` / `keyframes:missing` / `keyframes:incomplete:{原因}`
 - `assets:ok` / `assets:missing:{缺失资产名}`
 - `images:ok` / `images:missing:{缺失资产名}` / `images:skipped`
-- `keyframe-images:ok` / `keyframe-images:missing:{缺失KF-id}` / `keyframe-images:skipped`
 - `storyboard:ok` / `storyboard:missing` / `storyboard:incomplete:{实际数}/{目标数}`
+- `storyboard-sheets:ok` / `storyboard-sheets:invalid:{详情}`
+- `storyboard-sheet-images:ok` / `storyboard-sheet-images:invalid:{详情}` / `storyboard-sheet-images:skipped`
 
-根据输出判断第一个非 ok 状态的检查项，确定从哪个步骤开始恢复。`asset-list:missing` 与 `keyframes:missing/incomplete` 合并处理，统一走"从关键帧开始恢复"路径。
+根据输出判断第一个非 ok 状态，按基础资产卡→基础资产图片→storyboard→sheet card→sheet PNG 的依赖顺序恢复。
 
 ### Phase 4: 报告 + 确认
 
@@ -86,4 +86,4 @@ model: opus
 - mode 一旦在 Phase 0 确定不再变更
 - 所有 sub-skill dispatch 必须显式传递 ep（series 解析得到；short 恒为 ep01）
 - Phase 5 执行前必须取得用户对恢复起点的确认
-- `config.md` 图像模型 = `none` 时 images / keyframe-images 节点跳过并在摘要中提示
+- `config.md` 图像模型 = `none` 时图片与 visual/impact 节点以 skipped 终态报告，sheet card 与 prompt review 不跳过

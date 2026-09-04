@@ -1,6 +1,6 @@
 ---
 name: director-review-storyboard
-description: Director审核Storyboarder分镜，检查叙事完整性、节奏、台词密度和技术合规性。
+description: Director审核Storyboarder分镜的叙事、节奏、七字段契约和可生成性。
 user-invocable: false
 context: fork
 agent: director
@@ -10,108 +10,37 @@ model: opus
 
 ## 输入
 
-### 文件读取
-- `story/episodes/$ARGUMENTS[0]/script.md` — 必须读取（权威节奏源：场景目标时长 + 对白 + 转场）
-- `story/episodes/$ARGUMENTS[0]/storyboard.md` — 必须读取
-- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（含本集资产清单）
-- 从 outline.md 的「本集资产清单」中提取本集引用的资产名称，使用 Glob 获取 `assets/**/*.md` 全部文件路径列表，仅读取文件名与清单匹配的文件
-- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md` — 必须读取（分镜创作硬约束全集——schema / 字段 / 失败模式 / 写作要求 等；与下文「分镜技术审核清单」15 项并列查验）
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 通用原则，用于 phase 12 video prompt 表达审核）
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-video.md` — 必须读取（视频 prompt 独有原则，用于 phase 12 video prompt 表达审核）
+- `story/episodes/$ARGUMENTS[0]/{outline,script,storyboard}.md`
+- 本集资产清单对应的基础资产卡
+- `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/{output-language,review-meta-rules,visual-prompt-craft-common,visual-prompt-craft-video}.md`
 
-### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 当前集数（如 ep01）
+## 审核职责
 
-## 职责描述
+Director 负责 storyboard 的语义 gate；Creator 后续负责 storyboard sheet panel 规划。逐项审核：
 
-### 核心使命
+1. Storyboard 完整覆盖剧本，节奏和转场合理，对白原文与人物性格一致。
+2. Shot 编号有序、唯一、连续，单 shot ≤15s，场景合计在目标时长 ±10%，并批量运行 `speech-rate.sh`。
+3. 每个 shot 严格使用七字段；人物与 location/item/building 引用完整且路径有效。
+4. Prose 可被单镜独立消费，明确动作过程和终态、朝向、屏幕方向、结束位置、持有状态和空间关系。
+5. 视觉描述遵循共享 video prompt 规则，没有把 panel 规划写入 storyboard。
 
-审核 Storyboarder 生成的分镜，输出"通过"或"需修改 + 修改意见列表"。直接下游是 storyboarder-fix-storyboard skill：当你判"需修改"时，意见列表会被自动传给 fix skill 在最多 2 轮内修订分镜，列表里的每一条都会被执行（按 shot 号定位）。判定（通过/需修改）是质量门槛，意见列表是给 fix skill 的工作单。
-
-Storyboarder 是**翻译层**——剧本是权威节奏源（场景目标时长 + 对白 + 视觉摘要 + 转场），分镜只做切片、镜头创意、KF 标记。审核的核心价值是"挡住会让视频生成失败、剧情断裂、或下游 keyframe / TTS 出错的内容"：跨镜头引用、画面台词分离、状态突变、铺垫漏掉、台词超时、切片越界、KF 标记错位、出场人物声音特征漂移、整体观感平淡。
-### 工作思路
-
-1. 先做观众视角终极判断（凌驾于其他规则）：从普通观众视角整体审视，剧情精彩吗？流畅吗？吸引人继续看吗？若整体平淡或突兀——即使 rules 全过仍要打回
-2. 对照 outline 和 script：叙事完整吗？剧本场景全部覆盖？关键铺垫都到位吗？人物言行符合性格吗？
-3. 过 storyboarder-storyboard/rules.md 逐条审核 + 过下文「分镜技术审核清单」15 项（两套均为硬约束，独立查验，互不替代）
-4. 决定值得拦截的问题——所有进入意见列表的项都会被 fix skill 执行；只拦"会让视频生成失败"或"会让剧情断裂"或"会让下游 keyframe / TTS 出错"的问题
-5. 第二轮 review（fix 修过一次后）：聚焦仍影响视频生成或剧情连贯的关键问题
-
-### 常见误区
-
-- **机械放过** — rules 全过就放行，但观众视角终极标准位列 rules 之上 — 先做观众视角判断，再过 rules
-- **挑刺到不可能通过** — 所有列入意见的项都会被 fix skill 执行；反复挑刺 → fix 反复改，质量反而下降 — 只拦关键问题
-- **跳过台词时长综合流程** — 时长综合流程要求批量调 `scripts/speech-rate.sh` 验证语速，模型容易跳过脚本仅做心算 — 审核阶段必须执行脚本批量验证
-- **切片 sum 不算** — 模型凭印象判断，但 ±10% 容差是硬约束 — 每场景手算 sum(shot 时长) 与剧本目标对比
-- **KF 标记不全程查** — 只看 prose 内联 [KF-id] 不查头部「引用资产」KF 列表，导致下游 creator-keyframe-prompts 漏生成 — 两侧 grep 对照
-- **出场人物声音特征 verbatim 不核** — 漂移浓缩会导致跨 shot TTS 不一致 — 拿 character 卡 `## 声音特征` section 与 storyboard 出场人物逐字对照
-- **越权改剧本** — 发现剧本对白超时本能想"让 storyboard 缩台词"，但对白权威在剧本 — 报回 director-review-script，不写入 storyboard review
-- **逐字改写式意见** — fix skill 会照搬作为镜头描述，剥夺 Storyboarder 设计空间 — 说清问题方向，不替 Storyboarder 写最终描述
-- **prose 资产引用只查超引不查漏引** — 第 7 项管"prose 引用了剧本未声明的资产"，但 prose 实际指代了某已注册资产却忘写进字段的情况由第 8 项专管 — 两个方向独立检查
-- **漏引检查只查本 shot 不溯前 shot** — 第 8 项漏引检查的指代锚点候选包含**前镜出场实体**（视觉前置场景），单看本 shot prose 可能误判"没指代任何注册资产"，必须回溯前 shot 出场列表作为代称锚点候选
-
-## 分镜技术审核清单（15 项，rules.md 之外的硬约束）
-
-逐条核查，问题进入意见列表：
-
-- **KF 标记合理性**：每个 [KF-id] 引用都有正确的位置语义（"画面首帧是 [KF-id]" / "画面尾帧是 [KF-id]" / "画面参考 [KF-id]"），无裸 [KF-id] 不带位置语义
-- **KF 触发条件正确**：KF 仅在「关键视觉锚（首帧/尾帧/决定性瞬间）」或「跨 shot 视觉连续性（相邻 shot 共享同一 KF-id）」时使用，无随意加 KF
-- **切片合理性**：每场景 sum(shot 时长) 落在剧本目标 ±10% 容差内；场景头部「切片 sum Ys ✓」标注与实际计算一致
-- **单 shot ≤15s**：硬约束，超时即拦
-- **镜头多样性**：避免连续 5 个"中景固定"等同质堆叠
-- **speech-rate.sh 通过**：每 shot 对白调 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/speech-rate.sh "start-end:speed:text" ...` 批量验证，OVER 即拦
-- **引用 asset 完整性**：storyboard 只引用剧本已声明的 asset；不引入剧本未覆盖的 character / location / item
-- **画面描述资产引用完整性（漏引检查）**：shot 的「画面与声音描述」中**指代**已注册资产（character / location / item / building）的，必须在该 shot 的「出场人物」（character）或「引用资产」（其他三类）字段中对应引用。指代用 LLM 语义判断（含裸名、代称如"那把短剑"、关系称谓如"少年"指张三等）。漏引以 shot 为单位打回。注：KF 标记的对应一致性由清单第 9 项「内联 KF 与「引用资产」一致」（原第 8 项）覆盖，本项只管非 KF 的四类资产。**含跨镜延续场景**：前镜出场的实体（character / item / location / KF）若本镜画面仍可见，本镜 prose 中的回指代称（"她 / 那位 / 死者 / 这位姐姐 / 尸体"等）必须能被语义关联到前镜资产，且本镜字段必须重列该资产——单看本 shot 字段就应自包含。本项触发不局限于本 shot prose 内部，须回溯前 shot 实体作为指代锚点候选。
-- **shot 前向 + 后向自洽审核**（与 rules.md「镜头自洽」段对应）：逐 shot 独立模拟视频模型消费——
-  - **后向自洽**：本 shot prose 中所有视觉元素（人 / 物 / 场景）是否在本 shot 内点名具体形态，无"两件物品 / 一个身影 / 某道具"模糊指代依赖后续 shot 揭晓
-  - **前向自洽**：本 shot 画面延续的前镜实体（含已死亡角色 / 静置物品 / 同一场景），本 shot prose 是否明示资产名或回指代称是否可关联到前镜资产，且本 shot「出场人物 / 引用资产」字段是否已重列
-  - 判定方法：把本 shot prose + 字段**独立**抽出（屏蔽前后 shot），问"视频模型仅凭这些能否渲染出与导演意图一致的画面"——若出现"姐姐是谁 / 道具长什么样 / 尸体在哪"等歧义，即违反
-- **内联 KF 与「引用资产」一致**：prose 内联的 [KF-id] 集合 == 头部「引用资产」KF 列表
-- **出场人物字段正确性**：character 在「出场人物」字段（不在「引用资产」），每条目附完整声音特征 verbatim copy 自 character 卡 `## 声音特征` section（含 音色/语速/语调 三项）
-- **临场表演正确分层**：基线属性（音色/语速/语调）在出场人物字段，临场偏离（颤抖/急促/沙哑加剧等）在 prose `角色 (临场描述): "..."`
-- **字段顺序符合约定**：每个 shot 字段严格按 镜头类型 / 镜头运动 / 视频风格 / 时长 / 出场人物 / 引用资产 / 转场 顺序
-- **video prompt 表达检查**：每个 shot 的 prose 是否符合 visual-prompt-craft-common.md + visual-prompt-craft-video.md 全部 9 条原则。重点检查：
-  - 是否电影摄影指令式（不是小说叙事）
-  - 是否含 negative phrasing（"严禁/不要/避免/无 X" 句式）
-  - 是否含文学比喻 / 隐喻 / 心理描写
-  - 复杂效果是否显式分解（画中画 / 文字 / 复合特效的参数具体指定）
-  - 资产引用是否按场景规则使用（prose 不重复描述外观，用裸名字 + 位置语义）
-  - 镜头运动是否具象（pan / tilt / dolly / zoom + 速度修饰）
-  - 转场是否显式（cut / dissolve / fade + 时长）
-  - 音视频事件是否显式指定（音效触发时间 + 音色 / 对白 / BGM）
-  - 事件密度是否匹配 shot 时长（1-15s 单 shot，事件量随时长线性）
-- **shot 编号全集顺序**：grep `^### shot ` 提取全部 shot 号，必须从 1 严格递增 (1, 2, 3, ..., N) 无重复无跳号；任何重启 (场景 2 又出现 shot 1) 或跳号 (1, 2, 4) 必打回。原因：下游 storyboard-to-prompt.sh 按单数字抓第一匹配，重启编号 → 视频生成脏
-
-## 导演专属审核重点（rules.md 与上述 15 项之外）
-
-- **叙事完整性** — 分镜完整覆盖剧本场景，无遗漏关键画面节点
-- **剧情节奏** — 切片未让某场景过碎裂或过聚合，破坏剧本节奏意图
-- **人物言行与性格一致性** — 临场表演描述符合角色性格
-- **剧情铺垫充分** — 剧本铺垫种子在分镜的视觉呈现到位
-- **观众视角终极标准** — 整体观感凌驾于其他规则；机械规则全过但整体平淡 / 突兀 / 莫名其妙，仍判需修改
+语义判断由 Director 完成，不用机械关键词代替叙事、连续性或画面质量判断。
 
 ## 输出
 
-写入 `story/episodes/$ARGUMENTS[0]/.review-storyboard.md`（append 模式，每轮追加一段）。
+Append 到 `story/episodes/$ARGUMENTS[0]/.review-storyboard.md`：
 
-**Round 自检**：Read 文件（不存在则本次为第 1 轮；存在则 grep `^## 第 [0-9]+ 轮` 找最大 N，本次为 N+1 轮）。用 Write（首次）或 Edit（append，oldString 用文件末 50 字符 anchor）追加。
-
-**本轮段格式**（前留空行）：
-
-通过时仅 heading：
 ```markdown
-
 ## 第 {N} 轮 ({YYYY-MM-DD HH:MM}) - 通过
 ```
 
-不通过时：
-```markdown
+或：
 
+```markdown
 ## 第 {N} 轮 ({YYYY-MM-DD HH:MM}) - 需修改 ({M} 项)
 
-1. **shot {场景.N}：** {问题描述} → {修改建议}
+1. **shot {N}：** {问题} → {方向}
 ```
 
-**返回内容**：简报 `pass` 或 `needs_revision {M}`（{M} = 本轮意见条数）→ 返回给 workflow；详细意见已落盘，下游 fix skill 自行读取最后一轮段。
+返回 `pass` 或 `needs_revision {M}`。

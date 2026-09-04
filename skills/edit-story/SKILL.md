@@ -70,7 +70,7 @@ model: opus
 2. review 节点仅在同名节点本次有改动时触发
 3. review 失败 → 调对应 fix skill ≤2 轮；2 轮后仍失败 → 摘要记录并继续后续
 4. 不在清单中的节点跳过
-5. `config.md` 图像模型 = `none` 时 images 节点跳过并在摘要中提示
+5. `config.md` 图像模型 = `none` 时基础图、sheet PNG、visual 和 impact 以 skipped 终态报告；sheet card 与 prompt review 仍执行
 6. 节点 skill 调用失败（非 review 失败）→ 终止后续级联并报错
 
 **"本集新增资产" dedupe 公共逻辑**（级联触发新增资产清单写入时）：
@@ -85,7 +85,7 @@ model: opus
 
 若 review 循环 2 轮后仍失败：追加 `- [!] {节点} review: 2 轮 fix 后仍有意见 — "{reviewer 最后反馈}"`
 
-若 `config.md` 图像模型 = `none`：追加 `images 节点已跳过，请配置图像模型后重新触发 /edit-story`。
+若 `config.md` 图像模型 = `none`：逐项报告图片、visual 与 impact skipped，并确认 sheet card/prompt review 已完成。
 
 ## 通用规则
 

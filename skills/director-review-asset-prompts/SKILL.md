@@ -18,10 +18,7 @@ model: opus
 
 ### 动态参数（$ARGUMENTS）
 - `$ARGUMENTS[0]` — 集数（如 `ep01`）或全局范围（`assets`）
-- `$ARGUMENTS[1]` — scope 过滤器（可选）：
-  - 空 / 缺省 — 全部 asset（向后兼容）
-  - `basic` — 仅 character / location / item / building（跳过 keyframes）
-  - `keyframes` — 仅本集 keyframe（跳过 basic asset）
+- `$ARGUMENTS[1]` — 必须为 `basic`。本 generic reviewer 是 basic-only，仅处理 character / location / item / building。
 
 ## 职责描述
 
@@ -41,10 +38,7 @@ model: opus
    d. 第 N+1 轮：在 round-N 段内 (grep 锁定 `## 第 N 轮` 到 `<!-- /round-N -->` 之间) 提取 `### dirty list` 段每行 asset_path → 作为本轮入参（替代 step 1 全量收集）
    e. 入参为空 → 执行 step 10 写一轮「通过」段 + footer → 跑 step 11 自检 → 返回 `pass`（自检失败则报错退出，不返回 pass）
 1. **收集 asset 列表**（按 $ARGUMENTS[1] scope 过滤）：
-   - $ARGUMENTS[0] = epXX:
-     - scope = "" / 缺省 → 同时收 basic + keyframes（向后兼容）
-     - scope = "basic" → 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/parse-new-assets.sh story/episodes/{ep}/outline.md` 得 asset_path 列表（仅本集**新增**资产，跳过『已有资产（本集出场）』段）；脚本 exit 非零 → 立即报错退出，stderr 复述脚本错误信息并指引『请先运行 scriptwriter-script 生成本集资产清单』；**跳过** `assets/keyframes/{ep}/*.md`
-     - scope = "keyframes" → 仅 Glob `assets/keyframes/{ep}/*.md`；**跳过** outline 资产清单
+   - $ARGUMENTS[0] = epXX：scope 必须为 `basic`，调用 `parse-new-assets.sh` 得本集新增 basic asset 列表。
    - $ARGUMENTS[0] = "assets" → Glob `assets/**/*.md`（scope 参数忽略；全集合）
 2. **分批并行派发**：每批 ≤ 5 个 asset，用 `task` 工具并行调 `director-review-asset-prompt-single($ARGUMENTS[0]=asset_path)`
 3. **聚合结果**：收集所有子任务返回值——空字符串（通过）和 JSON 对象（需修改）
@@ -76,7 +70,7 @@ model: opus
 - **汇总丢失** — 子任务返回值未收集全就写文件 — 等所有子任务完成再聚合
 - **意见格式不规整** — 直接拼 JSON 不转可读 markdown — 输出格式见下
 - **不去重 asset** — outline 资产清单可能含重复名 — Glob 后去重再派发
-- **scope 越界** — 调用本意只审某一类（如 keyframes）但漏传 $ARGUMENTS[1]，会落入"全集"默认行为而重审其他类（basic 资产），LLM review 非确定性导致不该改的 asset 被改 — 调用前先确认 $ARGUMENTS[1] 与目标范围匹配
+- **scope 越界** — 漏传 `basic` 或传入其他 scope 会污染职责边界；立即拒绝。
 - **改用旧 Glob outline 资产清单 superset** — 旧实现读「本集资产清单」整段含「已有资产（本集出场）」 → 重审已有资产浪费 token + 非确定性变更污染稳定资产 — 必须用 `parse-new-assets.sh` 仅取「新增资产」段
 - **沿用旧 anchor (末尾 50 字符)** — 多轮后末尾不唯一会让 Edit 报错 — 必须用 `<!-- /round-{N} -->` 严格唯一锚点
 - **漏写 round footer** — 不写 `---\n<!-- /round-{N} -->` → 下轮 append 找不到 anchor → 全链路断 — round footer 是硬约束

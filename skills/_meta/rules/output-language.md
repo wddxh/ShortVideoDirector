@@ -6,7 +6,7 @@
 
 1. **所有产出文本的语言 = `config.md` 中的 `语言` 设置**
 2. **auto 时跟随输入语言**（用户首次输入的语言决定）；**同一产物内不混语言**
-3. **跨语言技术名词**（如 `MP4` / `H.264` / `KF-EP01-005` / `MEDIUM SHOT` 等）可保留英文标识，不视为混语言
+3. **跨语言技术名词**（如 `MP4` / `H.264` / `PANEL 05` / `MEDIUM SHOT` 等）可保留英文标识，不视为混语言
 
 ## 反例 + 正例
 
@@ -21,7 +21,7 @@
 - ✅ Narrative 文本（novel / script / outline / arc）
 - ✅ Review 意见（所有 `*-review-*` skill 的输出）
 - ✅ Asset id / 文件名
-- ✅ Prompt 字段（asset .md 卡 `## 图像生成提示` 段，含 character/location/item/building/keyframe 全部类型 / storyboard shot prose）
+- ✅ Prompt 字段（含 character/location/item/building/storyboard sheet / storyboard shot prose）
 - ❌ 不适用：跨语言技术名词（保留英文）
 
 ## 与其他共享规则的关系

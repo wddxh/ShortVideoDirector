@@ -159,7 +159,7 @@ orchestrator 在 task prompt 中会指定"分段单元"（逐章 / 逐镜头 / �
 
 ### JSON 增量模式
 
-写 JSON 数组类文件（如 keyframes.json）：
+写 JSON 数组类文件（如 tasks.json）：
 
 1. 首条目：\`Write(path, content='[\\n  <entry1>\\n]')\`
 2. 后续每条：\`Edit(path, oldString='\\n]', newString=',\\n  <entryN>\\n]')\`

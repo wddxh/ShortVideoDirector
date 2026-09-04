@@ -1,6 +1,6 @@
 ---
 name: director-review-storyboard
-description: Director审核Storyboarder分镜，检查叙事完整性、节奏、台词密度和技术合规性。
+description: Director审核Storyboarder分镜的叙事、节奏、七字段契约和可生成性。
 user-invocable: false
 ---
 

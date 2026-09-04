@@ -19,7 +19,7 @@ model: opus
 错误做法：
 - ❌ "sub-agent 失败了，我自己来写这个 novel.md"
 - ❌ "task 报错了，我在主 session 直接调用 Write"
-- ❌ "我 fallback 一下，自己生成 keyframes.json"
+- ❌ "我 fallback 一下，自己生成 storyboard sheet"
 
 原因：主 session 缺少 sub-agent 的隔离上下文（专属 system prompt、skill 加载、permission 配置），自己接管会导致质量下降、跨步骤上下文污染、permission 错配等问题。即使 sub-agent 失败，工作所有权也必须留在 sub-agent 层。
 
@@ -134,7 +134,7 @@ opencode --port 4096 -s YOUR_SESSION_ID
    - `description`: `check-video run for {目标}`
    - `prompt`（就两行）：
      ```
-     使用 Skill tool 调用 check-video skill，传递参数：{目标} --auto。
+     使用 Skill tool 调用 `check-video` skill，参数 `{目标} --auto`。
      完整返回 skill 的输出。不要自行调用 dreamina CLI 或视频生成脚本，不要绕过 skill 做查询/重试。
      ```
 

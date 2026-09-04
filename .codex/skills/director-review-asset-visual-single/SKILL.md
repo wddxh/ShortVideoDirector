@@ -1,6 +1,7 @@
 ---
-name: "director-review-asset-visual-single"
-description: "通用 single asset visual review。review 一个 asset (含 keyframe) 的 .md 卡描述 vs 对应 .png 是否匹配。"
+name: director-review-asset-visual-single
+description: 审核一个基础资产卡与对应图片是否匹配。
+user-invocable: false
 ---
 
 # Codex 适配器

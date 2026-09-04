@@ -40,7 +40,7 @@ skill frontmatter 的 `allowed-tools` 只会收窄 skill 权限，不能恢复 `
 ## 同步流程
 
 1. 解析 storyboard 的全集顺序 `### shot N`；仅为文件名将 N 格式化为 `shotNN`，card 的“对应分镜”保留 `shot N` 整数展示。提取时长、景别、机位/摄影机运动、出场人物、引用资产及带时间码的画面 beat。
-2. 校验每个 shot 的 character、location、item、building 等资产均可唯一解析到现有 `.md`。KF 不是 sheet card 的参考资产；不要把它当作 current asset link。
+2. 校验每个 shot 的 character、location、item、building 等资产均可唯一解析到现有 `.md`。Sheet card 只引用这些当前基础资产与可选相邻前镜 sheet。
 3. 写任何 card 前用 Bash 执行 `mkdir -p "assets/storyboard-sheets/{ep}"`；首次 `full` 不能假设目录已存在。
 4. `full`：为 storyboard 中所有 shot 创建或覆盖 card；用 Bash `rm -- "{orphan_path}"` 删除已确认的孤儿 orphan card。全覆盖不表示无条件改写：内容相同计 preserved。
 5. `incremental`：从完整 `$ARGUMENTS` 读取 token 2 及以后的 canonical shot tokens，只处理这些 cards，其他 card 保持不动。发现新增、删除、重排或编号变化，拒绝增量并要求 `full`。不得删除 orphan。

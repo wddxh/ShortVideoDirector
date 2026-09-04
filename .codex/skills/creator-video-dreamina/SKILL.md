@@ -1,6 +1,6 @@
 ---
 name: creator-video-dreamina
-description: 使用即梦CLI multimodal2video 执行已登记 pending 镜头的状态转移（pending → submitted/failed），更新 tasks.json。
+description: 使用即梦 CLI 提交已登记 pending 视频任务并维护状态。
 user-invocable: false
 ---
 

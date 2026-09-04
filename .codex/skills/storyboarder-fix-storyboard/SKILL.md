@@ -1,6 +1,6 @@
 ---
 name: storyboarder-fix-storyboard
-description: Storyboarder根据Director修改意见定向修正分镜。读取现有分镜，只修改指出的问题。
+description: Storyboarder根据Director修改意见定向修正分镜，只修改受影响的 shot。
 user-invocable: false
 ---
 

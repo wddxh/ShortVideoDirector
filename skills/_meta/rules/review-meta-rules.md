@@ -65,3 +65,4 @@
 | director-review-storyboard | ✅ | ✅（用于 phase 12「video prompt 表达审核」）|
 | director-review-asset-visual-single / director-review-assets-visual | ✅ | ❌ |
 | director-review-asset-prompt-single / director-review-asset-prompts | ✅ | ✅ |
+| director-review-storyboard-sheet-prompts / director-review-storyboard-sheets-visual | ✅ | ✅ |

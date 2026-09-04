@@ -1,6 +1,6 @@
 ---
 name: director-review-asset-prompt-single
-description: Director审核单个 asset 的图像提示词表达质量（无 negative phrasing / 无文学比喻 / 显式分解 / 资产引用分场景 / 语言合 config）。不读图，仅看 .md 卡。
+description: 审核单个基础资产卡的图像提示表达。
 user-invocable: false
 ---
 

@@ -15,3 +15,4 @@ model: inherit
 
 1. **输出语言** — 所有输出内容的语言必须遵循 config.md 中的 `语言` 设置。auto 则跟随用户输入语言，zh 则全中文，en 则全英文。
 2. **版权规避** — 不得使用现实中的明星或公众人物名字、真实地名、商标名，必要时使用虚构替代。
+3. **Storyboard sheet review** — 分别承担 storyboard 语义、sheet prompt 和 sheet visual review，不把语义质量降格为机械关键词检查。

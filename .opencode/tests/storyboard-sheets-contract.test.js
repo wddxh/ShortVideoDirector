@@ -220,9 +220,80 @@ test('visual handoff records impact without contaminating clean statuses', () =>
   assert.match(text, /失败.*停止/s);
 });
 
-test('legacy pipeline remains unconnected', () => {
-  assert.doesNotMatch(
-    read('skills/generate-episode-pipeline/SKILL.md'),
-    /storyboard-sheet/,
-  );
+test('all episode modes use the same ordered sheet subchain', () => {
+  const steps = [
+    'storyboarder-storyboard',
+    'director-review-storyboard',
+    'creator-storyboard-sheet-prompts',
+    'director-review-storyboard-sheet-prompts',
+    'creator-generate-images',
+    'director-review-storyboard-sheets-visual',
+  ];
+  for (const file of ['new-series.md', 'continue-series.md', 'short.md']) {
+    const text = read(`skills/generate-episode-pipeline/${file}`);
+    let previous = -1;
+    for (const step of steps) {
+      const index = text.indexOf(step, previous + 1);
+      assert.ok(index > previous, `${file}: ${step}`);
+      previous = index;
+    }
+    assert.match(text, /creator-generate-images[^\n]*storyboard-sheets/);
+    assert.match(text, /upstream-storyboard[\s\S]*generator[\s\S]*prompt-fix/);
+    assert.match(text, /fix_attempts[\s\S]*2/);
+    assert.match(text, /首次生成[\s\S]*不.*impact/);
+    assert.match(text, /图像模型.*none[\s\S]*card[\s\S]*跳过.*PNG/);
+  }
+});
+
+test('image routing exposes basic, storyboard-sheets, and paths scopes', () => {
+  const router = read('skills/creator-generate-images/SKILL.md');
+  for (const scope of ['basic', 'storyboard-sheets', 'paths']) {
+    assert.ok(router.includes(`\`${scope}\``), scope);
+  }
+  assert.match(router, /storyboard-sheets[\s\S]*creator-image-/);
+  assert.match(read('skills/creator-image-dreamina/SKILL.md'), /generate-storyboard-sheets-dreamina\.sh/);
+});
+
+test('generic asset reviews and fixes are basic-only', () => {
+  for (const path of [
+    'skills/director-review-asset-prompts/SKILL.md',
+    'skills/director-review-asset-prompt-single/SKILL.md',
+    'skills/director-review-assets-visual/SKILL.md',
+    'skills/director-review-asset-visual-single/SKILL.md',
+    'skills/creator-fix-asset-image/SKILL.md',
+  ]) {
+    assert.match(read(path), /basic-only|仅.*基础资产/, path);
+  }
+});
+
+test('storyboard ownership and seven-field contract are separated from panels', () => {
+  const rules = read('skills/storyboarder-storyboard/rules.md');
+  const schema = rules.slice(rules.indexOf('### shot 1'), rules.indexOf('### shot 2'));
+  for (const field of ['镜头类型', '镜头运动', '视频风格', '时长', '出场人物', '引用资产', '转场']) {
+    assert.ok(schema.includes(field), field);
+  }
+  assert.match(rules, /引用资产.*location.*item.*building/s);
+  assert.match(rules, /动作终态.*朝向.*空间/);
+  assert.doesNotMatch(rules, /PANEL 01/);
+  assert.match(read('agents/storyboarder.md'), /不.*panel/);
+  assert.match(read('agents/creator.md'), /storyboard sheet.*panel/i);
+  assert.match(read('agents/director.md'), /storyboard sheet.*review/i);
+});
+
+test('edit and repair expose direct-impact and ordered recovery contracts', () => {
+  for (const mode of ['series.md', 'short.md']) {
+    const edit = read(`skills/edit-story/${mode}`);
+    assert.match(edit, /直接引用/);
+    assert.match(edit, /dirty batch/);
+    assert.match(edit, /impact/);
+    const repair = read(`skills/repair-story/${mode}`);
+    const order = ['基础资产卡', '基础资产图片', 'storyboard', 'sheet.md', 'sheet.png'];
+    let previous = -1;
+    for (const item of order) {
+      const index = repair.indexOf(item, previous + 1);
+      assert.ok(index > previous, `${mode}: ${item}`);
+      previous = index;
+    }
+    assert.match(repair, /none[\s\S]*skipped/);
+  }
 });

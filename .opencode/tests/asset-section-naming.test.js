@@ -53,7 +53,7 @@ test('段名分工 C: ^## 本集资产清单 出现在下游 8 skill / 10 文件
     'creator-create-assets/SKILL.md',
     'creator-update-records/SKILL.md',
     'creator-generate-images/SKILL.md',
-    'creator-keyframe-prompts/SKILL.md',
+    'creator-storyboard-sheet-prompts/SKILL.md',
     'edit-story/SKILL.md',
     'edit-story/series.md',
     'edit-story/short.md',

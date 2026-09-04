@@ -207,7 +207,6 @@ your-project/
 | 每集分镜数 | 15 | 建议 10-20 |
 | 每集时长目标 | 1-2分钟 | — |
 | 单镜头时长范围 | 10-15秒 | 每个分镜镜头的时长范围 |
-| 单镜头资产上限 | 5 | 每个分镜镜头中引用资产的最大数量 |
 | 上下文集数 | 1 | 续写时 Director 读取前 N 集 novel.md |
 | 默认模式 | default | default（用户确认剧情方向）/ full-auto（全自动） |
 | 每集小说字数 | 4000-5000 | 范围格式；单个数字视为上限，下限自动取 80% |
@@ -229,14 +228,14 @@ your-project/
 
 ```
 plot-options → input-confirm → [arc (series only)] → outline
-  → [novel (series only)] → script → storyboard
-  → 资产创建 + (按需) keyframes 规划 → 资产图生成 → 视频生成
+  → [novel (series only)] → script → 基础资产创建/生图
+  → storyboard → 每 shot storyboard sheet 卡/图片 → 视频生成
 ```
 
 差异点：
 - **series-video**：包含 `arc`（多集时）与 `novel`（小说原文）两层；novel 由 Director 审核后再产出 script
 - **short-video**：跳过 `arc` 与 `novel`，从 outline 直接生成 script（单集独立完整故事）
-- **keyframes**：按需启用——若分镜引用到的资产/场景需要更精细的关键帧锚定才规划；否则直接进入视频生成
+- **storyboard sheets**：每个 shot 固定一张多 panel 分镜板；图像模型为 `none` 时仍生成并审核卡片，跳过 PNG
 
 ### New Story（新故事，series）
 
@@ -248,8 +247,8 @@ plot-options → input-confirm → [arc (series only)] → outline
 6. Writer 生成小说原文 → Director 审核（最多 2 轮）
 7. Scriptwriter 基于 outline + novel 生成剧本 → Director 审核（最多 2 轮）
 8. Storyboarder 生成资产清单 + 分镜 → Director 审核（最多 2 轮）
-9. Creator 创建新资产、（按需）规划关键帧
-10. **并行**：Creator 生成资产/关键帧参考图片（若配置了图像模型）
+9. Creator 创建并生成基础资产图
+10. Storyboarder 生成分镜；Creator 为每 shot 规划并生成 storyboard sheet
 11. （触发 `/generate-video` 时）提交视频任务并跟踪
 
 ### Continue Story（续写，series）
@@ -262,7 +261,7 @@ plot-options → input-confirm → [arc (series only)] → outline
 6. Writer 生成小说原文 → Director 审核（最多 2 轮）
 7. Scriptwriter 生成剧本 → Director 审核（最多 2 轮）
 8. Storyboarder 生成资产清单（含新增/已有）+ 分镜 → Director 审核（最多 2 轮）
-9. **并行**：Creator 创建新资产 + 更新已有资产出场记录 + 按需规划关键帧 + 生成参考图
+9. Creator 创建新资产、更新记录、生成基础图，再为每个 shot 生成 storyboard sheet
 
 ### Short Story（单集短视频）
 
@@ -270,7 +269,7 @@ plot-options → input-confirm → [arc (series only)] → outline
 2. plot-options → input-confirm → outline（无 arc）
 3. **跳过 novel** → Scriptwriter 基于 outline 直接生成剧本 → Director 审核
 4. Storyboarder 生成资产清单 + 分镜 → Director 审核
-5. Creator 资产 + （按需）关键帧 + 参考图
+5. Creator 生成基础资产与每 shot storyboard sheet
 6. 视频生成同上
 
 ### 重大变更（vs 旧版本，clean break）
@@ -278,7 +277,7 @@ plot-options → input-confirm → [arc (series only)] → outline
 - **管线统一**：旧的 `new-story` / `continue-story` / `short-*` / `series-*` 分流 workflow 合并为单一 `generate-episode-pipeline`，由 `series-video` / `short-video` 入口透传 mode 参数（`series` / `short`）
 - **命令简化**：9 → 7 个 user-invocable command；`series-edit-story` + `short-edit-story` → `edit-story`；`series-repair-story` + `short-repair-story` → `repair-story`
 - **Skill 数量**：44 → 34；删除冗余/分流 skill，合并 review/fix 链路
-- **关键帧按需化**：keyframes 不再强制；只在分镜需要精细视觉锚定时才规划
+- **Storyboard sheets clean break**：每 shot 一张多 panel sheet，视频输入固定 sheet 第一、基础资产随后；旧项目由 detector 明确拒绝
 - **mode-specific 内容外置**：管线 SKILL.md 主体保持通用，差异化指令拆到 sibling 文件（`series.md` / `short.md`），Phase 1 强制 Read 当前 mode 文件
 - **不向后兼容**：旧 `episodes/` 目录若用新 skill 触发会报错——旧项目请固定到上一个 release tag 使用，或迁移到新结构
 
@@ -396,7 +395,7 @@ ShortVideoDirector/
 │   ├── creator-update-records/      # Creator 更新出场记录
 │   ├── creator-fix-asset/           # Creator 修正资产
 │   ├── creator-fix-asset-image/     # Creator 修订资产 prompt 并重抽图
-│   ├── creator-keyframe-prompts/    # Creator 把关键帧 spec 翻译为 .md
+│   ├── creator-storyboard-sheet-prompts/ # Creator 生成每 shot 的 sheet 卡
 │   ├── creator-generate-images/     # Creator 批量生成图片（路由层）
 │   ├── creator-image-dreamina/      # Creator 即梦图片生成（模型编排层）
 │   └── creator-video-dreamina/      # Creator 即梦视频生成（模型编排层）

@@ -1,6 +1,6 @@
 ---
 name: creator-generate-images
-description: 批量为指定集的资产生成参考图片。读取config后将工作委托给对应的模型skill。
+description: 按 basic、storyboard-sheets 或 paths scope 路由图片生成。
 user-invocable: false
 context: fork
 agent: creator
@@ -8,33 +8,21 @@ allowed-tools: Read, Glob, Skill, Bash
 model: sonnet
 ---
 
-## 输入
+## 动态参数
 
-### 文件读取
-- `config.md` — 必须读取（获取图像模型值）
-- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（从「本集资产清单」获取资产列表）
-- `assets/keyframes/$ARGUMENTS[0]/*.md` — 必须 Glob 列出（本集所有关键帧 .md，作为另一类资产参与生图）
+- `$ARGUMENTS[0]`：集数，如 `ep01`
+- `$ARGUMENTS[1]`：scope，必须为 `basic`、`storyboard-sheets` 或 `paths`
+- `$ARGUMENTS[2..]`：`paths` scope 的明确卡片路径
 
-### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 当前集数（如 ep01）
+## 路由
 
-## 职责描述
+1. 读取 `config.md` 的图像模型。若为 `none`，输出 `images:skipped`；对于 `storyboard-sheets` 额外输出 `storyboard-sheet-images:skipped`。
+2. `basic`：从本集资产清单收集 character/location/item/building 卡，跳过已有 PNG。使用 Skill tool 调用 `creator-image-{图像模型值}` skill，参数为 `basic {卡片路径...}`。
+3. `storyboard-sheets`：Glob `assets/storyboard-sheets/{ep}/shotNN.md`，删除 `assets/images/storyboard-sheets/{ep}/` 下没有对应 canonical card 的 orphan PNG。使用 Skill tool 调用 `creator-image-{图像模型值}` skill，参数为 `storyboard-sheets {ep} {卡片路径...}`。
+4. `paths`：只接受显式基础资产或 sheet card 路径，并按原顺序去重。使用 Skill tool 调用 `creator-image-{图像模型值}` skill，参数为 `paths {卡片路径...}`。
 
-读取 config 中的图像模型配置，收集需要生成图片的资产列表，委托给对应的模型 skill 执行图片生成。
-
-## 流程
-
-1. 读取 `config.md`，获取 `图像模型` 值（使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "图像模型"` 获取图像模型值）
-2. 若图像模型为 `none` → 输出"图像模型未配置，跳过图片生成"并结束
-3. 收集本集需要生成图片的资产路径，合并两个来源：
-   - 读取 `story/episodes/{集数}/outline.md` 中的 `## 本集资产清单`，收集所有资产文件路径（包括新增资产和已有资产）
-   - Glob `assets/keyframes/{集数}/*.md`，收集所有关键帧 .md 路径
-4. 对每个资产，根据其路径推导图片路径（使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/asset-to-image-path.sh "{资产路径}"` 转换路径，然后检查文件是否存在），已存在则跳过
-5. 若所有图片均已存在 → 输出"所有资产图片已存在，无需生成"并结束
-6. 使用 Skill tool 调用 `creator-image-{图像模型值}` skill，传递参数：需要生成图片的资产路径列表（空格分隔，每个路径用引号包裹）
-7. 输出生成摘要：成功数、跳过数、失败数
+任何 scope 都不截断参考图。Provider 限制作为 provider 原始错误返回。
 
 ## 输出
 
-### 返回内容
-- 生成摘要 → 返回给调用方
+返回 scope、成功、跳过、失败和 pending 数量；保留每个失败路径与原始原因。

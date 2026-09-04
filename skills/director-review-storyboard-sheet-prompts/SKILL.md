@@ -63,7 +63,7 @@ model: opus
 
 需修改轮写 `### orchestrator handoff`，固定按以下顺序执行：
 
-1. `upstream-storyboard`：orchestrator 将这些意见按 `director-review-storyboard` 的意见格式 append 到 `story/episodes/{ep}/.review-storyboard.md` 新一轮；调用 `storyboarder-fix-storyboard {ep}`，再调用 `director-review-storyboard {ep}` 确认通过。
+1. `upstream-storyboard`：orchestrator 将意见 append 到 `story/episodes/{ep}/.review-storyboard.md` 新一轮；使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，参数 `{ep}`（执行协议：`storyboarder-fix-storyboard {ep}`）。再使用 Skill tool 调用 `director-review-storyboard` skill，参数 `{ep}`（执行协议：`director-review-storyboard {ep}`）确认通过。
 2. `generator`：任何 upstream 修订影响 card 都要重生成。缺卡、orphan、shot 集合或编号变化用 `full`；仅现存 card 的内容问题用 `incremental`，一次传入全部相关 shots。
 3. `prompt-fix`：只处理 `owner=prompt-fix` 的完整 card paths。
 4. 前三步完成后调用一次 sheet reviewer，不在 owner 步骤之间重复审核。

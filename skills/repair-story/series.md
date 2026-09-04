@@ -1,72 +1,28 @@
-# Series Mode: repair-story 专属指南
+# Series Mode: repair-story
 
-## 集数解析
+## 集数
 
-1. 若 `$ARGUMENTS[0]` 非空 → 使用指定集数（统一转为 epXX 格式）
-2. 若 `$ARGUMENTS[0]` 为空 → 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/latest-episode.sh` 找到最新集数
-3. 若无任何集目录 → 提示用户先用 `/series-video` 开始新故事，结束
+指定 `$ARGUMENTS[0]`，否则使用 `latest-episode.sh`。无集目录时提示先运行 `/series-video`。大纲缺失时不能自动恢复剧情方向。
 
-## Phase 4 专属规则
+## 恢复顺序
 
-- 若大纲缺失/不完整 → 提示"大纲缺失无法自动恢复（需要剧情方向输入），请使用 `/series-video` 重新生成该集"，结束
+始终按真实依赖排序恢复：
 
-## Phase 5 断点 → 恢复链路（series：novel-trio）
-
-按检测到的第一个非 ok 步骤入口，依次执行后续所有步骤。所有 sub-skill 调用通过 Skill / Task 工具按 OC 调度规则；review 失败 → 调对应 fix skill ≤2 轮。
-
-### 从小说开始恢复
-
-1. `writer-novel`，参数 `{ep}`
-2. `director-review-novel`，参数 `{ep}`
-3. 若 review return `needs_revision M` → `writer-fix-novel`，参数 `{ep}`（≤2 轮；fix skill 自动读 `.review-novel.md` 最后一轮意见）
-4. 继续"从关键帧开始恢复"
-
-### 从关键帧开始恢复（含资产清单/资产文件/图片/分镜全套重生成）
-
-1. `creator-keyframe-prompts`，参数 `{ep}`
-2. `director-review-script`，参数 `series {ep}`
-3. 若 review return `needs_revision M` → `creator-keyframe-prompts`，参数 `{ep} incremental`（≤2 轮；fix skill 自动读 `.review-script.md` 最后一轮意见）
-4. `creator-create-assets`，参数 `{ep}`
-5. **若非 ep01**：`creator-update-records`，参数 `{ep}`
-6. 若图像模型非 `none`：
-   - `creator-generate-images`，参数 `{ep}`
-   - `director-review-assets-visual`，参数 `{ep} --type=keyframes`
-   - 若 review return 以 `needs_revision` 开头 → `creator-fix-asset-image`，参数 `{ep}` + 对应 review 文件路径（basic asset 阶段 = `story/episodes/{ep}/.review-basic-assets-visual.md`；keyframe 阶段 = `story/episodes/{ep}/.review-keyframes-visual.md`）。≤2 轮；fix skill 自动读最后一轮 dirty list + 意见
-7. 继续"从分镜开始恢复"
-
-### 从资产文件开始恢复（keyframes 完整但 assets 缺失）
-
-1. `creator-create-assets`，参数 `{ep}`
-2. **若非 ep01**：`creator-update-records`，参数 `{ep}`
-3. 若图像模型非 `none`：`creator-generate-images`，参数 `{ep}`
-4. 继续"从分镜开始恢复"
-
-### 从资产图片开始恢复（仅图像模型非 none 时；assets / keyframe .md 完整但图片缺失）
-
-1. `creator-generate-images`，参数 `{ep}`
-2. 若本次有 keyframe 图被生成（`keyframe-images:missing` 命中）：
-   - `director-review-assets-visual`，参数 `{ep} --type=keyframes`
-   - 若 review return 以 `needs_revision` 开头 → `creator-fix-asset-image`，参数 `{ep}`（≤2 轮）
-3. 继续"从分镜开始恢复"
-
-### 从分镜开始恢复
-
-1. `storyboarder-storyboard`，参数 `{ep}`
-2. `director-review-storyboard`，参数 `{ep}`
-3. 若 review return `needs_revision M` → `storyboarder-fix-storyboard`，参数 `{ep}`（≤2 轮；fix skill 自动读 `.review-storyboard.md` 最后一轮意见）
-
-## Series 恢复 DAG 参考
-
-```
-outline → novel [review-novel+fix] → keyframe-prompts [review-script+fix]
-   → asset-list → assets → [非 ep01: update-records]
-   → images [keyframe 图变动: review-assets-visual + ≤2 轮 fix-asset-image]
-   → storyboard [review-storyboard+fix]
+```text
+outline → novel → script → 基础资产卡 → 基础资产图片 → storyboard → sheet.md → sheet.png → visual review
 ```
 
-## Series 专属失败模式
+1. 小说/剧本缺失时按需执行：
+   - 使用 Skill tool 调用 `writer-novel` skill。
+   - 使用 Skill tool 调用 `director-review-novel` skill。
+   - 使用 Skill tool 调用 `scriptwriter-script` skill。
+   - 使用 Skill tool 调用 `director-review-script` skill。
+2. 基础资产卡缺失时使用 Skill tool 调用 `creator-create-assets` skill。非 ep01 再使用 Skill tool 调用 `creator-update-records` skill。
+3. 基础资产图片缺失时使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} basic`。再使用 Skill tool 调用 `director-review-assets-visual` skill。
+4. Storyboard 缺失或不完整时使用 Skill tool 调用 `storyboarder-storyboard` skill。再使用 Skill tool 调用 `director-review-storyboard` skill。
+5. sheet.md 缺失、不 canonical 或 metadata 不符时使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `{ep} full`。再使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill；按 owner 顺序修复，最多 2 轮。
+6. sheet.png 缺失时使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} storyboard-sheets`。再使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，最多 2 轮修复。
 
-- 解析集数错误（$ARGUMENTS[0] 缺失时未走 `scripts/latest-episode.sh` 兜底）
-- 非 ep01 漏插 `creator-update-records`
-- 误调用 short-only skill（`scriptwriter-*` 应仅 short mode 使用；series 用 writer-* 三件套）
-- 大纲缺失时擅自调 `director-fix-outline` 或 `writer-novel`（应直接提示用户走 `/series-video`）
+图像模型 `none` 时步骤 3 基础图、步骤 6 sheet.png 与 visual review 均以 `skipped` 成功终态报告；sheet.md 与 prompt review 仍必须完成，不执行 impact。
+
+恢复链只从首个失败节点开始，但不得跨过其上游。首次补齐整批 sheet 不做 impact。

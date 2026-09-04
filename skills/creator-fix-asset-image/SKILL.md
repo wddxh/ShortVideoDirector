@@ -1,106 +1,17 @@
 ---
-name: "creator-fix-asset-image"
-description: "通用 asset 图修复。消费 dirty list，按 asset 类型修改 .md 的\"图像生成提示\" section → 删旧 .png → 重新 generate。"
-metadata:
-  svd-context: "fork"
-  svd-agent: "creator"
-  svd-user-invocable: "false"
-  svd-model: "sonnet"
+name: creator-fix-asset-image
+description: 消费基础资产 visual review dirty list，修提示并重生整张资产图。
+user-invocable: false
+context: fork
+agent: creator
+allowed-tools: Read, Edit, Glob, Grep, Bash, Task
+model: sonnet
 ---
 
-> **执行上下文**：本 skill 被设计为由 `creator` 子代理通过 `task` 工具派发执行。当你看到此 skill 内容时，你已在正确的子代理上下文中；按下方流程执行即可。
+## 范围
 
-## 输入
+本 generic image fix 是 basic-only，只接受 `.review-basic-assets-visual.md`。Storyboard sheet 由 `creator-fix-storyboard-sheet-image` 修复。
 
-### 文件读取
-- `$ARGUMENTS[0]` — review 结果文件路径（两种之一）：
-  - `story/episodes/{ep}/.review-basic-assets-visual.md`（basic asset review 产物）
-  - `story/episodes/{ep}/.review-keyframes-visual.md`（keyframe review 产物）
+读取最后一轮 `{asset_path}|{image_path}` dirty entries。仅修改 dirty 基础资产卡的 `## 图像生成提示`，删除对应 PNG，再使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {asset_path}`。不读取图片，不改其他 section 或非 dirty 资产。系统类失败最多重试 2 次，保留原始失败供下一轮 review。
 
-  必须读取，取**最后一轮**的 `### dirty list` 与对应 `### 意见列表`
-- 对 dirty list 中每个 asset_path 读取该 .md 卡（按需 Edit）
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
-
-### Skill 调用
-- `creator-generate-images` — 删旧图后调用，自然补回新图
-
-### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — review 结果文件路径
-- `$ARGUMENTS[1]` — ep（可选；若 dirty list 含 keyframes 则必填，传给 generate-images）
-
-## 职责描述
-
-### 核心使命
-
-把 asset visual review 的"prompt 改进方向"落实为 asset .md 的 `## 图像生成提示` section 的**最小必要修订** + **重抽对应图片**。下游消费者是下一轮 visual review 或 workflow 收尾。**只改 dirty list 中的 asset，其他 asset 不动**。视觉问题的根因永远是图像 prompt 不到位，fix 的核心动作是把 `## 图像生成提示` section 改到位，然后让生图管道自然重跑。**不读图**——只用 .md 卡 + dirty list 中的 issue / prompt_direction 反馈。
-
-**新增职责**：保证 dirty list 中每张图最终**都有可用图落盘**（不再容忍"fix 一次失败就遗留给下轮"）。仅在系统类失败重试 2 次仍败时放任，让下一轮 `director-review-assets-visual` 通过缺图预扫描重新接住。
-
-### 工作思路
-
-1. **解析 dirty list**：Read `$ARGUMENTS[0]`，grep `^## 第 [0-9]+ 轮` 定位最大 N 段，取该段的 `### dirty list`（每行 `{asset_path}|{image_path}`）与 `### 意见列表`（按 asset_path 匹配 issue + prompt_direction）
-2. **逐条修改 asset .md**——对每个 dirty entry：
-   a. Read asset_path 完整内容
-   b. **只 Edit `## 图像生成提示` section**（其他 section 如 `## 视觉描述` / `## 出场记录` 等一律不动）
-   c. 按 prompt_direction 把方向具体化写入 prompt（如方向"补充服装描述"→ prompt 中加"黑色长款风衣"）
-3. **删旧 .png**：用 Bash `rm -f` 批量删除 dirty list 中所有 image_path；必须先删，否则 `creator-generate-images` 的 skip 检测会让它不重生
-4. **逐张迭代生图直到成功**——对每张 dirty image：
-   a. 调用 Skill 工具 `creator-generate-images`（参数：当前 asset 路径 + ep；让它单独跑这一张）
-   b. 读取 generate-images 摘要 / pending.json 判断本张结果：
-      - **成功**（图已落盘）→ 完成本张，进入下一张
-      - **FAIL 或 pending 超时** → 进入失败分类（步骤 4c）
-   c. **LLM 语义判断失败类型**（读 generate-images 输出中包含的 dreamina stdout）：
-      - **系统类**（账号 / 积分 / 网络 / 鉴权 / 长时间无响应类语义）→ 同张重试，最多 2 次仍败 → **放任**本张（保持图缺失或 pending 状态），进入下一张
-      - **内容类**（提示词触发审核 / 描述无法成图 / prompt 解析失败 / 模型拒绝生成等"画面内容"相关语义）→ **重新改 prompt 重抽**（回步骤 4a，无上限循环）
-        - 每次"内容类重抽"前必须改 .md 卡 `## 图像生成提示` section：依据上次 dreamina 失败信息调整描述
-        - 同一张图连续 3 次内容类失败 → 切换策略（如更激进改写 / 简化场景 / 替换敏感名词），但仍不放弃
-5. **通知 re-review**：输出 fix 摘要并建议用户再跑一次 `director-review-assets-visual` 确认
-
-### 常见误区（失败模式）
-
-- **读图** — fix 不需要看图，只用 .md 卡 + dirty list 的 issue/prompt_direction 反馈 — 严禁 Read PNG
-- **改非 `## 图像生成提示` section** — 顺手调 `## 视觉描述` 或别的字段 — 视觉描述是 source of truth，fix 只动 prompt section；若意见指向视觉描述本身的问题，应让用户走 `creator-fix-asset` 而非本 skill
-- **忘删旧 .png** — `creator-generate-images` 见图存在就跳过 → 重抽不发生 — 必须先删旧 .png 再调 generate
-- **越权改非 dirty asset** — 看到顺手就把别的 asset 一并优化 — 严格只动 dirty list 中的 asset_path
-- **照抄 prompt_direction 写到 prompt** — review 给的是"方向"（如"补充服装描述"），fix 要把方向具体化（"补充：黑色风衣"）— 不照搬方向文字
-- **fix 完不通知 re-review** — fix 后默认通过，但 prompt 改了 ≠ 图一定对 — fix 结束必须输出"建议 re-review"提醒
-- **首次失败即放弃** — 调一次 generate-images 失败就结束 fix → 图永远缺失 — 必须进入失败分类，内容类继续循环
-- **系统类无限重试** — 把账号/积分类失败也无上限循环 → 死锁卡死 pipeline — 系统类最多 2 次
-- **失败类型机械匹配** — 用 grep "credit"/"login" 等关键词机械判断 — 必须 LLM 语义理解（dreamina 错误信息可能有多种措辞）
-
-## 规则
-
-- **dirty list 严格边界** — 只动 dirty list 中的 asset_path，其他 asset 的 .md、图都不动
-- **section 严格边界** — asset .md 只改 `## 图像生成提示` section，其他 section 一律不动
-- **删图在前，generate 在后** — 严禁顺序颠倒
-- **明星/真名替换兜底** — 改 prompt 时若发现现实明星名/真实地名/商标名，替换为虚构名
-- **每图必须有图**：dirty list 中每张图必须经过"生图成功"或"系统类失败 2 次"才能进入下一张
-- **内容类失败无上限循环**：只要 dreamina 失败原因属于"画面内容"语义类，必须改 prompt 重抽，无次数上限
-- **失败类型用 LLM 语义判断**：读 dreamina stdout 用语义理解判断"系统/内容"，不机械 grep 关键词
-
-## 输出格式
-
-```
-## creator-fix-asset-image 摘要
-
-- 处理 dirty list：N 项
-- 修改 `## 图像生成提示`：N 项（含初次改 + 内容类循环改）
-  - {asset_path}：{改动要点}，原因：{意见简述}，迭代次数：{K}
-- 生图结果：
-  - 成功：N 张
-  - 系统类放任（2 次重试仍败）：N 张（下轮 review 接住）
-- **建议**：请运行 `director-review-assets-visual` 再次确认本轮修复是否到位
-```
-
-## 输出
-
-### 文件操作
-- 使用 Edit 修改 dirty list 中每个 asset .md 的 `## 图像生成提示` section
-- 使用 Bash 删除 dirty list 中所有 image_path
-- 使用 task 工具调用 `creator-generate-images`
-
-### 返回内容
-- fix 摘要（含 re-review 提醒）→ 返回给调用方
-
-
+返回处理、修改、成功和失败清单。

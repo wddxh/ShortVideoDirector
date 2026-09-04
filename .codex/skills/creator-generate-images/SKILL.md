@@ -1,6 +1,6 @@
 ---
 name: creator-generate-images
-description: 批量为指定集的资产生成参考图片。读取config后将工作委托给对应的模型skill。
+description: 按 basic、storyboard-sheets 或 paths scope 路由图片生成。
 user-invocable: false
 ---
 

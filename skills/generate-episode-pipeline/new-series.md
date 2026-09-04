@@ -56,7 +56,7 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
   - needs_revision → main session 直接 print:
     > ⚠️ <ep> <step name> 已尝试 2 次修复后仍未通过, 剩余问题:
     > <从 .review-<type>.md 最后一段摘要>
-    > 已自动跳过, 继续下一步 (使用已有的 outline / assets / keyframes 等产物)。可用 /edit-story 手动修订。
+> 已自动跳过, 继续下一步（使用已有产物）。可用 /edit-story 手动修订。
     然后跳出循环, 进入下一 Step
 
 **绝不问用户**: 跳过不需要用户确认; print 警告后直接进入下一 Step (使用已有产物, 不阻断 pipeline)。
@@ -72,6 +72,8 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 | director-review-storyboard | storyboarder-fix-storyboard |
 | director-review-assets-visual | creator-fix-asset-image |
 | director-review-asset-prompts | creator-fix-asset |
+| director-review-storyboard-sheet-prompts | 按 owner 路由 |
+| director-review-storyboard-sheets-visual | creator-fix-storyboard-sheet-image |
 
 ### Phase A: 系列规划
 1. **director-plot-options** — mode='series'，action='generate'。子代理自己落盘到 `story/plot-options.md`（含末尾 sentinel `<!-- 候选列表结束，等待用户选定 -->`），prompt 只返回 3 候选标题摘要。
@@ -97,14 +99,18 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 14. **director-review-assets-visual** — `--type=characters,locations,items,buildings ep01`（review 文件 = `story/episodes/ep01/.review-basic-assets-visual.md`）
     - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
 
-### Phase D: 分镜 & 关键帧
-15. **storyboarder-storyboard** — ep='ep01'
-16. **director-review-storyboard**
-17. **creator-keyframe-prompts** — 输入: storyboard.md (从分镜 inline KF 标记翻译)
-18. **director-review-asset-prompts** — `$ARGUMENTS[1]=keyframes`，**仅审**本集 keyframe .md 卡的 `## 图像生成提示` 段表达 (按"review 循环 (通用模式)"处理; needs_revision → creator-fix-asset 修订 prompt 不生图)
-19. **creator-generate-images** — 为 keyframes 生成图片
-20. **director-review-assets-visual** — `--type=keyframes ep01`（review 文件 = `story/episodes/ep01/.review-keyframes-visual.md`）
-    - (按"review 循环 (通用模式)"处理, max 2 轮; 2 轮后仍 dirty 则 main session print 警告并自动跳过, 提示用户用 /edit-story 修订)
+### Phase D: 分镜与 Storyboard Sheets
+
+15. 使用 Skill tool 调用 `storyboarder-storyboard` skill，参数 `ep01`。
+16. 使用 Skill tool 调用 `director-review-storyboard` skill，参数 `ep01`，按通用 review 循环处理。
+17. 使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，参数 `ep01 full`。
+18. 使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill，参数 `ep01`。
+19. 使用 Skill tool 调用 `creator-generate-images` skill，参数 `ep01 storyboard-sheets`。
+20. 使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `ep01`。
+
+Sheet prompt gate 共用一个 `fix_attempts`，最多 2 次。每轮严格按 owner 顺序 `upstream-storyboard` → `generator` → `prompt-fix`：分别执行 storyboard 修复并复审后重建受影响卡、重新生成卡、或修 prompt，随后只调用一次 sheet prompt review。两次后仍失败则报告剩余问题并使用已有 card 继续。
+
+首次生成使用同批最新上游，不执行 impact。图像模型 `none` 时仍生成并 review card，记录 `storyboard-sheet-images:skipped`，跳过 PNG、visual review 和 impact。
 
 ## 完成
 
@@ -113,6 +119,6 @@ print 后立即返回, **不再派发任何后续 step**, 不再调用 review / 
 - 各阶段产物路径 (outline / novel / script / storyboard / 资产清单)
 
 视频生成不由 pipeline 自动派发，请用户手动启动：
-1. **检查本集产物质量**：通读 outline / novel / script / storyboard / 资产图片（character / location / item / building / keyframe），确认无明显错漏
+1. **检查本集产物质量**：通读 outline / novel / script / storyboard / 基础资产图与 storyboard sheets，确认无明显错漏
 2. **如发现问题**：用 `/edit-story` 提出修改意见，pipeline 会按 DAG 级联修复相关产物（含资产图重生）
 3. **质量确认后**：用 `/generate-video ep01` 启动视频生成；启动后用 `/check-video ep01` 或 `/auto-video ep01` 跟踪任务状态

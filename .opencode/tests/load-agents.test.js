@@ -98,7 +98,7 @@ describe('convertAgentFrontmatter', () => {
 
 describe('buildPermissionForAgent', () => {
   const SCRIPTS = ['read-config.sh', 'asset-to-image-path.sh', 'image-gen-dreamina.sh',
-                   'keyframe-to-prompt.sh', 'video-gen-dreamina.sh', 'word-count.sh',
+                   'storyboard-sheet-to-prompt.sh', 'video-gen-dreamina.sh', 'word-count.sh',
                    'latest-episode.sh', 'check-episode.sh', 'storyboard-to-prompt.sh',
                    'video-check-dreamina.sh'];
 

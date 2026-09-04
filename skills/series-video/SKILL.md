@@ -11,7 +11,7 @@ argument-hint: "[故事材料|文件路径]"
 ## 职责（薄壳）
 
 本 skill 仅做 4 件事：配置加载 → mode 检测 → ep 解析 → dispatch `generate-episode-pipeline`。
-所有真正的流水线工作（plot/outline/novel/script/keyframes/assets/storyboard/review）都在 pipeline skill 内执行，本入口不直接调用任何 sub-skill。
+所有真正的流水线工作（plot/outline/novel/script/assets/storyboard/sheets/review）都在 pipeline skill 内执行，本入口不直接调用任何 sub-skill。
 
 **硬性约束：每次调用仅生成一集内容。**
 

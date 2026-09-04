@@ -19,7 +19,7 @@ model: opus
 错误做法：
 - ❌ "sub-agent 失败了，我自己来写这个 novel.md"
 - ❌ "task 报错了，我在主 session 直接调用 Write"
-- ❌ "我 fallback 一下，自己生成 keyframes.json"
+- ❌ "我 fallback 一下，自己生成 storyboard sheet"
 
 原因：主 session 缺少 sub-agent 的隔离上下文（专属 system prompt、skill 加载、permission 配置），自己接管会导致质量下降、跨步骤上下文污染、permission 错配等问题。即使 sub-agent 失败，工作所有权也必须留在 sub-agent 层。
 
@@ -66,7 +66,7 @@ model: opus
    - `description`: `check-video run for {目标}`
    - `prompt`（就两行）：
      ```
-     调用 Skill("short-video-director:check-video", "{目标} --auto")，完整返回 skill 的输出。
+      使用 Skill tool 调用 `check-video` skill，参数 `{目标} --auto`，完整返回 skill 的输出。
      不要自行调用 dreamina CLI 或视频生成脚本，不要绕过 skill 做查询/重试。
      ```
 
@@ -92,7 +92,7 @@ model: opus
 自动视频检查任务触发。目标：{目标}。
 
 1. 使用 Agent 工具发起一个 general-purpose sub-agent，prompt 为：
-   "调用 Skill('short-video-director:check-video', '{目标} --auto')，完整返回 skill 的输出。不要自行调用 dreamina CLI 或视频生成脚本，不要绕过 skill 做查询/重试。"
+   "使用 Skill tool 调用 `check-video` skill，参数 `{目标} --auto`，完整返回 skill 的输出。不要自行调用 dreamina CLI 或视频生成脚本，不要绕过 skill 做查询/重试。"
 
 2. 从 Agent 返回文本中提取 JSON 摘要（LLM 理解，不固定最后一行规则）。解析失败或无 JSON 时，基于整段返回文本语义推断 all_complete 与 recoverable（不确定偏向 all_complete=false / recoverable=true）。
 

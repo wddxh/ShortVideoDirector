@@ -265,6 +265,16 @@ describe('transformAllSkills (integration)', () => {
     assert.equal(exists, true);
   });
 
+  test('standard skill calls in aux markdown are transformed', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const content = await readFileAsync(
+      path.join(tmpDir, 'generate-episode-pipeline/new-series.md'), 'utf-8'
+    );
+    assert.ok(content.includes('description: "执行 creator-storyboard-sheet-prompts"'));
+    assert.ok(content.includes('subagent_type: "creator"'));
+    assert.ok(!content.includes('使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill'));
+  });
+
   test('.md aux files have ${CLAUDE_PLUGIN_ROOT} inline-substituted', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     // 扫描所有 cache 内的 .md aux（非 SKILL.md），断言无字面残留

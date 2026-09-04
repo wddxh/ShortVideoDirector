@@ -1,216 +1,113 @@
 #!/usr/bin/env bash
-# Check file completeness for a given episode.
-# Usage: bash scripts/check-episode.sh ep01 [config_path]
-# Output: one line per check item in format "item:status[:detail]"
-# Exit codes: 0=all ok, 1=has issues
+# Report episode completeness as item:status[:detail] lines.
 
-if [ $# -lt 1 ]; then
-  echo "Usage: bash scripts/check-episode.sh ep01 [config_path]"
+set -u
+
+[ "$#" -ge 1 ] && [ "$#" -le 2 ] || {
+  printf '%s\n' 'Usage: bash scripts/check-episode.sh ep01 [config_path]'
+  exit 1
+}
+
+case "$0" in
+  */*) SCRIPT_DIR=${0%/*} ;;
+  *) SCRIPT_DIR=. ;;
+esac
+SCRIPT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR" && pwd)
+EP=$1
+CONFIG=${2:-config.md}
+EP_DIR="story/episodes/$EP"
+STORYBOARD="$EP_DIR/storyboard.md"
+TASKS="$EP_DIR/videos/tasks.json"
+HAS_ISSUE=0
+
+"$SCRIPT_DIR/detect-legacy-kf.sh" "$EP" "$STORYBOARD" "$TASKS"
+STATUS=$?
+[ "$STATUS" -eq 0 ] || exit "$STATUS"
+
+read_config() {
+  bash "$SCRIPT_DIR/read-config.sh" "$1" "$CONFIG" 2>/dev/null
+}
+
+OUTLINE="$EP_DIR/outline.md"
+if [ ! -f "$OUTLINE" ]; then
+  echo 'outline:missing'; HAS_ISSUE=1
+elif grep -q '## 集尾钩子\|## 结局设计' "$OUTLINE"; then
+  echo 'outline:ok'
+else
+  echo 'outline:incomplete'; HAS_ISSUE=1
+fi
+
+NOVEL="$EP_DIR/novel.md"
+SCRIPT_FILE="$EP_DIR/script.md"
+if [ -f "$NOVEL" ]; then
+  echo 'novel:ok'
+elif [ -f "$SCRIPT_FILE" ] && grep -q '^## 场景' "$SCRIPT_FILE"; then
+  echo 'script:ok'
+else
+  echo 'script:missing'; HAS_ISSUE=1
+fi
+
+if [ -f "$OUTLINE" ] && grep -q '^## 本集资产清单' "$OUTLINE"; then
+  echo 'asset-list:ok'
+else
+  echo 'asset-list:missing'; HAS_ISSUE=1
+fi
+
+MISSING_ASSETS=''
+if [ -f "$OUTLINE" ] && grep -q '^## 本集资产清单' "$OUTLINE"; then
+  ASSET_NAMES=$(bash "$SCRIPT_DIR/parse-new-assets.sh" "$OUTLINE" 2>/dev/null)
+  while IFS= read -r ASSET_PATH; do
+    [ -n "$ASSET_PATH" ] || continue
+    NAME=${ASSET_PATH##*/}
+    NAME=${NAME%.md}
+    [ -f "$ASSET_PATH" ] || MISSING_ASSETS="${MISSING_ASSETS}${MISSING_ASSETS:+,}$NAME"
+  done <<EOF
+$ASSET_NAMES
+EOF
+fi
+if [ -n "$MISSING_ASSETS" ]; then
+  echo "assets:missing:$MISSING_ASSETS"; HAS_ISSUE=1
+else
+  echo 'assets:ok'
+fi
+
+IMAGE_MODEL=$(read_config '图像模型')
+if [ "$IMAGE_MODEL" = 'none' ] || [ -z "$IMAGE_MODEL" ]; then
+  echo 'images:skipped'
+else
+  MISSING_IMAGES=''
+  for MD in assets/characters/*.md assets/items/*.md assets/locations/*.md assets/buildings/*.md; do
+    [ -f "$MD" ] || continue
+    IMAGE=$(bash "$SCRIPT_DIR/asset-to-image-path.sh" "$MD")
+    [ -f "$IMAGE" ] || MISSING_IMAGES="${MISSING_IMAGES}${MISSING_IMAGES:+,}${MD##*/}"
+  done
+  if [ -n "$MISSING_IMAGES" ]; then
+    echo "images:missing:$MISSING_IMAGES"; HAS_ISSUE=1
+  else
+    echo 'images:ok'
+  fi
+fi
+
+if [ ! -f "$STORYBOARD" ]; then
+  echo 'storyboard:missing'
+  echo 'storyboard-sheets:missing'
+  if [ "$IMAGE_MODEL" = 'none' ] || [ -z "$IMAGE_MODEL" ]; then
+    echo 'storyboard-sheet-images:skipped'
+  else
+    echo 'storyboard-sheet-images:missing'
+  fi
   exit 1
 fi
 
-EP="$1"
-CONFIG="${2:-config.md}"
-EP_DIR="story/episodes/$EP"
-HAS_ISSUE=0
+SHEET_OUTPUT=$(node "$SCRIPT_DIR/check-storyboard-sheets.mjs" "$EP" "$IMAGE_MODEL")
+SHEET_STATUS=$?
+printf '%s\n' "$SHEET_OUTPUT"
+[ "$SHEET_STATUS" -eq 0 ] || HAS_ISSUE=1
 
-# Helper: read config value
-read_config() {
-  bash scripts/read-config.sh "$1" "$CONFIG" 2>/dev/null
-}
-
-# 1. Check outline
-OUTLINE="$EP_DIR/outline.md"
-if [ ! -f "$OUTLINE" ]; then
-  echo "outline:missing"
-  HAS_ISSUE=1
-elif grep -q '## 集尾钩子\|## 结局设计' "$OUTLINE"; then
-  echo "outline:ok"
+if printf '%s\n' "$SHEET_OUTPUT" | grep -q '^storyboard:invalid:'; then
+  :
 else
-  echo "outline:incomplete"
-  HAS_ISSUE=1
+  echo 'storyboard:ok'
 fi
 
-# 2. Check novel (uses novel-budget.sh derived from outline 目标时长, not config field)
-NOVEL="$EP_DIR/novel.md"
-SCRIPT_FILE="$EP_DIR/script.md"
-
-if [ -f "$NOVEL" ]; then
-  BUDGET=$(bash scripts/novel-budget.sh "$EP" "$CONFIG" 2>/dev/null)
-  ACTUAL=$(echo "$BUDGET" | grep '^actual:' | cut -d: -f2)
-  LOWER=$(echo "$BUDGET" | grep '^expected_lower:' | cut -d: -f2)
-  if [ -n "$ACTUAL" ] && [ -n "$LOWER" ]; then
-    THRESHOLD=$((LOWER / 2))
-    if [ "$ACTUAL" -lt "$THRESHOLD" ]; then
-      echo "novel:incomplete:${ACTUAL}/${LOWER}"
-      HAS_ISSUE=1
-    else
-      echo "novel:ok"
-    fi
-  else
-    echo "novel:ok"
-  fi
-elif [ -f "$SCRIPT_FILE" ]; then
-  # Short video uses script.md instead of novel.md
-  if grep -q '## 场景' "$SCRIPT_FILE"; then
-    echo "script:ok"
-  else
-    echo "script:incomplete"
-    HAS_ISSUE=1
-  fi
-else
-  echo "novel:missing"
-  echo "script:missing"
-  HAS_ISSUE=1
-fi
-
-# 3. Check asset list
-if [ -f "$OUTLINE" ] && grep -q '## 本集资产清单' "$OUTLINE"; then
-  echo "asset-list:ok"
-else
-  echo "asset-list:missing"
-  HAS_ISSUE=1
-fi
-
-# 3.5 Check keyframes (json + .md consistency)
-KF_JSON="$EP_DIR/keyframes.json"
-KF_MD_DIR="assets/keyframes/$EP"
-if [ ! -f "$KF_JSON" ]; then
-  echo "keyframes:missing"
-  HAS_ISSUE=1
-else
-  # Count keyframes in json (count "id":"KF-... entries)
-  JSON_COUNT=$(grep -oE '"id"[[:space:]]*:[[:space:]]*"KF-[^"]+"' "$KF_JSON" | wc -l | tr -d ' ')
-  if [ "$JSON_COUNT" -eq 0 ]; then
-    echo "keyframes:incomplete:json-empty"
-    HAS_ISSUE=1
-  elif [ ! -d "$KF_MD_DIR" ]; then
-    echo "keyframes:incomplete:md-dir-missing"
-    HAS_ISSUE=1
-  else
-    MD_COUNT=$(ls "$KF_MD_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ')
-    if [ "$MD_COUNT" != "$JSON_COUNT" ]; then
-      echo "keyframes:incomplete:md-count-mismatch:${MD_COUNT}/${JSON_COUNT}"
-      HAS_ISSUE=1
-    else
-      echo "keyframes:ok"
-    fi
-  fi
-fi
-
-# 4. Check asset files
-if [ -f "$OUTLINE" ] && grep -q '## 本集资产清单' "$OUTLINE"; then
-  # Extract new asset names from "新增资产" section
-  IN_NEW=0
-  MISSING_ASSETS=""
-  while IFS= read -r line; do
-    if echo "$line" | grep -q '新增资产'; then
-      IN_NEW=1
-      continue
-    fi
-    if [ "$IN_NEW" -eq 1 ]; then
-      # Stop at next section header or "已有资产"
-      if echo "$line" | grep -qE '^##|^已有资产|^- \*\*已有'; then
-        break
-      fi
-      # Extract asset name from "- 角色名（类型）" or "- **角色名**" patterns
-      ASSET_NAME=$(echo "$line" | sed 's/^- //' | sed 's/[（(].*//' | sed 's/\*//g' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
-      if [ -n "$ASSET_NAME" ]; then
-        # Check if file exists in any assets subdirectory
-        FOUND=$(ls assets/characters/"$ASSET_NAME".md assets/items/"$ASSET_NAME".md assets/locations/"$ASSET_NAME".md assets/buildings/"$ASSET_NAME".md 2>/dev/null | head -1)
-        if [ -z "$FOUND" ]; then
-          if [ -z "$MISSING_ASSETS" ]; then
-            MISSING_ASSETS="$ASSET_NAME"
-          else
-            MISSING_ASSETS="$MISSING_ASSETS,$ASSET_NAME"
-          fi
-        fi
-      fi
-    fi
-  done < "$OUTLINE"
-
-  if [ -n "$MISSING_ASSETS" ]; then
-    echo "assets:missing:$MISSING_ASSETS"
-    HAS_ISSUE=1
-  else
-    echo "assets:ok"
-  fi
-else
-  echo "assets:skipped"
-fi
-
-# 5. Check images
-IMAGE_MODEL=$(read_config "图像模型")
-if [ "$IMAGE_MODEL" = "none" ] || [ -z "$IMAGE_MODEL" ]; then
-  echo "images:skipped"
-  echo "keyframe-images:skipped"
-else
-  MISSING_IMAGES=""
-  for md_file in assets/characters/*.md assets/items/*.md assets/locations/*.md assets/buildings/*.md; do
-    [ ! -f "$md_file" ] && continue
-    IMG_PATH=$(bash scripts/asset-to-image-path.sh "$md_file")
-    if [ ! -f "$IMG_PATH" ]; then
-      NAME=$(basename "$md_file" .md)
-      if [ -z "$MISSING_IMAGES" ]; then
-        MISSING_IMAGES="$NAME"
-      else
-        MISSING_IMAGES="$MISSING_IMAGES,$NAME"
-      fi
-    fi
-  done
-
-  if [ -n "$MISSING_IMAGES" ]; then
-    echo "images:missing:$MISSING_IMAGES"
-    HAS_ISSUE=1
-  else
-    echo "images:ok"
-  fi
-
-  # Check keyframe images (only when keyframe .md files exist)
-  if [ -d "$KF_MD_DIR" ]; then
-    MISSING_KF_IMAGES=""
-    for kf_md in "$KF_MD_DIR"/*.md; do
-      [ ! -f "$kf_md" ] && continue
-      KF_IMG=$(bash scripts/asset-to-image-path.sh "$kf_md")
-      if [ ! -f "$KF_IMG" ]; then
-        KF_NAME=$(basename "$kf_md" .md)
-        if [ -z "$MISSING_KF_IMAGES" ]; then
-          MISSING_KF_IMAGES="$KF_NAME"
-        else
-          MISSING_KF_IMAGES="$MISSING_KF_IMAGES,$KF_NAME"
-        fi
-      fi
-    done
-    if [ -n "$MISSING_KF_IMAGES" ]; then
-      echo "keyframe-images:missing:$MISSING_KF_IMAGES"
-      HAS_ISSUE=1
-    else
-      echo "keyframe-images:ok"
-    fi
-  else
-    echo "keyframe-images:skipped"
-  fi
-fi
-
-# 6. Check storyboard
-STORYBOARD="$EP_DIR/storyboard.md"
-TARGET_SHOTS=$(read_config "每集分镜数")
-if [ ! -f "$STORYBOARD" ]; then
-  echo "storyboard:missing"
-  HAS_ISSUE=1
-else
-  ACTUAL_SHOTS=$(grep -c '### shot' "$STORYBOARD")
-  if [ -n "$TARGET_SHOTS" ]; then
-    THRESHOLD=$((TARGET_SHOTS / 2))
-    if [ "$ACTUAL_SHOTS" -lt "$THRESHOLD" ]; then
-      echo "storyboard:incomplete:${ACTUAL_SHOTS}/${TARGET_SHOTS}"
-      HAS_ISSUE=1
-    else
-      echo "storyboard:ok"
-    fi
-  else
-    echo "storyboard:ok"
-  fi
-fi
-
-exit $HAS_ISSUE
+exit "$HAS_ISSUE"

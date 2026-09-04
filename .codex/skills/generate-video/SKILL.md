@@ -1,6 +1,6 @@
 ---
 name: generate-video
-description: 将分镜提示词提交为视频生成任务。读取分镜和资产图片，提交到即梦CLI，异步跟踪任务状态。使用 /generate-video ep01 提交整集，或 /generate-video ep01 镜头3 镜头5 提交指定镜头。
+description: 将已审核分镜转换为 sheet-first 视频任务并提交。使用 /generate-video ep01 [镜头N...]。
 user-invocable: true
 argument-hint: "集数 [镜头N ...]"
 ---

@@ -1,6 +1,6 @@
 ---
 name: creator-image-dreamina
-description: 使用即梦CLI为指定的资产列表生成参考图片，包含登录检查、生成、轮询和超时处理。
+description: 使用即梦 CLI 按 scope 生成基础资产或串行 storyboard sheets，并处理 pending。
 user-invocable: false
 ---
 

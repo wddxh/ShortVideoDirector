@@ -14,7 +14,7 @@ async function readPluginVersion(pluginRoot) {
 
 export async function computeSourceHash(pluginRoot) {
   const sources = [];
-  for (const subdir of ['skills', 'agents', 'scripts']) {
+  for (const subdir of ['skills', 'agents', 'scripts', '.opencode/skill-overrides', '.opencode/lib']) {
     const root = path.join(pluginRoot, subdir);
     try {
       await fs.access(root);
@@ -26,7 +26,7 @@ export async function computeSourceHash(pluginRoot) {
       for (const e of entries) {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) await walk(p);
-        else if (subdir === 'scripts' || e.name.endsWith('.md')) {
+        else if (subdir === 'scripts' || subdir === '.opencode/lib' || e.name.endsWith('.md')) {
           const st = await fs.stat(p);
           sources.push(`${p}:${st.mtimeMs}:${st.size}`);
         }

@@ -15,3 +15,4 @@ model: inherit
 
 1. **输出语言** — 所有输出内容的语言必须遵循 config.md 中的 `语言` 设置。auto 则跟随用户输入语言，zh 则全中文，en 则全英文。分镜中的视觉描述提示词也必须严格遵循此设置，不得混用语言。
 2. **版权规避** — 不得使用现实中的明星或公众人物名字、真实地名、商标名，必要时使用虚构替代。
+3. **职责边界** — 负责 shot 的七字段、镜头运动和完整 prose，不规划 storyboard sheet panel；Creator 负责 sheet，Director 负责语义 review。

@@ -19,7 +19,7 @@ model: opus
 错误做法：
 - ❌ "sub-agent 失败了，我自己来写这个 novel.md"
 - ❌ "task 报错了，我在主 session 直接调用 Write"
-- ❌ "我 fallback 一下，自己生成 keyframes.json"
+- ❌ "我 fallback 一下，自己生成 storyboard sheet"
 
 原因：主 session 缺少 sub-agent 的隔离上下文（专属 system prompt、skill 加载、permission 配置），自己接管会导致质量下降、跨步骤上下文污染、permission 错配等问题。即使 sub-agent 失败，工作所有权也必须留在 sub-agent 层。
 
@@ -78,7 +78,7 @@ model: opus
 
 ### 阶段 1: 读取任务状态
 
-1. 从 `$ARGUMENTS` 中解析集数（如 `ep01` 或 `all`）和模式（是否有 `--auto`）
+1. 从 `$ARGUMENTS` 中解析集数（如 `ep01` 或 `all`）和模式（是否有 `--auto`）。对每个目标集先使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-legacy-kf.sh "{ep}" "story/episodes/{ep}/storyboard.md" "story/episodes/{ep}/videos/tasks.json"`；失败立即原码停止，旧持久任务不得重提。
 2. 若为 `all` → 使用 Glob 扫描 `story/episodes/*/videos/tasks.json`；否则读取指定集的 tasks.json
 3. 若文件不存在（或 `all` 模式下 Glob 无匹配）：
    - **交互模式**：提示"未找到视频生成任务，请先使用 `/generate-video {集数}` 提交任务"，结束
@@ -119,7 +119,7 @@ model: opus
 
 **a. 可自动重试的任务：**
 1. 告知用户该镜头因临时原因失败，正在自动重试
-2. 从 tasks.json 中读取该 shot 的 `prompt`、`images`、`duration`
+2. 从 tasks.json 中读取该 shot 的原 prompt/images/duration，保持 `images` 原顺序和三个字段原值
 3. 读取配置：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "即梦视频模型版本"` 和 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "视频比例"`
 4. 重新提交：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
 5. 根据提交结果，用 Read 读取 tasks.json 最新内容，修改该 shot 的记录后用 Write 写回：
@@ -142,10 +142,10 @@ model: opus
    - 涉及分镜/画面描述修改 → 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill（统一入口，根据 `story/episodes/{集数}/script.md`（短视频）或 `story/episodes/{集数}/novel.md`（系列视频）自动判断 mode）
    - 涉及资产/图片修改 → 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "图像模型"` 获取图像模型值，使用 Skill tool 调用 `creator-fix-asset` skill + 使用 Skill tool 调用 `creator-image-{图像模型值}` skill
 4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
-5. 重新生成 prompt：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`
+5. 重新生成 prompt：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/storyboard-to-prompt.sh "story/episodes/{集数}/storyboard.md" {镜头编号}`，解析并刷新新 prompt / images / duration，验证每张图存在且 sheet 为第一张
 6. 读取配置：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "即梦视频模型版本"` 和 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "视频比例"`
 7. 重新提交：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamina.sh "{新prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-8. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt），用 Write 写回
+8. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt、images、duration），用 Write 写回
 9. 提示用户稍后再次使用 `/check-video {集数}` 查询
 
 ## JSON 摘要契约（仅 `--auto` 模式）
