@@ -88,7 +88,7 @@ for RECORD in "${RECORDS[@]}"; do
   done
 
   RESULT=$(bash "$IMAGE_GENERATOR" "$PROMPT" "$OUTPUT" '16:9' \
-    "$RESOLUTION" "$MODEL" "$IMAGES")
+    "$RESOLUTION" "$MODEL" "$IMAGES" "$CARD")
   STATUS=$?
   case "$STATUS" in
     0)
@@ -101,8 +101,6 @@ for RECORD in "${RECORDS[@]}"; do
       ;;
     2)
       ID=${RESULT#PENDING }
-      node "$PENDING_STATE" upsert "$ID" "$CARD" "$OUTPUT" storyboard-sheet || \
-        fail "cannot persist pending: $CARD"
       printf 'PENDING %s %s %s\n' "$ID" "$CARD" "$OUTPUT"
       exit 2
       ;;

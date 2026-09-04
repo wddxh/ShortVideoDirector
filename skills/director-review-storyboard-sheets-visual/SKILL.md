@@ -93,15 +93,20 @@ assets/storyboard-sheets/{ep}/shotNN.md|assets/images/storyboard-sheets/{ep}/sho
   "affected_write": "append needs_revision round",
   "mutate_closed_pass": false,
   "fix_failure_latest": "needs_revision",
-  "fix_success": "scoped review appends next round"
+  "fix_success": "scoped review appends next round",
+  "clean_statuses": ["no_dependency", "unaffected"],
+  "clean_write": "append pass impact round",
+  "clean_record": "exact JSON with reason",
+  "clean_dirty_count": 0,
+  "clean_footer": "unique"
 }
 ```
 
 图片修复成功后，orchestrator 仅对卡片中直接引用当前 sheet 的下游调用 impact skill；不得按编号机械选择 N+1。使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill。
 
-`no_dependency` / `unaffected` 仅在当前 handoff 尚未关闭时记录；若 latest pass 已关闭则不写回该轮。`affected` 必须按下方规则 append 新 round，不得把 dirty 插入任何已关闭 pass round。每次写后 Read 自检新 footer 唯一。
+每个 impact decision 都 append 新 round，不修改已关闭轮。用当前最大 round footer 作唯一 anchor；写后 Read 自检新 footer 唯一。
 
-- `no_dependency` 或 `unaffected`：记录 reason，不加入 dirty，并停止该分支。
+- `no_dependency` 或 `unaffected`：Append 新纯通过 impact round，包含 `### 连续性影响评估`、impact reviewer 返回的 exact JSON（含 reason）和唯一 footer；不写 dirty list，停止该分支。
 - `affected`：严禁修改已关闭的 pass round。Append 一个新 `需修改` round，写入 impact record、`card|image|impact|{fix_direction}`、`card|image` dirty 和唯一 footer；再使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `{ep} {review-path} shotNN`（执行协议：`creator-fix-storyboard-sheet-image {ep} {review-path} shotNN`）。
 - fix 失败：在该非 pass round 记录失败并停止，latest 保持 needs_revision，不 enqueue。
 - fix 成功：记录成功并 enqueue 该 shot，继续检查卡片中直接引用它的依赖项。

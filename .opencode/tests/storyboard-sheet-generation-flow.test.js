@@ -66,7 +66,9 @@ case "$status" in
   success) mkdir -p "$(dirname "$output")"; : > "$output"; printf 'OK %s\\n' "$output" ;;
   no-output) printf 'OK %s\\n' "$output" ;;
   fail) printf 'FAIL provider rejected %s\\n' "$output"; exit 1 ;;
-  pending:*) printf 'PENDING %s\\n' "\${status#pending:}"; exit 2 ;;
+  pending:*) node "$(dirname "$0")/image-pending-state.mjs" upsert \
+    "\${status#pending:}" "$7" "$output" storyboard-sheet || exit 1
+    printf 'PENDING %s\\n' "\${status#pending:}"; exit 2 ;;
 esac
 `);
 }
@@ -127,7 +129,7 @@ function lines(path) {
 function calls(path) {
   if (!existsSync(path)) return [];
   const args = readFileSync(path).toString('utf8').split('\0').slice(0, -1);
-  return Array.from({ length: args.length / 6 }, (_, i) => args.slice(i * 6, i * 6 + 6));
+  return Array.from({ length: args.length / 7 }, (_, i) => args.slice(i * 7, i * 7 + 7));
 }
 
 test('generates sheets serially in shot order', () => {
@@ -182,6 +184,7 @@ test('forwards all references and fixed provider arguments', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(calls(env.CALLS)[0], [
       `prompt for ${path}`, outputFor(path), '16:9', '4k', '5.0', refs.join(','),
+      path,
     ]);
   });
 });

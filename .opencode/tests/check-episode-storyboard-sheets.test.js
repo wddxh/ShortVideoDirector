@@ -256,6 +256,27 @@ assets/storyboard-sheets/ep01/shot02.md|assets/images/storyboard-sheets/ep01/sho
   });
 });
 
+test('clean impact decisions append auditable pure pass rounds', () => {
+  for (const status of ['unaffected', 'no_dependency']) project({}, (result, root) => {
+    write(root, 'story/episodes/ep01/.review-storyboard-sheets-visual.md', `## 第 1 轮 (test) - 通过
+
+---
+<!-- /round-1 -->
+
+## 第 2 轮 (test) - 通过
+
+### 连续性影响评估
+{"upstream":"shot01","downstream":"shot02","status":"${status}","reason":"fixture reason","fix_direction":""}
+
+---
+<!-- /round-2 -->
+`);
+    const checked = run(root);
+    assert.equal(checked.status, 0, checked.stdout + checked.stderr);
+    assert.match(checked.stdout, /^storyboard-sheet-visual-review:ok$/m);
+  });
+});
+
 test('legacy detector runs first and propagates actionable exit 2', () => {
   project({}, (result, root) => {
     write(root, 'story/episodes/ep01/keyframes.json', '{}');

@@ -244,6 +244,11 @@ test('visual handoff records impact without contaminating clean statuses', () =>
   assert.equal(contract.mutate_closed_pass, false);
   assert.equal(contract.fix_failure_latest, 'needs_revision');
   assert.equal(contract.fix_success, 'scoped review appends next round');
+  assert.deepEqual(contract.clean_statuses, ['no_dependency', 'unaffected']);
+  assert.equal(contract.clean_write, 'append pass impact round');
+  assert.equal(contract.clean_record, 'exact JSON with reason');
+  assert.equal(contract.clean_dirty_count, 0);
+  assert.equal(contract.clean_footer, 'unique');
 });
 
 test('all episode modes use the same ordered sheet subchain', () => {
@@ -348,7 +353,8 @@ test('edit mode guides expose executable entry and routing tables', () => {
       assert.ok(routeNodes.has(node), `${file} route ${node}`);
     }
     assert.ok(routes.includes('使用 Skill tool 调用'));
-    assert.ok(routes.includes('creator-generate-images` skill，参数 `{ep} paths'));
+    const ep = file === 'series.md' ? '{ep}' : 'ep01';
+    assert.ok(routes.includes(`creator-generate-images\` skill，参数 \`${ep} paths`));
     for (const skill of [
       'creator-storyboard-sheet-prompts',
       'director-review-storyboard-sheet-prompts',
@@ -632,6 +638,8 @@ test('basic image pending contract drains each tier before advancing', () => {
   assert.ok(match);
   const contract = JSON.parse(match[1]);
   assert.deepEqual(contract.tuple, ['submit_id', 'asset_path', 'output_path']);
+  assert.deepEqual(contract.entry_fields,
+    ['submit_id', 'asset_path', 'output_path', 'type']);
   assert.deepEqual(contract.statuses, ['success', 'fail', 'querying']);
   assert.equal(contract.max_rounds, 5);
   assert.equal(contract.persist_path, 'assets/images/pending.json');
@@ -639,6 +647,16 @@ test('basic image pending contract drains each tier before advancing', () => {
   assert.equal(contract.resubmit_pending, false);
   assert.equal(contract.persist_before_poll, true);
   assert.equal(contract.resume_pending_first, true);
+  assert.equal(contract.writer, 'image-gen-dreamina.sh');
+  assert.equal(contract.source_argument, 7);
+  assert.equal(contract.persist_failure, 'fail_without_pending');
+  assert.equal(contract.wrapper_preflight, true);
+  assert.doesNotMatch(read('scripts/generate-storyboard-sheets-dreamina.sh'),
+    /PENDING_STATE.*upsert|image-pending-state\.mjs" upsert/s);
+  assert.match(read('scripts/generate-storyboard-sheets-dreamina.sh'),
+    /"\$RESOLUTION" "\$MODEL" "\$IMAGES" "\$CARD"/);
+  assert.match(read('skills/_meta/rules/visual-prompt-craft-common.md'),
+    /第 7 参数=asset card path/);
 });
 
 test('sheet pending contract persists before returning or polling', () => {
@@ -736,6 +754,64 @@ test('existing asset edit callers pass explicit paths to prompt review', () => {
       `director-review-asset-prompts\` skill，参数 \`${args}\``, fix);
     assert.ok(fix >= 0 && review > fix, path);
   }
+});
+
+test('edit existing assets close prompt and visual review loops', () => {
+  for (const [mode, ep] of [['series.md', '{ep}'], ['short.md', 'ep01']]) {
+    const text = read(`skills/edit-story/${mode}`);
+    const start = text.indexOf('existing asset review closure');
+    assert.ok(start >= 0, mode);
+    const block = text.slice(start, text.indexOf('storyboard sequence', start));
+    const stages = [
+      `director-review-asset-prompts\` skill，参数 \`${ep} basic {asset_path}\``,
+      'creator-fix-asset` skill',
+      `director-review-asset-prompts\` skill，参数 \`${ep} basic {asset_path}\``,
+      `creator-generate-images\` skill，参数 \`${ep} paths {asset_path}\``,
+      'successful asset paths',
+      `director-review-assets-visual\` skill，参数 \`--type=characters,locations,items,buildings ${ep} {successful_asset_paths...}\``,
+      'creator-fix-asset-image` skill',
+      '`successful asset paths` 为 `{successful_fixed_asset_paths...}`',
+      `director-review-assets-visual\` skill，参数 \`--type=characters,locations,items,buildings ${ep} {successful_fixed_asset_paths...}\``,
+    ];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = block.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+    assert.ok(block.includes('fix_attempts=2'), mode);
+    assert.ok(block.includes('stop_before_image'), mode);
+    assert.ok(block.includes('stop_before_direct_sheets'), mode);
+  }
+});
+
+test('check-video closes asset reviews before regenerating direct sheets', () => {
+  const text = read('skills/check-video/SKILL.md');
+  const start = text.indexOf('asset review closure');
+  assert.ok(start >= 0);
+  const block = text.slice(start, text.indexOf('涉及 sheet card', start));
+  const stages = [
+    'director-review-asset-prompts` skill，参数 `{集数} basic {asset_path}`',
+    'creator-fix-asset` skill',
+    'director-review-asset-prompts` skill，参数 `{集数} basic {asset_path}`',
+    'creator-generate-images` skill，参数 `{集数} paths {asset_path}`',
+    'successful asset paths',
+    'director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {集数} {successful_asset_paths...}`',
+    'creator-fix-asset-image` skill',
+    '`successful asset paths` 为 `{successful_fixed_asset_paths...}`',
+    'director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {集数} {successful_fixed_asset_paths...}`',
+    'direct_affected_card_paths',
+    'creator-generate-images` skill，参数 `{集数} paths {direct_affected_card_paths...}`',
+  ];
+  let previous = -1;
+  for (const stage of stages) {
+    const index = block.indexOf(stage, previous + 1);
+    assert.ok(index > previous, stage);
+    previous = index;
+  }
+  assert.ok(block.includes('fix_attempts=2'));
+  assert.ok(block.includes('stop_before_image'));
+  assert.ok(block.includes('stop_before_direct_sheets'));
 });
 
 test('deprecated repair commands and novel word config are absent', () => {

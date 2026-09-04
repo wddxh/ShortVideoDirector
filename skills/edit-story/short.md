@@ -33,8 +33,9 @@
 - 使用 Skill tool 调用 `director-fix-outline` skill，传 mode=short、ep01、review path、extra instructions。随后使用 Skill tool 调用 `director-review-outline` skill，参数 `short ep01`。
 - 使用 Skill tool 调用 `scriptwriter-fix-script` skill，参数 `short ep01 --direct {target} {instruction}`。随后使用 Skill tool 调用 `director-review-script` skill，参数 `short ep01`。
 - Outline/script 修改后重新读取终态资产清单；存在新增且缺失的资产卡时，先使用 Skill tool 调用 `creator-create-assets` skill，参数 `ep01`。只有已存在且被直接修改的卡才使用 `creator-fix-asset`。
-- 使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} {意见}`。随后使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `ep01 basic {asset_path}`。
-- 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {asset_paths...}`，其中 ep=ep01。随后使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings ep01`。
+- existing asset review closure：使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} {意见}`。随后使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `ep01 basic {asset_path}`。
+- existing asset review closure：prompt needs_revision 时使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} story/episodes/ep01/.review-asset-prompts.md`；再使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `ep01 basic {asset_path}`，通过后才生图。使用 Skill tool 调用 `creator-generate-images` skill，参数 `ep01 paths {asset_path}`；读取 `successful asset paths`，仅非空时使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings ep01 {successful_asset_paths...}`。Visual needs_revision 时使用 Skill tool 调用 `creator-fix-asset-image` skill，参数 `story/episodes/ep01/.review-basic-assets-visual.md ep01`；读取 `successful asset paths` 为 `{successful_fixed_asset_paths...}`，仅非空时使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings ep01 {successful_fixed_asset_paths...}`。
+- 两层 review 各自共享 `fix_attempts=2`；prompt 仍未通过则 `stop_before_image`，visual 仍未通过则 `stop_before_direct_sheets`。
 - 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，参数 `ep01 --direct {target} {instruction}`。随后使用 Skill tool 调用 `director-review-storyboard` skill，参数 `ep01`。
 - 对 visual dirty 使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，参数 `ep01 {review_path} {shots...}`。
 - 使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill，参数 `ep01 {upstream_shot}`。

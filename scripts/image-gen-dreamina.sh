@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generate a single image using Dreamina CLI.
-# Usage: bash scripts/image-gen-dreamina.sh [--force] "prompt" "output_path" [ratio] [resolution] [model_version] [ref_images]
+# Usage: bash scripts/image-gen-dreamina.sh [--force] "prompt" "output_path" [ratio] [resolution] [model_version] [ref_images] [asset_path]
 # Without ref_images: uses text2image (text-to-image)
 # With ref_images: uses image2image (reference images + prompt)
 #   - Pass single path or comma-separated list (e.g. "a.png,b.png,c.png")
@@ -15,7 +15,7 @@ if [ "${1:-}" = '--force' ]; then
 fi
 
 if [ $# -lt 2 ]; then
-  echo "Usage: bash scripts/image-gen-dreamina.sh [--force] \"prompt\" \"output_path\" [ratio] [resolution] [model_version] [ref_images]"
+  echo "Usage: bash scripts/image-gen-dreamina.sh [--force] \"prompt\" \"output_path\" [ratio] [resolution] [model_version] [ref_images] [asset_path]"
   exit 1
 fi
 
@@ -25,7 +25,21 @@ RATIO="${3:-1:1}"
 RESOLUTION="${4:-2k}"
 MODEL="${5:-4.0}"
 REF_IMAGES="$6"
+ASSET_PATH="$7"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PENDING_STATE="$SCRIPT_DIR/image-pending-state.mjs"
+
+if [ -n "$ASSET_PATH" ]; then
+  EXISTING_PENDING=$(node "$PENDING_STATE" get "$OUTPUT" 2>/dev/null)
+  PENDING_STATUS=$?
+  if [ "$PENDING_STATUS" -eq 0 ]; then
+    echo "PENDING $(printf '%s\n' "$EXISTING_PENDING" | cut -d' ' -f2)"
+    exit 2
+  elif [ "$PENDING_STATUS" -ne 1 ]; then
+    echo "FAIL cannot read pending state"
+    exit 1
+  fi
+fi
 
 "$FORCE" && rm -f -- "$OUTPUT"
 
@@ -79,6 +93,17 @@ case "$STATUS" in
     ;;
   querying)
     SUBMIT_ID=$(json_field submit_id)
+    if [ -n "$ASSET_PATH" ]; then
+      case "$ASSET_PATH" in
+        assets/storyboard-sheets/*) PENDING_TYPE=storyboard-sheet ;;
+        *) PENDING_TYPE=basic-asset ;;
+      esac
+      if ! node "$PENDING_STATE" upsert "$SUBMIT_ID" "$ASSET_PATH" \
+          "$OUTPUT" "$PENDING_TYPE"; then
+        echo "FAIL cannot persist pending"
+        exit 1
+      fi
+    fi
     echo "PENDING $SUBMIT_ID"
     exit 2
     ;;

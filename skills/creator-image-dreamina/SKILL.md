@@ -26,17 +26,22 @@ model: sonnet
 ```json
 {
   "tuple": ["submit_id", "asset_path", "output_path"],
+  "entry_fields": ["submit_id", "asset_path", "output_path", "type"],
   "statuses": ["success", "fail", "querying"],
   "max_rounds": 5,
   "persist_path": "assets/images/pending.json",
   "persist_before_poll": true,
   "resume_pending_first": true,
+  "writer": "image-gen-dreamina.sh",
+  "source_argument": 7,
+  "persist_failure": "fail_without_pending",
+  "wrapper_preflight": true,
   "advance_when_pending": false,
   "resubmit_pending": false
 }
 ```
 
-每次运行先用 `image-pending-state.mjs` 恢复 pending，未到终态不得开始任何新提交。每档提交时：exit 0 记录成功；exit 1 记录失败；exit 2 的 `PENDING id` 解析为上述 tuple，必须立即用 helper 原子 upsert `{submit_id,asset_path,output_path,type}`，持久化成功后才加入本档待查集合和开始轮询。不得再次调用 image wrapper 提交该 tuple。
+每次运行先用 `image-pending-state.mjs` 恢复 pending，wrapper 也在 provider 前按 output preflight，未到终态不得新提交。每次调用 wrapper 的第 7 个可选参数必须传 asset/card path。Wrapper 是唯一 pending writer：provider querying 时先同步原子 upsert，再输出 `PENDING`/exit 2；持久化失败输出 FAIL/exit 1，不得返回可重提的 PENDING。上层不得二次 upsert。
 
 本档提交结束后才轮询：每 30 秒对 tuple 调用 `dreamina query_result --submit_id={id} --download_dir=/tmp/dreamina-pending`。`success` 将 `{id}_image_1.png` 移到 output_path 并移除；`fail` 记录 provider 原因并移除；`querying` 保留。最多 5 轮。
 
@@ -51,6 +56,8 @@ model: sonnet
 ```json
 {
   "entry_fields": ["submit_id", "card_path", "output_path", "type"],
+  "writer": "image-gen-dreamina.sh",
+  "source_argument": 7,
   "persist_before_return": true,
   "persist_before_poll": true,
   "resume_pending_first": true,
@@ -74,7 +81,7 @@ Sheet `--force` 只传 targeted sheet cards；基础资产 paths 的 force 由�
 
 Coordinator 固定 16:9 sheet 画布、验证全部基础引用和可选前镜 sheet、跳过已有 PNG，并在第一个失败或 pending 处停止。不得绕过 coordinator 单独生成后续 shot。
 
-Coordinator 收到 provider PENDING 后已立即原子 upsert `{submit_id,card_path,output_path,type}`，持久化成功后才返回，因此 creator 可开始轮询。每 30 秒调用 `dreamina query_result`，最多 5 轮：success 把下载文件移动到 output，再 remove pending 条目，然后重新调用 coordinator；fail 记录原因并 remove 后停止；仍 querying 保留既有条目并停止。再次执行先恢复 pending，未终态不得调用 provider；终态 success 必须落盘并 remove 后才 resume。
+Coordinator 把 card 作为 wrapper 第 7 参数。Wrapper 是唯一 writer：provider PENDING 后先原子 upsert `{submit_id,card_path,output_path,type}`，成功才返回；coordinator 只转发，不二次写。Creator 每 30 秒 query，success 落盘并 remove 后 resume；fail remove 后停止；querying 保留条目。再次执行先恢复 pending，未终态不得调用 provider。
 
 `pending success resume: no --force`：targeted 首次调用可带 `--force`；pending 成功移动 output 后，续跑 coordinator 必须去掉 `--force`，保留刚落盘图并从下一缺失 shot 继续。
 

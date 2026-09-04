@@ -71,20 +71,20 @@
 
 ```
 [基础 asset .md `## 图像生成提示`]
-  → image-gen-dreamina.sh (text2image, 第 6 参数为空)
+  → image-gen-dreamina.sh (text2image, 第 6 参数为空，第 7 参数=asset card path)
   → assets/images/{type}/{name}.png
 
 [造型变体 .md `## 图像生成提示`] + [基础角色 .png]
-  → image-gen-dreamina.sh (image2image, 第 6 参数=基础角色 png)
+  → image-gen-dreamina.sh (image2image, 第 6 参数=基础角色 png，第 7 参数=asset card path)
   → assets/images/characters/{name}-{variant}.png
 
 [衍生资产 .md `## 图像生成提示`] + [基础资产 .png（按基础类型动态推导）]
-  → image-gen-dreamina.sh (image2image, 第 6 参数=基础资产 png)
+  → image-gen-dreamina.sh (image2image, 第 6 参数=基础资产 png，第 7 参数=asset card path)
   → assets/images/{基础类型}s/{基础名}-{状态名}.png
 
 [storyboard sheet .md `## 引用资产` + `## 图像生成提示`]
   → storyboard-sheet-to-prompt.sh: 解析引用 → IMAGES:p1,p2,... + 头部 [name:{图片N}] tokens
-  → image-gen-dreamina.sh (image2image, 第 6 参数=IMAGES 逗号串)
+  → image-gen-dreamina.sh (image2image, 第 6 参数=IMAGES 逗号串，第 7 参数=asset card path)
   → assets/images/storyboard-sheets/{ep}/shotNN.png
 
 [storyboard.md shot N]
