@@ -796,9 +796,10 @@ test('repair storyboard recovery uses explicit ordered calls in both modes', () 
       `creator-storyboard-sheet-prompts\` skill，参数 \`${ep} incremental {shots...}\``,
       `creator-fix-storyboard-sheet-prompt\` skill，参数 \`${ep}\``,
       `director-review-storyboard-sheet-prompts\` skill，参数 \`${ep}\``,
-      'sheet image recovery',
+      'storyboard repair sheet rebuild',
+      `creator-generate-images\` skill，参数 \`${ep} paths {existing_changed_card_paths...}\``,
       `creator-generate-images\` skill，参数 \`${ep} storyboard-sheets\``,
-      `director-review-storyboard-sheets-visual\` skill，参数 \`${ep}\``,
+      `director-review-storyboard-sheets-visual\` skill，参数 \`${ep} {successful_shots_union...}\``,
     ];
     let previous = -1;
     for (const stage of stages) {
@@ -806,5 +807,48 @@ test('repair storyboard recovery uses explicit ordered calls in both modes', () 
       assert.ok(index > previous, `${mode}: ${stage}`);
       previous = index;
     }
+  }
+});
+
+test('storyboard repair rebuilds changed sheets before scoped visual review', () => {
+  for (const [mode, ep] of [['short.md', 'ep01'], ['series.md', '{ep}']]) {
+    const text = read(`skills/repair-story/${mode}`);
+    const start = text.indexOf('storyboard repair sheet rebuild');
+    assert.ok(start >= 0, mode);
+    const block = text.slice(start, text.indexOf('visual missing recovery', start));
+    const stages = [
+      'saved_full_generator_summary',
+      'mode/created/updated/deleted',
+      'existing_changed_card_paths',
+      `creator-generate-images\` skill，参数 \`${ep} paths {existing_changed_card_paths...}\``,
+      `creator-generate-images\` skill，参数 \`${ep} storyboard-sheets\``,
+      'successful shots union',
+      `director-review-storyboard-sheets-visual\` skill，参数 \`${ep} {successful_shots_union...}\``,
+    ];
+    let previous = -1;
+    for (const stage of stages) {
+      const index = block.indexOf(stage, previous + 1);
+      assert.ok(index > previous, `${mode}: ${stage}`);
+      previous = index;
+    }
+    assert.ok(block.includes('旧 PNG'));
+    assert.ok(block.includes('历史 pass'));
+    assert.ok(block.includes('owner generator summaries'));
+    assert.equal(block.includes(
+      `director-review-storyboard-sheets-visual\` skill，参数 \`${ep}\``), false,
+    `${mode}: unscoped review`);
+  }
+});
+
+test('repair routes storyboard invalid through the standard recovery entry', () => {
+  const main = read('skills/repair-story/SKILL.md');
+  assert.ok(main.includes('storyboard:invalid:{详情}'));
+  assert.match(main, /storyboard:missing\|incomplete\|invalid/);
+  for (const mode of ['series.md', 'short.md']) {
+    const text = read(`skills/repair-story/${mode}`);
+    const start = text.indexOf('storyboard recovery');
+    const block = text.slice(start, text.indexOf('prompt owner loop', start));
+    assert.ok(block.includes('storyboard:missing|incomplete|invalid'), mode);
+    assert.ok(block.includes('使用 Skill tool 调用 `storyboarder-storyboard` skill'), mode);
   }
 });

@@ -361,6 +361,21 @@ describe('transformAllSkills (integration)', () => {
     }
   });
 
+  test('repair aux transforms forced sheet rebuild and scoped review', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    for (const [file, ep] of [['short.md', 'ep01'], ['series.md', '{ep}']]) {
+      const content = await readFileAsync(
+        path.join(tmpDir, `repair-story/${file}`), 'utf8');
+      const start = content.indexOf('storyboard repair sheet rebuild');
+      const block = content.slice(start, content.indexOf('visual missing recovery', start));
+      assert.ok(start >= 0, file);
+      assert.ok(block.includes(`参数：\n${ep} paths {existing_changed_card_paths...}\n`));
+      assert.ok(block.includes(`参数：\n${ep} storyboard-sheets\n`));
+      assert.ok(block.includes(`参数：\n${ep} {successful_shots_union...}\n`));
+      assert.ok(!block.includes('<由调用方填充>'));
+    }
+  });
+
   test('sheet image fix routes generation through a creator task', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(
