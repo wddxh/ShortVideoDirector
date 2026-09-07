@@ -6,8 +6,8 @@ import { runImages, parseImageArgs } from '../../scripts/generate-images-dreamin
 
 test('exported image API validates concurrency and returns skipped outcomes', async t => {
   const f = parallelImages(t);
-  const a = { ...job('a'), output: `${f.root}/a.png` };
-  f.write('a.png', 'PNG');
+  const a = job('a');
+  f.write(a.output, 'PNG');
   assert.deepEqual(parseImageArgs(['jobs.json']),
     { concurrency: 5, force: false, inputs: ['jobs.json'] });
   assert.deepEqual(parseImageArgs(['--concurrency', '1', '--force', 'jobs.json']),
@@ -15,7 +15,12 @@ test('exported image API validates concurrency and returns skipped outcomes', as
   for (const value of ['0', '-1', '1.5', 'abc']) {
     assert.throws(() => parseImageArgs(['--concurrency', value, 'jobs.json']), /concurrency/);
   }
-  const result = await runImages([a, a]);
+  const cwd = process.cwd();
+  let result;
+  try {
+    process.chdir(f.root);
+    result = await runImages([a, a]);
+  } finally { process.chdir(cwd); }
   assert.equal(result.status, 0);
   assert.equal(result.generated, 0);
   assert.equal(result.skipped, 1);

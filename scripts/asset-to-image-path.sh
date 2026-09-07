@@ -12,6 +12,10 @@ fi
 for path in "$@"; do
   # Strip relative prefix: anything before "assets/"
   normalized=$(echo "$path" | sed 's|.*assets/|assets/|')
+  case "$normalized" in
+    assets/characters/*.md|assets/locations/*.md|assets/items/*.md|assets/buildings/*.md) ;;
+    *) printf 'FAIL unsupported asset path: %s\n' "$path" >&2; exit 1 ;;
+  esac
   # Insert "images/" after "assets/": assets/category/name.md -> assets/images/category/name.png
   echo "$normalized" | sed 's|^assets/|assets/images/|' | sed 's|\.md$|.png|'
 done

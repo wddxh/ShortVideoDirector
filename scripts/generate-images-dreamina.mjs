@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { validateAssetLocalReferences } from './local-reference.mjs';
+import { validateImagePaths } from './image-generation-paths.mjs';
 
 const scripts = path.dirname(fileURLToPath(import.meta.url));
 const isFile = file => fs.existsSync(file) && fs.statSync(file).isFile();
@@ -13,6 +15,7 @@ export async function runImages(jobs, { force = false, concurrency = 5, retryMis
   const byOutput = new Map();
   for (const job of jobs) {
     const { source, output, prompt, images, settings: s } = job ?? {};
+    validateImagePaths(source, output);
     const strings = [source, output, prompt, s?.provider, s?.model, s?.ratio, s?.resolution];
     if (strings.some(v => typeof v !== 'string' || !v.trim() || v.includes('\0')) ||
         s.provider !== 'dreamina' || s.model === 'none' || s.resolution === 'none' ||
@@ -55,7 +58,7 @@ export async function runImages(jobs, { force = false, concurrency = 5, retryMis
   }
   if (foundPending.size) {
     const outcomes = entries.map(({ job }) => ({ ...job, status: 'blocked' }));
-    for (const p of foundPending) console.log(`PENDING ${p.submit_id} ${p.card_path ?? p.asset_path} ${p.output_path}`);
+    for (const p of foundPending) console.log(`PENDING ${p.submit_id} ${p.asset_path} ${p.output_path}`);
     for (const e of outcomes) console.log(`BLOCKED ${e.source} ${e.output}`);
     return { status: 2, generated: 0, skipped: 0, outcomes };
   }
@@ -72,16 +75,7 @@ export async function runImages(jobs, { force = false, concurrency = 5, retryMis
         }
       }
     }
-    if (job.source.startsWith('assets/storyboard-sheets/')) {
-      const result = await execute('storyboard-sheet-to-prompt.sh', ['--json', job.source]);
-      if (result.status !== 0) throw new Error(result.stderr.trim().replace(/^FAIL /, ''));
-      const parsed = JSON.parse(result.stdout);
-      if (parsed.prompt !== job.prompt || JSON.stringify(parsed.images) !== JSON.stringify(job.images) ||
-          Object.keys(job.settings).some(k => job.settings[k] !== parsed.settings[k]) ||
-          job.output !== job.source.replace('assets/', 'assets/images/').replace(/\.md$/, '.png')) {
-        throw new Error(`Image arguments do not match sheet card: ${job.source}`);
-      }
-    }
+    validateAssetLocalReferences(job.source, job.images);
   }
   // Validate the whole graph, even when old outputs exist under --force.
   const checked = new Set();

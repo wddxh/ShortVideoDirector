@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { validateImagePaths } from './image-generation-paths.mjs';
 
 let [command, ...args] = process.argv.slice(2);
 const statePath = path.join('assets', 'images', 'pending.json');
@@ -39,7 +40,7 @@ async function updateState(update) {
 try {
   if (command === 'recover' && args.length === 2) {
     const [source, output] = args;
-    if (!source.trim() || !output.endsWith('.png')) throw new Error('Invalid recovery target');
+    validateImagePaths(source, output);
     const claim = `${output}.claim`;
     fs.mkdirSync(claim);
     recoveryClaim = claim;
@@ -50,22 +51,23 @@ try {
     if (!['received', 'pending', 'unknown'].includes(record.status)) {
       throw new Error('Receipt is not a recoverable known-ID outcome');
     }
-    args = [record.submit_id, source, output,
-      source.startsWith('assets/storyboard-sheets/') ? 'storyboard-sheet' : 'basic-asset',
+    args = [record.submit_id, source, output, 'basic-asset',
       record.provider, record.model, record.ratio, record.resolution];
     command = 'upsert';
   }
   if (command === 'get' && args.length === 1) {
     const entry = readState().find((item) => path.resolve(item.output_path) === path.resolve(args[0]));
     if (!entry) process.exit(1);
-    const source = entry.card_path ?? entry.asset_path;
+    const source = entry.asset_path;
     console.log(`PENDING ${entry.submit_id} ${source} ${entry.output_path}`);
   } else if (command === 'upsert' && args.length === 8) {
     const [submitId, source, outputPath, type, provider, model, ratio, resolution] = args;
+    validateImagePaths(source, outputPath);
+    if (type !== 'basic-asset') throw new Error('Expected basic-asset pending type');
     if (args.some((v) => typeof v !== 'string' || !v.trim()) || provider !== 'dreamina' || model === 'none' ||
         resolution === 'none' || !/^[1-9]\d*:[1-9]\d*$/.test(ratio)) throw new Error('Invalid pending settings');
     const entry = { submit_id: submitId };
-    entry[type === 'storyboard-sheet' ? 'card_path' : 'asset_path'] = source;
+    entry.asset_path = source;
     entry.output_path = outputPath;
     entry.type = type;
     Object.assign(entry, { provider, model, ratio, resolution });
@@ -73,7 +75,7 @@ try {
       if (recoveryClaim) {
         const prior = state.find(item => path.resolve(item.output_path) === path.resolve(outputPath));
         if (prior && (prior.submit_id !== submitId ||
-            (prior.card_path ?? prior.asset_path) !== source ||
+            prior.asset_path !== source ||
             ['provider', 'model', 'ratio', 'resolution'].some(key =>
               prior[key] !== undefined && prior[key] !== entry[key]))) {
           throw new Error('Pending identity/settings conflict with receipt');

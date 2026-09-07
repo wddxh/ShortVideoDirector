@@ -10,9 +10,11 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 ## 委托入口
 
+交付采用 [shot-inputs](../_meta/rules/shot-inputs.md)：manifest 顶层仅 references，每镜至少一个本地 MP4，可辅以 PNG；header 资产图提供身份，sources 不上传。静态相机可用静态 clip。独立 shot-input 审核聚焦实际输入集成、变化细节与必要跨镜/跨集边界，已有 storyboard 判断在无冲突时复用。就绪要求 script/storyboard/asset-visual/shot-input，asset-prompt 只覆盖授权新增/重生集合。系列预算、继承四元组及视频独立授权保持。
+
 用户决策前必读 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/user-decision-relay.md`。原角色一次给齐全部可预见相关问题/表、题界、完整选项/解释、稳定标签及条件分支。主 AI 读全并内部保留计划，仅沿作者题界展示当前题全部内容，再用可用原生键盘选择器，questions 恰好一项。等回答再问下一适用题，相关原始答复及全部条件经 Director 批量完整回原角色原任务，不逐题往返；仅缺内容/映射、不相容或计划外新决定才提前回询。只应用作者条件，不有损改写、不提前展示全表；长解释在控件前，Markdown 不替代可用控件，宿主限制明确披露。
 
-主 AI 负责配置、输入、目标与用户决策；用 Task 将创作成果委托给 Director，不自己编排创作步骤。每次仅制作一集；该制作请求本身包含所需新增基础资产图和分镜板图片，intake/当前审核满足后直接生成，不另问生图授权。配置查看/纯诊断不生成；范围外覆盖、固定设置冲突或受保护任务仍须处理。本流程始终停止在视频生成之前，即使全部审核完成；只有用户后续手动调用 generate-video 才提交视频。
+主 AI 负责配置、输入、目标与用户决策；用 Task 将创作成果委托 Director，不自己编排创作步骤。每次仅制作一集；制作请求包含所需新增基础资产图和本地参考，intake/当前审核满足后执行，不另问生图授权。配置查看/纯诊断不生成；范围外覆盖、固定设置冲突或受保护任务仍须处理。本流程始终停在付费视频提交前；只有用户后续手动调用 generate-video 才提交视频。
 
 ## 配置与目标
 
@@ -24,7 +26,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 任何配置读取/写入/evidence 前，从项目根执行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" config-path`，从 SVD_CONFIG（未设才 config.md）取得 canonical 项目相对 config_path。项目内绝对路径和 ./ 可规范化，外部配置（含 symlink 越界）不支持，在副作用前报告。缺失的项目内路径可只读报告或获准初始化，不静默回退默认。
 
-所有配置与 approval 写入只用 config_path。Task/relay 传此路径；每次 Bash 显式 `SVD_CONFIG="{config_path}"`，detect-mode 传该路径，read-config 在键名后传该路径，check-episode 在 ep 后传该路径。fingerprint 用 canonical config_path，videoProfile 和 evidence 必须共用同一配置，不依赖工具间环境持久化。
+所有配置与 approval 写入只用 config_path。Task/relay 传此路径；每次配置相关 Bash 显式 `SVD_CONFIG="{config_path}"`，detect-mode 传该路径，read-config 在键名后传该路径。fingerprint、videoProfile 和 evidence 共用 canonical config_path，不依赖工具间环境持久化。
 
 整体理解原始请求 `$ARGUMENTS` 与会话，不按首 token 判断配置意图。查看只 Read 实际配置（SVD_CONFIG 或 config.md），缺失也只报告，不补 mode、不强制初始化。修改须明确范围；获准初始化才参考 [config-template.md](config-template.md) 确认并保存 mode=series 和实际选择。已有冲突先澄清。
 
@@ -46,7 +48,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 扫描全部 canonical episode tasks 的 prepared pending、submitted/done/failed 和 inflight；历史缺字段、冲突或固定配置与继承不符时停止新准备/付费，不改旧任务、不猜默认，查询下载不受影响。provider=none 同样禁新提交。profile 不继承单 shot 时长、内容、引用或任何 grants；集总时长另由初始用户目标跨集共用。系列准备串行执行，现有 episode 锁不构成跨集原子事务；不并发初始化不同集的 profile。
 
-配置能力问题以真实 Task 委托 Creator，提供操作、固定/继承值、范围、约束与 grants。按共享 Concrete Technical Choices，一次提供 images/video/sheets 各 scope 的全部未决问题：provider -> model -> 相容 ratio -> resolution，含已接入且当前支持的具体值、完整解释、“此字段交 Creator 决定”及明确相容分支。主 AI 仅依作者条件逐题展示当前全部选项并原生单选，相关原始答复/条件批量回 Creator；不推断 provider 知识。若委托模型须 Creator 先解析且无后续分支，才提前回询再问依赖项。不以笼统“技术交团队”替代具体选择，不因用户不懂隐藏选项；已答/固定/继承/已委托项按 scope 跳过，续集保留上述 profile，sheet 继承和授权覆盖分清，横屏不擅定数值比例。用 template 保存实际选择与 `参数选择授权`，不维护静态模型表或示例默认；任务选择不改项目默认，能力诊断不提交或写配置。
+配置能力问题以真实 Task 委托 Creator，提供操作、固定/继承值、范围、约束与 grants。按共享 Concrete Technical Choices 给齐 images/video 未决 provider -> model -> 相容 ratio -> resolution，含当前已接入值、完整解释、逐字段委托选项及明确分支。主 AI 只依作者条件逐题完整展示并原生单选，相关原始答复/条件批量回 Creator；委托模型需专家解析且无后续分支时先回询。按 scope 跳过已答/固定/继承/已委托项，续集保留 profile，不隐藏选项、不把横屏当数值比例。按 template 保存真实选择与 `参数选择授权`，不存静态模型表；能力诊断只读，任务选择不改默认。
 
 用户选定模型即按可访问处理，不查权益/会员/凭据/账号/积分、不索证明或要求确认访问不确定性声明；仍核验当前 CLI/API 技术组合与接入。仅授权执行实际返回账号/provider 错误时报告并处理必要决定，不换固定模型，不声称访问已验证或生成成功；视频仍不得在本入口提交。
 
@@ -62,7 +64,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 ## 成果委托与转交
 
-用 Task 派发 `director`，保存返回的原始 `task_id`。委托内容：本集 mode/ep、期望成果、config 与材料路径、用户原意、intake 已知需求与明确委托、制作前确认记录、授权范围、集时长及用户实际限制、可自行决策与须升级的事项。请 Director 诊断现状，在 intake 充分后选择专业协作并交付相容的剧本、分镜、实际基础资产卡/图和 storyboard sheets，以及当前独立审核证据、整体连贯性判断和未决事项。资产清单属于 script；缺清单请 Scriptwriter 采用现有剧本并补齐，不重写故事。arc/outline/novel 按需要规划，不作为固定前置；系列仍应评估人物弧、铺垫回收与跨集连续性。
+用 Task 派发 `director`，保存原始 `task_id`。委托本集 mode/ep、期望成果、config/材料路径、用户原意、已知需求与明确委托、制作前确认、授权范围、集时长与限制、决策余地及升级条件。交付相容剧本、分镜、基础资产卡/图、逐镜 manifest 与媒体、独立证据、必要跨镜/跨集连续性判断和未决项。缺 script 清单请 Scriptwriter 接纳现有剧本补齐；arc/outline/novel 按需采用，不强制补齐规划文件。
 
 Director 按 descriptions 自选知识，不派发“加载并执行某 skill”的任务。嵌套实际可用时由 Director 协作；明确深度拒绝后在会话内记住限制，普通任务失败不算嵌套不可用。收到转交请求时，主 AI 按其目标角色、成果、路径、范围和约束忠实派发，将结果送回原 Director `task_id` 继续；不另排顺序、不升宿主深度。审核另开全新 Director 上下文，不继承制作历史；无独立上下文则保持阻塞。
 
@@ -70,7 +72,7 @@ Director 按 descriptions 自选知识，不派发“加载并执行某 skill”
 
 ## 交付与失败
 
-Director 报告当前范围与证据；整集就绪用 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-episode.sh" "{ep}" "{config_path}"` 核验。exit 1 未就绪，exit 2 legacy 阻塞，均报告具体原因。缺图、审核未决或资源不足保持部分交付/阻塞；重试次数不产生通过。技术失败先检查落盘材料和任务，避免重复提交；取消即停止。
+Director 报告当前范围与证据；整集用 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" "{ep}"` 及同配置 `review-evidence.mjs check "{ep}"` 核验。非零报告未就绪或运行阻塞。缺媒体、审核未决或资源不足保持部分交付；重试次数不产生通过。先检查落盘材料和任务，避免重复提交；取消即停止。
 
 材料就绪不授权付费视频。用户另用 `/generate-video {ep}` 提交，`/check-video {ep}` 或 `/auto-video {ep}` 跟踪。成片质量由用户判断，不自动审片或合成。所有生成内容遵循 config 语言与角色版权规避规则。
 

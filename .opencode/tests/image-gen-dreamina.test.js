@@ -21,7 +21,8 @@ printf '%s\\n' "$DREAMINA_RESPONSE"
 `);
   chmodSync(fake, 0o755);
 
-  const output = join(dir, 'output.png');
+  const output = join(dir, source.replace('assets/', 'assets/images/').replace('.md', '.png'));
+  mkdirSync(dirname(output), { recursive: true });
   for (const ref of refs ? refs.split(',') : []) {
     const file = join(dir, ref);
     mkdirSync(dirname(file), { recursive: true });

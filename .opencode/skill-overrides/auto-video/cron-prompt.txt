@@ -4,12 +4,13 @@
 
 用 task 新建 general checker，保留 task_id，委托检查此目标登记视频任务、取回完成输出并报告进度、阻塞和是否仍需监控；自行从 descriptions 选择适用知识。
 返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；异常附 error/recoverable，计数不明用 unknown。
-查询使用任务 recorded provider；缺 provider 的历史 Dreamina 记录仅允许取回，未知显式 provider 不静默 fallback。
+查询使用任务 recorded provider；缺 provider 的 Dreamina 记录仅允许取回，未知显式 provider 报 human_needed。
 新提交/重试由真实 Creator task 负责，不能用 checker 加载 provider skill 代替角色。
 checker 无法嵌套时返回 role/outcome/references/scope/constraints；主 AI 忠实派 sibling Creator，等待实际结果后恢复同一个 checker task_id。
 relay 也无法提供角色上下文则让 checker 报 human_needed，不自行提交。普通任务失败不是深度拒绝，不调高宿主深度。
 
 按 tasks 的真实 initial_authorization/retry_authorization 判断许可和约束，不补 grant。
+任务保留 prompt/duration/references，submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]。付费续交/重试使用 typed references，每镜至少一个本地 MP4；固定相机可用静态 clip。使用 check-shot-inputs.mjs 和当前 scoped evidence。按 recorded ID/provider 取回 submitted，缺 ID 或 inflight 未决则 human_needed，保留状态。首次/周期 checker 与 Creator relay 均显式传上述配置状态与输入边界。
 监控/查询不是新生成请求。已登记用户实际 generate-video 请求的 initial grant 可继续执行，无额外生成批准；缺失不补造 consent，不从生成意图推断无限重试。short/series 停在视频提交前，新生成须用户后续手动 generate-video。
 有效持续授权内的动作不逐轮求批准；新阻塞先查配置、材料与 grants 并由责任角色在原权限内判断，无法解决再报 human_needed。内部审核或进度不自动生成用户决策包；不借此授权新的创作修复。
 按已选模型/参数执行，不加费用/预算/积分/余额或最低价预检、不为省钱降级；仅用户实际费用限制仍绑定，真实账号/provider 失败照实报告。constraints 无需费用字段。缺创作需求仅报 human_needed，不先编候选/设计/提示；后续交互完成 intake 或明确角色/范围/约束委托后才创作，仅暂停受影响工作。

@@ -23,7 +23,7 @@ model: opus
 
 - 新提交由真实 Creator Task 使用已接入 scripts 执行；加载 provider skill 不转移角色。禁止测试性付费调用。
 - tasks.json 的准备和授权由用户交互上下文维护，每个 shot 唯一。提交状态仅由 wrapper 的 reserve/settle 写入，LLM 不重复写回。不得与提交脚本并发编辑 tasks；发现 `.submit-lock` 或 inflight 先停止准备并核实，不删除绕过。
-- 预登记后 creator 不改 prompt/images/duration/submission；submitted/done 及 inflight 保护。
+- 预登记后 creator 不改 prompt/references/duration/submission；submitted/done 及 inflight 保护。
 - 用户本次 generate-video 生成请求就是该范围首次提交依据，不需要另一条同意消息；材料就绪或 review pass 本身不是视频请求。failed 状态不产生重试或修改授权。
 - 对请求范围内每条首次提交的 prepared pending，在提交前持久化 `initial_authorization:{decision,episode,shot,constraints}`：decision 保留用户实际调用/生成请求原文及必要澄清，不填通用“用户已同意”；episode/shot 为已解析范围，constraints 保留真实条件，无额外条件可为 []。该记录让机械 gate 及隔离监控延续未调用任务，不需额外确认。无生成请求不造 grant，初始 grant 不允许失败重提，retry grant 不能替代它。
 - 不在首次提交前例行询问重试许可；仅用户要求自动重试，或实际失败阻塞且需用户决定时处理。按 check-video 的格式保存真实 `retry_authorization`、decision/scope/constraints；仅用户给出次数时写 max_attempts/attempts，不从生成请求推断无限重试。拒绝/无 grant 不重试，不阻止首次提交。监控同样仅用户要求或已有同意默认才启动。
@@ -51,32 +51,33 @@ short 准备写入前核对整集；历史缺少 ratio/resolution 时阻止新�
 
 ## 流程
 
-单次请求的可用上下文仅为最终 prompt 与实际 images，遵循共享 visual-prompt-craft-common/video。准备时核对转换结果，而非以读过剧本补齐模型缺口；发现身份或当前状态依赖其他镜头时交 Director/Storyboarder 修正，入口只忠实保存转换结果。
+单次请求上下文仅为最终 prompt 与实际 typed references，遵循共享 visual-prompt-craft-common/video 和必读 [shot-inputs](../_meta/rules/shot-inputs.md)。准备时核对转换结果，不以读过剧本补齐模型缺口；创作缺口交 Director/Storyboarder，入口忠实保存。
 
-转换器保持 `IMAGES`、`DURATION`、`---` 顺序。prompt 先放实际参考绑定和当前 sheet 解释，再保留完整当前 shot：heading、七字段（含时长）、声音特征、全部 prose/时间码及本地文本，不按字段白名单重建。仅将源资产 Markdown 链接替换为 `[名称:{图片N}]`；上传集合由 header 的 `出场人物`/`引用资产` 声明，sheet 第一，资产按声明顺序去重。prose 链接也只使用已声明路径的槽位，未声明的显式资产链接在输出前报错，不靠名词匹配猜引用。
+作品级美术基线由 Creator 交 Storyboarder，在源 shot 的 `视频风格` 中每请求表达一次；详细动作、表情和声音在视听正文表达。Reference use 仅描述控制用途与占位边界。转换器绑定引用、保留完整 shot，不注入风格或清理重复；入口不改写已审核 prompt。
+
+准备使用每镜 `{references}` manifest 和 converter `--json`，返回 `prompt,duration,references,assetCards,sources,inputPath`。header 身份图先按声明去重，后接有序本地 PNG/MP4，每镜至少一个 MP4；图片/视频独立编号，sources 不上传。固定相机可用静态 clip。prompt 保留 heading、七字段、声音、完整 prose/时间码，只绑定已声明路径；GIF 不支持，必要时序无法核实为 unknown。
 
 结构边界仍为 shot heading 后的下一个 ATX heading、独立 `---`、行首 HTML comment 或 EOF。作者将下一场景/预算及尾部制作说明放在这些边界外；转换器不删除 shot 内的任何本地文字或作语义过滤，隐含依赖与混入备注由作者/reviewer 判断。
 
-既有 gate 按当前 converter 的 prompt/images/duration 比较已登记任务。旧字段筛选版、未替换资产链接的整块 prompt 或其他差异会阻止提交，需符合授权的重新准备；恢复/重试不静默刷新输入，submitted/done/inflight 始终保持保护。
+付费 gate 比较 converter 的 prompt/references/duration，要求 typed references 与本地 MP4。输入差异阻止提交，恢复/重试不静默刷新；submitted 按已登记 ID/provider 取回，submitted/done/inflight 保护不变。
 
 以下准备依赖只适用于获准的新/重新准备任务。任何 tasks 写入前完成目标与授权核对、只读 profile 预检，并把结果与实际 config 路径委托 Creator；source=tasks 时只验证继承设置的能力，不重新选择。能力诊断先于 capture 和付费，不是写完任务后再选。已有 prepared/pending 续交或 failed 原输入重试只验证持久设置，不重新 resolve/capture。实际配置用 SVD_CONFIG 或 config.md；提供方 none 阻止新提交，不阻止查询。
 
 1. 整体理解原始请求 `$ARGUMENTS` 和会话中的集数、镜头、文件参考与提交意图。查看配置只 Read 实际配置（SVD_CONFIG 或 config.md），缺失不初始化。写入/付费前确定 canonical ep 与 exact shots；只有明确全范围才选全部，遗漏或歧义先澄清，不默认 latest/all。读取对应 config/storyboard；路径或审核通过不等于付费授权。
-2. 先执行 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-legacy-kf.sh "{ep}" "{storyboard}" "{tasks}"`。非零立即原码停止；旧持久任务不得重提。
-3. 只将严格 heading `### shot N` 视为 shot。验证编号有序、唯一、连续；重复 shot、缺号或非 canonical heading 立即失败。按用户镜头参数筛选，不允许近似匹配（shot 1 不匹配 shot 10）。
-4. 对待准备目标执行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" check "{ep}" {shot numbers}`，非零停止并报告待评估材料；不自动重生。通过后调用 storyboard-to-prompt.sh。任何 converter 失败立即停止，不写半成品。解析：
-   - `IMAGES:` 后的逗号分隔字符串原样存入 `images`。
-   - `DURATION:` 存入 `duration`。
-   - `---` 后全部文本原样存入 `prompt`。
-5. 逐项验证 images 中每一张图片存在；sheet PNG 必须为 CSV 第一项。空字段或缺图失败。
+2. 按真实状态区分准备/提交与取回，submitted 缺 ID 或 inflight 未决先人工核实。下述完整就绪检查包含结构检查；只诊断结构时可单独运行 `check-shot-inputs.mjs EP [SHOT...]`。
+3. 以严格 heading `### shot N` 精确匹配所选镜头。已提供编号须有序且唯一；整集要求连续 1..N，局部选择允许未提供的编号间隔，每个请求目标须准确存在。
+4. 确认目标 manifest 已由 Creator 在授权内组装，最终包已有独立 shot-input 审核。执行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" check "{ep}" {shot numbers}`，非零停止并报告，不自动重生。通过后调用 `storyboard-to-prompt.sh --json "{storyboard}" "{shot}"`，失败不写半成品；原样保存 `prompt,duration,references`，不把 resolver 元数据塞进上传数组。
+5. 核对每项本地 reference 和 sources 的真实路径，每镜至少一个 MP4，可辅以 PNG，sources 只作审核输入。最终就绪要求 script/storyboard/asset-visual/shot-input；新生图另须 asset-prompt。独立 reviewer 依据故事检查必要边界配对，入口不把机械就绪当作穷尽连续性证明。
 6. 预登记到 `story/episodes/{ep}/videos/tasks.json`：
    - 为请求内首次提交的 prepared pending 按上述格式登记实际请求的 initial_authorization；与 capture 得到的 submission 一起在提交前保存。不得省略 grant 而指望 wrapper 从聊天推断许可，也不为已有 protected 或范围外任务造记录。
-   - 不存在：新增 `{shot,submit_id:"",status:"pending",prompt,images,duration,fail_reason:""}`。
-     - `pending`：仅在无 inflight 且本次授权准备范围内刷新 converter 三字段；单纯恢复提交直接保留已有三字段与 submission。
-    - `failed`：默认完整保留；只有用户明确授权重新准备、接受当前材料且授权重提时，才刷新三字段并改 pending。不得借 generate-video 静默刷新失败输入。
+   - 不存在：新增 `{shot,submit_id:"",status:"pending",prompt,references,duration,fail_reason:""}`。
+     - `pending`：仅在无 inflight 且授权准备范围内刷新 converter 输入字段；单纯恢复保留已有字段与 submission。
+    - `failed`：默认完整保留；仅真实授权重准备、接受当前材料且授权重提时才刷新输入并改 pending，不静默刷新失败输入。
     - `submitted` / `done` 或任何 inflight：完全保护，不刷新、不自动重提；若 converter 已变化只输出人工处理警告。不得将 unresolved intent 改 pending 来重新准备。
-7. 使用准备前真实 Creator 验证/解析的设置，series 四元组全系列共用，short ratio/resolution 整集共用，不逐镜头重选；验证 operation/duration/references，缺值或不支持先按当前配置/grants 交责任角色处理，无法在权限内解决才询问。获准 pending 执行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs" capture "{tasks}" "{shot}" "{provider}" "{model}" "{ratio}" "{resolution}"`，将返回对象存入 submission（四项设置及有序 images path/sha256）；helper 不写 tasks。失败不提交，写前重读并保护锁/inflight/submitted/done。
+7. 使用真实 Creator 已验证的设置，series 四元组共用，short ratio/resolution 整集共用；验证 operation/duration/references，缺口先交责任角色。获准 pending 执行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs" capture "{tasks}" "{shot}" "{provider}" "{model}" "{ratio}" "{resolution}"`。把真实返回的 `{provider,model,ratio,resolution,references:[{media,path,sha256}]}` 存入 submission；helper 只返回、不写 tasks，sources 不在 submission。失败不提交；写前重读保护锁/inflight/submitted/done。
 8. 按 storyboard 原顺序把已 capture 的授权 pending 委托真实 Creator Task：传预期提交成果、tasks/材料路径、exact shots、实际 grants 和约束。Creator 自选 provider 知识，只用已存 submission，不重选或改输入。嵌套不可用则返回 role/outcome/references/scope/constraints 给主 AI；主 AI 派 sibling Creator 后恢复同一入口 task_id。无角色上下文则阻塞，不由入口冒充 Creator。
 9. 只有明确请求或已同意的监控默认才进入 auto-video，传 resolved target 与 unattended 意图及间隔；否则返回提交结果，不自动装监控。监控同意不创建重试授权。
 
 `视频提供方` 为 none 时不提交，可询问配置或取消；已有任务仍可取回。固定配置绑定其范围，缺值不授权选择，任务选择不改项目默认。重试/恢复已有 prepared 记录不重新 resolve/capture。最终报告新增、刷新、保护、提交、失败与未决项。
+
+Converter 的执行字段为 prompt/references/duration；准备及所有付费尝试使用 typed references 和 `--references-json`，每镜至少一个本地 MP4。submitted 按 recorded ID/provider 取回，保留真实状态与授权。接口不满足契约时报告工程阻塞。

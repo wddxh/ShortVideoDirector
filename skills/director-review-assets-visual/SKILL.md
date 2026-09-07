@@ -9,15 +9,17 @@ model: opus
 
 ## 范围
 
-本汇总者是 basic-only。委托说明 ep、所需基础类型或明确 card paths、审核 outcome 与边界；类型是自然语言范围，不是命令开关。Storyboard sheets 不在本范围。
+仅审基础/衍生资产。委托说明 ep、所需类型或明确 card paths、审核 outcome 与边界。单项目标交独立 singleton 直接写受托轮次；仅实际分开的 reviewer 结果需合并时使用只读结论的独立汇总者。
 
 ## Scope 合同
 
+目标声明本地制作参考时，单项须按共享 local-reference.md 看全部本地 PNG、读取/检查实际源码/工程和必要输入，与最终目标比较受控细节及占位边界，全部列入 evidence inputs。只作为直接参考，不新增审核 target；汇总仍不读图、不代判，不建 sidecar/registry。缺本地文件或无法必要读取为 unknown。
+
 默认运行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all`，按委托类型过滤，含新增/复用；只审最新证据缺失、过时或未通过项。显式路径替代默认范围，允许已有资产，不自动加入历史 dirty/unknown；范围外未解决记录原样保留，另报生产 Director。路径须 canonical、属于四类基础目录且符合委托；缺卡记 unknown，不丢目标。按 path 去重，不 Glob 扩大范围。
 
-必读共享 `review-meta-rules.md` 和 `output-language.md`，遵循独立新 Director context 协议。按 Scope 得候选 asset paths，图片映射为 `assets/images/{type}/{name}.png`。在 `story/episodes/{ep}/.review-basic-assets-visual.md` 按最大标题轮号开始新轮，先写 kind=`asset-visual`、scope、results=[]，结束再补 results/footer。
+必读共享 `review-meta-rules.md` 和 `output-language.md`。按 Scope 得 asset paths，图片映射为 `assets/images/{type}/{name}.png`。受托记录写入者在 `.review-basic-assets-visual.md` 按最大标题轮号开始新轮，先写 kind=`asset-visual`、scope、results=[]，结束补 results/footer。Singleton 自己写该轮；实际分项结果需合并时由独立汇总者写，协调者只串行分配写入，不先建重复轮次。
 
-每个目标委托全新 Director context，说明该资产卡与指定 PNG 的身份、外观和制作可用性审核 outcome，提供 ep、asset_path/image_path、实际配置与相关参考、只读范围和 result JSON 契约。Reviewer 自行选择方法，不指定加载技能；无嵌套时请求主 AI relay。并行或串行按资源选择，例如每批最多五项。aggregate 只收文本，不 Read PNG、不自行作视觉判断。
+每个目标委托全新 Director context，提供 ep、asset_path/image_path、实际配置、相关参考与受托轮次或子结果边界。每次图片操作都新 task、缩略图优先，必要追加查看用文本/路径交新任务。singleton 可直接落盘；协调者串行安排同文件写入并重读轮号。只有实际并行/分项结果需要合并时，独立 aggregate 收文本写轮次，不读 PNG 或代判。无嵌套请主 AI relay。
 
 单项只审核一个 TARGET，但可读取其声明的同实体/基础引用所需直接参考卡与 PNG，包括跨类别，不递归或遍历历史。转交这些参考路径及共享标志物、几何、材质、状态的比较要求；参考仅为 inputs，不自动加入 scope/dirty list/生成目标。单项前后 fingerprint 包含必要参考卡及图，聚合保留其哈希并终检；参考变更只令依赖该输入的证据过时，不自动全量重生或清除其他结论。receipt 无参考列表，不能声称证明原始输入。
 

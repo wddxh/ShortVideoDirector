@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { parseSheetCard } from './storyboard-sheet-to-prompt.mjs';
+import { validateImagePaths } from './image-generation-paths.mjs';
 
 try {
   const [action, ...args] = process.argv.slice(2);
@@ -14,14 +14,7 @@ try {
         resolution === 'none' || !/^[1-9]\d*:[1-9]\d*$/.test(ratio) || !target.endsWith('.png')) {
       throw new Error('Invalid image generation settings');
     }
-    if (source.startsWith('assets/storyboard-sheets/')) {
-      const { settings } = parseSheetCard(source);
-      if (settings.provider !== provider || settings.model !== model ||
-          settings.ratio !== ratio || settings.resolution !== resolution ||
-          target !== source.replace('assets/', 'assets/images/').replace(/\.md$/, '.png')) {
-        throw new Error('Image arguments do not match sheet card');
-      }
-    }
+    validateImagePaths(source, target);
     output = target;
     const priorFile = output.replace(/\.png$/, '.generation.json');
     let prior;

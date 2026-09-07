@@ -8,8 +8,8 @@ import { videoProject } from './fixtures/video-project.js';
 const script = join(process.cwd(), 'scripts/video-gen-dreamina.sh');
 function fixture(t, references = 1, shots = 1) {
   const f = videoProject(t, references, shots);
-  f.task.submission = { provider: 'dreamina', resolution: '1080p', model: 'stored-model', ratio: '16:9', images: JSON.parse(
-    f.cli('review-evidence.mjs', ['fingerprint', ...f.task.images.split(',')]).stdout) };
+  f.task.submission = JSON.parse(f.cli('video-task-inputs.mjs',
+    ['capture', f.tasks, '1', 'dreamina', 'stored-model', '16:9', '1080p']).stdout);
   f.task.initial_authorization = { decision: 'Submit ep01 shot 1 once', episode: 'ep01',
     shot: 1, constraints: [] };
   f.save();
@@ -18,11 +18,11 @@ function fixture(t, references = 1, shots = 1) {
 printf '%s\\0' "$@" > "$CALLS"
 printf '%s\\n' "$RESPONSE"
 `, { mode: 0o755 });
-  const args = () => [f.task.prompt, f.output, f.task.images, String(f.task.duration),
+  const args = () => [f.task.prompt, f.output, JSON.stringify(f.task.references), String(f.task.duration),
     f.task.submission.ratio, f.task.submission.model, f.task.submission.resolution];
   const run = (values = args(), response = '{"gen_status":"querying","submit_id":"job-1"}') => {
     rmSync(calls, { force: true });
-    return spawnSync('bash', [script, ...values], { cwd: f.root, encoding: 'utf8',
+    return spawnSync('bash', [script, '--references-json', ...values], { cwd: f.root, encoding: 'utf8',
       env: { ...process.env, SVD_CONFIG: 'config.md', PATH: `${f.root}:${process.env.PATH}`,
         CALLS: calls, RESPONSE: response } });
   };
@@ -42,7 +42,7 @@ test('series rechecks cross-episode conflicts at gate/reserve with zero mutation
     f.write(other, JSON.stringify([{ shot: 1, status: 'done', submission }]));
     const before = [f.tasks, other].map((file) => readFileSync(join(f.root, file), 'utf8'));
     for (const action of ['gate', 'reserve']) {
-      const result = f.cli('video-task-inputs.mjs', [action, ...f.args().slice(0, 6), 'dreamina', '1080p']);
+      const result = f.cli('video-task-inputs.mjs', [action, '--references-json', ...f.args().slice(0, 6), 'dreamina', '1080p']);
       assert.equal(result.status, 1, result.stderr);
       assert.match(result.stderr, /series.*profile/i);
     }
@@ -80,7 +80,7 @@ test('short fixed output conflicts block initial and retry gates without rewriti
       f.write('config.md', `- mode: short\n- ${key}: ${value}\n`); f.evidence();
       const before = readFileSync(join(f.root, f.tasks), 'utf8');
       for (const action of ['gate', 'reserve']) {
-        const result = f.cli('video-task-inputs.mjs', [action, ...f.args().slice(0, 6), 'dreamina', '1080p']);
+        const result = f.cli('video-task-inputs.mjs', [action, '--references-json', ...f.args().slice(0, 6), 'dreamina', '1080p']);
         assert.equal(result.status, 1, `${status} ${key}: ${result.stderr}`);
         assert.match(result.stderr, /fixed config/);
       }
@@ -104,7 +104,7 @@ test('partial submission rejects conflicting or unknown episode profiles before 
       const before = readFileSync(join(f.root, f.tasks), 'utf8');
       const args = [...f.args().slice(0, 6), 'dreamina', f.task.submission.resolution];
       for (const action of ['gate', 'reserve']) {
-        const result = f.cli('video-task-inputs.mjs', [action, ...args]);
+        const result = f.cli('video-task-inputs.mjs', [action, '--references-json', ...args]);
         assert.equal(result.status, 1, `${action} ${status}: ${result.stderr}`);
         assert.match(result.stderr, /episode output profile/i);
       }
@@ -171,8 +171,7 @@ test('gate blocks missing/stale review evidence and changed PNG before provider'
     assert.equal(existsSync(f.calls), false);
     assert.equal(JSON.parse(readFileSync(join(f.root, f.tasks), 'utf8'))[0].inflight, undefined);
   };
-  for (const kind of ['script', 'storyboard', 'asset-prompts', 'basic-assets-visual',
-    'storyboard-sheet-prompts', 'storyboard-sheets-visual']) {
+  for (const kind of ['script', 'storyboard', 'basic-assets-visual', 'shot-inputs']) {
     rmSync(join(f.root, `story/episodes/ep01/.review-${kind}.md`));
     blocked();
     f.evidence();
@@ -180,7 +179,7 @@ test('gate blocks missing/stale review evidence and changed PNG before provider'
   f.write('config.md', '- mode: short\n- 视频比例: 16:9\n- 语言: en\n');
   blocked();
   f.evidence();
-  f.write(f.sheet, 'changed sheet');
+  f.write(f.video, 'changed video');
   f.evidence();
   blocked();
 });
@@ -219,9 +218,9 @@ test('current converter passes the gate and forwards the entire bound shot witho
   f.write(board, `# SOURCE_METADATA\n${block}\n\n## Next scene\nNEXT_BUDGET\n<!-- FOOTER -->\n`);
   const converted = f.cli('storyboard-to-prompt.mjs', [board, '1', 'ep01']);
   assert.equal(converted.status, 0, converted.stderr);
-  f.task.prompt = converted.stdout.split('\n---\n')[1].replace(/\n$/, '');
+  f.task.prompt = JSON.parse(converted.stdout).prompt;
   assert.equal(f.task.prompt.split('\n').slice(3).join('\n'),
-    block.replaceAll('[lamp](assets/items/lamp.md)', '[lamp:{图片2}]'));
+    block.replaceAll('[lamp](assets/items/lamp.md)', '[lamp:{图片1}]'));
   f.save(); f.evidence();
   const result = f.run();
   assert.equal(result.status, 0, result.stderr);
@@ -251,12 +250,10 @@ for (const format of ['unbound', 'field-selected']) test(`stale ${format} prompt
 for (const withRetry of [false, true]) test(`batch resumes untouched pending as initial, retry grant=${withRetry}`, (t) => {
   const f = fixture(t, 1, 3);
   const tasks = [f.task, ...[2, 3].map((shot) => ({ ...structuredClone(f.task), shot,
-    images: f.task.images.replace('shot01', `shot0${shot}`),
     initial_authorization: shot === 2 ? { ...f.task.initial_authorization, shot } : undefined }))];
   for (const task of tasks) {
-    task.prompt = f.cli('storyboard-to-prompt.mjs', ['story/episodes/ep01/storyboard.md',
-      String(task.shot), 'ep01']).stdout.split('\n---\n')[1].replace(/\n$/, '');
-    task.submission.images = JSON.parse(f.cli('review-evidence.mjs', ['fingerprint', ...task.images.split(',')]).stdout);
+    task.prompt = JSON.parse(f.cli('storyboard-to-prompt.mjs', ['story/episodes/ep01/storyboard.md',
+      String(task.shot), 'ep01']).stdout).prompt;
     if (withRetry) task.retry_authorization = { decision: 'Retry twice', episode: 'ep01', shot: task.shot,
       constraints: [], max_attempts: 2, attempts: 0 };
   }
@@ -267,7 +264,7 @@ for (const withRetry of [false, true]) test(`batch resumes untouched pending as 
   assert.deepEqual(state().slice(1), JSON.parse(JSON.stringify(tasks.slice(1))));
   for (const shot of [2, 3]) {
     const task = tasks[shot - 1];
-    const result = f.run([task.prompt, f.output.replace('shot01', `shot0${shot}`), task.images,
+    const result = f.run([task.prompt, f.output.replace('shot01', `shot0${shot}`), JSON.stringify(task.references),
       '10', task.submission.ratio, task.submission.model, task.submission.resolution]);
     assert.equal(result.status, shot === 2 ? 0 : 1, result.stderr);
     assert.equal(existsSync(f.calls), shot === 2);
@@ -280,7 +277,7 @@ test('gate rejects unregistered outputs, protected tasks and mismatched argument
   const f = fixture(t);
   for (const [index, value] of [[0, 'other prompt'], [1, f.output.replace('shot01', 'shot02')],
     [1, './' + f.output], [1, f.output.replace('shot01', 'shot1')],
-    [2, f.task.images.split(',').reverse().join(',')], [3, '11'], [4, '9:16'], [5, 'new-model']]) {
+    [2, JSON.stringify([...f.task.references].reverse())], [3, '11'], [4, '9:16'], [5, 'new-model']]) {
     const args = f.args(); args[index] = value;
     assert.equal(f.run(args).status, 1);
     assert.equal(existsSync(f.calls), false);
@@ -291,7 +288,7 @@ test('gate rejects unregistered outputs, protected tasks and mismatched argument
     assert.equal(existsSync(f.calls), false);
   }
   f.task.status = 'failed'; delete f.task.submission; f.save();
-  assert.equal(f.run([f.task.prompt, f.output, f.task.images, '10', '16:9', 'stored-model', '1080p']).status, 1);
+  assert.equal(f.run([f.task.prompt, f.output, JSON.stringify(f.task.references), '10', '16:9', 'stored-model', '1080p']).status, 1);
   assert.equal(existsSync(f.calls), false);
 });
 
@@ -300,8 +297,7 @@ test('retry after unrelated config change forwards stored settings and ordered i
   const board = 'story/episodes/ep01/storyboard.md';
   f.write(board, readFileSync(join(f.root, board), 'utf8').replace('Action',
     'first line says "go"  \n\tsecond line costs $5'));
-  f.task.prompt = f.cli('storyboard-to-prompt.mjs', [board, '1', 'ep01'])
-    .stdout.split('\n---\n')[1].replace(/\n$/, '');
+  f.task.prompt = JSON.parse(f.cli('storyboard-to-prompt.mjs', [board, '1', 'ep01']).stdout).prompt;
   f.task.status = 'failed';
   f.task.retry_authorization = { decision: 'Retry ep01 shot 1 unchanged on temporary failure',
     episode: 'ep01', shot: 1, constraints: [] };
@@ -312,7 +308,7 @@ test('retry after unrelated config change forwards stored settings and ordered i
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.equal(result.stdout, 'SUBMITTED job-1\n');
   const args = readFileSync(f.calls, 'utf8').split('\0').slice(0, -1);
-  assert.deepEqual(args, ['multimodal2video', ...f.task.images.split(',').flatMap((p) => ['--image', p]),
+  assert.deepEqual(args, ['multimodal2video', ...f.task.references.flatMap((r) => [`--${r.media}`, r.path]),
     `--prompt=${f.task.prompt}`, '--duration=10', '--ratio=16:9', '--video_resolution=1080p',
     '--model_version=stored-model']);
   f.save(); // Independent registered failure response case.
@@ -321,16 +317,16 @@ test('retry after unrelated config change forwards stored settings and ordered i
   assert.equal(failed.stdout, 'FAIL provider rejected "input"\n');
 });
 
-test('converter prompt accepts its terminal newline but does not normalize other whitespace', (t) => {
+test('typed converter prompt does not normalize whitespace', (t) => {
   const f = fixture(t);
-  for (const suffix of [' ', '\n\n']) {
+  for (const suffix of [' ', '\n', '\n\n']) {
     const original = f.task.prompt;
     f.task.prompt += suffix; f.save();
     assert.equal(f.run().status, 1);
     assert.equal(existsSync(f.calls), false);
     f.task.prompt = original;
   }
-  f.task.prompt += '\n'; f.save();
+  f.save();
   assert.equal(f.run().status, 0);
   const args = readFileSync(f.calls, 'utf8').split('\0');
   assert.ok(args.includes(`--prompt=${f.task.prompt}`));

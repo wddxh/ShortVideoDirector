@@ -9,6 +9,8 @@ model: opus
 
 ## 范围与许可
 
+付费续交/重试使用当前 typed references，每镜至少一个本地 MP4，manifest 条目仅 local PNG/MP4。按 recorded ID/provider 取回 submitted 任务；缺 ID 则 human_needed，保留状态等待核实。首次与周期 checker 均携带当前输入契约、真实 grants 和 inflight 边界。
+
 本入口调用表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。缺首次 grant 的新生成交用户后续手动 generate-video；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
 
 按共享 intake 规则复用监控目标与持久授权，不重新问创作偏好；无人值守缺决定仅报 human_needed，不先编候选、场景、设计或提示。意外问题仅暂停受影响工作，其他已授权任务可继续。新创作留给后续交互取得相关需求或明确角色/范围/约束委托。
@@ -19,7 +21,7 @@ model: opus
 
 纯监控按 recorded tasks 查询，不先验证生成配置。若请求查看/修改配置或后续获准提交，在相关读取/写入/evidence 前从项目根运行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" config-path`，取得 SVD_CONFIG（未设才 config.md）的 canonical 项目相对 config_path；支持项目内绝对路径/./，外部配置（含 symlink 越界）不支持，在相关副作用前报告，不阻断纯取回。配置读写、fingerprint 与 helper 用此路径；相关 Bash 显式设置 SVD_CONFIG，位置参数也传同一路径。
 
-初次 checker、周期 prompt 和 Creator relay 均携带已确定的 config_path，配置相关步骤沿用同一 canonical SVD_CONFIG，使 videoProfile 与 evidence 一致。未用配置的纯取回不强迫初始化；配置未决时不提交。
+首次 checker、周期 prompt 和 Creator relay 均显式携带 canonical config_path 或 `UNRESOLVED`。未解析只允许取回并报告 human_needed，不选择默认配置或提交；空值是传输错误。绑定路径的配置操作显式用该路径运行 config-path 核验，所有相关命令共用 SVD_CONFIG，纯取回不初始化配置。
 
 整体理解原始请求 `$ARGUMENTS` 和会话，解析 canonical epNN 或明确全部任务的 all、监控/取消意图与间隔。缺目标或歧义先问，不默认 latest/all；写文件/安装监控前确认目标。未指定间隔可建议 1200 秒，只有用户要求监控或已同意默认才启动。查看配置只读，不强制初始化。短写 ep01 可以理解，不要求位置语法或用户 flags。
 
@@ -34,6 +36,9 @@ model: opus
 用 Task 新建 general-purpose checker 并保存 task_id，委托：
 
 > 检查已解析目标 {目标} 的登记视频任务，取回已完成输出并报告进度、阻塞和是否仍需监控；无人值守，按持久 grant 处理，保留原输入和 intent。根据 descriptions 自行选择适用知识。返回末行 JSON，字段为 target、pending、done、submitted、failed、all_complete、human_needed；异常附 error/recoverable，计数不明用 unknown。纯取回由 checker 执行；新提交/重试委托真实 Creator。嵌套不可用返回 role/outcome/references/scope/constraints 给主 AI 转交，不冒充角色。
+>
+> 配置上下文：{canonical config_path 或 UNRESOLVED}。将此显式值继续传给 Creator；UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认。配置操作用绑定路径显式运行 config-path 核验，所有相关命令共用 SVD_CONFIG；纯取回不验证生成配置。任务保留 prompt/duration/references，submission 为 provider/model/ratio/resolution 和 references:[{media,path,sha256}]；付费输入须含本地 MP4，遵守真实 grants/inflight，submitted 缺 ID 人工核实。
+
 收到 relay 时，主 AI 派发 sibling Creator，传原请求与实际 grants，等待后恢复同一 checker task_id 并传回结果。不能用新 checker 替代；无角色上下文则让 checker 报 human_needed。普通任务失败不等于深度拒绝；记住确认过的能力，不自动调高深度。
 
 仅解析 checker 最后一非空行 JSON；必须符合 check-video 摘要结构，且 target 严格等于本监控目标。缺失/无效/目标不符视为可恢复协议错误，保持未完成，不从 prose 推断 all_complete/recoverable。有效同目标摘要的 all_complete=true 或 error 且 recoverable=false 才不建 cron；展示 human_needed 与原始错误，不称全部成功。
@@ -45,9 +50,11 @@ model: opus
 ```text
 监控已解析目标 {目标}，无人值守。本任务以该明确目标绑定，由宿主 job ID 标识。
 监控不是新生成请求；仅延续已登记 initial/retry grants，不补 consent 或无限重试，不向 short/series 自动接入视频提交。
+付费动作只接受当前 typed references，每镜至少一个本地 MP4；按 recorded ID/provider 取回 submitted 任务，缺 ID 报 human_needed，保留记录与 inflight 等待核实。
+任务保留 prompt/duration/references；submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]，保留原始有序媒体、真实 grants 和状态，查询不重建输入快照。
 有效持续 grants 内的动作不逐轮求批准；新阻塞先查配置、材料与 grants 并由责任角色在权限内判断，无法解决再报 human_needed。进度不自动生成用户决策包，不授权新创作修复。
 按已选模型/参数执行真实授权，不加费用/余额预检、不为省钱降级；仅用户明确费用限制仍有效。缺需求仅报 human_needed，不先编创作候选/提示；仅暂停受影响工作。
-配置上下文 {config_path} 随 checker/Creator relay 传递；未解析则标未决，纯取回不受阻，提交前规范化并显式传同一 SVD_CONFIG 给 videoProfile 和 evidence。
+配置上下文：{canonical config_path 或 UNRESOLVED}。显式传入 checker/Creator relay；UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认。配置操作用绑定路径显式运行 config-path 核验，videoProfile/evidence 共用 SVD_CONFIG；纯取回不验证生成配置。
 用 Task 新建 general-purpose checker，委托检查此目标登记任务、取回已完成输出并报告进度和阻塞；按持久授权处理，自行从 descriptions 选择适用知识。
 返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；异常附 error/recoverable，计数不明用 unknown。
 查询按 recorded provider；新提交/重试委托真实 Creator，不由 checker 加载 skill 冒充。

@@ -36,7 +36,11 @@ argument-hint: "自然语言监控目标与间隔"
 
 决策尽量前置：可预见关键选择已满足或明确委托后，在原授权内连续执行，不要求未知艺术细节、额外“开始吗”或逐轮 review/fix 批准。新问题先查配置、材料、grants 并由 Director/专家在权限内判断；仅用户指定检查点、缺必要权限或无法内部解决的关键冲突才需完整决策包。进度不是确认请求，持续许可内动作不重复求同意，固定参数、初始集时长和操作授权边界不变。
 
-生成意图以实际请求为准，不另问图片/视频生成许可。short/series 包含所需新增资产图与分镜板图，intake/审核后执行，但始终停在视频提交前。用户后续手动 generate-video 请求由入口按原文和解析范围登记 initial_authorization，不追加批准握手。check/auto 只延续已登记 initial/retry grants 或取回，不补新生成许可、无限重试或首次提交前的强制重试问题。
+生成意图以实际请求为准，不另问许可。short/series 包含所需资产图与本地参考，intake/审核后执行，始终停在付费视频提交前。后续手动 generate-video 请求由入口按原文与范围登记 initial_authorization，不追加握手。check/auto 仅在当前契约内延续登记 grants 或取回，不补新许可或无限重试。
+
+当前 manifest 只有 references，条目仅 local PNG/MP4，每镜至少一个 MP4；converter/task 保存 prompt/duration/typed references，submission 保存四元组与有序媒体指纹。静态相机可用静态 clip。资产图提供身份，BOX 控制相机/布局/位置/整体轨迹，动作表情在 prompt，作品基线每请求一次。就绪用 check-shot-inputs.mjs 与 script/storyboard/asset-visual/shot-input；asset-prompt 只审授权新增/重生集合。整集编号 1..N，选镜允许缺号且目标须存在。取回按 recorded ID/provider，保留 grants/inflight/真实状态。
+
+shot-input 审核聚焦实际 prompt/media 集成、必要边界和变化细节；已有 storyboard 判断在无具体冲突时复用。按故事选相邻/非相邻/跨集配对，比较位置、轨迹、状态、轴线与身份，实际依赖存 inputs 指纹。源码/记账变化且渲染媒体未变可独立 scoped 兼容性评估，说明依据后续签，不能盲刷哈希或自动全量重审。每次视觉操作仍新 task、缩略图与最小配对；缺必要证据为 unknown。保留五种 review kind，主 AI/general 负责工程与测试。
 
 ## Native User Decision
 
@@ -72,7 +76,7 @@ argument-hint: "自然语言监控目标与间隔"
 - Claude `Task` 或 `Agent` 在嵌套可用时直接派发 sub-agent，应用 `${CLAUDE_PLUGIN_ROOT}/agents/<role>.md`，传递成果、参考路径、范围、约束与决策余地并等待结果。角色自行发现和加载方法，不要求命名 skill 链。
 - 工具可见不代表嵌套深度允许。在本会话记住已确认的能力；明确深度/嵌套拒绝或工具缺失才转 relay，普通任务失败不是嵌套失败。确认不可嵌套后不反复探测，不自动调整宿主配置/深度。
 - 嵌套不可用时 Director 返回协议 payload，由主 AI 忠实转交专家，再用宿主任务/agent ID 恢复原 Director 上下文并返回结果（OpenCode 对应 task_id）。主 AI 保留会话能力结论，不另排创作顺序，不用新 Director 替代原负责人。
-- 审核必须使用全新 Director 子代理上下文，不继承制作历史、不恢复制作任务；传当前材料、要求和必要参考，不只传有利总结。逐图通常各用隔离任务，汇总者只聚合结论。可运行只读 Bash 检查，只写指定审核记录，不改被审材料。
+- 审核使用全新独立 Director，传当前材料、要求和必要参考。singleton 直接写受托轮次；相干小批纯文本可单任务逐 target 判断并落盘。协调者串行安排同 review 文件写入；仅实际分开的 reviewer 结果需合并时用独立汇总者。每次视觉操作仍新任务、helper 缩略图及最小图集。只写指定记录及临时预览，生产者不编造 pass。规划按需采用。
 - 主 AI relay 也不能提供所需角色上下文或独立审核时报告阻塞，保留未决 gate；禁止同上下文角色扮演或自审兜底，不把已有文件或任务成功当作审核通过。
 
 - checker 的新提交/重试同样委托真实 Creator；depth1 时返回请求给主 AI 派 sibling Creator，再用原任务 ID 恢复同一个 checker。仅取回由 checker 按 recorded provider 执行，不因当前配置改变而重选。Skill 加载不替代角色任务。
@@ -82,7 +86,7 @@ argument-hint: "自然语言监控目标与间隔"
 - Claude `CronCreate`、`CronList` 和 `CronDelete` 不是 Codex 中的字面工具名。
 - 对于 `/auto-video`，优先使用 Codex automation 能力。
 - 仅用户要求监控或已同意默认才启动；无 automation 时说明限制，获准后可外部周期性委托 check-video，传明确 target 和 unattended 意图，不要求用户 flags。
-- 首次与周期检查都保留 Creator relay；只按有效末行 JSON 且 target 与监控目标一致决定停止。缺失/无效/跨目标结果不从 prose 推断停止。
+- 首次与周期 checker payload 均显式传 canonical config_path 或 UNRESOLVED，并沿 Creator relay 保留。UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认；配置操作显式验证绑定路径并共用 SVD_CONFIG。只按有效末行 JSON 且 target 匹配决定停止，缺失/无效/跨目标结果不从 prose 推断。
 - 不得绕过 check-video 和 Creator/provider 的 grants、inflight、当前审核与恢复边界。
 
 ## 模型提示

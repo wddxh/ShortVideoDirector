@@ -6,8 +6,8 @@
 
 1. **自然语言产出遵循实际配置 SVD_CONFIG（未设时 config.md）的 `语言` 设置**；配置缺失或冲突需澄清，不换用其他配置猜测。
 2. **auto 时跟随用户输入语言**，已有确认沿用；正文保持一致，原文引用、人物特有说法或用户明确的多语言表达可保留。
-3. **跨语言技术名词**（如 `MP4` / `H.264` / `PANEL 05` / `MEDIUM SHOT` 等）可保留英文标识，不视为混语言
-4. **数据身份不翻译**：现有资产 id、路径、schema 字段、状态枚举及完整短英文 panel 标签保持协议原值。新名称依项目语言；语言检查不是批量改名或改写合法素材的授权。
+3. **跨语言技术名词**（如 `MP4` / `H.264` / `BOX` / `MEDIUM SHOT` 等）可保留英文标识，不视为混语言
+4. **数据身份不翻译**：现有资产 id、路径、schema 字段和状态枚举保持协议原值。新名称依项目语言；语言检查不是批量改名或改写合法素材的授权。
 
 ## 反例 + 正例
 
@@ -22,7 +22,7 @@
 - ✅ Narrative 文本（novel / script / outline / arc）
 - ✅ Review 意见（所有 `*-review-*` skill 的输出）
 - ✅ 新 Asset id / 文件名；既有身份与引用保持稳定
-- ✅ Prompt 字段（含 character/location/item/building/storyboard sheet / storyboard shot prose）
+- ✅ Prompt 字段（含 character/location/item/building / storyboard shot prose）
 - ❌ 不适用：跨语言技术名词（保留英文）
 
 ## 与其他共享规则的关系

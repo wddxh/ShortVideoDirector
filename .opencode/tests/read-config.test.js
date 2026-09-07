@@ -57,13 +57,11 @@ test('templates do not activate unchosen creative settings', () => {
   }
 });
 
-test('provider and model keys remain distinct from sheet overrides', () => {
+test('provider, model and output keys remain distinct', () => {
   const values = {
     '图像提供方': 'dreamina', '视频提供方': 'none',
     '图像模型版本': 'image-fixture', '视频模型版本': 'video-fixture',
     '图片比例': '1:1', '图片分辨率': '2k',
-    '分镜板图像提供方': 'sheet-provider', '分镜板图像模型版本': 'sheet-fixture',
-    '分镜板图片比例': '9:16', '分镜板图片分辨率': '4k',
   };
   const dir = setupConfig(Object.entries(values).map(([k, v]) => `- ${k}: ${v}`).join('\n'));
   try {

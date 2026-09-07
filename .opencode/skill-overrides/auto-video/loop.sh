@@ -18,18 +18,19 @@
 FAIL_COUNT=0
 while true; do
   sleep "$INTERVAL"
-  if curl -s --max-time 2 "http://127.0.0.1:$PORT/global/health" \
-       | grep -q healthy; then
+  if HEALTH=$(curl -fs --max-time 2 "http://127.0.0.1:$PORT/global/health") &&
+     grep -q healthy <<< "$HEALTH" &&
+     PROMPT=$(cat "$PROMPT_FILE") &&
+     PAYLOAD=$(jq -nc --arg t "$PROMPT" '{parts:[{type:"text",text:$t}]}') &&
+     STATUS=$(curl -s --max-time 30 -X POST "http://127.0.0.1:$PORT/session/$SID/prompt_async" \
+       -H 'Content-Type: application/json' \
+       -d "$PAYLOAD" -o /dev/null -w '%{http_code}') &&
+     [[ "$STATUS" == 2?? ]]; then
     FAIL_COUNT=0
-    PROMPT=$(cat "$PROMPT_FILE")
-    curl -s --max-time 30 -X POST "http://127.0.0.1:$PORT/session/$SID/prompt_async" \
-      -H 'Content-Type: application/json' \
-      -d "$(jq -nc --arg t "$PROMPT" '{parts:[{type:"text",text:$t}]}')" \
-      > /dev/null
   else
     FAIL_COUNT=$((FAIL_COUNT + 1))
     if [ "$FAIL_COUNT" -ge 3 ]; then
-      # OC 死 3 次 → 自杀 + 清理临时文件（loop.sh 本身在 repo，永不删）
+      # Stop after three consecutive health or prompt-delivery failures.
       rm -f "$PID_FILE" "$PROMPT_FILE" "$LOG_FILE"
       exit 0
     fi

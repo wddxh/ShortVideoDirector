@@ -61,20 +61,7 @@ if [ -n "$ASSET_PATH" ]; then
   fi
 fi
 
-case "$ASSET_PATH" in
-  assets/storyboard-sheets/*)
-    CARD_JSON=$(bash "$SCRIPT_DIR/storyboard-sheet-to-prompt.sh" --json "$ASSET_PATH") || exit 1
-    printf '%s' "$CARD_JSON" | node -e '
-      let text = "";
-      process.stdin.on("data", d => text += d).on("end", () => {
-        const card = JSON.parse(text);
-        if (card.prompt !== process.argv[1] || card.images.join(",") !== process.argv[2]) {
-          console.error("FAIL prompt or references do not match sheet card");
-          process.exitCode = 1;
-        }
-      });' "$PROMPT" "$REF_IMAGES" || exit 1
-    ;;
-esac
+node "$SCRIPT_DIR/local-reference.mjs" validate-asset "$ASSET_PATH" "$REF_IMAGES" >/dev/null || exit 1
 ACTION=''
 "$RETRY_MISSING_ID" && ACTION='retry-'
 CHECK=$(node "$RECEIPT" "${ACTION}check" "$ASSET_PATH" "$OUTPUT" dreamina "$MODEL" "$RATIO" "$RESOLUTION") || exit 1
@@ -135,12 +122,8 @@ if [ "$STATUS" != fail ]; then
     fail 'no submit_id in response; outcome unknown'
   fi
   settle received
-  case "$ASSET_PATH" in
-    assets/storyboard-sheets/*) PENDING_TYPE=storyboard-sheet ;;
-    *) PENDING_TYPE=basic-asset ;;
-  esac
   node "$PENDING_STATE" upsert "$SUBMIT_ID" "$ASSET_PATH" \
-    "$OUTPUT" "$PENDING_TYPE" dreamina "$MODEL" "$RATIO" "$RESOLUTION" || fail 'cannot persist pending'
+    "$OUTPUT" basic-asset dreamina "$MODEL" "$RATIO" "$RESOLUTION" || fail 'cannot persist pending'
 fi
 
 # A bare acceptance is not completion. The ID is durable before this query.

@@ -8,7 +8,7 @@ Use selected models and parameters in setup and later creation without mandatory
 
 ## Undeveloped Serial Concept
 
-Operation intent comes from the actual request: short/series includes needed new asset/sheet images after intake/reviews, without another generation approval, but stops before video. A later manual generate-video request is persisted as initial intent for its scope. Checking/monitoring only continues recorded grants or retrieves; neither a reference example nor generation intent grants unlimited retries or unrelated overwrites.
+Operation intent comes from the actual request: short/series includes needed asset images and local references after intake/reviews, without another approval, and stops before paid video. A later manual generate-video request is persisted as scoped initial intent. Checking/monitoring continues valid current-contract grants or retrieves; examples/intent grant no unlimited retries or unrelated overwrites.
 
 Front-load foreseeable consequential choices, not every artistic detail in these examples. Once initial needs are known or delegated, owners develop later details and Director continues authorized fixes and independent reviews without approval after each step. New blockers first use current materials/config/grants and professional judgment; only unresolved consequential choices, missing authority or a user checkpoint require interruption. Progress and internal review results alone do not require a decision packet or a final "start?".
 
@@ -36,14 +36,14 @@ A local episode sketch can test the new choice, while a longer stage revision ma
 
 ## Local Change: Source Or Derived
 
-An envelope appears in the wrong hand in one sheet. Comparing script intent, shot direction, card and PNG distinguishes a shot-design contradiction from a card translation error or image-only miss. Those causes suggest different owners and repair scopes. Changing every layer would hide the cause and disturb unaffected work; fixing only pixels would leave a wrong source ready to reproduce the error.
+An envelope's holding state conflicts between two shot prompts. Compare script intent, shot directions, actual asset identities and input packages to identify the responsible source. BOX MP4 controls camera/layout/whole-object trajectories, not hands; inspect prompts for hand performance. Repair the actual cause within scope, preserving unaffected materials.
 
-For related changes to shots 3 and 4, stabilizing the actual changed group before assessing its outside direct dependents usually avoids repeatedly comparing temporary states. This is efficiency advice, not a gate requiring a whole batch to pass or a fixed owner order. A blocked member can remain unresolved while independent authorized work proceeds. A declared continuity link from shot 4 to 5 gives evidence for a focused comparison; numbering alone does not justify rebuilding all later sheets. Changed settings, references and actual output identities also matter. Unaffected work has an explicit preservation reason; suspected wider impact returns to Director for scope decisions.
+Stabilizing related shot changes can avoid repeated comparisons of temporary states; this is advice, not a batch gate or fixed order. Independent authorized work can proceed. The reviewer selects necessary adjacent, nonadjacent and cross-episode pairs from the story, compares prompt/MP4 and fingerprints actual dependencies. Numbering never justifies recursive re-rendering. Missing necessary inputs remain unknown; explain preservation reasons and return scope conflicts to Director.
 
 Independent reviewers assess current materials in fresh contexts, including a separate aggregation context. Actual-success sets describe updated outputs, not all outstanding review targets. Neither the example nor a path authorizes force, paid replacement or resubmitting protected video jobs.
 
 ## Interrupted Production
 
-After interruption, the script and shots exist, one sheet image is pending, and two existing images lack review. Current files, review scope/input hashes, pending IDs, receipts and video intents show what survived. The useful recovery may be same-job retrieval plus independent review of existing images, not a restart from concepts or the first missing optional document.
+After interruption, script and shots exist, one asset image is pending and two existing images lack review. Files, evidence inputs, IDs, receipts and intents identify surviving work. Recovery may be same-ID retrieval plus independent review of existing media, not restarting concepts or missing optional planning documents.
 
 A missing script inventory can be reconstructed from its scenes without replacing dialogue. A changed card may need a compatibility decision even after its old job downloads. Retrieval uses recorded identity/settings and does not depend on new-generation approval; new or destructive work still needs current evidence and explicit authorization. Unknown inflight remains a reconciliation problem, not permission to retry. The tradeoff is recovering useful work promptly without confusing file existence, download success and artistic acceptance. Partial recovery can be complete within its commission while full episode readiness remains blocked.

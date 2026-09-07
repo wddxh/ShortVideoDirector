@@ -7,6 +7,12 @@
 - Before adding a defensive check, identify the concrete caller, input path, failure impact, and evidence that the case is reachable in this repository.
 - Keep fixes proportional to product risk. Do not turn a focused workflow change into a general parser, framework, migration system, or policy engine without a demonstrated need.
 
+## Instruction Writing
+
+- Prefer positive, actionable descriptions of the intended behavior or result. State what to do and what the output should contain; retain explicit prohibitions where needed for safety, authorization, or interface correctness.
+- Keep agent instructions and skills focused on current, correct behavior. Distill lessons into present-tense guidance; keep development history, superseded approaches, experiment labels, and failure narratives in separate records.
+- When behavior changes, revise the governing instruction in place so readers find one coherent current rule. Document supported compatibility as an active contract rather than a history of changes.
+
 ## Testing
 
 - Test deterministic contracts mechanically: file paths, schemas, exit codes, state transitions, ordering, parser boundaries, and provider argument forwarding.

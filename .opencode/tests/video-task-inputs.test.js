@@ -222,18 +222,18 @@ test('capture and verify store settings and ordered image hashes without writing
   const captured = f.cli('video-task-inputs.mjs', ['capture', f.tasks, '1', 'dreamina', 'model-v1', '16:9', '1080p']);
   assert.equal(captured.status, 0, captured.stderr);
   f.task.submission = JSON.parse(captured.stdout);
-  assert.deepEqual(Object.keys(f.task.submission).sort(), ['images', 'model', 'provider', 'ratio', 'resolution']);
+  assert.deepEqual(Object.keys(f.task.submission).sort(), ['model', 'provider', 'ratio', 'references', 'resolution']);
   assert.equal(f.task.submission.provider, 'dreamina');
   assert.equal(f.task.submission.resolution, '1080p');
-  assert.deepEqual(f.task.submission.images.map((i) => i.path), [f.sheet, f.image]);
-  assert.ok(f.task.submission.images.every((i) => /^[a-f0-9]{64}$/.test(i.sha256)));
+  assert.deepEqual(f.task.submission.references.map((i) => i.path), [f.image, f.video]);
+  assert.ok(f.task.submission.references.every((i) => /^[a-f0-9]{64}$/.test(i.sha256)));
   assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
   f.save();
   f.write('config.md', '- mode: short\n- 视频比例: 9:16\n');
   // Identity verification is not the capture/payment config gate.
   assert.equal(f.cli('video-task-inputs.mjs', ['verify', f.tasks, '1']).status, 0);
   assert.equal(f.task.submission.ratio, '16:9');
-  f.write(f.sheet, 'changed PNG');
+  f.write(f.video, 'changed MP4');
   assert.equal(f.cli('video-task-inputs.mjs', ['verify', f.tasks, '1']).status, 1);
 });
 
@@ -257,9 +257,9 @@ test('exported input helpers reject missing settings, reordered paths and change
     assert.throws(() => api.captureInputs(f.task, { model: 'model' }));
     f.task.submission = api.captureInputs(f.task, { provider: 'dreamina', model: 'model', ratio: '16:9', resolution: '1080p' });
     assert.equal(api.verifyInputs(f.task), true);
-    f.task.images = f.task.images.split(',').reverse().join(',');
+    f.task.references.reverse();
     assert.equal(api.verifyInputs(f.task), false);
-    f.task.images = f.task.images.split(',').reverse().join(',');
+    f.task.references.reverse();
     f.write(f.image, 'changed image');
     assert.equal(api.verifyInputs(f.task), false);
   } finally { process.chdir(cwd); }

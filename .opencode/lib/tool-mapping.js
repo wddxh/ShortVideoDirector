@@ -19,7 +19,10 @@ export const NATIVE_QUESTION_GUIDANCE = `
 
 export const ROLE_HANDOFF_GUIDANCE = `
 ${NATIVE_QUESTION_GUIDANCE}
-生成意图以实际请求为准，不另问图片/视频生成许可：short/series 包含所需新增资产图和分镜板图，intake/审核后执行，但始终停在视频提交前。用户后续手动 generate-video 请求由入口按原文与解析范围登记 initial_authorization，无额外批准握手；check/auto 仅延续已登记 initial/retry grants 或取回，不补新生成许可或无限重试，不强制首次提交前询问重试。
+生成意图以实际请求为准，不另问许可：short/series 包含所需资产图和本地参考，intake/审核后执行，始终停在付费视频提交前。后续手动 generate-video 请求由入口按原文和范围登记 initial_authorization；check/auto 仅在当前契约内延续登记 grants 或取回，不补新许可或无限重试，不强制首次提交前问重试。
+当前 manifest 只有 references，条目仅 local PNG/MP4，每镜至少一个 MP4；converter/task 保存 prompt/duration/typed references，submission 保存四元组与有序媒体指纹。静态相机可用静态 clip。资产图提供身份，BOX 控制相机/布局/位置/整体轨迹；动作表情在 prompt，作品基线每请求一次。就绪用 check-shot-inputs.mjs 与 script/storyboard/asset-visual/shot-input 证据；asset-prompt 只审授权新增/重生集合。整集编号 1..N，选镜允许缺号且目标须存在。取回按 recorded ID/provider，保留 grants/inflight/真实状态。
+shot-input 审核聚焦实际 prompt/media 集成、必要边界和变化细节；已有 storyboard 判断在无具体冲突时复用。按故事选相邻/非相邻/跨集配对，比较位置、轨迹、状态、轴线与身份，实际依赖存 inputs 指纹。源码/记账变化且渲染媒体未变可独立 scoped 兼容性评估，说明依据后续签，不能盲刷哈希或自动全量重审。每次视觉操作仍新 task、缩略图与最小配对；缺必要证据为 unknown。保留五种 review kind，主 AI/general 负责工程与测试。
+首次及周期 checker payload 均显式传 canonical config_path 或 UNRESOLVED，并沿 Creator relay 保留。UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选默认；配置操作显式验证绑定路径并共用 SVD_CONFIG。
 决策尽量前置：可预见的关键选择已满足或明确委托后即在原授权内连续执行，不要求未知艺术细节、额外“开始吗”或逐轮 review/fix 批准。新问题先查配置、材料与 grants 并用 Director/专家判断处理；只为用户指定检查点、缺必要权限或无法内部解决的关键冲突准备下述决策包。进度仅陈述，持续许可内动作不重复求同意；固定参数、初始用户集时长、覆盖/首次/重试/inflight 和视频独立入口边界不变。
 用户决策完整性涵盖原角色的整份计划和每道当前题：文件/章节先读全，当前题含相关背景、全部适用选项/解释及取舍，不摘要或只给链接。主 AI 补充单独标明；Director relay 对计划及批量原始答复/全部条件不压缩。无人值守仅报告需决策并保留完整计划供后续逐题交互。详见入口必读的 user-decision-relay.md。剧情未指定且基本意图充分时默认三个完整候选故事，不先问谁决定；明确数量、已有剧本/选定方向/委托优先。技术计划按每个 scope 的未决 provider -> model -> 相容 ratio -> resolution 给出明确兼容选择/分支，主 AI 依条件逐题呈现，跳过固定/继承/已委托项，不把无关技术设置当候选探索前置。
 
@@ -29,7 +32,7 @@ ${NATIVE_QUESTION_GUIDANCE}
 
 不能嵌套时，Director 返回目标 role、outcome、references、scope、constraints；主 AI 忠实转交给目标角色，再用 task_id 恢复同一个 Director 任务并传回实际结果。后续请求沿用本会话能力结论；主 AI 不自行安排创作顺序。其他角色的跨所有者建议由 Director 决定。若主 AI 也无法提供所需角色上下文，报告阻塞，不在当前上下文冒充专家任务。
 
-审核必须新建独立 Director task，不复用制作 task_id 或继承制作历史；传当前材料、要求和必要参考，不能只传有利总结。逐图审核通常各用新任务，汇总只读结论。审核者只写分配的 review 记录，可用 Bash 做只读检查，不改被审材料。relay 也无法提供独立上下文时报告阻塞，禁止同上下文自审或伪造 pass。`;
+审核必须新建独立 Director task，传当前材料、要求和必要参考。singleton 直接写受托轮次；相干小批纯文本可单任务逐 target 判断并落盘。协调者串行安排同 review 文件写入；仅实际分开的 reviewer 结果需合并时用独立汇总者。每次视觉操作仍新任务、helper 缩略图及最小图集。审核者只写受托记录及临时预览；生产者不能编造 pass，无隔离则阻塞。可选规划按需采用。`;
 
 export const ENTRY_WORKFLOW_DISPATCH_DISCIPLINE = `## 派发约束（OC 专用）
 

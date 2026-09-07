@@ -22,7 +22,7 @@ model: opus
 
 ## 职责描述
 
-这是可选规划审核，不要求所有 series 创建 arc。遵守共享 review-meta-rules 的独立新 Director context/主 AI relay 规则；只写受托 `.review-arc.md`，不修复、不调度、不替用户记录制作前批准，也不写六类生产材料的通过证据。输入缺失或无法判断返回 unknown。
+这是可选规划审核，不要求所有 series 创建 arc。遵守共享 review-meta-rules 的独立新 Director context/主 AI relay 规则；只写受托 `.review-arc.md`，不修复、不调度、不替用户记录制作前批准，也不写生产材料的通过证据。输入缺失或无法判断返回 unknown。
 
 ### 核心使命
 

@@ -5,14 +5,15 @@ import { createHash } from 'node:crypto';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { parseAssetInventory } from './episode-assets.mjs';
-import { parseSheetCard } from './storyboard-sheet-to-prompt.mjs';
+import { parseLocalReference, assertLocalReferenceReady } from './local-reference.mjs';
+import { resolveShotInputs, shotInputPath, readyPath } from './shot-inputs.mjs';
+import { checkShotInputs } from './check-shot-inputs.mjs';
 
 const files = {
   script: '.review-script.md', storyboard: '.review-storyboard.md',
   'asset-prompt': '.review-asset-prompts.md',
   'asset-visual': '.review-basic-assets-visual.md',
-  'sheet-prompt': '.review-storyboard-sheet-prompts.md',
-  'sheet-visual': '.review-storyboard-sheets-visual.md',
+  'shot-input': '.review-shot-inputs.md',
 };
 const imagePath = (card) => card.replace(/^assets\//, 'assets/images/').replace(/\.md$/, '.png');
 const relativePath = (value) => typeof value === 'string' && value.length > 0 &&
@@ -56,19 +57,26 @@ function currentInputs(inputs, required) {
   } catch { return false; }
 }
 
-function requiredInputs(kind, target, config) {
+export function requiredInputs(kind, target, config) {
+  if (!Object.hasOwn(files, kind)) throw new Error('Unsupported review kind');
   const required = [target, config];
+  if (kind === 'shot-input') {
+    const match = /^story\/episodes\/(ep(?:0[1-9]|[1-9]\d+))\/shot-inputs\/shot(0[1-9]|[1-9]\d+)\.json$/.exec(target);
+    if (!match || target !== shotInputPath(match[1], Number(match[2]))) throw new Error('Noncanonical shot input target');
+    const ep = `story/episodes/${match[1]}`;
+    const resolved = resolveShotInputs(`${ep}/storyboard.md`, Number(match[2]), match[1]);
+    required.push(`${ep}/script.md`, `${ep}/storyboard.md`, ...resolved.references.map(r => r.path),
+      ...resolved.sources);
+    for (const card of resolved.assetCards) required.push(...requiredInputs('asset-visual', card, config));
+    return [...new Set(required)].map(file => readyPath(file));
+  }
   if (kind.endsWith('-visual')) required.push(imagePath(target));
   if (kind === 'storyboard') required.push(`${path.posix.dirname(target)}/script.md`);
-  if (!kind.startsWith('sheet-')) return required;
-
-  const match = /^assets\/storyboard-sheets\/(ep(?:0[1-9]|[1-9]\d+))\/shot(0[1-9]|[1-9]\d+)\.md$/.exec(target);
-  if (!match) throw new Error('Noncanonical sheet target');
-  const { images, sourcePath } = parseSheetCard(target, match[1]);
-  required.push(sourcePath);
-  const cards = images.map((image) => image.replace(/^assets\/images\//, 'assets/').replace(/\.png$/, '.md'));
-  required.push(...cards);
-  if (kind === 'sheet-visual') required.push(...cards.map(imagePath));
+  if (kind.startsWith('asset-')) {
+    const localReference = parseLocalReference(fs.readFileSync(target, 'utf8'));
+    assertLocalReferenceReady(localReference);
+    if (localReference) required.push(...localReference.images, ...localReference.sources);
+  }
   return [...new Set(required)];
 }
 
@@ -77,7 +85,7 @@ export function checkCoverage(requiredTargets, rounds, config = 'config.md') {
     const latest = [...rounds].reverse().find((round) =>
       !Array.isArray(round.scope) || !round.scope.every(relativePath) || round.scope.includes(target));
     let status = 'unknown';
-    if (latest?.complete === true && latest.version === 1 && files[latest.kind] &&
+    if (latest?.complete === true && files[latest.kind] &&
         Array.isArray(latest.scope) && latest.scope.every(relativePath) &&
         new Set(latest.scope).size === latest.scope.length && Array.isArray(latest.results) &&
         latest.results.length === latest.scope.length && latest.scope.every((file) =>
@@ -161,46 +169,29 @@ function checkEpisode(episode, shots, config) {
   if (!/^## 场景/m.test(scriptText)) throw new Error('Incomplete script');
   const inventory = parseAssetInventory(scriptText);
   let assets = [...new Set([...inventory.newAssets, ...inventory.existingAssets])];
-  const board = fs.readFileSync(storyboard, 'utf8');
-  let selected = [...board.matchAll(/^### shot ([1-9]\d*)$/gm)].map((m) => m[1]);
-  if (!selected.length) throw new Error('Missing shots');
-  if (!shots.length) {
-    const checked = spawnSync('node', [path.join(directory, 'check-storyboard-sheets.mjs'), episode],
-      { encoding: 'utf8' });
-    blocked ||= checked.status !== 0;
-  }
-  if (shots.length) {
-    if (shots.some((shot) => !/^[1-9]\d*$/.test(shot) || !selected.includes(shot))) {
-      throw new Error('Invalid selected shot');
-    }
-    selected = [...new Set(shots)];
-    assets = [];
-  }
-  // Scope is derived from the same converter used by video preparation.
-  if (shots.length) for (const shot of selected) {
-    const converted = spawnSync('node', [path.join(directory, 'storyboard-to-prompt.mjs'),
-      storyboard, shot, episode], { encoding: 'utf8' });
-    if (converted.status !== 0) throw new Error(converted.stderr.trim());
-    const images = converted.stdout.split('\n')[0].slice('IMAGES:'.length).split(',');
-    for (const image of images.slice(1)) {
-      const card = image.replace(/^assets\/images\//, 'assets/').replace(/\.png$/, '.md');
+  const checked = checkShotInputs(episode, shots);
+  blocked ||= checked.issue;
+  if (shots.length) assets = [];
+  const manifests = [];
+  // Scope is derived from the same resolver used by video preparation.
+  for (const resolved of checked.resolved) {
+    manifests.push(resolved.inputPath);
+    for (const card of resolved.assetCards) {
       if (![...inventory.newAssets, ...inventory.existingAssets].includes(card)) {
         throw new Error(`Reference absent from script inventory: ${card}`);
       }
       if (!assets.includes(card)) assets.push(card);
     }
   }
-  const sheets = selected.map((shot) => `assets/storyboard-sheets/${episode}/shot${shot.padStart(2, '0')}.md`);
   const targets = { script: [script], storyboard: [storyboard],
-    'asset-prompt': assets, 'asset-visual': assets, 'sheet-prompt': sheets, 'sheet-visual': sheets };
-  const labels = { 'sheet-prompt': 'storyboard-sheet-prompt', 'sheet-visual': 'storyboard-sheet-visual' };
+    'asset-visual': assets, 'shot-input': manifests };
   for (const [kind, required] of Object.entries(targets)) {
     const file = `${ep}/${files[kind]}`;
     let rounds = [];
     if (fs.existsSync(file)) rounds = readRounds(fs.readFileSync(file, 'utf8'), kind);
     const coverage = checkCoverage(required, rounds, config);
     const status = coverage.status === 'pass' ? 'ok' : !fs.existsSync(file) ? 'missing' : coverage.status;
-    console.log(`${labels[kind] ?? kind}-review:${status}`);
+    console.log(`${kind}-review:${status}`);
     blocked ||= coverage.status !== 'pass';
   }
   return blocked ? 1 : 0;
@@ -213,9 +204,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       console.log(configPath(args[0]));
     } else if (action === 'fingerprint' && args.length) {
       console.log(JSON.stringify(fingerprintInputs(args)));
+    } else if (action === 'required' && args.length === 2 && files[args[0]]) {
+      console.log(JSON.stringify(requiredInputs(args[0], args[1], configPath())));
     } else if (action === 'check' && args.length) {
       process.exitCode = checkEpisode(args[0], args.slice(1), configPath());
-    } else throw new Error('Usage: review-evidence.mjs config-path [PATH] | fingerprint PATH... | check EP [SHOT...]');
+    } else throw new Error('Usage: review-evidence.mjs config-path [PATH] | fingerprint PATH... | required KIND TARGET | check EP [SHOT...]');
   } catch (error) {
     console.error(`ERROR: ${error.message}`);
     process.exitCode = 1;

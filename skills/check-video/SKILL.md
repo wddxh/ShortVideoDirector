@@ -11,6 +11,8 @@ model: opus
 
 check/auto 本身不是新视频生成请求，只取回已登记任务或延续有效 initial/retry grants。generate-video 已将用户实际生成请求登记为 initial grant 时，首次续交不再询问生成许可；缺 grant 不从“使用本系统”或监控意图补造。交互中用户另行要求新生成则交 generate-video 入口，按该实际请求登记，不另设批准握手；重试仍按真实 retry grant，不推断无限次数。
 
+付费续交/重试使用当前 typed references，每镜至少一个本地 MP4，manifest 条目仅 local PNG/MP4。按已登记 ID/provider 查询下载 submitted 任务；缺可核实 ID 则 human_needed，保留记录和媒体等待核实。
+
 先复用当前配置、材料和真实 grants，许可内的首次续交、原输入重试和取回不逐次求批准，不重问已定 provider、限制或重试范围。新阻塞先交责任角色在原权限内诊断，内部 review/fix 不自动触发用户确认；仅缺必要权限、关键冲突或用户指定检查点才问，进度只陈述。无人值守仍不得新授权或发起创作修复，不能用减少打断绕过 human_needed/inflight 边界。
 
 查询/下载可直接按记录进行，不补创作问卷。需要新创作时按共享 intake 规则，先复用已知需求或取得明确角色/范围/约束委托，不先编修正候选、设计、提示或聊天预览；意外问题仅暂停受影响工作。无人值守缺决定仅报 human_needed。
@@ -21,13 +23,13 @@ check/auto 本身不是新视频生成请求，只取回已登记任务或延续
 
 纯查询/下载首先按持久任务处理，不运行 generation config、videoProfile 或审核门禁。只有查看/修改配置、准备或获准提交需要配置时，从项目根运行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" config-path`，把 SVD_CONFIG（未设才 config.md）规范为项目相对 config_path，再读取/写入/取证。项目内绝对路径及 ./ 支持；外部配置（含 symlink 越界）不支持，任何相关副作用前报告，不能因此阻断其他已提交任务取回。
 
-配置/approval 只写 config_path；Task/relay 传同一路径，各相关 Bash 显式用 `SVD_CONFIG="{config_path}"`，有配置位置参数的 helper 同时传该路径。fingerprint 用 canonical 路径，videoProfile 与 evidence 共用配置。规范化失败归 human_needed；不补默认、不刷新持久 tuple。
+配置/approval 只写 config_path；Task/relay 传同一路径，相关 Bash 显式用 `SVD_CONFIG="{config_path}"`，配置位置参数也传该路径。fingerprint/videoProfile/evidence 共用配置。监控首次及周期 payload 的 `UNRESOLVED` 仅允许取回并报告 human_needed，空值是传输错误；绑定路径用 `config-path "{config_path}"` 显式验证，不取环境默认或刷新持久 tuple。
 
 整体理解原始请求 `$ARGUMENTS` 与当前委托，先确定 canonical ep/all 和具体镜头范围。all 只来自明确全项目请求，缺目标或冲突先澄清，不默认最新/全部。监控模式来自明确 unattended 委托，不要求用户 flags；普通查询不自动安装监控或授权重试。查看配置只读实际配置，缺失不初始化。仅用现有 scripts，不临时编写执行脚本。
 
-任务在 `story/episodes/{ep}/videos/tasks.json`，为 JSON 数组，每个 shot 唯一。保留 `shot,submit_id,status,prompt,images,duration,fail_reason`；submission 保存 `provider,model,ratio,resolution,images:[{path,sha256}]`，顺序与 CSV 相同。reserve/settle 由 wrapper 写 tasks；checker 只维护实际用户授权及查询结果，不重复提交写回，不与脚本并发编辑。每次写前重读，只改当前 shot，保留其他变更/grants/inflight。
+任务在 `story/episodes/{ep}/videos/tasks.json`，JSON 数组，每个 shot 唯一。按 [shot-inputs](../_meta/rules/shot-inputs.md) 保留 `shot,submit_id,status,prompt,references,duration,fail_reason`，references 为有序 `{media,path}`；submission 为 `{provider,model,ratio,resolution,references:[{media,path,sha256}]}`。reserve/settle 由 wrapper 写；checker 仅维护真实授权/查询结果，写前重读，不与脚本并发改写，保留其他变更/grants/inflight。
 
-status 为 pending/submitted/done/failed。done 仅表示当前任务已下载，不表示视频质量通过。submitted/done 不允许刷新输入或自动重提。缺 submission 的历史 submitted 仍可查询下载；历史 failed 需授权准备，不能猜配置或补造哈希。
+status 为 pending/submitted/done/failed。done 仅表示当前任务已下载，不表示视频质量通过。submitted/done 不允许刷新输入或自动重提。缺 submission 的 submitted 仍可按已登记 ID 取回；failed 的输入未就绪须在实际授权内准备，不猜配置或补造哈希。
 
 ## 查询与下载
 
@@ -76,8 +78,8 @@ wrapper 在 provider 前调用 `reserve`，原子写入 `inflight:{token,kind,re
 
 对 failed 按 `${CLAUDE_PLUGIN_ROOT}/skills/check-video/failure-classification.md` 语义分类。每次（包括无人值守检查）从 tasks.json 读取 retry_authorization，执行 `node ${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs retry "{tasks}" "{shot}" "{ep}"`。非零归 human_needed；通过后仍须按 decision/constraints 判断本次失败是否获准、用户实际限制是否满足，无法确认则 human_needed，不额外要求余额预检。脚本只校验结构、scope 和次数，不替用户授权或解释语义。
 
-1. 读取原 prompt/images/duration 和 submission.provider/model/ratio/resolution。执行 `node ${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs verify "{tasks}" "{shot}"`。缺身份或图片字节漂移归 human_needed，不重新 capture，不以当前 config 替换参数。
-2. 重提前执行 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-legacy-kf.sh "{ep}" "{storyboard}" "{tasks}"`；非零停止重提。仅付费提交检查此边界，不拦截旧任务取回。
+1. 读取原 prompt/references/duration 和 submission 四元组与媒体指纹。付费续交/重试必须具备当前 typed references 和至少一个本地 MP4，并满足实际 grant；submitted 只按已登记 ID/provider 取回。
+2. 执行 `node ${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs verify "{tasks}" "{shot}"`，并用同一 SVD_CONFIG 运行 `check-shot-inputs.mjs "{ep}" "{shot}"` 与当前 scoped evidence 检查。缺身份、媒体漂移或审核未决归 human_needed；不重新 capture。源码/记账变化且渲染媒体未变时可交独立 reviewer 做 scoped 兼容性评估，不自动全量重审，不盲刷哈希。
 3. 新提交/重试必须用 Task 委托真实 Creator：成果为按持久 tuple 和实际 grant 执行当前目标，给出 tasks/材料路径、canonical ep/shots、失败原文及约束。Creator 自选 provider 知识，验证最新能力但不重选参数，再用现有 wrapper 执行。checker 加载 skill 不能冒充 Creator，不直接调用生成 wrapper。
 
 嵌套不可用或明确深度拒绝时，checker 返回 `role:creator`、outcome、references、scope、constraints 与原 checker task_id。主 AI 忠实派发 sibling Creator，再恢复同一个 checker task_id 传回实际结果；不可用的 relay 归 human_needed，不伪造执行或新建 checker 丢失状态。记住已确认深度结论，普通失败不是深度拒绝。此协议同时适用于首次检查和周期检查。
@@ -90,7 +92,7 @@ wrapper gate 必须匹配登记字段及当前 scoped material review。gate 失
 
 auto 对 human_needed 用现有 `{"ep":"ep01","shot":1,"reason":"原因"}` 报告需决策，不询问、不修改材料、不发起创作修复。已收到的完整问题计划在 JSON 外完整保留或给出其明确文件/章节，供后续交互读全并沿作者题界逐题完整展示当前内容；状态摘要不替代计划，不改末行 JSON 契约。
 
-交互模式展示原始失败和用户请求，仅补必要的修正范围、实际约束及是否允许重提的决定，不要求费用确认。将期望成果、失败详情、tasks/材料路径、shot 范围、用户意见和授权交 Director 负责诊断与协调，不指定 asset/storyboard/sheet 的固定 skill 链。用户说“自动修复”也不能扩大授权范围或违反明确限制。
+交互模式展示原始失败和用户请求，仅补必要修正范围、实际约束和重提决定，不要求费用确认。将期望成果、失败详情、tasks/材料路径、shot 范围、用户意见及授权交 Director 诊断协调，不指定固定技能链。用户说“自动修复”也不能扩大授权范围或违反明确限制。
 
 嵌套实际可用时直接委托 Director。不可用或明确拒绝时，请主 AI 忠实转交 Director 的专家请求并将结果送回同一 Director `task_id` 继续；主 AI 不另排创作流程，不同上下文自审兜底。一般任务失败不视为嵌套禁用，也不在主会话接管创作。
 

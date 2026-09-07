@@ -355,14 +355,6 @@ describe('transformAllSkills (integration)', () => {
       .replaceAll('${CLAUDE_PLUGIN_ROOT}', PROJECT_ROOT));
   });
 
-  test('sheet image fix cache preserves the source body', async () => {
-    await transformAllSkills(PROJECT_ROOT, tmpDir);
-    const relative = 'creator-fix-storyboard-sheet-image/SKILL.md';
-    const source = await parseSkillFile(path.join(PROJECT_ROOT, 'skills', relative));
-    const cached = await parseSkillFile(path.join(tmpDir, relative));
-    assert.equal(cached.body, source.body);
-  });
-
   test('.md aux files have ${CLAUDE_PLUGIN_ROOT} inline-substituted', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     // 扫描所有 cache 内的 .md aux（非 SKILL.md），断言无字面残留

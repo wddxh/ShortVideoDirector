@@ -9,13 +9,21 @@ function convert(...paths) {
   return spawnSync('bash', [SCRIPT, ...paths], { encoding: 'utf8' });
 }
 
-test('maps a storyboard sheet markdown path to its image path', () => {
-  const result = convert('assets/storyboard-sheets/ep01/shot01.md');
+test('rejects paths outside supported basic asset categories', () => {
+  for (const file of ['assets/other/lamp.md', 'assets/items/lamp.png', 'lamp.md']) {
+    const result = convert(file);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
+  }
+});
+
+test('maps a building asset markdown path to its image path', () => {
+  const result = convert('assets/buildings/hall.md');
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(
     result.stdout,
-    'assets/images/storyboard-sheets/ep01/shot01.png\n',
+    'assets/images/buildings/hall.png\n',
   );
 });
 

@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fingerprintInputs, configPath } from './review-evidence.mjs';
+import { resolveShotInputs, validateReferences } from './shot-inputs.mjs';
 
 const validSettings = (settings) => settings &&
   settings.provider === 'dreamina' &&
@@ -17,19 +18,19 @@ export function captureInputs(task, settings) {
   if (task.inflight) throw new Error('Unresolved submission intent');
   if (task.status !== 'pending') throw new Error('Only prepared pending tasks can capture inputs');
   if (!validSettings(settings)) throw new Error('Invalid submission settings');
-  if (typeof task.images !== 'string' || !task.images.length) throw new Error('Missing images');
-  const images = task.images.split(',').map((image) => fingerprintInputs([image])[0]);
+  const references = validateReferences(task.references).map(({ media, path: file }) =>
+    ({ media, ...fingerprintInputs([file])[0] }));
   return { provider: settings.provider, model: settings.model, ratio: settings.ratio,
-    resolution: settings.resolution, images };
+    resolution: settings.resolution, references };
 }
 
 export function verifyInputs(task) {
   try {
     const stored = task.submission;
-    if (!validSettings(stored) || !Array.isArray(stored.images)) return false;
     const current = captureInputs({ ...task, status: 'pending' }, stored);
-    return current.images.length === stored.images.length && current.images.every((image, i) =>
-      image.path === stored.images[i]?.path && image.sha256 === stored.images[i]?.sha256);
+    return Array.isArray(stored.references) && current.references.length === stored.references.length &&
+      current.references.every((ref, i) => ['media', 'path', 'sha256'].every(key =>
+        ref[key] === stored.references[i]?.[key]));
   } catch { return false; }
 }
 
@@ -180,30 +181,26 @@ function checkEpisodeProfile(tasks, task, profile) {
   }
 }
 
-function gate([prompt, output, images, duration, ratio, model, provider, resolution], task, tasks) {
-  const { episode, padded, shot, file } = outputTask(output);
+function gate([prompt, output, references, duration, ratio, model, provider, resolution], task, tasks) {
+  const { episode, shot, file } = outputTask(output);
   // Caller records the actual decision and assesses its semantic constraints.
   if (!['pending', 'failed'].includes(task.status)) throw new Error('Task is protected');
   if (task.status === 'failed') retryAuthorization(task, episode);
   else initialAuthorization(task, episode);
   if (!verifyInputs(task)) throw new Error('Input identity missing or changed; intervention required');
   if (videoProfile(file, task.submission).mode === 'short') checkEpisodeProfile(tasks, task, task.submission);
-  if (!prompt?.trim() || prompt !== task.prompt || images !== task.images ||
+  const sameRefs = JSON.stringify(validateReferences(JSON.parse(references)).map(({ media, path }) =>
+    ({ media, path }))) === JSON.stringify(task.references.map(({ media, path }) => ({ media, path })));
+  if (!prompt?.trim() || prompt !== task.prompt || !sameRefs ||
       !Number.isInteger(task.duration) || task.duration <= 0 || duration !== String(task.duration) ||
       ratio !== task.submission.ratio || model !== task.submission.model ||
-      provider !== task.submission.provider || resolution !== task.submission.resolution ||
-      images.split(',')[0] !== `assets/images/storyboard-sheets/${episode}/shot${padded}.png`) {
+      provider !== task.submission.provider || resolution !== task.submission.resolution) {
     throw new Error('Arguments do not match registered task');
   }
-  const converted = spawnSync(process.execPath,
-    [fileURLToPath(new URL('./storyboard-to-prompt.mjs', import.meta.url)),
-      `story/episodes/${episode}/storyboard.md`, shot, episode], { encoding: 'utf8' });
-  const fields = /^IMAGES:([^\n]+)\nDURATION:([1-9]\d*)\n---\n([\s\S]*)$/.exec(converted.stdout ?? '');
-  // Accept raw converter output or its shell-captured form, never trim prose.
-  if (converted.status !== 0 || !fields || task.images !== fields[1] ||
-      String(task.duration) !== fields[2] ||
-      (task.prompt !== fields[3] && task.prompt !== fields[3].replace(/\n$/, ''))) {
-    throw new Error('Current converter fields differ or are unavailable; authorized preparation required');
+  const current = resolveShotInputs(`story/episodes/${episode}/storyboard.md`, Number(shot), episode);
+  if (current.prompt !== task.prompt || current.duration !== task.duration ||
+      JSON.stringify(current.references) !== JSON.stringify(task.references.map(({ media, path }) => ({ media, path })))) {
+    throw new Error('Current converter fields differ; authorized preparation required');
   }
   const review = spawnSync(process.execPath, [fileURLToPath(new URL('./review-evidence.mjs', import.meta.url)),
     'check', episode, shot], { encoding: 'utf8' });
@@ -270,6 +267,9 @@ function reserve(args) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const [action, ...args] = process.argv.slice(2);
+    if (['gate', 'reserve'].includes(action)) {
+      if (args.shift() !== '--references-json') throw new Error('Expected --references-json');
+    }
     if (action === 'profile' && args.length === 1) {
       console.log(JSON.stringify(videoProfile(args[0])));
     } else if (action === 'capture' && args.length === 6) {
@@ -292,7 +292,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       settle(...args);
     } else if (action === 'gate' && args.length === 8) {
       transition(outputTask(args[1]), (task, tasks) => gate(args, task, tasks), false);
-    } else throw new Error('Usage: profile TASKS | capture TASKS SHOT PROVIDER MODEL RATIO RESOLUTION | verify TASKS SHOT | initial/retry TASKS SHOT EP | gate/reserve PROMPT OUTPUT IMAGES DURATION RATIO MODEL PROVIDER RESOLUTION | settle OUTPUT TOKEN submitted/failed VALUE');
+    } else throw new Error('Usage: profile TASKS | capture TASKS SHOT PROVIDER MODEL RATIO RESOLUTION | verify TASKS SHOT | initial/retry TASKS SHOT EP | gate/reserve --references-json PROMPT OUTPUT REFERENCES DURATION RATIO MODEL PROVIDER RESOLUTION | settle OUTPUT TOKEN submitted/failed VALUE');
   } catch (error) {
     console.error(`ERROR: ${error.message}`);
     process.exitCode = 1;

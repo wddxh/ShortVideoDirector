@@ -166,18 +166,18 @@ test('settlement and cleanup cannot replace or remove another job identity', t =
   assert.deepEqual(JSON.parse(f.read(pending)), [other, entry]);
 });
 
-test('receipt recovery accepts known unresolved sheet IDs without current cards/config', t => {
+test('receipt recovery accepts known unresolved asset IDs without current cards/config', t => {
   const f = fixture(t);
-  const card = 'assets/storyboard-sheets/ep01/shot01.md';
-  const image = 'assets/images/storyboard-sheets/ep01/shot01.png';
+  const card = source;
+  const image = output;
   for (const status of ['received', 'pending', 'unknown']) {
     const saved = JSON.stringify({ source_path: card, output_path: image, ...settings,
-      status, submit_id: 'sheet-id' });
+      status, submit_id: 'asset-id' });
     f.write(image.replace('.png', '.generation.json'), saved);
     f.write(pending, JSON.stringify([other]));
     assert.equal(f.cli('image-pending-state.mjs', ['recover', card, image]).status, 0);
-    assert.deepEqual(JSON.parse(f.read(pending)), [other, { submit_id: 'sheet-id',
-      card_path: card, output_path: image, type: 'storyboard-sheet', ...settings }]);
+    assert.deepEqual(JSON.parse(f.read(pending)), [other, { submit_id: 'asset-id',
+      asset_path: card, output_path: image, type: 'basic-asset', ...settings }]);
     assert.equal(f.read(image.replace('.png', '.generation.json')), saved);
     assert.equal(f.exists(`${image}.claim`), false);
   }

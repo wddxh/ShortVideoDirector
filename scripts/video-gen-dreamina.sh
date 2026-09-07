@@ -1,50 +1,40 @@
 #!/usr/bin/env bash
 # Submit a single video generation task using Dreamina CLI multimodal2video.
 # Does NOT poll — returns submit_id immediately for async tracking.
-# Usage: video-gen-dreamina.sh PROMPT OUTPUT IMAGES DURATION RATIO MODEL RESOLUTION
+# Usage: video-gen-dreamina.sh --references-json PROMPT OUTPUT REFERENCES DURATION RATIO MODEL RESOLUTION
 # The complete reference list is forwarded unchanged and in order; provider
 # limits are returned as provider errors.
 # Exit codes: 0=SUBMITTED (stdout has "SUBMITTED submit_id"), 1=FAIL
 
-if [ $# -ne 7 ]; then
-  echo 'Usage: video-gen-dreamina.sh PROMPT OUTPUT IMAGES DURATION RATIO MODEL RESOLUTION'
+if [ $# -ne 8 ] || [ "${1:-}" != --references-json ]; then
+  echo 'Usage: video-gen-dreamina.sh --references-json PROMPT OUTPUT REFERENCES DURATION RATIO MODEL RESOLUTION'
   exit 1
 fi
+shift
 
 PROMPT="$1"
 OUTPUT="$2"
-IMAGES="$3"
+REFERENCES="$3"
 DURATION="$4"
 RATIO="$5"
 MODEL="$6"
 RESOLUTION="$7"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-case ",$IMAGES," in
-  *,,*)
-    echo "FAIL images list is empty"
-    exit 1
-    ;;
-esac
+REFERENCE_FLAGS=()
+FLAGS=$(node "$SCRIPT_DIR/shot-inputs.mjs" flags "$REFERENCES") || exit 1
+while IFS= read -r flag; do REFERENCE_FLAGS+=( "$flag" ); done <<< "$FLAGS"
 
-TOKEN=$(node "$SCRIPT_DIR/video-task-inputs.mjs" reserve "$PROMPT" "$OUTPUT" "$IMAGES" "$DURATION" "$RATIO" "$MODEL" dreamina "$RESOLUTION")
+TOKEN=$(node "$SCRIPT_DIR/video-task-inputs.mjs" reserve --references-json "$PROMPT" "$OUTPUT" "$REFERENCES" "$DURATION" "$RATIO" "$MODEL" dreamina "$RESOLUTION")
 if [ $? -ne 0 ]; then
   echo "FAIL submission_gate"
   exit 1
 fi
 
-# Build --image flags as an array (no eval needed; preserves arbitrary chars
-# in PROMPT including double quotes, spaces, shell metachars).
-IMAGE_FLAGS=()
-IFS=',' read -ra IMG_ARRAY <<< "$IMAGES"
-for img in "${IMG_ARRAY[@]}"; do
-  IMAGE_FLAGS+=( --image "$img" )
-done
-
 # Submit task (no --poll, returns immediately). PROMPT is passed via array,
 # so any chars in it (including ", ', spaces, $) are preserved verbatim.
 RESULT=$(dreamina multimodal2video \
-  "${IMAGE_FLAGS[@]}" \
+  "${REFERENCE_FLAGS[@]}" \
   --prompt="$PROMPT" \
   --duration="$DURATION" \
   --ratio="$RATIO" \

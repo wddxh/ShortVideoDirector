@@ -18,10 +18,6 @@ STORYBOARD="$EP_DIR/storyboard.md"
 SCRIPT_FILE="$EP_DIR/script.md"
 HAS_ISSUE=0
 
-"$SCRIPT_DIR/detect-legacy-kf.sh" "$EP" "$STORYBOARD" "$EP_DIR/videos/tasks.json"
-STATUS=$?
-[ "$STATUS" -eq 0 ] || exit "$STATUS"
-
 if [ ! -f "$SCRIPT_FILE" ]; then
   printf '%s\n' 'script:missing'; HAS_ISSUE=1
 elif grep -q '^## 场景' "$SCRIPT_FILE"; then
@@ -61,15 +57,8 @@ else
 fi
 
 if [ ! -f "$STORYBOARD" ]; then
-  printf '%s\n' 'storyboard:missing' 'storyboard-sheets:missing' 'storyboard-sheet-images:missing'
+  printf '%s\n' 'storyboard:missing' 'shot-inputs:missing'
   HAS_ISSUE=1
-else
-  SHEET_OUTPUT=$(node "$SCRIPT_DIR/check-storyboard-sheets.mjs" "$EP")
-  [ "$?" -eq 0 ] || HAS_ISSUE=1
-  printf '%s\n' "$SHEET_OUTPUT"
-  if ! printf '%s\n' "$SHEET_OUTPUT" | grep -Eq '^storyboard:(invalid|incomplete):'; then
-    printf '%s\n' 'storyboard:ok'
-  fi
 fi
 SVD_CONFIG="$CONFIG" node "$SCRIPT_DIR/review-evidence.mjs" check "$EP"
 [ "$?" -eq 0 ] || HAS_ISSUE=1

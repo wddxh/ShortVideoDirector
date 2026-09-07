@@ -1,6 +1,6 @@
 ---
 name: director-review-asset-prompts
-description: 在本集或指定基础资产提示需要独立审核汇总时使用。
+description: 在授权新增或重生资产提示需要独立单项、小批量审核或汇总实际分项结果时使用。
 user-invocable: false
 agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
@@ -9,19 +9,21 @@ model: opus
 
 ## 委托与范围
 
-接收集数 ep 或明确的全局资产范围、可选完整 card paths、审核 outcome 与保留要求。basic-only，仅 characters/locations/items/buildings，不审核 storyboard sheets。不设位置参数或类型开关协议。
+接收集数 ep 或明确资产范围、可选完整 card paths、审核 outcome 与保留要求。仅 characters/locations/items/buildings，不设位置参数或类型开关协议。
 
-读取共享 review-meta-rules.md、output-language.md 与实际配置 SVD_CONFIG（未设时 config.md）。本上下文是与生产者分离的新 Director 汇总者，只处理范围所需文本、真实单项结果和证据，不读 PNG，不代单项 reviewer 作提示质量判断。
+读取共享 review-meta-rules.md、output-language.md 与实际配置 SVD_CONFIG（未设时 config.md）。本上下文与生产者隔离：singleton 或小批量相干纯文本提示可直接审核、逐 target 出结果并写受托轮次；只有实际分开的 reviewer 结果需合并时才担任只读结论的汇总者。
 
-显式路径按 canonical path 去重，只审指定目标，可包含复用资产；历史 dirty/unknown 不自动加入。范围外未解决记录原样保留，另报生产 Director。缺卡保留目标并记 unknown，不静默删除或 Glob 扩大范围。
+按 canonical path 去重，只审核授权新增/重生集合内的指定目标。复用库存与范围外 dirty/unknown 不自动加入；必要参考仅为 inputs。缺卡保留目标并记 unknown，不静默删除或 Glob 扩大范围。
 
-未指定目标时，用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all` 获得本集新增与复用全集，验证最新证据，仅审缺失、过时、未通过项。明确委托全局资产审核且未给路径时，才列举四类基础卡；`assets/.review-asset-prompts.md` 不替代集内验收。历史纯 pass 不跳过身份核对，显式目标仍审核。
+从生产委托取得授权新增/重生清单；清单缺失时向负责人补齐，不以本集 all inventory 推定生成范围。集合内核对最新证据，按委托处理缺失、过时或未通过项；当前证据不因引用了复用库存而扩 scope。
 
 ## 独立单项审核
 
-每个目标交全新 Director context，委托审核该卡提示的身份表达、可生成性、语言与引用一致性，附目标路径、实际配置、相关参考、只读边界和所需 result JSON。Reviewer 自行发现方法，不要求加载指定 skill。无嵌套时请主 AI 忠实 relay；无法提供隔离则 unknown，不在汇总上下文自审。
+卡片有本地制作参考时，单项委托包含声明 images/sources 的全部实际路径及控制/占位比较要求；单项须看已制成本地 PNG、读取/检查源码/工程/输入并采前后指纹。普通未来生成 PNG 不要求存在。汇总者“不读 PNG”不适用于独立单项的本地参考审核，仍只收原始结论，不自行补 pass；按共享 local-reference.md 保留缺文件/无法必要读取的 unknown。
 
-按资源选择并行或串行，例如每批最多五项；这不是审核门禁。收齐原始结果，空响应、技术失败、缺项或非法 JSON 均为 unknown，协议修正交原 reviewer。结果保留 target/status/inputs/blockers 及 asset_path/issue/prompt_direction；不自动接受、不调度修复。
+独立任务审核提示的身份表达、可生成性、语言与引用一致性。相干小批纯文本可同任务逐 target 判断；涉及本地 PNG 时每次图片操作另开全新任务、先缩略图、最小比较集，不用文本批量规则放宽视觉隔离。委托附路径、实际配置、参考、受托轮次或子结果边界；无嵌套请主 AI relay，无法隔离则 unknown。
+
+协调者串行分配同一 review 文件的写入，singleton/文本批次直接完成自己的轮次，无需二次 LLM 汇总。确需并行分项时仅返回子结果，由独立汇总者写合并轮次。空响应、失败、缺项或非法 JSON 为 unknown，协议修正交 reviewer；结果保留 target/status/inputs/blockers 及 asset_path/issue/prompt_direction，不调度修复。
 
 ## 证据与落盘
 

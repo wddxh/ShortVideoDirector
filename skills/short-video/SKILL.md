@@ -10,9 +10,11 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 ## 委托入口
 
+交付采用 [shot-inputs](../_meta/rules/shot-inputs.md)：manifest 顶层仅 references，每镜至少一个本地 MP4，可辅以 PNG；header 资产图提供身份，sources 不上传。静态相机可用静态 clip。独立 shot-input 审核聚焦实际输入集成、变化细节与必要边界，已有 storyboard 判断在无冲突时复用。就绪要求 script/storyboard/asset-visual/shot-input，asset-prompt 只覆盖授权新增/重生集合。图片/视频授权边界保持。
+
 用户决策前必读 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/user-decision-relay.md`。原角色一次给齐全部可预见相关问题/表、题界、完整选项/解释、稳定标签及条件分支。主 AI 读全并内部保留计划，仅沿作者题界展示当前题全部内容，再用可用原生键盘选择器，questions 恰好一项。等回答再问下一适用题，相关原始答复及全部条件经 Director 批量完整回原角色原任务，不逐题往返；仅缺内容/映射、不相容或计划外新决定才提前回询。只应用作者条件，不有损改写、不提前展示全表；长解释在控件前，Markdown 不替代可用控件，宿主限制明确披露。
 
-主 AI 处理配置、输入和用户决策；Director 拥有创作与专业协作。目标恒为 mode=`short`、ep=`ep01`。用户的制作请求本身包含所需新增基础资产图和分镜板图片，intake/当前审核满足后直接生成，不再询问生图授权。配置查看/纯诊断仍只读；范围外覆盖、固定设置冲突或受保护任务仍须处理。本流程始终停止在视频生成之前，即使全部审核完成；只有用户后续手动调用 generate-video 才提交视频。
+主 AI 处理配置、输入和用户决策；Director 拥有创作与专业协作。目标恒为 mode=`short`、ep=`ep01`。制作请求包含所需新增基础资产图和本地参考，intake/当前审核满足后执行，不另问生图授权。配置查看/纯诊断仍只读；范围外覆盖、固定设置冲突或受保护任务仍须处理。本流程始终停在付费视频提交前；只有用户后续手动调用 generate-video 才提交视频。
 
 ## 配置与输入
 
@@ -24,7 +26,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 配置读取/写入/evidence 前，从项目根执行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" config-path`，把 SVD_CONFIG（未设才 config.md）规范为项目相对 config_path。项目内绝对路径、./ 可接受，外部配置（含 symlink 越界）明确不支持，在副作用前报告并停止。缺失的项目内路径仍可只读报告或获准初始化；不因缺失换回默认。
 
-后文所有配置/批准记录仅用 config_path。Task/relay 传同一路径；每次 Bash 显式设置 `SVD_CONFIG="{config_path}"`，detect-mode 传该路径，read-config 在键名后传该路径，check-episode 在 ep 后传该路径。fingerprint 仅用 canonical config_path；videoProfile 与 evidence 共用它，不依赖跨工具环境持久化。
+后文所有配置/批准记录仅用 config_path。Task/relay 传同一路径；每次配置相关 Bash 显式设置 `SVD_CONFIG="{config_path}"`，detect-mode 传该路径，read-config 在键名后传该路径。fingerprint、videoProfile 与 evidence 共用 canonical config_path，不依赖跨工具环境持久化。
 
 整体理解原始请求 `$ARGUMENTS` 和会话：区分查看/修改配置、内联故事、文件参考与制作意图，不按首 token 或文件后缀解析整句。文件和意见可混合；路径不清或读取失败先澄清，不能当内联故事继续。
 
@@ -40,7 +42,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 ## Provider 配置
 
-配置能力问题用真实 Task 委托 Creator，给出操作、固定/继承值、作用域、约束与 grants。按共享 Concrete Technical Choices，一次提供 images/video/sheets 各 scope 的全部未决问题：provider -> model -> 相容 ratio -> resolution，含已接入且当前支持的具体值、完整解释、“此字段交 Creator 决定”及明确相容分支。主 AI 仅依作者条件逐题展示当前全部选项并原生单选，相关原始答复/条件批量回 Creator；不推断 provider 知识。若委托模型须 Creator 先解析且无后续分支，才提前回询再问依赖项。不以笼统“技术交团队”替代具体选择，不因用户不懂隐藏选项；已答/固定/继承/已委托项按 scope 跳过，sheet 继承和授权覆盖分清，横屏不擅定数值比例。按 template 保存实际选择与 `参数选择授权`，不维护静态模型表或示例默认；能力诊断不提交或改配置，任务选择不改项目默认。
+配置能力问题用真实 Task 委托 Creator，提供操作、固定/继承值、scope、约束与 grants。按共享 Concrete Technical Choices 给齐 images/video 未决 provider -> model -> 相容 ratio -> resolution，含当前已接入值、完整解释、逐字段委托选项及明确分支。主 AI 只依作者条件逐题完整展示并原生单选，相关原始答复/条件批量回 Creator；委托模型需专家解析且无后续分支时先回询。按 scope 跳过已答/固定/继承/已委托项，不隐藏选项、不把横屏当数值比例。按 template 保存真实选择与 `参数选择授权`，不存静态模型表；能力诊断只读，任务选择不改默认。
 
 用户选定模型即按可访问处理，不查权益/会员/凭据/账号/积分、不索证明或要求确认访问不确定性声明；仍核验当前 CLI/API 技术组合与接入。仅授权执行实际返回账号/provider 错误时报告并处理必要决定，不换固定模型，不声称访问已验证或生成成功；视频仍不得在本入口提交。
 
@@ -58,7 +60,7 @@ required 仅列用户所需材料，对应本集 outline.md、novel.md 和 `stor
 
 ## 成果委托与转交
 
-用 Task 派发 `director` 并保留原始 `task_id`。说明 short/ep01、预期成果、config/材料路径、用户原意、intake 已知需求与明确委托、制作前确认、图像授权、集时长及用户实际限制、决策余地和升级条件。请其诊断并在 intake 充分后交付相容的剧本、分镜、实际基础资产卡/图片及 storyboard sheets，当前独立审核证据、整体连贯性判断与未决事项。script 拥有资产清单，缺清单由 Scriptwriter 采用现有剧本补齐，不重写故事；规划材料按用途选择，不是固定前置。
+用 Task 派发 `director` 并保留原始 `task_id`。说明 short/ep01、预期成果、config/材料路径、用户原意、已知需求与委托、制作前确认、图像授权、集时长与限制、决策余地及升级条件。交付相容剧本、分镜、基础资产卡/图、逐镜 manifest 与媒体、独立证据、必要连续性判断和未决项。缺 script 清单由 Scriptwriter 接纳现有剧本补齐；规划按需采用，不强制补齐。
 
 Director 从 descriptions 自选知识；委托不是“加载并执行某 skill”。嵌套实际可用时由 Director 委派；明确深度拒绝后在本会话记住限制，普通失败不当作不可嵌套。需主 AI 转交时，忠实按请求的角色、成果、材料路径、范围和约束派发，将结果送回原 Director `task_id`。不另排创作顺序、不调高深度、不接管创作。审核另开全新 Director 上下文，不继承制作历史；独立上下文不可用则阻塞。
 
@@ -66,6 +68,6 @@ Director 从 descriptions 自选知识；委托不是“加载并执行某 skill
 
 ## 交付与失败
 
-整集交付用 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-episode.sh" ep01 "{config_path}"` 核验；exit 1 未就绪、exit 2 legacy 阻塞，报告原因而非补跑固定链。缺图、审核未决或资源不足是部分交付/阻塞，重试次数不产生 pass。技术失败先查存活材料与任务，避免重复提交；取消即停止。
+整集交付用 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" ep01` 及同配置 `review-evidence.mjs check ep01` 核验；非零报告未就绪或运行阻塞。缺媒体、审核未决或资源不足是部分交付；重试次数不产生 pass。先查存活材料与任务，避免重复提交；取消即停止。
 
 素材创作不授权付费视频。用户另用 `/generate-video ep01` 提交，`/check-video ep01` 或 `/auto-video ep01` 跟踪；成片质量由用户判断，不自动审片或合成。遵循 config 语言和角色版权规避规则。

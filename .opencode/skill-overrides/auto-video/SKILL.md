@@ -7,7 +7,9 @@ argument-hint: "自然语言监控目标与间隔"
 model: opus
 ---
 
-## 失败处理（核心规则）
+## 范围与职责
+
+付费续交/重试使用当前 typed references，每镜至少一个本地 MP4，manifest 条目仅 local PNG/MP4。按 recorded ID/provider 取回 submitted 任务，缺 ID 则 human_needed，保留状态等待核实。首次与周期 checker 均携带当前输入契约、真实 grants 和 inflight 边界。
 
 本入口调用表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。缺首次 grant 的新生成交用户后续手动 generate-video；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
 
@@ -23,19 +25,7 @@ model: opus
 
 配置读写和 fingerprint 只用 config_path，相关 Bash 显式设置 SVD_CONFIG，helper 配置位置参数也传该路径。首次 checker、周期 prompt、Creator relay 都携带同一路径，videoProfile 与 evidence 共用配置；未用配置的查询不强迫初始化，未决配置不授权提交。
 
-**sub-agent task 失败后，永远不要在主 session 自己接管本应由 sub-agent 做的工作。**
-
-正确做法：
-1. 分析失败原因（task return 值 / 错误信息）
-2. 如可修复：用修正后的参数重新派发同一 sub-agent
-3. 如不可修复：将失败原因和已尝试方案返回给用户，仅暂停受影响工作；独立已授权工作可继续
-
-错误做法：
-- ❌ "sub-agent 失败了，我自己来写这个 novel.md"
-- ❌ "task 报错了，我在主 session 直接调用 Write"
-- ❌ "我 fallback 一下，自己生成 storyboard sheet"
-
-原因：主 session 缺少 sub-agent 的隔离上下文（专属 system prompt、skill 加载、permission 配置），自己接管会导致质量下降、跨步骤上下文污染、permission 错配等问题。即使 sub-agent 失败，工作所有权也必须留在 sub-agent 层。
+专业执行保留在受托角色上下文。根据 task 返回诊断阻塞，参数问题修正后交原角色继续；无法解决则报告实际错误与已尝试方案，仅暂停受影响工作。主会话负责 relay 与沟通，不接管制作或签发审核结论。每次图片操作仍用全新任务和缩略图，不恢复 image-heavy task。
 
 ## 使用示例
 
@@ -157,6 +147,8 @@ opencode --port 4096 -s YOUR_SESSION_ID
     - `prompt`：
      ```
       检查已解析目标 {目标} 的登记视频任务，取回完成输出并报告进度、阻塞和是否仍需监控。无人值守，按持久 grants 处理，自行从 descriptions 选择适用知识。
+       配置上下文：{canonical config_path 或 UNRESOLVED}。此显式值继续传给 Creator；UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认配置。配置操作用绑定路径显式运行 config-path 核验，相关命令共用 SVD_CONFIG；纯取回不验证生成配置。
+       任务保留 prompt/duration/references；submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]。付费输入须含本地 MP4并满足真实 grants/当前证据，按 recorded ID/provider 取回 submitted，缺 ID 或 inflight 未决则 human_needed，保留状态。
       返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；异常附 error/recoverable，计数不明用 unknown。
        查询按 recorded provider；新提交/重试委托真实 Creator，不加载 skill 冒充角色。
        按已选模型/参数执行真实授权，不加费用/余额预检、不为省钱降级；用户实际限制仍绑定，缺创作需求仅报 human_needed，不编候选/提示，仅暂停受影响工作。

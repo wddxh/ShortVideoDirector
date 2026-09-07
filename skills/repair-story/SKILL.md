@@ -20,19 +20,21 @@ model: opus
 
 配置读取/写入或 evidence 操作前，从项目根运行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" config-path`，把 SVD_CONFIG（未设才 config.md）解析为 canonical 项目相对 config_path。项目内绝对路径和 ./ 可规范化；外部配置（含 symlink 越界）明确不支持，在副作用前报告，不复制迁移。后文 config 均指此文件，制作前确认和 approval 只写 config_path。
 
-每次 Bash 显式传 `SVD_CONFIG="{config_path}"`，Task/relay 同样传该路径。detect-mode 的配置参数、read-config 键名后的参数、check-episode 的第二参数均为 `"{config_path}"`；fingerprint 只用 canonical config_path。videoProfile 与 evidence 共用同一配置，不依赖跨工具环境。纯已提交任务取回不需要配置有效或当前审核，仍按 recorded provider/receipt 处理。
+配置相关 Bash 显式传 `SVD_CONFIG="{config_path}"`，Task/relay 同样传该路径。detect-mode 配置参数、read-config 键名后参数也用该路径；fingerprint、videoProfile 与 evidence 共用 canonical config_path，不依赖跨工具环境。纯取回不需要配置有效或当前审核，按 recorded provider/receipt 处理。
 
 整体理解原始请求 `$ARGUMENTS` 与会话中的恢复目标、路径和范围。查看只读 config_path，缺失不初始化；配置修改转配置入口。制作恢复读取该配置并运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh" "{config_path}"`，失败停止。写入/生成前确定 canonical ep 和 scope；series 缺目标先问，只有明确“最新一集”才用 latest-episode 并检查退出码。short 仅 ep01，冲突不能忽略。歧义不默认 latest/all。用 Bash `test -d "story/episodes/{ep}"` 检查目录；不存在报告，不自动新建。
 
-运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-episode.sh" "{ep}" "{config_path}"` 并保留 stdout、stderr 与退出码。exit 0 是确定性检查就绪，exit 1 是缺失/未就绪，exit 2 是 legacy 阻塞须停止；其他运行错误如实报告。输出为 `item:status[:detail]`，不是任务队列，禁止选第一个非 ok 后重跑全部后缀。
+运行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" "{ep}"` 和同配置 `review-evidence.mjs check "{ep}"`，保留 stdout/stderr/exit。非零报告未就绪或运行阻塞；输出用于诊断当前缺口，不规定恢复顺序。
 
 ## 恢复判断
 
-provider/参数问题由真实 Creator Task 解释当前能力与接入限制，主 AI 询问所需决定。固定配置及 sheet 作用域继续约束；空值不授权选择，任务选择不改默认。已有 pending/receipt 的设置先用于取回，不按新 config 重选；未知 provider 阻塞，只有缺 provider 的历史 Dreamina 记录可仅取回。路径不等于 force 授权。
+按 [shot-inputs](../_meta/rules/shot-inputs.md) 恢复材料：每镜 manifest 顶层仅 references，至少一个本地 MP4，可辅以 PNG。新增/改变输入交 Creator 授权组装，独立 reviewer 聚焦实际输入集成、变化细节与必要边界，已有 storyboard 判断在无冲突时复用。源码/记账变化且媒体未变可 scoped 兼容性评估，不盲刷哈希或自动全量重审；看图仍每次新任务、缩略图优先。sources 参与指纹不上传，必要运动不可查为 unknown。asset-prompt 只覆盖授权新增/重生图；submitted 按 recorded ID/provider 取回，保护 pending/receipt/grants/inflight。
+
+provider/参数问题由真实 Creator Task 解释当前能力与接入限制，主 AI 询问所需决定。固定 images/video 配置继续约束；空值不授权选择，任务选择不改默认。已有 pending/receipt 按记录取回，不按新 config 重选；未知 provider 阻塞，缺 provider 的 Dreamina-only 记录可仅取回。路径不等于 force 授权。
 
 缺 outline/novel/arc 不阻止恢复已有剧本、分镜或资产；仅在有用或用户要求时规划。资产清单以 script 为准，可用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all` 核对新旧资产。缺清单委托 Scriptwriter 采用现有剧本并补齐，不重生故事、不回退 outline。
 
-依据受影响材料和证据选工作；哈希变化先评估兼容性，不全部重生。仅缺 review 时审核现有图片，不只审核本次成功生成项。修改后按实际成功集合与未决范围协调重审，保留编号同步、孤儿清理和直接连续性判断，不把 deleted card 当作待生成路径。
+依据受影响材料和证据选工作；哈希变化先评估兼容性，不全部重生。仅缺 review 时审核现有媒体，不只看本次成功项。按实际成功集合、必要依赖和未决范围协调重审，保留编号与引用一致性，不自动清理归档或把已删除卡当作生成目标。
 
 已有 pending 先核对记录身份并恢复，不因缺图重复提交；查询/下载不要求当前创作审核已通过，恢复完成也不等于验收或新提交授权。图像提供方 none 禁止新生图但仍可恢复既有任务，缺必需图仍阻塞。视频 submitted/done 不改写、不重提；视频查询下载交独立视频入口，不借本次恢复启动付费视频。
 
@@ -48,7 +50,7 @@ Director 从 descriptions 选择知识，嵌套实际可用则直接委派。明
 
 独立审核使用全新 Director 上下文，不继承制作历史。独立上下文不可用、needs_revision/unknown 或证据过时均保持阻塞，不自审兜底、不按固定重试次数换取通过。技术失败检查实际落盘与任务状态，报告可恢复范围；取消即停止。
 
-返回恢复/保留路径、当前证据、pending 与未决决策。整集交付重跑 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-episode.sh" "{ep}" "{config_path}"`；非零不称就绪。局部恢复不等于整集完成；缺图、资源不足或审核未决报告部分交付。视频另获授权提交，取回交 check-video/auto-video；不自动审片或合成。
+返回恢复/保留路径、当前证据、pending 与未决决策。整集交付重跑上述 check-shot-inputs 与 evidence 检查，非零不称就绪。局部恢复不等于整集完成；缺媒体、资源不足或审核未决报告部分交付。视频另获授权提交，取回交 check-video/auto-video；不自动审片或合成。
 
 ## 恢复委托
 

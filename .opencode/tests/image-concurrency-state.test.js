@@ -23,11 +23,12 @@ test('stale output claims do not expire and stale pending locks have bounded wai
   assert.equal(f.exists('assets/images/pending.json.lock/owner'), true);
 });
 
-test('legacy pending lookup recognizes an absolute alias before force', t => {
+test('pending lookup recognizes an absolute alias before force', t => {
   const f = parallelImages(t), a = job('a');
   f.write(a.output, 'old'); f.write('release-a', '');
   f.write('assets/images/pending.json', JSON.stringify([
-    { submit_id: 'legacy', asset_path: a.source, output_path: a.output }]));
+    { submit_id: 'known', asset_path: a.source, output_path: a.output,
+      type: 'basic-asset', ...a.settings }]));
   const result = f.cli('image-gen-dreamina.sh', ['--force',
     ...args({ ...a, output: `${f.root}/${a.output}` })]);
   assert.equal(result.status, 2);
@@ -42,8 +43,8 @@ test('pending mutations wait for a short transaction and preserve concurrent IDs
     ({ submit_id: `old-${i}`, output_path: `old-${i}.png` }))));
   f.write(`${state}.lock/owner`, 'held');
   const runs = Array.from({ length: 16 }, (_, i) => f.start('image-pending-state.mjs',
-    i < 8 ? ['remove', `old-${i}.png`] : ['upsert', `id-${i}`, `source-${i}.md`,
-      `new-${i}.png`, 'basic-asset', 'dreamina', '4.0', '1:1', '2k']));
+    i < 8 ? ['remove', `old-${i}.png`] : ['upsert', `id-${i}`, `assets/items/source-${i}.md`,
+      `assets/images/items/new-${i}.png`, 'basic-asset', 'dreamina', '4.0', '1:1', '2k']));
   await delay(400);
   assert.equal(JSON.parse(f.read(state)).length, 8);
   const { rmSync } = await import('node:fs');

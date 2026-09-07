@@ -1,159 +1,70 @@
 # ShortVideoDirector OpenCode 适配
 
-插件从 `agents/*.md` 动态加载五个角色，从 `skills/*/SKILL.md` 发现技能，转换到 `~/.cache/short-video-director/<hash>/`。角色拥有专业工作，Skill 仅加载知识；当前源码契约与 live-host 验证状态必须分开，见「已知运行边界」。
+插件从 `agents/*.md` 动态加载五个角色，从 `skills/*/SKILL.md` 发现技能并转换到 `~/.cache/short-video-director/<hash>/`。Skill 是知识，不是任务调度或角色切换。工程由主 AI/general 负责；Director 保留实际创作协调和独立艺术审核。
 
-## 依赖
+## 安装与加载
 
-Bash、Node.js（测试 Node 18+）、Python 3；实际图片/视频生成需要可用的 `dreamina` CLI。安装或升级 provider 不属于本文文档任务。
-
-## 安装
-
-方式 A，GitHub 安装，在 `~/.config/opencode/opencode.json` 添加：
+在 `~/.config/opencode/opencode.json` 选择一个安装来源，避免重复加载：
 
 ```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git"
-  ]
-}
+{"$schema":"https://opencode.ai/config.json","plugin":["short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git"]}
 ```
 
-方式 B，本地开发使用绝对 `file://` 路径：
+本地开发可将 plugin 值改为 `file:///absolute/path/to/ShortVideoDirector`。在仓库内启动时也可由宿主扫描 `.opencode/plugin/*.js`，但不使插件自动全局可见。卸载移除对应配置，保留故事项目。
 
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["file:///home/huangz/repos/ShortVideoDirector"]
-}
-```
+需要 Bash、Node.js、Python 3；图像 helper 需 Pillow，本地媒体按方法需 Blender/FFmpeg，付费生成需 Dreamina CLI。安装/升级须授权。
 
-替换为自己的仓库路径；Windows 形如 `file:///C:/path/to/ShortVideoDirector`。本地包直接读取源码，但转换后的 skills/agents 仍使用 SVD cache。修改后需退出并重启 OpenCode，不是热更新。
-
-方式 C，在仓库目录运行 `opencode`，由宿主扫描 `.opencode/plugin/*.js`。此方式不使插件在其他故事项目目录全局可见。选择一种加载方式，避免重复配置。
-
-方式 A 更新需刷新安装的包；方式 B/C 更新本地源码后重启。已有升级命令：
-
-```bash
-opencode plugin short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git --global --force
-```
-
-是否支持该 CLI 子命令以安装的 OpenCode 版本为准，本次未重装或验证升级。卸载时移除配置条目；不再需要时可清理 `~/.cache/short-video-director/` 和对应 OpenCode 包缓存，勿误删故事项目。
-
-## 验证加载
-
-重启后核对角色与当前 skill 集合：
+源码不是热加载。退出重启 OpenCode 后核对：
 
 ```bash
 opencode agent list
 opencode debug skill
 ```
 
-应包含 creator、director、scriptwriter、storyboarder、writer 五个 subagent；技能路径应来自本次转换的 cache，与源码集合一致。七个入口仍是 `series-video`、`short-video`、`edit-story`、`repair-story`、`generate-video`、`check-video`、`auto-video`。发现列表不证明子任务能加载知识、嵌套能运行或审核隔离成立，需另做只读宿主探测。
+应发现 creator/director/scriptwriter/storyboarder/writer、creator-local-reference 和 director-review-shot-inputs，以及七个入口 series-video、short-video、edit-story、repair-story、generate-video、check-video、auto-video。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
 
-七个 command 原样传输 `$ARGUMENTS`，不拆 `$1` 等位置参数；入口整体理解自然语言、文件参考、范围和监控意图。缺失/冲突目标先澄清，不自动 latest/all。配置查看只读，缺失不初始化；短写示例不是内部 skill 参数协议。
+Commands 原样传 `$ARGUMENTS`，不拆位置参数。入口整体理解目标、路径和范围；歧义不默认 latest/all。配置查看只读，缺失不初始化。
+## 当前制作契约
 
-## 协作契约
+见 [shot-inputs](../skills/_meta/rules/shot-inputs.md)：manifest 顶层仅 references，条目仅 local PNG/MP4，每镜至少一个本地 MP4；静态相机可用静态 clip。Header 资产图提供身份，BOX 控制相机、布局、位置与整体轨迹，动作表情在完整 prompt，作品基线每请求一次。Sources 参与指纹不上传。Converter/task 保存 prompt/duration/typed references，submission 保存四元组和有序媒体指纹。
 
-主 AI 处理用户沟通、范围和授权，把期望成果及材料路径委托 Director。Director 负责制作材料与专业协作；所有五个角色都有 description-based discovery 和本地 `skill()` 加载。加载 skill 不创建任务或改变角色，也不建立独立审核。
+Creator 可按需直接操作 Blender/2D/FFmpeg，源码与媒体在故事项目 references/，不引入固定场景 DSL 或生产链。基础卡可选本地 PNG/sources，见 [卡片契约](../skills/_meta/rules/local-reference.md)。
 
-Director/Creator 的 Task 权限用于实际角色委托。嵌套可用时直接派发；明确深度/工具拒绝后记住本会话限制，普通任务失败不能据此判定嵌套不可用。不反复探测，也不自动改宿主深度。
+检查入口为 `scripts/check-shot-inputs.mjs EP [SHOT...]`，配合 review-evidence check。五类 evidence 为 script/storyboard/asset-prompt/asset-visual/shot-input；最终就绪不含 asset-prompt，授权新增/重生图另须它，复用库存不扩 prompt scope。整集编号 1..N，选镜允许缺号且源编号递增唯一、目标存在。接口不相容报告工程阻塞。
 
-不能嵌套时 Director 返回 role、outcome、references、scope、constraints，主 AI 忠实派发目标专家，将实际结果通过原 `task_id` 送回同一个 Director。主 AI 不接管创作顺序。若主 AI 也无法提供所需上下文则阻塞，不在当前会话冒充专家。
+shot-input 审核聚焦实际 prompt/media 集成、变化细节与必要边界，无具体冲突时复用当前 storyboard 判断。比较位置、轨迹、状态、轴线与身份，真实依赖存 inputs 指纹。源码/记账变化且渲染媒体未变可独立 scoped 兼容性评估，有依据才续签，不盲刷哈希或自动全量重审；必要看图仍新 task、缩略图优先。缺必要证据为 unknown。
 
-材料审核必须新建 Director 任务，不恢复制作任务或继承制作历史。逐图通常独立派发，汇总只读结论；审核者可做只读 Bash 检查，只写受托审核记录。无法隔离就保留未通过状态，不自审。范围及整文件身份过期需评估，不能用重试次数换通过。
+short/series 含资产图与本地参考，停在付费视频提交前；后续手动 generate-video 建立真实 initial grant。submitted 按 recorded ID/provider 取回，缺 ID 人工核实并保留状态。None 禁新提交而非取回；保留 fixed settings、pending/receipt、grants、locks 和 inflight。
 
-完整交付要求剧本、分镜、相关基础资产卡/图、每镜头 sheet 卡/图和当前独立审核。规划材料按用途选择，用户要求制作前确认时等待真实批准。有效图像提供方 none 不是缺图豁免，不阻止取回。视频只在明确授权后提交；下载后由用户评判质量，不自动审片或合成。可选 [制作情境参考](../skills/director-outline/reference-workflows.md) 保留经验而非固定技能链；详细接口见 [主 README](../README.md)。
+## 运行时适配
 
-Creator 通过统一 provider 知识解释当前 CLI 能力，入口呈现用户固定/委托选择，不内置模型表。配置使用 `图像提供方/图像模型版本`、`视频提供方/视频模型版本` 和比例/分辨率字段，sheet 覆盖须明确授权。系列继承视频四元组，short 共用整集 ratio/resolution；集时长由用户初始决定，系列不漂移。Sheet 卡保存自身四项已解析设置，画布不等于视频比例。图片/视频 wrapper 均为七参数，视频分辨率实际转发；图片 receipt 保存真实执行信息，不补造历史。
-
-## 适配实现
-
-图片批量使用 `generate-images-dreamina.mjs [--force] [--concurrency N] JOBS.json`，sheet cards 用 `generate-storyboard-sheets-dreamina.sh [--force] [--concurrency N] CARD...` 接入同一 runner。Manifest 数组每项 `{source,output,prompt,images,settings:{provider,model,ratio,resolution}}` 只承载已授权目标、当前已审核提示及完整有序真实图片引用，不是新技能链或授权表。
-
-默认 5 是本次本地 active 上限，不是账号总配额；Creator 根据当前接入限制/用户约束覆盖，不反复询问。实际基础/衍生/previous-sheet 依赖等待，其他 ready jobs 并发，不要求 sheets 全串行或分阶段 poll-all。当前依赖证据仍须满足，不 shell 并行 raw CLI/wrapper 绕过 runner。
-
-首次失败/pending 停新、排空 active，保留全批成功、IDs 和未启动旧图；预检命中 target/ref pending 则全批阻塞。非 force completed skip 在 output claim 内复查；force 全批仅限明确替换目标。pending helper 互斥写入，stale claim/lock 或未知 receipt 人工核实，不自动过期。调度器不盲重试、不设质量轮次。CLI 非零仍可能已有成功，按 PNG/receipt/pending 核对；成功集合排除 skip，保留既有验收和全部未决审核范围。详见 [图像协议](../skills/creator-provider-dreamina/image.md)。
-
-| 位置 | 当前行为 |
+| 位置 | 职责 |
 | --- | --- |
-| `plugin/index.js` config hook | 注册 cache skills、角色和入口 commands；保留用户同名 command。未设置主上下文 external_directory 时默认 allow。 |
-| `lib/load-agents.js` | 五个角色显式启用 Bash/Skill；Director、Creator 可 Task，其余禁用 Task。`model: inherit` 交宿主继承。 |
-| `lib/transform-skills.js` | 保留 name/description，将角色等元数据放入 metadata.svd-*；标准 skill 引用一律重写为本地 skill 加载，保留代码块/引用边界和未知名称报错。 |
-| `lib/tool-mapping.js` | 注入成果委托、忠实 relay、独立审核及分段写入约束，不维护创作调度器。 |
-| `lib/bootstrap.js` | 生成角色/入口导览和当前协作契约，通过 SVD_BOOTSTRAP_MARKER 幂等注入。 |
-| `lib/write-guard.js` | tool.execute.before 检查字符串参数，超过 2000 字符拒绝并给分段建议。 |
+| plugin/index.js | 注册 cache skills、角色和 commands，保留用户同名 command |
+| lib/load-agents.js | 角色工具权限与 model inherit |
+| lib/transform-skills.js | 转换元数据、路径与知识引用，复制辅助资源 |
+| lib/tool-mapping.js | 角色转交、用户决策、当前契约和分段约束 |
+| lib/bootstrap.js | 动态角色/入口导览与幂等 bootstrap |
+| lib/write-guard.js | 单次字符串参数最多 2000 字符 |
 
-权限不是细粒度安全沙箱：当前五个角色的 Bash、external_directory 及读写均放行，reviewer 的“只写审核记录”是角色/委托约束，而非文件 ACL。收紧主 agent 不会自动收紧这些子角色；自定义权限后需验证 Skill、Task 和只读检查实际可用，不要把 allow 当作付费授权。
+`${CLAUDE_PLUGIN_ROOT}/skills/` 转为 cache 路径，其他插件路径指向安装根；shell.env 提供根变量。故事 config/assets/references/story 仍相对故事项目。Cache 输入含源 skills/agents/scripts、OC overrides/lib 与版本；重启才加载更新，不改现有会话。
 
-写入限制针对单次参数，不限制最终篇幅，JSON/YAML 同样分段。`apply_patch` 也须保持字符串参数不超过 2000 字符。
+每次视觉操作按 [visual-context](../skills/_meta/rules/visual-context.md) 使用新 task、helper 缩略图与必要 crop，只 Read 返回 preview，原图用于 provider/指纹。独立 singleton 直接写受托轮次，相干小批纯文本可单任务逐 target 判断并落盘；协调者串行安排同文件写入。仅实际分开的 reviewer 结果需合并时用独立汇总者，生产者不编造 pass。只写受托记录及临时预览；规划按需采用。工具 allow 不等于付费/覆盖许可。
 
-### 路径与 Cache
-
-故事配置相关操作用 `review-evidence.mjs config-path [PATH]` 规范化 SVD_CONFIG（未设才 config.md）；仅支持项目内路径，拒绝外部或 symlink 越界。每次相关 Bash 显式传同一 SVD_CONFIG，委托/relay、配置与批准写入、fingerprint 共用 canonical 项目相对路径。纯已登记任务取回无需配置门禁；这与下面的插件根路径解析不同。
-
-`${CLAUDE_PLUGIN_ROOT}/skills/` 在转换时指向 cache skills，其他 plugin-root 路径替换为插件根目录。shell.env 同时注入 `CLAUDE_PLUGIN_ROOT` 供 shell 兜底；aux Markdown 同样转换，其他辅助文件复制，共享 `_meta` 资源与脚本也进入 cache。
-
-cache hash 使用 skills、agents、scripts、OC overrides/lib 的输入路径、mtime、size 与插件版本，取 SHA-256 前 16 位，保留最新三个 cache。相关源码变化后，下次启动生成新 hash；不会替换当前会话已加载的提示或历史 bootstrap。故障时可在退出宿主后清理 SVD cache 再启动，勿把清理视为实测通过。
+需要用户决定时完整展示原角色当前题和全部选项，再用原生 question 单选。主 AI 只依作者条件逐题呈现，完整原答复批量回原任务。嵌套明确拒绝后走忠实 relay，不接管创作、不自审或自动改深度。
 
 ## 自动监控
 
-OpenCode 没有直接使用 Claude Cron 原语，而由 [auto-video override](skill-overrides/auto-video/SKILL.md) 启动 nohup loop，通过 HTTP `/session/{SID}/prompt_async` 触发检查。先做一次隔离检查；若无需继续或出现不可恢复错误，不安装 loop。
+[auto-video override](skill-overrides/auto-video/SKILL.md) 仅在用户要求或已同意默认时启动 nohup loop，通过 OpenCode HTTP session/prompt_async 委托 checker。需要带 --port 的 session：
 
 ```bash
 opencode --port 4096 -s YOUR_SESSION_ID
 ```
 
-`/auto-video ep01` 可使用建议间隔 1200 秒，自定义间隔至少 60 秒；仅支持 epNN/all，部分镜头需确认范围，不静默扩展。解析需找到 server 端口和 session ID，检查 health endpoint；按 target/SID 保存 `/tmp/svd-auto-video-loop-*.pid`、`.log` 和 `/tmp/svd-cron-prompt-*.txt`，避免重复 loop。首次和周期检查只按有效末行 JSON 且 target 完全匹配决定停止，不从 prose 推断。
+目标仅 epNN/all，部分镜头须确认边界，不静默扩大。间隔建议 1200 秒，最少 60 秒；按 target/SID 管理 PID、日志和 prompt 文件，避免重复。先执行一次隔离检查，无需继续或不可恢复错误则不安装 loop。端口/session/health 和停止细节由 override 负责。
 
-监控从 tasks.json 恢复真实授权：未调用 pending 可在 initial grant 内首次提交；failed 原输入重试需要独立 retry grant。wrapper reserve/settle 负责提交意图和状态，未知 inflight 人工核实，不自动清理或重提。`querying`/1 正常等待，`error`/2 保留 submitted/id 重试取回，不付费重生下载失败。
+首次及周期 checker payload 显式传 canonical config_path 或 UNRESOLVED，并沿 Creator relay 保留。未解析只取回并报 human_needed，不选择默认配置。Untouched pending 用真实 initial grant，failed 需 retry grant；付费交真实 Creator，嵌套拒绝则主 AI 派 sibling 后恢复同一 checker。未知 inflight 保留待核实。仅有效同目标末行 JSON 决定停止，all_complete 可含 human_needed。下载失败保留 ID 重试取回；监控不创作修复或审片。
 
-`all_complete` 只表示无需继续监控，可能仍有 human_needed；清理 loop 时必须报告已下载和待人工决定的差别。监控不做创作修复，不扩展授权，不评判视频质量。当前适配器的 live monitor 尚未实测。
+## 维护与验证
 
-## Troubleshooting
-
-- 看不到角色/技能：核对 plugin 配置、实际安装路径、`opencode agent list` 和 `opencode debug skill`。退出重启后确认新 cache，不能只看旧会话描述。
-- plugin 文件找不到：检查会话 shell 的 `CLAUDE_PLUGIN_ROOT`，文件读取使用解析后的绝对路径；脚本路径与故事工作区路径不同。
-- 嵌套拒绝：保留真实拒绝证据并走主 AI relay，不自动调高深度。普通任务失败按任务原因处理。
-- loop 无回调：核对进程的端口/session、PID 存活和日志；用 `curl http://127.0.0.1:4096/global/health` 检查对应端口。先确认旧 loop 已停，再重新启动，避免重复监控。
-- 长参数被拒绝：缩小每次工具参数，不删减最终材料内容。
-
-## 开发维护
-
-```bash
-npm test
-npm run test:watch
-python3 .codex/build-codex-skills.py --check
-git diff --check
-```
-
-测试使用 Node 内置 runner，无 npm 依赖安装步骤。源码 skills/agents/scripts 是共同内容层；OpenCode 仅处理运行时适配。
-
-- 加减 skill：集合动态发现，检查转换输出与源集合及 Codex wrappers 同步，不维护手工总数。
-- 加减入口：更新 `lib/tool-mapping.js` 的入口集合，commands 自动 derive，检查参数和同名用户 command 保留。
-- 修改角色：检查 `load-agents.js` 的角色权限映射、frontmatter 与实际子任务工具；不能由声明推断 live 支持。
-- 修改 skill 引用：标准引用走本地加载，跨角色成果委托显式用 Task。aux Markdown 与主文档一起检查。
-- 修改审核：对齐范围、输入身份和状态消费者；自然语言质量用独立语义评估，不写成关键词测试。
-- 修改 auto-video：同步共享授权、错误和摘要语义至 OC override 及 cron prompt；保留宿主专属 loop 生命周期。
-- 修改生成代码：检查原输入身份、初始/重试授权、reserve/settle、pending 恢复和 query/download，用 stub 测试，不提交真实任务。
-
-### 画面方位语义评估
-
-共享视觉原则 6 及资产、分镜、Panel 作者／审核提示负责方位表达，不新增方向 schema、转换引擎或关键词门禁，不修改故事项目与 provider。机械回归核对完整 shot／Panel 文本、引用转换、技能适配与 wrappers；这些测试通过不证明生成质量。
-
-后续独立语义评估应使用隔离样例，比较修改前后作者输出与 reviewer 判断，保留实际输入、参考和结论，不运行付费生成：
-
-- 已选机位使东边投影到画面左侧，与没有机位依据的“东边／西侧上方”配对；前者写实际几何，后者查参考或交 owner，不猜左右。
-- 右下格的 PANEL 内人物向画面后景走，与反打后窗投影到另一侧配对；分别核对格内纵深、同一门窗拓扑，不固定整板格位或跨角度左右。
-- 正面／转身后角色自己的右手持杯，与真正换持有手破坏后续动作配对；只阻塞后者。无实质影响的姿态与 cm 偏差仍可通过。
-- 对白“去东门”、地名和已设计罗盘读数，与含混的仪器画面位置配对；原文／读数保留，位置用画面坐标，不新增地图道具。
-
-本次未运行独立 agent 的前后语义评估；以上为后续评估范围，不是 pass 记录，也不替代现有独立审核。
-
-## 已知运行边界
-
-历史评估记录包含 OpenCode depth 1 拒绝、主 AI 转交/原 Director 恢复、局部独立审核，以及 cache `a68637a1939665f7` 的两项重启后探测。它们不是本次 provider/autonomy 改动后的验证，不证明当前新 cache 或完整监控可用，也不能推断所有安装都只支持一层。
-
-本次只核对源码与机械测试，不更改宿主配置或重载插件。Claude Code、Codex 尚未 live 验证。后续需退出重启 OpenCode，并在新加载上下文记录版本、任务引用、发现/加载、relay 和独立审核证据。隔离不可用时材料验收仍阻塞。
-
-本地 [审计索引](../docs/evaluations/skill-autonomy-audit.md)、[Provider 记录](../docs/evaluations/creator-provider.md) 和 [历史证据](../docs/evaluations/role-led-creation.md) 按仓库规则忽略，发行副本可能没有；主 README 保留核心验证边界。
+修改后生成 Codex wrappers 并 --check，使用 git diff --check 检查补丁；源集合动态发现，不维护手工技能总数。当前契约与代码未同步时由主 AI/general 修工程，不能用 provider 接受请求代替门禁。Live-host 的角色加载、relay、隔离与监控须单独验证，机械检查不证明创作质量或完整 E2E。退出重启后核对当前安装/cache，发现旧名称时先确认路径。

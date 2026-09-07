@@ -8,7 +8,11 @@ fail() {
   exit 1
 }
 
-[ "$#" -eq 2 ] || fail 'usage: storyboard-to-prompt.sh <storyboard> <shot>'
+MODE=()
+case "${1:-}" in
+  --json) MODE=("$1"); shift ;;
+esac
+[ "$#" -eq 2 ] || fail 'usage: storyboard-to-prompt.sh [--json] <storyboard> <shot>'
 
 case "$0" in
   */*) SCRIPT_DIR=${0%/*} ;;
@@ -28,10 +32,5 @@ case "$SHOT" in
   ''|*[!0-9]*|0) fail 'invalid shot number' ;;
 esac
 
-"$SCRIPT_DIR/detect-legacy-kf.sh" "$EP" "$STORYBOARD" \
-  "story/episodes/$EP/videos/tasks.json"
-STATUS=$?
-[ "$STATUS" -eq 0 ] || exit "$STATUS"
-
 command -v node >/dev/null 2>&1 || fail 'Node.js is required for storyboard parsing'
-node "$SCRIPT_DIR/storyboard-to-prompt.mjs" "$STORYBOARD" "$SHOT" "$EP"
+node "$SCRIPT_DIR/storyboard-to-prompt.mjs" "${MODE[@]}" "$STORYBOARD" "$SHOT" "$EP"

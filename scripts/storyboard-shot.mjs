@@ -19,7 +19,9 @@ export function readStoryboardShot(file, number) {
   if (headerEnd < 0) throw new Error(`prose missing for shot ${shot}`);
   const header = block.slice(0, headerEnd);
   const durations = [...header.matchAll(/^- 时长：([1-9]\d*)s$/gmu)];
-  if (durations.length !== 1) throw new Error(`duration missing or invalid for shot ${shot}`);
+  if (durations.length !== 1 || header.split('\n').filter(line => line.startsWith('- 时长：')).length !== 1) {
+    throw new Error(`duration missing or invalid for shot ${shot}`);
+  }
   const declarations = [...header.matchAll(/^- (?:出场人物|引用资产)：[^\n]*(?:\n(?!- )[^\n]*)*/gmu)]
     .map(([field]) => field).join('\n');
   const headerRefs = [...declarations.matchAll(/\[([^\]]+)\]\((assets\/(?:characters|locations|items|buildings)\/[^)]+\.md)\)/gu)]

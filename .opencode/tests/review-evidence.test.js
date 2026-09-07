@@ -4,7 +4,6 @@ import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { settingsText } from './fixtures/image-project.js';
 
 const cli = join(process.cwd(), 'scripts/review-evidence.mjs');
 async function fixture(check) {
@@ -21,11 +20,45 @@ async function fixture(check) {
   } finally { process.chdir(cwd); rmSync(root, { recursive: true }); }
 }
 const round = (scope, results, complete = true) => ({
-  version: 1, kind: 'asset-prompt', scope, results, complete,
+  kind: 'asset-prompt', scope, results, complete,
 });
 const pass = (api, target, paths = [target, 'config.md']) => ({
   target, status: 'pass', inputs: api.fingerprintInputs(paths), blockers: [],
 });
+
+test('local PNG and source evidence is mandatory and stales only dependent asset scopes', async () => fixture(api => {
+  const local = { images: ['references/shot/layout.png'], sources: ['references/shot/scene.py'] };
+  const section = '\n## 本地制作参考\n```json\n' + JSON.stringify(local) + '\n```\n';
+  const board = 'story/episodes/ep01/storyboard.md';
+  const asset = 'assets/items/a.md';
+  for (const dir of ['references/shot', 'assets/items', 'story/episodes/ep01', 'assets/images/items']) {
+    mkdirSync(dir, { recursive: true });
+  }
+  writeFileSync('a.md', 'Asset' + section);
+  writeFileSync('b.png', 'png');
+  writeFileSync(asset, 'anchor');
+  writeFileSync(board, '### shot 1\n- 时长：8s\n- 引用资产：[a](assets/items/a.md)\n**画面与声音描述：**\nAction');
+  for (const file of [...local.images, ...local.sources, 'assets/images/items/a.png']) writeFileSync(file, 'original');
+  for (const kind of ['asset-prompt', 'asset-visual']) {
+    const target = 'a.md';
+    const paths = [target, 'config.md', ...local.images, ...local.sources];
+    if (kind.endsWith('-visual')) paths.push('a.png');
+    const record = { ...round([target], [pass(api, target, paths)]), kind };
+    assert.equal(api.checkCoverage([target], [record]).status, 'pass', kind);
+    for (const file of [...local.images, ...local.sources]) {
+      const omitted = { ...record, results: [pass(api, target, paths.filter(p => p !== file))] };
+      assert.equal(api.checkCoverage([target], [omitted]).status, 'unknown');
+      writeFileSync(file, 'changed');
+      assert.equal(api.checkCoverage([target], [record]).status, 'unknown');
+      const unrelated = round(['b.md'], [pass(api, 'b.md')]);
+      assert.equal(api.checkCoverage(['b.md'], [unrelated, record]).status, 'pass');
+      writeFileSync(file, 'original');
+    }
+    assert.equal(api.checkCoverage([target], [{ ...record,
+      results: [{ ...record.results[0], status: 'needs_revision', blockers: ['Unfaithful render'] }] }]).status,
+    'needs_revision');
+  }
+}));
 
 test('asset reference fingerprints stale only the dependent visual target', async () => fixture(api => {
   const anchor = 'assets/buildings/hall.md', target = 'assets/locations/terrace.md';
@@ -71,39 +104,11 @@ test('storyboard cannot omit script or active config identities', async () => fi
   assert.equal(check([target, `${ep}/script.md`, 'config.md']), 'unknown');
 }));
 
-test('sheets bind actual shot and converter references without requiring future PNGs', async () => fixture((api) => {
-  const ep = 'story/episodes/ep01';
-  const dir = 'assets/storyboard-sheets/ep01';
-  for (const path of [ep, dir, 'assets/items', 'assets/images/items',
-    'assets/images/storyboard-sheets/ep01']) mkdirSync(path, { recursive: true });
-  const target = `${dir}/shot02.md`;
-  const board = `${ep}/storyboard.md`;
-  writeFileSync(board, '### shot 2\n- 时长：8s\n- 引用资产：[a](assets/items/./a.md)\n**画面与声音描述：**\nAction');
-  writeFileSync(target, settingsText + '## 引用资产\n- [b](../../items/b.md)\n## 连续性参考\n- [shot01](./shot01.md)\n- 继承元素：position\n## Panel 规划\n### PANEL 1\nAction\n## 图像生成提示\nPrompt');
-  const cards = ['assets/items/a.md', 'assets/items/b.md', `${dir}/shot01.md`];
-  for (const file of cards) writeFileSync(file, 'card');
-  const required = [target, 'config.md', board, ...cards];
-  const check = (kind, paths) => api.checkCoverage([target], [{
-    ...round([target], [pass(api, target, paths)]), kind,
-  }]).status;
-  assert.equal(check('sheet-prompt', required), 'pass');
-  for (const omitted of required) {
-    assert.equal(check('sheet-prompt', required.filter((p) => p !== omitted)), 'unknown', omitted);
+test('unsupported review kinds cannot establish coverage', async () => fixture(api => {
+  for (const kind of ['other', '']) {
+    assert.throws(() => api.requiredInputs(kind, 'a.md', 'config.md'), /Unsupported/);
+    assert.equal(api.checkCoverage(['a.md'], [{ ...round(['a.md'], [pass(api, 'a.md')]), kind }]).status, 'unknown');
   }
-  const images = [target, ...cards].map((file) =>
-    file.replace('assets/', 'assets/images/').replace('.md', '.png'));
-  for (const file of images) writeFileSync(file, 'png');
-  assert.equal(check('sheet-visual', [...required, ...images]), 'pass');
-  for (const omitted of [...required, ...images]) {
-    assert.equal(check('sheet-visual', [...required, ...images].filter((p) => p !== omitted)),
-      'unknown', omitted);
-  }
-  const accepted = { ...round([target], [pass(api, target, [...required, ...images])]),
-    kind: 'sheet-visual' };
-  writeFileSync('assets/images/items/b.png', 'changed reference');
-  assert.equal(api.checkCoverage([target], [accepted]).status, 'unknown');
-  writeFileSync(board, '### shot 1\n**画面与声音描述：**\nAction');
-  assert.equal(check('sheet-prompt', required), 'unknown');
 }));
 
 test('fingerprints actual bytes and checks current pass', async () => fixture((api, root) => {

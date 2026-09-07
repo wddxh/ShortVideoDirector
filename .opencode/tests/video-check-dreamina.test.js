@@ -4,8 +4,31 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { videoRetrieval } from './fixtures/video-retrieval.js';
 
 const script = join(process.cwd(), 'scripts/video-check-dreamina.sh');
+
+test('current submitted task retrieves without config or production files', t => {
+  const f = videoRetrieval(t);
+  const before = readFileSync(join(f.root, f.tasks), 'utf8');
+  for (const file of ['config.md', 'assets', 'references', 'story/episodes/ep01/shot-inputs',
+    'story/episodes/ep01/script.md', 'story/episodes/ep01/storyboard.md']) {
+    rmSync(join(f.root, file), { recursive: true, force: true });
+  }
+  writeFileSync(join(f.root, 'dreamina'), `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> calls
+for arg in "$@"; do case "$arg" in --download_dir=*) dir="\${arg#*=}";; esac; done
+printf video > "$dir/job-1_video.mp4"
+printf '%s' '{"gen_status":"success"}'
+`, { mode: 0o755 });
+  const task = JSON.parse(before)[0];
+  const result = spawnSync('bash', [script, task.submit_id, f.output], { cwd: f.root, encoding: 'utf8',
+    env: { ...process.env, PATH: `${f.root}:${process.env.PATH}` } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(readFileSync(join(f.root, f.output), 'utf8'), 'video');
+  assert.match(readFileSync(join(f.root, 'calls'), 'utf8'), /^query_result --submit_id=job-1 /);
+  assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+});
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'svd-video-check-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
