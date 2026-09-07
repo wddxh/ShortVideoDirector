@@ -6,11 +6,11 @@
 //
 // 设计决策：
 //   - 通用检查：deep walk args，覆盖所有 tool 的所有字符串字段（包括 apply_patch.patch / bash.command 等）
-//   - 无文件类型例外：.json / .yaml 同样 4000 阈值（按 ENTRY_WORKFLOW_DISPATCH_DISCIPLINE 的 JSON 增量模式分段）
+//   - 无文件类型例外：.json / .yaml 同样 2000 阈值（按 ENTRY_WORKFLOW_DISPATCH_DISCIPLINE 的 JSON 增量模式分段）
 //   - throw error 不自动 chunk（chunk 会破坏 OC file state tracking）
 // 详见 docs/superpowers/specs/2026-05-18-runtime-write-guard-design.md
 
-export const MAX_STRING_ARG_LEN = 4000;
+export const MAX_STRING_ARG_LEN = 2000;
 
 /**
  * 深度遍历 args，找出所有长度 > threshold 的字符串值。

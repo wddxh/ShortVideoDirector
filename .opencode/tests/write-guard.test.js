@@ -8,8 +8,8 @@ import {
 } from '../lib/write-guard.js';
 
 describe('MAX_STRING_ARG_LEN', () => {
-  test('is 4000', () => {
-    assert.equal(MAX_STRING_ARG_LEN, 4000);
+  test('is 2000', () => {
+    assert.equal(MAX_STRING_ARG_LEN, 2000);
   });
 });
 
@@ -47,14 +47,14 @@ describe('findLargeStrings', () => {
     assert.deepEqual(findLargeStrings(undefined), []);
   });
 
-  test('exactly at threshold (4000) does not trigger', () => {
-    assert.deepEqual(findLargeStrings({content: 'x'.repeat(4000)}), []);
+  test('exactly at threshold (2000) does not trigger', () => {
+    assert.deepEqual(findLargeStrings({content: 'x'.repeat(2000)}), []);
   });
 
-  test('one over threshold (4001) triggers', () => {
-    const result = findLargeStrings({content: 'x'.repeat(4001)});
+  test('one over threshold (2001) triggers', () => {
+    const result = findLargeStrings({content: 'x'.repeat(2001)});
     assert.equal(result.length, 1);
-    assert.equal(result[0].length, 4001);
+    assert.equal(result[0].length, 2001);
   });
 
   test('custom threshold parameter works', () => {
@@ -68,12 +68,12 @@ describe('findLargeStrings', () => {
 });
 
 describe('interceptToolCall', () => {
-  test('allows 4000 and rejects 4001 characters for every tool', () => {
+  test('allows 2000 and rejects 2001 characters for every tool', () => {
     for (const tool of ['write', 'edit', 'task', 'apply_patch', 'bash', 'something_else']) {
-      assert.doesNotThrow(() => interceptToolCall({tool}, {args: {x: 'x'.repeat(4000)}}));
+      assert.doesNotThrow(() => interceptToolCall({tool}, {args: {x: 'x'.repeat(2000)}}));
       assert.throws(
-        () => interceptToolCall({tool}, {args: {x: 'x'.repeat(4001)}}),
-        /exceeding 4000 chars: x: 4001 chars/
+        () => interceptToolCall({tool}, {args: {x: 'x'.repeat(2001)}}),
+        /exceeding 2000 chars: x: 2001 chars/
       );
     }
   });
@@ -93,15 +93,15 @@ describe('interceptToolCall', () => {
   test('throws on large content for write (regardless of file ext)', () => {
     assert.throws(
       () => interceptToolCall({tool: 'write'}, {args: {filePath: 'a.md', content: 'x'.repeat(5000)}}),
-      /Tool 'write' has string argument\(s\) exceeding 4000 chars/
+      /Tool 'write' has string argument\(s\) exceeding 2000 chars/
     );
     assert.throws(
       () => interceptToolCall({tool: 'write'}, {args: {filePath: 'data.json', content: 'x'.repeat(5000)}}),
-      /exceeding 4000 chars/
+      /exceeding 2000 chars/
     );
     assert.throws(
       () => interceptToolCall({tool: 'write'}, {args: {filePath: 'cfg.yaml', content: 'x'.repeat(5000)}}),
-      /exceeding 4000 chars/
+      /exceeding 2000 chars/
     );
   });
 
