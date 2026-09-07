@@ -7,6 +7,16 @@ import { join } from 'node:path';
 
 const SCRIPT = join(process.cwd(), 'scripts/detect-mode.sh');
 
+test('uses supplied config and rejects invalid mode', () => {
+  const dir = setupTmpProject('mode: short', true);
+  try {
+    writeFileSync(join(dir, 'custom.md'), '- mode: series\n');
+    assert.equal(runIn(dir, 'custom.md').stdout.trim(), 'series');
+    writeFileSync(join(dir, 'custom.md'), '- mode: invalid\n');
+    assert.equal(runIn(dir, 'custom.md').status, 1);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
 function setupTmpProject(configContent, hasArc) {
   const dir = mkdtempSync(join(tmpdir(), 'svd-mode-'));
   if (configContent !== null) {
@@ -19,8 +29,8 @@ function setupTmpProject(configContent, hasArc) {
   return dir;
 }
 
-function runIn(dir) {
-  return spawnSync('bash', [SCRIPT], { cwd: dir, encoding: 'utf8' });
+function runIn(dir, ...args) {
+  return spawnSync('bash', [SCRIPT, ...args], { cwd: dir, encoding: 'utf8' });
 }
 
 test('config.md mode=series → series', () => {
@@ -52,38 +62,48 @@ test('accepts the bullet mode format written by entry workflows', () => {
   }
 });
 
-test('config.md 无 mode 字段 + story/arc.md 存在 → series', () => {
+test('accepts inline comments in bullet mode from the supplied config', () => {
+  const dir = setupTmpProject('- mode: series\n', false);
+  try {
+    writeFileSync(join(dir, 'custom.md'), '- mode: short # single episode\n');
+    const result = runIn(dir, 'custom.md');
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, 'short\n');
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('missing mode is rejected even with an arc', () => {
   const dir = setupTmpProject('其他: x\n非 mode 字段: y', true);
   try {
     const r = runIn(dir);
-    assert.equal(r.status, 0);
-    assert.equal(r.stdout.trim(), 'series');
+    assert.equal(r.status, 1);
+    assert.equal(r.stdout, '');
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test('config.md 无 mode + 无 story/arc.md → short', () => {
+test('missing mode is not implicitly short', () => {
   const dir = setupTmpProject('其他: x', false);
   try {
     const r = runIn(dir);
-    assert.equal(r.status, 0);
-    assert.equal(r.stdout.trim(), 'short');
+    assert.equal(r.status, 1);
+    assert.equal(r.stdout, '');
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test('config.md 不存在 + story/arc.md 存在 → series', () => {
+test('missing config with arc is rejected', () => {
   const dir = setupTmpProject(null, true);
   try {
     const r = runIn(dir);
-    assert.equal(r.status, 0);
-    assert.equal(r.stdout.trim(), 'series');
+    assert.equal(r.status, 1);
+    assert.equal(r.stdout, '');
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test('config.md 不存在 + 无 arc.md → short', () => {
+test('missing config without arc is rejected', () => {
   const dir = setupTmpProject(null, false);
   try {
     const r = runIn(dir);
-    assert.equal(r.status, 0);
-    assert.equal(r.stdout.trim(), 'short');
+    assert.equal(r.status, 1);
+    assert.equal(r.stdout, '');
   } finally { rmSync(dir, { recursive: true }); }
 });

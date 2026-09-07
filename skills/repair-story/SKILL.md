@@ -1,91 +1,57 @@
 ---
 name: repair-story
-description: 检测指定集的文件完整性，从断点处恢复生成。自动检测 series/short mode。
-argument-hint: "[epXX, 可选；short mode 忽略]"
+description: 在单集制作中断、材料或审核缺失，需要检查现状并恢复时使用。
+argument-hint: "自然语言恢复目标、材料与范围"
 user-invocable: true
 agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Skill, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: opus
 ---
 
-## 失败处理（核心规则）
+## 接收与检查
 
-**sub-agent task 失败后，永远不要在主 session 自己接管本应由 sub-agent 做的工作。**
+实际制作恢复请求包含其范围内所需图片补齐，不另问通用生图授权；纯检查/取回仍止于诊断或恢复已有 job。替换意图不清、超范围覆盖、固定参数冲突或 protected jobs 仍须处理，不借缺图重复提交。视频仍留给用户后续手动 generate-video，不因本次恢复完成自动提交。
 
-1. 分析失败原因（task return 值 / 错误信息）
-2. 如可修复：用修正后的参数重新派发同一 sub-agent
-3. 如不可修复：将失败原因和已尝试方案返回给用户，停止流程
+按共享 intake 规则复用已有需求、材料和授权，不重新问卷。先只读诊断；恢复中需新创作时，相关需求须已知或用户明确委托责任角色决定（记录角色/范围/约束），否则仅问必要缺口，不先编候选、设计、提示或聊天预览。准备材料同样先 intake，后续用户批准另行处理；意外问题仅暂停受影响工作，已有任务取回可继续。
 
-错误做法：自己 Write/fallback 应由 sub-agent 完成的内容。主 session 缺少 sub-agent 的隔离上下文，自己接管会导致质量下降、permission 错配等问题。
+按已选模型/参数执行，不设预算/费用/积分/余额必填或预检，不为省钱降级；仅用户实际给出的费用限制有约束力，真实 provider 失败仍报告。范围、覆盖、首次/重试、inflight 和视频单独授权不变。
 
-## 输入
+用户决策前必读 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/user-decision-relay.md`。发起角色一次提供全部相关问题及题界/分支；主 AI 读全并内部保留计划，沿作者题界完整展示当前题全部选项/解释再原生单题询问，不用摘要或按钮替代正文、不倾倒全表。仅应用所给条件；相关原始答复及全部条件经 Director 批量完整送回原角色原任务，不逐题往返，提前回询仅限共享规则的缺内容/映射、不相容或计划外决定。
 
-- `$ARGUMENTS[0]`：可选集数（如 ep03）。short mode 下忽略，恒为 ep01。
+配置读取/写入或 evidence 操作前，从项目根运行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" config-path`，把 SVD_CONFIG（未设才 config.md）解析为 canonical 项目相对 config_path。项目内绝对路径和 ./ 可规范化；外部配置（含 symlink 越界）明确不支持，在副作用前报告，不复制迁移。后文 config 均指此文件，制作前确认和 approval 只写 config_path。
 
-## 必读文件（按 mode 加载，双重保护）
+每次 Bash 显式传 `SVD_CONFIG="{config_path}"`，Task/relay 同样传该路径。detect-mode 的配置参数、read-config 键名后的参数、check-episode 的第二参数均为 `"{config_path}"`；fingerprint 只用 canonical config_path。videoProfile 与 evidence 共用同一配置，不依赖跨工具环境。纯已提交任务取回不需要配置有效或当前审核，仍按 recorded provider/receipt 处理。
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/repair-story/series.md` (when mode='series')
-- `${CLAUDE_PLUGIN_ROOT}/skills/repair-story/short.md` (when mode='short')
+整体理解原始请求 `$ARGUMENTS` 与会话中的恢复目标、路径和范围。查看只读 config_path，缺失不初始化；配置修改转配置入口。制作恢复读取该配置并运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh" "{config_path}"`，失败停止。写入/生成前确定 canonical ep 和 scope；series 缺目标先问，只有明确“最新一集”才用 latest-episode 并检查退出码。short 仅 ep01，冲突不能忽略。歧义不默认 latest/all。用 Bash `test -d "story/episodes/{ep}"` 检查目录；不存在报告，不自动新建。
 
-## 工作流
+运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-episode.sh" "{ep}" "{config_path}"` 并保留 stdout、stderr 与退出码。exit 0 是确定性检查就绪，exit 1 是缺失/未就绪，exit 2 是 legacy 阻塞须停止；其他运行错误如实报告。输出为 `item:status[:detail]`，不是任务队列，禁止选第一个非 ok 后重跑全部后缀。
 
-### Phase 0: Mode 检测（必做，先于一切业务）
+## 恢复判断
 
-1. 在仓库根目录执行 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh`
-2. 捕获 stdout（'series' | 'short'），作为本次会话的 `mode`
-3. 若退出码非 0 或值非法 → 告知用户"mode 检测失败"并结束；不要猜测
+provider/参数问题由真实 Creator Task 解释当前能力与接入限制，主 AI 询问所需决定。固定配置及 sheet 作用域继续约束；空值不授权选择，任务选择不改默认。已有 pending/receipt 的设置先用于取回，不按新 config 重选；未知 provider 阻塞，只有缺 provider 的历史 Dreamina 记录可仅取回。路径不等于 force 授权。
 
-### Phase 1: 加载对应 mode 文件（必做）
+缺 outline/novel/arc 不阻止恢复已有剧本、分镜或资产；仅在有用或用户要求时规划。资产清单以 script 为准，可用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all` 核对新旧资产。缺清单委托 Scriptwriter 采用现有剧本并补齐，不重生故事、不回退 outline。
 
-1. 按 Phase 0 的 mode 用 Read tool 加载**仅对应 mode 的文件**（避免 prompt 污染）：
-   - mode='series': Read('skills/repair-story/series.md')
-   - mode='short': Read('skills/repair-story/short.md')
-2. **不要**加载非当前 mode 的文件
-3. 严格按加载的 mode 文件指引执行 Phase 2-6
+依据受影响材料和证据选工作；哈希变化先评估兼容性，不全部重生。仅缺 review 时审核现有图片，不只审核本次成功生成项。修改后按实际成功集合与未决范围协调重审，保留编号同步、孤儿清理和直接连续性判断，不把 deleted card 当作待生成路径。
 
-### Phase 2: 确定目标集数 + 读取配置
+已有 pending 先核对记录身份并恢复，不因缺图重复提交；查询/下载不要求当前创作审核已通过，恢复完成也不等于验收或新提交授权。图像提供方 none 禁止新生图但仍可恢复既有任务，缺必需图仍阻塞。视频 submitted/done 不改写、不重提；视频查询下载交独立视频入口，不借本次恢复启动付费视频。
 
-1. 按 mode 文件规则解析集数（series 从 $ARGUMENTS[0] 或 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/latest-episode.sh`；short 硬编码 ep01）
-2. 若集目录不存在 → 按 mode 文件指引提示用户先用对应入口 skill 创建，结束
-3. 使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "每集分镜数"` 等获取所需配置值
+## 制作前批准
 
-### Phase 3: 逐项检测完整性
+保留 config_path 的 `## 制作前确认 epNN`。用户要求先看 outline/novel/arc 时，由主 AI 仅在该文件写本集记录，例如 `{"episode":"ep01","required":["outline"],"approval":null}`，段内只放一个 fenced JSON（语言标记 json，ep 换为目标集）。对应本集 outline.md、novel.md 和 story/arc.md。无请求不新建；已有要求不因恢复删除。指定材料缺失、空白、未批准或已变化时，只恢复准备材料，不推进正式制作；不阻断已提交任务取回。
 
-使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-episode.sh {集数}` 一次性检查所有项目。
+主 AI 用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 记录材料身份，展示后明确询问用户批准；答复后复核身份未变，写 approval=`{"decision":"用户实际确认内容","inputs":[实际 path/sha256 对]}`。变动需重新确认，恢复范围确认和独立质量通过都不能替代此批准。
 
-脚本输出每行一项检查结果，格式为 `{检查项}:{状态}[:详情]`：
-- `outline:ok` / `outline:missing` / `outline:incomplete`
-- `novel:ok` / `novel:missing` / `novel:incomplete:{实际字数}/{目标下限}`
-- `script:ok` / `script:missing` / `script:incomplete`
-- `asset-list:ok` / `asset-list:missing`
-- `assets:ok` / `assets:missing:{缺失资产名}`
-- `images:ok` / `images:missing:{缺失资产名}` / `images:skipped`
-- `storyboard:ok` / `storyboard:missing` / `storyboard:incomplete:{详情}` / `storyboard:invalid:{详情}`
-- `storyboard-sheets:ok` / `storyboard-sheets:invalid:{详情}`
-- `storyboard-sheet-images:ok` / `storyboard-sheet-images:invalid:{详情}` / `storyboard-sheet-images:skipped`
-- `storyboard-sheet-prompt-review:ok` / `storyboard-sheet-prompt-review:missing` / `storyboard-sheet-prompt-review:needs_revision`
-- `storyboard-sheet-visual-review:ok` / `storyboard-sheet-visual-review:missing` / `storyboard-sheet-visual-review:needs_revision` / `storyboard-sheet-visual-review:skipped`
+## 协作与结果
 
-根据输出判断第一个非 ok 状态；`storyboard:missing|incomplete|invalid` 使用同一 storyboard recovery 入口。按基础资产卡→基础资产图片→storyboard→sheet card→sheet prompt review→sheet PNG→sheet visual review 的依赖顺序恢复。
+Director 从 descriptions 选择知识，嵌套实际可用则直接委派。明确深度拒绝后在本会话记住限制，不反复试探；普通失败不等同不可嵌套。主 AI 忠实转交 Director 请求的角色、成果、路径、范围和约束，将结果送回原 Director `task_id`，不重排创作或升宿主深度。
 
-### Phase 4: 报告 + 确认
+独立审核使用全新 Director 上下文，不继承制作历史。独立上下文不可用、needs_revision/unknown 或证据过时均保持阻塞，不自审兜底、不按固定重试次数换取通过。技术失败检查实际落盘与任务状态，报告可恢复范围；取消即停止。
 
-1. 向用户报告检测结果：哪些通过，哪些缺失/不完整
-2. 若所有检查通过 → 提示"该集文件完整，无需修复"，结束
-3. 若大纲缺失/不完整 → 按 mode 文件指引提示用户用对应入口 skill 重新生成，结束
-4. 其他情况 → 提示将从哪个步骤开始恢复，询问用户确认
+返回恢复/保留路径、当前证据、pending 与未决决策。整集交付重跑 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-episode.sh" "{ep}" "{config_path}"`；非零不称就绪。局部恢复不等于整集完成；缺图、资源不足或审核未决报告部分交付。视频另获授权提交，取回交 check-video/auto-video；不自动审片或合成。
 
-### Phase 5: 从断点恢复
+## 恢复委托
 
-按 mode 文件「断点 → 恢复链路」执行：从第一个非 ok 步骤开始，依次执行后续所有步骤。所有 sub-skill 调用通过 Skill tool；review 失败 → 调对应 fix skill ≤2 轮。
+用 Task 委托 `director` 并保存原始 `task_id`。提供 mode/ep、用户期望、config 和现有材料路径、检测结果、已知需求与明确委托、制作前确认、图像授权、集时长及用户实际限制。请其检查当前文件、各 review 的 scope/输入身份/未决结论，以及 `assets/images/pending.json`、本集 `videos/tasks.json`（若存在），诊断需要恢复的成果与风险。原请求/有效 grants 已覆盖的恢复、生成或替换可继续；仅诊断委托或缺权限时返回建议范围，不擅自生成或覆盖。
 
-### Phase 6: 完成
-
-输出恢复摘要：从哪个步骤开始、重新生成了哪些内容、提示用户检查结果。
-
-## 通用规则
-
-- mode 一旦在 Phase 0 确定不再变更
-- 所有 sub-skill dispatch 必须显式传递 ep（series 解析得到；short 恒为 ep01）
-- Phase 5 执行前必须取得用户对恢复起点的确认
-- `config.md` 图像模型 = `none` 时图片与 visual/impact 节点以 skipped 终态报告，sheet card 与 prompt review 不跳过
+已有恢复权限充分时不重复确认；Director 在原范围内协调 owner 修复与独立重审。新问题先查配置、材料和 grants 并用专业判断处理，仅用户指定检查点、缺必要权限或无法内部解决的关键冲突才准备完整决策包。主 AI 读全计划，沿作者题界完整展示当前题后原生单题询问，相关原始答复及全部条件批量完整回原 Director 和原发起角色；只暂停受影响工作。进度不是批准请求，不强制最终“开始吗”。已有充分证据且无待办可报告无需修复，但文件存在本身不是艺术验收。

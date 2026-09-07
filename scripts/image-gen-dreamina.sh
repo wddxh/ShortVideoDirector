@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generate a single image using Dreamina CLI.
-# Usage: bash scripts/image-gen-dreamina.sh [--force] "prompt" "output_path" [ratio] [resolution] [model_version] [ref_images] [asset_path]
+# Usage: image-gen-dreamina.sh [--force] [--retry-missing-id] PROMPT OUTPUT RATIO RESOLUTION MODEL REFS SOURCE
 # Without ref_images: uses text2image (text-to-image)
 # With ref_images: uses image2image (reference images + prompt)
 #   - Pass single path or comma-separated list (e.g. "a.png,b.png,c.png")
@@ -9,25 +9,45 @@
 # Exit codes: 0=OK, 1=FAIL, 2=PENDING (stdout has "PENDING submit_id")
 
 FORCE=false
-if [ "${1:-}" = '--force' ]; then
-  FORCE=true
+RETRY_MISSING_ID=false
+while [ $# -gt 7 ] && [[ "${1:-}" == --* ]]; do
+  case "$1" in
+    --force) FORCE=true ;;
+    --retry-missing-id) RETRY_MISSING_ID=true ;;
+    *) echo "FAIL unknown option: $1"; exit 1 ;;
+  esac
   shift
-fi
+done
 
-if [ $# -lt 2 ]; then
-  echo "Usage: bash scripts/image-gen-dreamina.sh [--force] \"prompt\" \"output_path\" [ratio] [resolution] [model_version] [ref_images] [asset_path]"
+if [ $# -ne 7 ]; then
+  echo 'Usage: image-gen-dreamina.sh [--force] [--retry-missing-id] PROMPT OUTPUT RATIO RESOLUTION MODEL REFS SOURCE'
   exit 1
 fi
 
 PROMPT="$1"
 OUTPUT="$2"
-RATIO="${3:-1:1}"
-RESOLUTION="${4:-2k}"
-MODEL="${5:-4.0}"
+RATIO="$3"
+RESOLUTION="$4"
+MODEL="$5"
 REF_IMAGES="$6"
 ASSET_PATH="$7"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PENDING_STATE="$SCRIPT_DIR/image-pending-state.mjs"
+RECEIPT="$SCRIPT_DIR/image-generation-record.mjs"
+
+if [ -z "${PROMPT//[[:space:]]/}" ]; then
+  echo 'FAIL empty prompt'
+  exit 1
+fi
+
+# A claim is never queued or expired: an interrupted owner needs reconciliation.
+CLAIM="${OUTPUT}.claim"
+mkdir -p -- "$(dirname -- "$OUTPUT")" || exit 1
+if ! mkdir -- "$CLAIM" 2>/dev/null; then
+  echo "FAIL output claim exists: $OUTPUT; reconcile owner before retry"
+  exit 1
+fi
+trap 'rmdir -- "$CLAIM"' EXIT
 
 if [ -n "$ASSET_PATH" ]; then
   EXISTING_PENDING=$(node "$PENDING_STATE" get "$OUTPUT" 2>/dev/null)
@@ -41,7 +61,39 @@ if [ -n "$ASSET_PATH" ]; then
   fi
 fi
 
+case "$ASSET_PATH" in
+  assets/storyboard-sheets/*)
+    CARD_JSON=$(bash "$SCRIPT_DIR/storyboard-sheet-to-prompt.sh" --json "$ASSET_PATH") || exit 1
+    printf '%s' "$CARD_JSON" | node -e '
+      let text = "";
+      process.stdin.on("data", d => text += d).on("end", () => {
+        const card = JSON.parse(text);
+        if (card.prompt !== process.argv[1] || card.images.join(",") !== process.argv[2]) {
+          console.error("FAIL prompt or references do not match sheet card");
+          process.exitCode = 1;
+        }
+      });' "$PROMPT" "$REF_IMAGES" || exit 1
+    ;;
+esac
+ACTION=''
+"$RETRY_MISSING_ID" && ACTION='retry-'
+CHECK=$(node "$RECEIPT" "${ACTION}check" "$ASSET_PATH" "$OUTPUT" dreamina "$MODEL" "$RATIO" "$RESOLUTION") || exit 1
+if ! "$FORCE" && [ "$CHECK" = SKIP ]; then
+  echo "SKIP $OUTPUT"
+  exit 0
+fi
+node "$SCRIPT_DIR/image-reference-check.mjs" "$REF_IMAGES" || exit 1
+node "$RECEIPT" "${ACTION}prepare" "$ASSET_PATH" "$OUTPUT" dreamina "$MODEL" "$RATIO" "$RESOLUTION" || exit 1
 "$FORCE" && rm -f -- "$OUTPUT"
+
+fail() {
+  echo "FAIL $1${SUBMIT_ID:+; submit_id=$SUBMIT_ID; reconcile $OUTPUT}"
+  exit 1
+}
+
+settle() {
+  node "$RECEIPT" settle "$OUTPUT" "$1" "${SUBMIT_ID:-}" || fail "cannot settle receipt ($1)"
+}
 
 json_field() {
   printf '%s' "$RESULT" | bash "$SCRIPT_DIR/json-string-field.sh" "$1"
@@ -56,7 +108,8 @@ if [ -n "$REF_IMAGES" ]; then
     --ratio="$RATIO" \
     --resolution_type="$RESOLUTION" \
     --model_version="$MODEL" \
-    --poll=60 2>&1)
+    --generate_num=1 \
+    --poll=0 2>&1)
 else
   # text2image mode: text only
   RESULT=$(dreamina text2image \
@@ -64,52 +117,77 @@ else
     --ratio="$RATIO" \
     --resolution_type="$RESOLUTION" \
     --model_version="$MODEL" \
-    --poll=60 2>&1)
+    --generate_num=1 \
+    --poll=0 2>&1)
 fi
 
 # Parse gen_status
 STATUS=$(json_field gen_status)
+SUBMIT_ID=$(json_field submit_id)
+if [ -z "${SUBMIT_ID//[[:space:]]/}" ]; then
+  SUBMIT_ID=''
+fi
+
+# Save the received identity before download or any further provider operation.
+if [ "$STATUS" != fail ]; then
+  if [ -z "$SUBMIT_ID" ]; then
+    printf '%s' "$RESULT" | node "$RECEIPT" missing-id "$OUTPUT" || fail 'cannot save missing-ID evidence'
+    fail 'no submit_id in response; outcome unknown'
+  fi
+  settle received
+  case "$ASSET_PATH" in
+    assets/storyboard-sheets/*) PENDING_TYPE=storyboard-sheet ;;
+    *) PENDING_TYPE=basic-asset ;;
+  esac
+  node "$PENDING_STATE" upsert "$SUBMIT_ID" "$ASSET_PATH" \
+    "$OUTPUT" "$PENDING_TYPE" dreamina "$MODEL" "$RATIO" "$RESOLUTION" || fail 'cannot persist pending'
+fi
+
+# A bare acceptance is not completion. The ID is durable before this query.
+if [ -n "$SUBMIT_ID" ] && [ -z "$STATUS" ]; then
+  RESULT=$(dreamina query_result --submit_id="$SUBMIT_ID" 2>&1)
+  QUERY_EXIT=$?
+  STATUS=$(json_field gen_status)
+  if [ "$QUERY_EXIT" -ne 0 ]; then
+    settle unknown
+    fail "query failed: $RESULT"
+  fi
+fi
 
 case "$STATUS" in
   success)
     URL=$(json_field image_url)
     if [ -z "$URL" ]; then
-      echo "FAIL no image_url in response"
-      exit 1
+      settle unknown
+      fail 'no image_url in response'
     fi
     mkdir -p "$(dirname "$OUTPUT")"
     if curl -fsSL -o "$OUTPUT" "$URL"; then
+      settle done
+      node "$PENDING_STATE" remove "$OUTPUT" "$SUBMIT_ID" || fail 'cannot remove pending'
       echo "OK $OUTPUT"
       exit 0
     else
-      echo "FAIL download failed"
-      exit 1
+      settle unknown
+      fail 'download failed'
     fi
     ;;
   fail)
+    settle failed
+    if [ -n "$SUBMIT_ID" ]; then
+      node "$PENDING_STATE" remove "$OUTPUT" "$SUBMIT_ID" || fail 'cannot remove terminal pending'
+    fi
     REASON=$(json_field fail_reason)
-    echo "FAIL ${REASON:-unknown error}"
-    exit 1
+    fail "${REASON:-unknown error}"
     ;;
   querying)
-    SUBMIT_ID=$(json_field submit_id)
-    if [ -n "$ASSET_PATH" ]; then
-      case "$ASSET_PATH" in
-        assets/storyboard-sheets/*) PENDING_TYPE=storyboard-sheet ;;
-        *) PENDING_TYPE=basic-asset ;;
-      esac
-      if ! node "$PENDING_STATE" upsert "$SUBMIT_ID" "$ASSET_PATH" \
-          "$OUTPUT" "$PENDING_TYPE"; then
-        echo "FAIL cannot persist pending"
-        exit 1
-      fi
-    fi
+    settle pending
     echo "PENDING $SUBMIT_ID"
     exit 2
     ;;
   *)
-    echo "FAIL unexpected status: $STATUS"
+    settle unknown
     echo "$RESULT" >&2
-    exit 1
+    fail "unexpected status: $STATUS"
     ;;
 esac

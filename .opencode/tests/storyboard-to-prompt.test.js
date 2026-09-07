@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { readStoryboardShot } from '../../scripts/storyboard-shot.mjs';
 
 const SCRIPT = join(process.cwd(), 'scripts/storyboard-to-prompt.sh');
 
@@ -65,7 +66,7 @@ function fail(result, pattern, status = 1) {
   assert.match(result.stderr, pattern);
 }
 
-test('emits sheet first, stable deduplicated assets, duration, and verbatim shot', () => {
+test('emits sheet first, stable deduplicated assets and the complete shot with bound links', () => {
   project((root) => {
     const block = shot();
     validProject(root, block);
@@ -77,7 +78,52 @@ test('emits sheet first, stable deduplicated assets, duration, and verbatim shot
     assert.equal(lines[2], '---');
     assert.match(result.stdout, /\*\*视频参考图：\*\* \[CURRENT_SHOT_STORYBOARD_SHEET:\{图片1\}\].*\[阿青:\{图片2\}\].*\[古城:\{图片3\}\].*\[铜镜:\{图片4\}\]/);
     assert.match(result.stdout, /^\*\*分镜板解释规则：\*\* /m);
-    assert.ok(result.stdout.endsWith(`${block}\n`), 'shot block must remain byte-for-byte intact');
+    const prompt = lines.slice(3).join('\n');
+    const expected = block.replaceAll('[阿青](assets/characters/阿青.md)', '[阿青:{图片2}]')
+      .replaceAll('[古城](assets/locations/古城.md)', '[古城:{图片3}]')
+      .replaceAll('[铜镜](assets/items/铜镜.md)', '[铜镜:{图片4}]');
+    assert.equal(prompt.split('\n').slice(3).join('\n'), expected + '\n');
+    assert.ok(!prompt.includes('assets/'));
+  });
+});
+
+test('shared shot reader returns complete source, duration and raw header aliases without any sheet', () => {
+  project(root => {
+    const block = shot().replace('  - [铜镜]', '\n  - [镜面]');
+    const file = join(root, 'board.md');
+    write(root, 'board.md', `${block}\n\n## Next scene\nEXCLUDED\n`);
+    assert.deepEqual(readStoryboardShot(file, 1), {
+      block, duration: 8,
+      headerRefs: [
+        { name: '阿青', markdown: 'assets/characters/阿青.md' },
+        { name: '阿青', markdown: 'assets/characters/阿青.md' },
+        { name: '古城', markdown: 'assets/locations/古城.md' },
+        { name: '镜面', markdown: 'assets/items/铜镜.md' },
+      ],
+    });
+  });
+});
+
+test('blank lines within declared lists preserve reference order and the complete shot', () => {
+  for (const blank of ['', ' \t ']) project((root) => {
+    const block = shot().replace('    声音特征：清亮\n  - [阿青]',
+      `    声音特征：清亮\n${blank}\n  - [阿明]`)
+      .replace('[阿明](assets/characters/阿青.md)', '[阿明](assets/characters/阿明.md)')
+      .replace('  - [铜镜]', `${blank}\n  - [铜镜]`);
+    validProject(root, block);
+    write(root, 'assets/images/characters/阿明.png', 'png');
+    const result = run(root);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.split('\n')[0], 'IMAGES:' + [
+      'assets/images/storyboard-sheets/ep01/shot01.png',
+      'assets/images/characters/阿青.png', 'assets/images/characters/阿明.png',
+      'assets/images/locations/古城.png', 'assets/images/items/铜镜.png',
+    ].join(','));
+    const expected = block.replaceAll('[阿青](assets/characters/阿青.md)', '[阿青:{图片2}]')
+      .replaceAll('[阿明](assets/characters/阿明.md)', '[阿明:{图片3}]')
+      .replaceAll('[古城](assets/locations/古城.md)', '[古城:{图片4}]')
+      .replaceAll('[铜镜](assets/items/铜镜.md)', '[铜镜:{图片5}]');
+    assert.equal(result.stdout.split('\n').slice(6).join('\n'), expected + '\n');
   });
 });
 
@@ -89,6 +135,67 @@ test('selects only an exact unique shot heading', () => {
     fail(run(root, 1), /duplicate shot 1/);
     fail(run(root, 2), /shot 2 not found/);
   });
+});
+
+test('rewrites declared paths throughout the shot without changing local text or alias labels', () => {
+  project((root) => {
+    const block = shot().replace('- 转场：切', '- 转场：切\n  保持门框位置  \n- 自定义：原样保留') +
+      '\n[0.5s-1s] [镜面](assets/items/铜镜.md)映出[阿青](assets/characters/阿青.md)。  ' +
+      '\n\t声音继续；[说明](https://example.com)与未绑定的木凳保持原文。  ';
+    validProject(root, block);
+    const result = run(root);
+    assert.equal(result.status, 0, result.stderr);
+    const expected = block.replaceAll('[阿青](assets/characters/阿青.md)', '[阿青:{图片2}]')
+      .replaceAll('[古城](assets/locations/古城.md)', '[古城:{图片3}]')
+      .replaceAll('[铜镜](assets/items/铜镜.md)', '[铜镜:{图片4}]')
+      .replaceAll('[镜面](assets/items/铜镜.md)', '[镜面:{图片4}]');
+    assert.equal(result.stdout.split('\n').slice(6).join('\n'), expected + '\n');
+  });
+});
+
+test('undeclared explicit asset links fail before output even when their PNG exists', () => {
+  for (const location of ['header', 'prose']) project((root) => {
+    const link = '[铜镜](assets/items/另一面镜.md)';
+    const block = location === 'header' ? shot().replace('- 转场：切', `- 转场：切\n- 自定义：${link}`)
+      : shot() + `\n${link}反光。`;
+    validProject(root, block);
+    write(root, 'assets/images/items/另一面镜.png', 'png');
+    fail(run(root), /undeclared reference.*assets\/items\/另一面镜\.md/);
+  });
+});
+
+test('scene and trailing section boundaries preserve only the selected shot content', () => {
+  project((root) => {
+    const source = readFileSync(new URL('./fixtures/storyboard-boundaries.md', import.meta.url), 'utf8');
+    validProject(root, source);
+    write(root, 'assets/images/characters/阿明.png', 'png');
+    write(root, 'assets/storyboard-sheets/ep01/shot02.md', '# sheet');
+    write(root, 'assets/images/storyboard-sheets/ep01/shot02.png', 'png');
+    const first = run(root);
+    assert.equal(first.status, 0, first.stderr);
+    const block = source.slice(source.indexOf('### shot 1'), source.indexOf('\n\n## 场景 5'));
+    const expected = block.replaceAll('[阿青](assets/characters/阿青.md)', '[阿青:{图片2}]')
+      .replaceAll('[阿明](assets/characters/阿明.md)', '[阿明:{图片3}]')
+      .replaceAll('[铜镜](assets/items/铜镜.md)', '[铜镜:{图片4}]');
+    assert.equal(first.stdout.split('\n').slice(6).join('\n'), expected + '\n');
+    assert.doesNotMatch(first.stdout, /SOURCE_|NEXT_|TRAILING_/);
+    const last = run(root, 2);
+    assert.equal(last.status, 0, last.stderr);
+    assert.ok(last.stdout.endsWith('[0s-7s] NEXT_SHOT_SENTINEL\n'));
+    assert.ok(!last.stdout.includes('TRAILING_'));
+  });
+});
+
+test('prose ends at section headings, separators, comment footers or EOF', () => {
+  for (const boundary of ['', '\n\n# Notes', '\n\n### Notes', '\n\n---', '\n\n<!-- footer -->']) {
+    project((root) => {
+      validProject(root, shot() + (boundary ? boundary + '\nTRAILING_SENTINEL' : ''));
+      const result = run(root);
+      assert.equal(result.status, 0, result.stderr);
+      assert.ok(result.stdout.endsWith(shot().split('**画面与声音描述：**')[1] + '\n'));
+      assert.ok(!result.stdout.includes('TRAILING_SENTINEL'));
+    });
+  }
 });
 
 test('fails before output when duration, card, sheet PNG, or base PNG is missing', () => {

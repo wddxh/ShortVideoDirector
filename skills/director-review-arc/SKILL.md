@@ -1,8 +1,7 @@
 ---
 name: director-review-arc
-description: 审查 arc.md 框架完整性、节点分配、人物弧深度、关键转折分布。generate-episode-pipeline 在 new-series 模式 director-arc 之后强制调用。
+description: 在已选用 arc 规划且需要独立框架评估时，审查节点分配、人物弧和关键转折。
 user-invocable: false
-context: fork
 agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
@@ -12,20 +11,22 @@ model: opus
 
 ### 文件读取
 - `story/arc.md` — 必须读取（review 目标）
-- `config.md` — 必须读取（总集数 N、世界观锚点等核对依据）
+- 实际配置 SVD_CONFIG（未设时 config.md）— 总集数、初始共同单集预算、用户严格边界和世界观依据
 - `${CLAUDE_PLUGIN_ROOT}/skills/director-arc/rules.md` — 必须读取（schema / 节点集数标注约定 / 6 类失败模式定义在此）
 - `story/outline.md` — 若存在（continue-series）则读取，核对 arc 与已播出内容一致
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
-### 动态参数（$ARGUMENTS）
-- 无。arc 是 series 级文件，无集数参数
+### 委托上下文
+- arc 是 series 级材料；接收当前文件、审核范围、确认意图与约束，不依赖位置参数。
 
 ## 职责描述
 
+这是可选规划审核，不要求所有 series 创建 arc。遵守共享 review-meta-rules 的独立新 Director context/主 AI relay 规则；只写受托 `.review-arc.md`，不修复、不调度、不替用户记录制作前批准，也不写六类生产材料的通过证据。输入缺失或无法判断返回 unknown。
+
 ### 核心使命
 
-审核 director-arc 生成的 `story/arc.md`，输出"通过"或"需修改 + 修改意见列表"。直接下游是 director-arc 的 fix 流程（与 review-novel 同模式：意见会被自动消化重写 arc），所以意见列表 = 工作单，每条都会被执行。arc 失败会让后续所有 outline / script / storyboard 在错误骨架上展开，必须严格拦截框架级问题；微调措辞类问题不要列入。
+审核被委托的 `story/arc.md`，输出通过或具体修改意见，保留定位、影响与方向。生产 Director 决定修正与重审，作者选择实现方法。若 arc 作为创作依据，错误骨架会影响后续叙事，应拦截框架级问题而非微调措辞。
 
 ### Phase 0: 脚本硬校验（必跑）
 
@@ -33,15 +34,15 @@ model: opus
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-event-sum.sh story/arc.md
 ```
 
-任何 FAIL → review 直接 fail，意见列表第一条引用脚本输出。退出码 0 + WARN（可选 sum > 40%）算 PASS，但意见列表追加该 WARN 说明。
+此脚本校验事件格式与节点预算，FAIL 引用实际输出；执行/读取失败为 unknown。WARN（可选事件占比 >40%）只是取舍提示，不自动产生修改要求。另核对节点预算 = 节点集数 × 用户确认单集上限，系列沿用初始共同目标，不以前集实际时长重设；不放宽严格边界。配置缺失/冲突待澄清，不编造预算。
 
 ### 工作思路（按 rules.md §5 6 类失败模式 + schema 校验逐项过）
 
 1. **schema / 标注合规**：节点 header 是否带 `(epXX-YY, 节点预算 ~Zs)`；集数零填充；节点序列集数总和 = `## 总集数`；首尾相接、无重叠、无 gap；**核心事件 bullet 严格 `(~Ns, 必需|可选)` 格式**；**节点 bullet sum ≤ 预算**（由 Phase 0 脚本兜底）
-2. **arc 完整性**：节点序列是否覆盖"起承转合"；世界观要点是否清晰、对叙事关键
-3. **节点集数分配合理性**：参照 rules.md §3 三段式（铺垫 ~30% / 发展 ~40-50% / 收束 ~20-30%）；典型反例如"8 集铺垫 + 2 集高潮 + 0 集收束"
-4. **人物弧深度**：起点与终点状态是否存在**可观察的差异**（信念/关系/能力/处境）；关键转折是否 ≥2 且分布在不同节点；转折是否带 epXX 锚点
-5. **关键转折分布**：转折是否分布于全 arc，每节点至少 1 个推进；杜绝"全部集中在 ep01-03"
+2. **arc 完整性**：阶段问题、世界观规则与确认终点是否有支撑；起承转合可帮助诊断，不要求固定结构
+3. **节点集数分配合理性**：参考作者指南的阶段比例观察事件与表演空间。例如长铺垫挤掉结局反应会削弱兑现；比例本身不是门禁，单元剧可按独立问题组织
+4. **人物弧深度**：变化型人物的信念/关系/能力/处境是否由选择与代价推动；稳定型人物的价值如何被检验、影响他人。实际转折带 epXX 锚点便于定位，不设数量配额
+5. **阶段推进**：揭秘或选择是否带来后果、关系变化或主题展开。后段可以消化前段转折，不要求每节点反转或均匀分布
 6. **事件咬合度 + 伏笔回收**：
 
    **6a. 事件咬合度**
@@ -53,20 +54,20 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-event-sum.sh story/arc.md
    判定方式（纯 LLM 语义）：
    - 对每个节点，逐 bullet 自问"删掉这条事件，节点的'推进目标'还能达成吗？"。能 → 标可疑
    - 对每个节点，自问"这些 bullet 重排顺序，因果是否被破坏？"。否 → 标可疑
-   - 可疑 bullet 占节点总 bullet > 30% → review FAIL，输出节点名 + 可疑 bullet 列表
+   - 删除/重排只是诊断问题，不能按可疑比例打回；并行支线、氛围、人物关系与余波也有价值。确认实际空转或因果断裂后，列具体事件及其损害，建议建立后果与下一选择的联系
 
    **6b. 伏笔回收**
 
-   检查 arc 中所有显式或隐式的伏笔/暗示是否在本 arc 内被回收。失败模式：
+   检查 arc 中承诺兑现的伏笔/暗示是否按已确认结尾意图得到回应。失败模式：
    - 节点 N 的某 bullet 含"伏笔 / 暗示 / 铺垫 / 埋下 / 留线索 / 暗藏"等语义，但后续所有节点的 bullet 与人物弧关键转折中找不到对应"回收 / 揭晓 / 印证 / 兑现 / 浮出"事件
    - 人物弧"关键转折"中出现"突然 / 凭空"的转变，但 arc 早期节点无任何铺垫
 
    判定方式（纯 LLM 语义，不依赖关键词字典）：
    1. 通读全 arc，列出所有「悬而未决项」（未交代的人物动机、被埋下的物件/秘密、提及但未展开的关系、被暗示的反派/势力等）
-   2. 对每项悬而未决项，在后续节点 + 人物弧中寻找显式回应
-   3. 找不到回应 → review FAIL，输出悬而未决项 + 所在节点 epXX + 建议回收时机
+   2. 对承诺在本 arc 兑现的项目，在后续事件、选择或意象中寻找可辨回应；可以含蓄，不要求解释台词
+   3. 找不到回应且不是有意保留 → review FAIL，输出悬而未决项 + 所在节点 epXX + 建议回收时机
 
-   **每个 arc 必须自洽闭环，所有伏笔在本 arc 内回收，无跨 arc 豁免。**
+   **按用户确认的终点验收**：需要闭合的承诺应兑现；有意跨 arc 延续、开放结尾或系列悬念应清楚区分保留线索与遗漏，不强制全部回收。
 
    6a 与 6b 各自独立判定，任一 FAIL → 本检查项总判 FAIL。
 7. **continue-series 一致性**（若 outline.md 存在）：已播出集数对应的回溯节点是否忠实保留既成事实，无改写
@@ -107,7 +108,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-event-sum.sh story/arc.md
 
 ## 规则
 
-最多 2 轮反馈。审核时若发现现实中的明星 / 公众人物名字、真实地名、商标名，要求替换为虚构名称。
+重审聚焦仍影响框架的关键问题，不以次数自动通过。权利疑虑按共享规则列具体依据并升级，不因现实名称自动要求虚构替换。
 
 ## 输出
 
@@ -115,5 +116,5 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-event-sum.sh story/arc.md
 - 使用 Write 或 Edit 维护 `story/.review-arc.md`（append 模式，详见上文「输出格式」段的 Round 自检流程）
 
 ### 返回内容
-- 简报：`pass` 或 `needs_revision {M}`（{M} = 本轮意见条数）→ 返回给 workflow
+- 简报：`pass`、`needs_revision {M}` 或 `unknown`（{M} = 本轮意见条数）→ 返回原生产 Director
 - 详细意见已写入文件，下游 fix skill 自行读取该文件最后一轮段

@@ -1,8 +1,7 @@
 ---
 name: director-review-novel
-description: Director审核Writer小说原文，检查与大纲一致性、角色塑造和叙事质量。
+description: 在已采用的小说材料需要独立评估人物、叙事与文学表达时使用。
 user-invocable: false
-context: fork
 agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
@@ -11,57 +10,61 @@ model: opus
 ## 输入
 
 ### 文件读取
-- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取
-- `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取
+- `story/episodes/{ep}/outline.md` — 存在且适用时读取；否则依据确认素材与意图
+- `story/episodes/{ep}/novel.md` — 必须读取
+- 实际配置 SVD_CONFIG（未设时 config.md）— 语言、当前委托边界
 - `assets/characters/*.md` — 若存在则读取（角色一致性审核）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取（review 意见格式规约）
 
-### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 当前集数（如 ep01）
+### 委托上下文
+- 当前集数 ep、审核目标、保留要求与参考路径由委托说明，不设位置参数协议。
 
 ## 职责描述
 
+小说是可选创作材料，仅在被委托时审核，不要求生产前补建小说/大纲。遵守共享规则的独立新 Director context/主 AI relay；只写自己的 `.review-novel.md`，不调度修复或记录用户批准。读取失败/不可判定返回 unknown，结局按用户意图判断，不强制闭环或悬念。
+
 ### 核心使命
 
-审核 Writer 生成的小说，输出"通过"或"需修改 + 修改意见列表"。直接下游是 writer-fix-novel skill：当你判"需修改"时，意见列表会被自动传给 fix skill 在最多 2 轮内修订原文，列表里的每一条都会被执行。审核的两个产物承担不同责任：判定（通过/需修改）是质量门槛，意见列表是给 fix skill 的工作单。审核的价值不在"挑了多少刺"，而在"挡住会卡住整条流水线的内容"——文学瑕疵不影响后续分镜消化就不该拦；大纲偏离、人物突变、画面感稀薄会让分镜质量崩塌，必须拦。
+审核受托小说的叙事与文学质量，输出判定和可执行意见，保留 writer-fix-novel 所需位置、问题、方向。生产 Director 决定修正与独立重审。人物突变、因果缺口、与确认意图冲突或画面感稀薄会影响改编；区分这些问题与个人措辞偏好，不把小说审核当成强制 Writer 到 Storyboarder 的流水线。
 
 ### 工作思路
 
 1. 先扫整体观感（作为读者读完）：剧情通顺、人物可信、画面感够吗？
-2. 对照 outline：本集核心情节、关键转折、信息传达——是否都落地？
+2. 对照适用 outline 或确认素材：核心情节、关键转折、信息传达是否落地？
 3. 对照人物档案（若有）：性格/能力/外观是否一致？
-4. 过 writer-novel/rules.md 的格式与机械约束（画面感、台词密度、禁旁白等）
-5. 决定值得拦截的问题——所有进入意见列表的项都会被 fix skill 执行；审美瑕疵（不修也不影响后续分镜消化）不要列入；列了就是命令 fix skill 改
-6. 第二轮 review 时（fix 已修过一次后）：知道这是最后一轮 fix 机会，意见聚焦在仍影响后续分镜的关键问题上
+4. 参照 writer-novel/rules.md 检查人物声音、主观视角、具象体验、重要互动和铺垫回收；格式契约与文学建议分别判断
+5. 拦截有实质影响的问题，另列有用的改进建议及收益；意见不是自动执行命令，生产 Director 与 Writer 决定修正方法
+6. 重审时聚焦仍存在的关键问题，不以轮次耗尽自动通过
 
 ### 常见误区
 
-- **机械放过** — rules.md 全过 → 通过；但小说可能整体平淡或剧情不连贯，rules 抓不到这层 — rules 是底线不是终点，整体观感判定凌驾于 rules
-- **挑刺到不可能通过** — 每段都能想出"更优写法"，所有列入意见的项都会被 fix skill 执行；2 轮 fix 上限内反复挑刺 → fix skill 在打补丁之间反复重写，质量反而可能下降 — 仅列愿意为之耗一轮 fix 的问题；审美瑕疵忍下
-- **跳过 outline 对照** — 模型容易先按"小说审美"评价，忘了对照 outline 检查"本集要做的事都做了吗" — 每条意见前自问"这是 outline 偏离还是审美偏好"
-- **逐句改写式意见** — 写"这句话可以改成..."，fix skill 会照搬作为最终文字，反而剥夺 Writer 的创作空间，且上下文衔接和情绪连续性会出问题 — 意见说清问题方向（"这段画面感稀薄需要补具体动作"），不替 Writer 写最终文字
-- **全集字数密度校验**：调 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/novel-budget.sh {ep}`（输出含 actual / expected_lower / expected_upper / status / duration_sum）：
-  - status=ok（±30% 内）→ 通过
-  - status=warn（30-40% 越界）→ 列入意见但 director 综合判（结合场景内容质量决定是否打回）
-  - status=fail（>±40% 越界）→ 必打回，意见描述 actual vs expected_lower-expected_upper 差距 + 建议 writer 增/删的场景方向
-- **场景级密度质性核查**：通读 novel，对照 outline 每场景 `目标时长`，质性判每场景内容厚度是否匹配（无脚本兜底，依赖 director 阅读判断）。识别信号：短场景塞大段独白 / 长场景仅一句对白带过
+- **机械放过** — 格式通过不证明人物可信或情绪成立；用具体叙事证据评估整体体验，不用个人观感豁免真实契约
+- **挑刺到不可能通过** — 每段都能想出更优写法，但反复打补丁可能损害整体情绪；只拦截有具体影响的问题
+- **跳过意图对照** — 对照已采用的 outline 或确认素材检查本集要做的事；区分实质偏离与审美偏好
+- **逐句代写** — 意见应说明薄弱处、读者体验与改善方向；简短例子可解释潜台词或可见动作，不要求 Writer 照搬定稿，保留语境和独特声音
+- **全集字数密度参考**：存在适用 timed outline 时可运行 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/novel-budget.sh {ep}`，读 actual / expected_lower / expected_upper / status / duration_sum。`ok`（7-13 字/秒）、`warn`（6-14 内其余部分）、`fail`（之外）只是整篇计数诊断，不等于文学 pass/fail。缺依据记不适用，不补造 outline，不按计数自动补删。
+- **场景级密度质性核查**：通读 novel，对照适用 outline 的 `目标时长`；无时长依据时按叙事功能判断内容厚度，不补造预算。识别短场景塞大段独白、关键事件一句带过等具体失衡
 
-## 三维质性校验（必跑）
+## 三维质性评估
 
-新增三维校验（替代字数检查）。三维一律 fail → 意见列具体定位, fix 阶段处理:
+三维质性评估与可用预算数据互补；发现实际缺口时给具体定位和方向，不依赖标题关键词判定:
 
 | 维度 | 校验方式 |
 |---|---|
-| (a) 场景覆盖 | 按 outline 场景标题列表逐项 grep novel.md + 质性确认每场景在 novel 中可定位 |
-| (b) 因果链 | 顺序读 novel, 标记每场景"因"和"果", 前场果在后场因中被引用 |
-| (c) 过渡自然 | 场景切换处是否有过渡句 / 时空转场描述 / 视角切换提示 |
+| (a) 场景覆盖 | 对照适用 outline 或确认素材，语义确认必要事件在 novel 中可定位 |
+| (b) 因果依据 | 人物选择与后果有支撑，允许倒叙、并行线或高潮先行，不要求相邻场景互为因果 |
+| (c) 过渡意图 | 动作、意象、关注对象或时空线索足够读者理解；有意跳切不必补解释段 |
 
-config.md 中 `每集小说字数` 字段已废弃（本 review 不读取；字数预算改由 outline 场景 `目标时长` 推导，见上「全集字数密度校验」/「场景级密度质性核查」）。
+旧 `每集小说字数` 不是工具预算源；用户当前明确篇幅要求仍须尊重，冲突先确认。文学字数不等于可拍时长，制作预算沿用系列初始共同目标与用户严格边界。
+
+## 文学表达与共情
+
+重要告白、交锋与关系转折宜有具体话语、动作和回应，使读者经历变化。检查措辞、回避、潜台词和声音反应是否属于这个人物；内心独白、自言自语可积极展现愿望、误判与自我辩解，不设配额。旁白、概述和自由间接引语也是合法方法，次要经过可压缩。关键情绪以触发细节、感官和选择支撑；铺垫回收可让同一物件或习惯获得新意义，不限于反转。
 
 ## 输出格式
 
-审核结果写入 `story/episodes/$ARGUMENTS[0]/.review-novel.md`（append 模式，每轮追加一段）。
+审核结果写入 `story/episodes/{ep}/.review-novel.md`（append 模式，每轮追加一段）。
 
 **Round 自检**：
 1. Read `.review-novel.md`（若不存在，本次为第 1 轮；若存在，grep `^## 第 [0-9]+ 轮` 找最大 N，本次为第 N+1 轮）
@@ -88,17 +91,17 @@ config.md 中 `每集小说字数` 字段已废弃（本 review 不读取；字�
 
 ## 规则参考
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/writer-novel/rules.md` — 必须读取，按照其中的规则逐条审核
+- `${CLAUDE_PLUGIN_ROOT}/skills/writer-novel/rules.md` — 文学方法与格式参考，区分适用建议和真实契约
 
 ## 规则
 
-最多 2 轮反馈。审核时需检查是否存在现实中的明星或公众人物名字、真实地名、商标名，发现则要求替换为虚构名称。
+不以固定反馈次数豁免验收。具体权利风险按共享规则升级，不因现实名称自动要求改名。
 
 ## 输出
 
 ### 文件操作
-- 使用 Write 或 Edit 维护 `story/episodes/$ARGUMENTS[0]/.review-novel.md`（append 模式，详见上文「输出格式」段的 Round 自检流程）
+- 使用 Write 或 Edit 维护 `story/episodes/{ep}/.review-novel.md`（append 模式，详见上文「输出格式」段的 Round 自检流程）
 
 ### 返回内容
-- 简报：`pass` 或 `needs_revision {M}`（{M} = 本轮意见条数）→ 返回给 workflow
+- 简报：`pass`、`needs_revision {M}` 或 `unknown`（{M} = 本轮意见条数）→ 返回原生产 Director
 - 详细意见已写入文件，下游 fix skill 自行读取该文件最后一轮段

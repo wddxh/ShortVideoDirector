@@ -1,8 +1,7 @@
 ---
 name: director-input-confirm
-description: Director 根据用户故事材料生成结构化确认说明。按 mode 自动加载 series.md 或 short.md 专属指南。
+description: 当故事材料、现成剧本或续集委托需要澄清创作意图、保留内容和待确认事项时使用。
 user-invocable: false
-context: fork
 agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
@@ -10,63 +9,67 @@ model: sonnet
 
 ## 输入
 
-通过 prompt 接收:
-- mode: 'new-series' | 'continue-series' | 'short'
-- story_input: 用户故事材料 (原始文本或文件路径)
-- selected_plot_option: 从 plot-options 阶段返回的选定剧情方向 (new-series 必填; continue-series / short 可选)
+尽量前置可预见的关键决定，而非要求创作前知道全部细节。相关初始选择已满足或委托后，后续艺术细节由 owner 决定；不重开 intake，不因本 skill 名称而额外索取一次批准。新缺口先核对当前配置、材料、grants 和 Director/专家判断，只有真实缺权限、关键冲突或用户指定检查点才提问。原请求已允许开始且无待决事项时，返回可继续的事实与范围，不准备确认包或问“开始吗”。
+
+本 skill 提炼已有意图，不在确认说明中擅自补剧情。相关需求来自原话、配置、材料或实际范围委托；只问影响当前工作的必要缺口，逐题提供具体选项与委托，不以沉默授权。剧情未指定但基本主题/前提/期待体验足够时，Director 可按需发展默认三个完整候选，不要求用户先选剧情或解决无关技术设置，也不先问“谁决定”；明确数量、已有剧本/方向/委托优先。正式剧本/资产仍待其相关选择已知或委托，真正缺基本意图才先澄清。
+
+用户要求先看规划材料时，先完成该材料相关 intake，再创作，后续材料批准是另一决定。初始用户集时长确认保持不变。配置与后续角色按所选模型/参数执行，不自动问费用/预算或查余额、不为省钱降级；用户明确限制和真实 provider 失败仍须处理。意外问题仅暂停受影响工作。
+
+从委托理解新系列、续集或单集目标，读取提供的文本/路径、保留要求和制作前需确认的材料。已有选定方向可参考；成熟剧本无需先选候选。只询问会影响采用材料、创作范围或授权的未知项，不要求委托填写内部参数表。
 
 ## 必读文件
 
-- `config.md` — 必读
-- `${CLAUDE_PLUGIN_ROOT}/skills/director-input-confirm/series.md` (when mode ∈ {new-series, continue-series}) — 必读并严格遵循
-- `${CLAUDE_PLUGIN_ROOT}/skills/director-input-confirm/short.md` (when mode = short) — 必读并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/user-decision-relay.md` — 用户决策说明完整交回与呈现
+
+- 实际配置 `SVD_CONFIG`（未设时 `config.md`）— 本文与 companions 的 config.md 均指此路径，不另读默认配置替代
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-input-confirm/series.md` — 系列委托的确认参考
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-input-confirm/short.md` — 单集委托的确认参考
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
-## 工作流
+## 确认思路（参考，不是必经阶段）
 
-### Phase 1: 检测 mode 并加载专属指南 (必做)
+### 选择相关参考
 
-1. 解析 prompt 中的 mode 参数
-2. 按 mode 用 Read tool 加载**仅对应 mode 的文件** (避免 prompt 污染):
-   - mode ∈ {'new-series', 'continue-series'}: Read('skills/director-input-confirm/series.md')
-   - mode = 'short': Read('skills/director-input-confirm/short.md')
-3. **不要**加载非当前 mode 的文件
-4. 严格按"公共骨架 + 当前 mode 文件"指引执行后续 Phase
+根据委托与已有材料选择 series.md 或 short.md。以下方法适合材料尚需澄清时；材料成熟时可直接复述采用范围及真正待决的问题，不按阶段重复收集信息。
 
-### Phase 2: 上下文准备
+### 上下文准备
 
 - 读 `config.md`
-- 按 mode 文件指引读其他上下文 (series 需 arc.md / story/outline.md / 最近 M 集 novel；short 仅 config)
+- 先读用户提供的材料；按 mode 指引选择有关的既有规划、剧本或小说，不因文件缺失要求补齐整条创作链
 
-### Phase 3: 生成结构化确认说明 (公共骨架)
+### 组织确认说明
+
+好的确认先保留材料最有价值的创作承诺：观众主要跟随谁、人物想要什么、哪段关系或感受值得关注，以及用户希望保留的声音与结尾。可用一句具体复述检验理解，如“她想道歉却始终不肯承认自己在等回应”。这是提炼已有意图，不是代用户补剧情；只有会改变采用方式的歧义才提问。
 
 所有 mode 都满足：
-- 输出 Markdown 格式确认说明
+- Markdown 仅是当前决定的完整解释，主 AI 随后必须使用可用原生单题选择器，不以说明文本代替控件
 - 忠实于用户输入，不过度发挥
-- 版权规避：不得使用现实明星 / 公众人物 / 真实地名 / 商标
-- 若材料涉及现实版权 IP，须在说明末尾追加版权规避提示
-- 按当前 mode 文件中"字段清单"填写
+- 首次向用户提及“人物弧”时说明是人物在选择中发生的变化，“伏笔回收”是让先前线索在后续产生意义；用具体故事解释，不堆专业术语或新增交付物
+- 现实人名、地名或商标出现本身不证明侵权；忠实保留合法提供材料，不静默改名或把确认委托变成“版权重设计”
+- 有具体权利疑虑、授权不清或现有角色级规则与采用要求冲突时，说明涉及的文本、约束和待决问题，交 Director / 用户确认后再改受影响材料；不擅自判定侵权或保证改名即合规
+- companion 中的字段是表达参考，选取与当前决定有关的内容，不逐项补齐或发问
 
-### Phase 4: mode 专属字段填充
+### 模式相关事项
 
-按 Phase 1 加载的 series.md / short.md "字段填写要求" 指引补充字段:
-- series 模式: restate 总集数 (来自 config.md 总集数 字段); restate arc 状态 (continue-series 时)
+需要时参考 series.md / short.md：
+- series 模式: 复述已配置的总集数；续集说明相关角色状态、未回收伏笔及已有 arc 的进度（若适用）
 - short 模式: 无 arc 字段, 无总集数字段
 
-### Phase 5: 自检并返回
+### 核对并返回
 
-按 mode 文件"专属失败模式自查"清单确认; 通过则返回 markdown 给 caller。
+核对确认说明是否忠实、是否遗漏影响决策的约束，再返回给 caller；自检不代表用户已批准。
 
 ## 输出
 
-不与用户交互, 直接返回结构化确认说明 markdown:
+仅有真实待决事项时，你一次提供全部可预见相关问题/表，标明题界、全部适用选项/解释、稳定标签、背景取舍及条件分支，或给完整计划的精确路径/章节；费用不自动设字段。主 AI 读全后内部保留计划，仅沿作者题界完整展示当前题，再用可用原生键盘选择器，questions 恰好一项；相关原始答复及全部条件批量回原任务，不逐题往返。仅缺内容/映射、不相容或计划外新决定才提前回询；不推断条件，不有损改写或倾倒全表。长解释在控件前，限制按共享映射披露。以下只是相关内容参考：
 - mode 标识
 - (series) 总集数 restate
-- (continue-series) arc 当前阶段 restate
+- (continue-series) 当前连续性状态与必要的材料缺口
 - 故事材料摘要 + mode 专属字段
-- (涉及现实 IP 时) 版权规避提示
+- (存在具体权利疑虑或规则冲突时) 事实依据与待确认问题
 
 ## 通用规则
 
-- "总集数"已存 config.md 总集数 字段; 本 skill 仅 **restate**, 不追问任何字段
-- continue-series 时确认说明须与 arc 当前阶段目标对齐
+- 已知配置复用，受托艺术细节由 owner 决定；不能用现有依据与权限解决的必要未知项才交用户，不猜测用户决定。
+- 有 arc 时核对阶段目标；没有时以相关已确认材料核对连续性，不凭空补造 arc。
+- 指出可直接采用的剧本内容，不把确认说明变成重新创作。制作前确认要求交回 Director 协调，不能以自检代替用户批准。

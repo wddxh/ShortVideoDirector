@@ -1,8 +1,7 @@
 ---
 name: director-plot-options
-description: 生成 3 个差异化剧情候选 (action='generate') 或按 modification 修订候选 (action='modify')。按 mode 自动加载 series.md 或 short.md 专属指南。
+description: 当故事方向尚未确定、需要比较不同冲突或情感落点，或用户要求修改剧情候选时使用。
 user-invocable: false
-context: fork
 agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
@@ -10,113 +9,82 @@ model: sonnet
 
 ## 输入
 
-通过 prompt 接收:
-- mode: 'new-series' | 'continue-series' | 'short'
-- action: 'generate' | 'modify'
-- target_option: 'A' | 'B' | 'C' (modify 可选)
-- modification: 用户指令文本 (modify 必填)
-- previous_options_path: 'tmp/...' (modify 必填)
+候选需要基本创作意图，不需要用户先选好剧情。制作/探索请求已有主题、前提或期待体验，足以避免任意发挥时即可发展候选；无关技术设置不阻塞。只有真正影响探索的缺口才逐题澄清，不先问“谁决定”。复用材料、已定方向和实际范围委托，沉默不授权；正式剧本/资产仍等其相关选择已知或委托。预览后的用户批准与 intake 分开，费用不设必填或预检，用户实际限制仍绑定。
 
-输出由 action 决定:
-- generate → 3 候选
-- modify + target_option → 修改后的 1 个候选
-- modify 无 target_option → 重生成 3 候选
+用于探索未定方向，不是新系列的必经入口。用户已提供适用剧本或明确方向时直接采用，不强迫重选 A/B/C。
+
+从委托理解新作/续集/单集目标、素材与范围。未指定剧情且需要探索时，未指定数量默认 THREE（三个）展开故事，明确候选数量覆盖默认。已有剧本、选定方向或明确选择委托直接复用，不强制重选。每个候选有动机、冲突、因果推进和结局/情感落点，不只给类型、标题或一句话。修改只改定位的候选与意见，缺定位逐题询问，不重生成全部候选。
 
 ## 必读文件
 
-- `config.md` — 必读
-- `${CLAUDE_PLUGIN_ROOT}/skills/director-plot-options/series.md` (when mode ∈ {new-series, continue-series}) — 必读并严格遵循
-- `${CLAUDE_PLUGIN_ROOT}/skills/director-plot-options/short.md` (when mode = short) — 必读并严格遵循
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/user-decision-relay.md` — 用户决策说明完整交回与呈现
+
+- 实际配置 `SVD_CONFIG`（未设时 `config.md`）；本文及 companions 中 config.md 均指此路径
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-plot-options/series.md` — 系列方向比较参考
+- `${CLAUDE_PLUGIN_ROOT}/skills/director-plot-options/short.md` — 单集方向比较参考
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
-## 工作流
+## 探索与修订方法（按需选用）
 
-### Phase 1: 检测 mode 并加载专属指南 (必做)
+根据委托选择 series.md / short.md 的相关方法。新方向可先比较冲突与情感落点再展开节点；局部修订可直接定位当前候选，不必重走探索流程。
 
-1. 解析 prompt 中的 mode 参数
-2. 按 mode 用 Read tool 加载**仅对应 mode 的文件** (避免 prompt 污染):
-   - mode ∈ {'new-series', 'continue-series'}: Read('skills/director-plot-options/series.md')
-   - mode = 'short': Read('skills/director-plot-options/short.md')
-3. **不要**加载非当前 mode 的文件
-4. 严格按"公共骨架 + 当前 mode 文件"指引执行后续 Phase
-
-### Phase 2: 上下文准备
+### 上下文准备
 
 - 读 `config.md`
-- 按 mode 文件指引读其他上下文 (series 需 arc.md / story/outline.md / 最近 M 集 novel；short 仅 config)
+- 读委托材料及 mode 指引中有关的连续性依据；arc、outline、novel 均不作为候选创作的无条件前置
 
-### Phase 3: 按 action 执行
+### 探索候选
 
-#### Phase 3a (action='generate')
+比较时说明各方向怎样产生不同体验：同一“寻人”素材，可以让观众先知真相而替主角担心，也可跟随主角逐步发现，或聚焦重逢后的关系修复。用具体行为、信息顺序和情感代价展示差异；“更燃/更感人”不是足够的比较依据。表达-only 委托则比较声音、语气、意象等指定维度。
 
-按公共骨架 + mode 文件指引生成 3 候选, 差异显著:
-- 输出 3 个候选 (选项 A / B / C)
-- 3 个候选必须差异显著 (主题、冲突类型或叙事风格不同)
-- 版权规避: 不得使用现实明星 / 公众人物 / 真实地名 / 商标
-- 按 mode 文件中"每候选字段"清单填写
+按约定数量和比较目的展开：
+- 多个候选的差异应有助于选择，可比较主题、冲突机制、人物代价或叙事风格，不必每项都不同
+- 现实人名、地名、商标本身不是侵权证据，不静默替换合法提供材料。具体权利疑虑、授权不清或角色级规则与采用要求冲突时，说明依据和影响，交 Director / 用户确认后再改受影响内容，不把候选探索扩大为“版权重设计”或保证改名即合规
+- 按需选用 companion 的表达模板，给足判断取舍的依据，不为凑字段添加剧情
 
-#### Phase 3b (action='modify' + target_option)
+### 修订候选
 
-1. Read previous_options_path 取之前 3 候选
-2. 仅按 modification 修改 target_option 指向的候选
-3. 输出 1 个修改后候选
+读取委托指定的现有候选，只改授权目标及必要一致性范围，保留未涉及候选。明确要求整组重探索时才重做整组；用户保留的元素无需为了与旧稿不同而替换。当前 findings 与请求冲突或过时则澄清，不拼接旧审核意见。
 
-#### Phase 3c (action='modify' 无 target_option)
+### 诊断与交回
 
-1. Read previous_options_path 取之前 3 候选 (反向约束: 新 3 候选不应与旧雷同)
-2. 按 modification 偏好重生成 3 候选
-
-### Phase 4: 自检
-
-按 mode 文件中"专属失败模式"自查; 不通过则回 Phase 3 对应分支 (3a/3b/3c, 按本次 action) 重做。
+按创作意图检查候选是否可比较、因果与情绪是否有支撑，不以幕数、高潮位置或开放结尾判失败。修正不超本次授权，不封闭用户要求的留白；扩大范围先交 Director 协调。
 
 ## 落盘
 
-子代理**必须自己落盘**到 `story/plot-options.md`，而非把完整 markdown 塞 prompt（避免主 session 收到长 prompt 后再 Write/Edit 分段时 anchor 错位）。
+intake 充分且获准创作候选后，子代理**必须自己落盘**到 `story/plot-options.md`，不让主 AI 代写；仅诊断/待澄清时不创建候选文件。落盘不免除完整呈现义务；可直接返回完整面向用户的说明，或返回其精确文件/章节供主 AI 读全展示。
 
-### 落盘约束（强制，违反即视为生成失败）
+### 安全写入与可选锚点
 
-1. **每个候选作为完整单元一次性 Write 或 Edit**，严禁按字段切片
-   - 若单候选 > 2000 chars，用 `## 选项 N: <名称>` 整行作为 oldString anchor（该行在文件内唯一）
+1. 每次写入低于 2000 chars；长候选分段累积，不能为了单次写入压缩创作内容
+   - 用含 `## 选项 N: <名称>` 或该候选内唯一上下文的片段作 anchor
    - **绝不**用 `---` 或 `**字段名：**` 类作 anchor（不唯一，会错位）
 
-2. **文件末尾必须留 sentinel 行**，给 main session 后续 Edit append "用户已选定方向" 块用：
+2. 新文件需要稳定追加锚点时可保留以下 sentinel；它是编辑辅助，不是候选质量或授权状态。已有文件没有它不要求为局部修改补建：
    ```
    <!-- 候选列表结束，等待用户选定 -->
    ```
 
 ### 落盘步骤
 
-#### action='generate' 或 'modify-without-target'
+#### 新建或已授权整组重做
 
-1. Write `story/plot-options.md`：先写头部 + 选项 A 完整段 + sentinel（确保单次 Write ≤2000 chars；若选项 A 超长，仅 Write 头部 + sentinel，留下空 placeholder）
-2. Edit append 选项 B（anchor=`<!-- 候选列表结束，等待用户选定 -->`，newString=`## 选项 B: ...\n（完整 B 段）\n\n---\n\n<!-- 候选列表结束，等待用户选定 -->`）
-3. Edit append 选项 C 同上模式
-4. 若选项 A 留了 placeholder，用 anchor=`## 选项 A: <名称>` + 后续 placeholder 行替换为完整 A 段
+1. 可写头部与 sentinel 后分段追加约定候选，也可按唯一标题上下文写入，每次低于 2000 chars。
+2. 检查标题与候选归属，避免段落错位；如采用 sentinel，保持唯一。用户选定状态只记录真实决定，不因生成完成而自动选定。
 
-#### action='modify-with-target'
+#### 局部修订
 
-只 Edit 替换该 target 选项整段：
-- oldString=`## 选项 {target}: <现名称>` 整段到下一 `## 选项` 或 sentinel 之前
-- newString=修改后该选项整段
+只修改已定位的目标候选，止于下一候选标题、已有 sentinel 或文件末尾，保留其后的用户选择记录。短段可整体替换；长段按唯一上下文分块修改，每次低于 2000 chars。
 
-不动其他选项，不动 sentinel。
+不动其他选项或已有用户决定；请求与选定状态冲突时先协调。
 
 ## 输出（返回 caller 的 prompt 内容）
 
-不与用户交互，prompt 仅返回简短摘要：
+不直接与用户交互。一次交齐全部可预见相关问题，标明题界及条件分支。“选哪个剧情”仍是一题，包含稳定标签、全部三个候选正文（明确数量则按该数量）、完整解释与取舍，以及“Director 决定”的范围。动机、冲突、推进和结局全部展开，不只交标题/类型/摘要；其他设置单列题界。也可指定 `story/plot-options.md` 中完整计划的精确章节；主 AI 内部保留计划，沿作者题界展示当前题全部内容并原生单选，相关原始答复/条件批量回本任务。缺内容/映射、不相容或计划外决定才提前回询，主 AI 不代写、摘要或提前倾倒全表。
 
-```
-已落盘 3 候选到 story/plot-options.md。
-- 选项 A: <主题名称>
-- 选项 B: <主题名称>
-- 选项 C: <主题名称>
-（modify-with-target 时仅列被修改的那一项）
-```
-
-main session 收到该摘要后 Read `story/plot-options.md` → 呈现给用户 → 用户选定（A/B/C 或要求修改）→ main session 按 generate-episode-pipeline mode 文件指引处理后续动作。
+仅需用户选择或到指定检查点时准备该包；主 AI 读全并展示所有当前候选与解释，再用原生单选控件，questions 恰好一项，三个候选加委托（宿主上限按共享映射保留全部选择并披露限制）。Markdown 不替代可用控件。等答复再问计划内下一适用题，相关原始答复及全部条件批量回原任务。已有选择委托时 Director 在范围内决定并记录依据/理由，不冒称用户亲选、不再求批准。协作按实际材料和授权，不规定调用链。
 
 ## 通用规则
 
-- 3 候选差异必须落在结构层 (节点序列 / 冲突 / 情感落点)，不是仅换名字
-- continue-series 时，候选不得偏离 arc 当前阶段目标
+- 需要比较不同方向时，差异落在节点因果、冲突或情感落点，而不是仅换名字；若委托只比较同一剧情的表达方式，则围绕该差异展开
+- continue-series 时，候选须尊重已确认的连续性和适用 arc 目标；改方向的提案须说明对后续伏笔回收的影响。

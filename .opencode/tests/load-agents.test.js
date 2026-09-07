@@ -7,6 +7,9 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { mkdtemp, mkdir, cp, readFile, writeFile, rm } from 'fs/promises';
+import os from 'os';
+import { ROLE_HANDOFF_GUIDANCE } from '../lib/tool-mapping.js';
 import { parseAgentFile, convertAgentFrontmatter, buildPermissionForAgent, loadAllAgents } from '../lib/load-agents.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -65,7 +68,7 @@ describe('convertAgentFrontmatter', () => {
     const out = convertAgentFrontmatter({
       name: 'director', description: 'Director', tools: 'Read, Write', model: 'inherit'
     });
-    assert.deepEqual(out.tools, { bash: true });
+    assert.equal(out.tools.bash, true);
   });
 
   test('all 5 agents end up with tools.bash = true', async () => {
@@ -111,7 +114,7 @@ describe('buildPermissionForAgent', () => {
     for (const a of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
       const p = buildPermissionForAgent(a, SCRIPTS);
       assert.equal(p.bash, 'allow', `${a}.bash`);
-      assert.equal(p.task, 'allow', `${a}.task`);
+      assert.equal(p.task, ['director', 'creator'].includes(a) ? 'allow' : 'deny', `${a}.task`);
       assert.equal(p.skill, 'allow', `${a}.skill`);
     }
   });
@@ -140,7 +143,7 @@ describe('buildPermissionForAgent', () => {
       assert.equal(p.read, 'allow', `${agent}.read`);
       assert.equal(p.edit, 'allow', `${agent}.edit`);
       assert.equal(p.write, 'allow', `${agent}.write`);
-      assert.equal(p.task, 'allow', `${agent}.task`);
+      assert.equal(p.task, ['director', 'creator'].includes(agent) ? 'allow' : 'deny', `${agent}.task`);
       assert.equal(p.skill, 'allow', `${agent}.skill`);
       assert.equal(p.webfetch, 'deny', `${agent}.webfetch`);
       assert.equal(p.websearch, 'deny', `${agent}.websearch`);
@@ -153,6 +156,41 @@ describe('buildPermissionForAgent', () => {
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 
 describe('loadAllAgents (integration)', () => {
+  test('runtime prompt resolves relative rules from the supplied plugin root', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'svd-role-source-'));
+    try {
+      await cp(path.join(PROJECT_ROOT, 'agents'), path.join(root, 'agents'), { recursive: true });
+      await mkdir(path.join(root, 'scripts'));
+      const ruleDir = path.join(root, 'skills/_meta/rules');
+      await mkdir(ruleDir, { recursive: true });
+      await writeFile(path.join(ruleDir, 'user-decision-relay.md'), 'Relocated rule fixture');
+      const agents = await loadAllAgents(path.relative(process.cwd(), root));
+      for (const [name, { prompt }] of Object.entries(agents)) {
+        const anchor = prompt.match(/^Source role file: `([^`]+)`/);
+        assert.ok(anchor, `${name}: runtime prompt missing source anchor`);
+        assert.equal(anchor[1], path.join(root, 'agents', `${name}.md`));
+        const relative = prompt.match(/\]\((\.\.\/skills\/_meta\/rules\/user-decision-relay\.md)\)/);
+        assert.ok(relative, name);
+        const resolved = path.resolve(path.dirname(anchor[1]), relative[1]);
+        assert.equal(await readFile(resolved, 'utf8'), 'Relocated rule fixture');
+      }
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test('roles expose discovery and only commissioned delegators expose task', async () => {
+    const agents = await loadAllAgents(PROJECT_ROOT);
+    for (const [name, def] of Object.entries(agents)) {
+      const { frontmatter } = await parseAgentFile(path.join(PROJECT_ROOT, 'agents', `${name}.md`));
+      const tools = frontmatter.tools.split(',').map(t => t.trim());
+      assert.ok(tools.includes('Skill'), name);
+      assert.ok(tools.includes('Bash'), name);
+      assert.equal(def.tools.skill, true);
+      assert.equal(def.description, frontmatter.description);
+      assert.equal(def.tools.task, tools.includes('Task'));
+    }
+  });
   test('loads all 5 agents from real project', async () => {
     const agents = await loadAllAgents(PROJECT_ROOT);
     assert.deepStrictEqual(Object.keys(agents).sort(), [
@@ -167,7 +205,7 @@ describe('loadAllAgents (integration)', () => {
       assert.equal(def.mode, 'subagent', `${name}.mode`);
       assert.ok(def.prompt, `${name}.prompt`);
       assert.ok(def.permission, `${name}.permission`);
-      assert.equal(def.permission.task, 'allow');
+      assert.equal(def.permission.task, def.tools.task ? 'allow' : 'deny');
       assert.equal(def.permission.skill, 'allow');
     }
   });
@@ -184,8 +222,9 @@ describe('loadAllAgents (integration)', () => {
 
   test('agent prompt includes OC execution contract', async () => {
     const agents = await loadAllAgents(PROJECT_ROOT);
-    assert.ok(agents.director.prompt.includes('OC 执行契约'));
-    assert.ok(agents.director.prompt.includes('skill({ name:'));
+    for (const [name, agent] of Object.entries(agents)) {
+      assert.ok(agent.prompt.includes(ROLE_HANDOFF_GUIDANCE), name);
+    }
   });
 
   test('agent prompt includes 写入纪律 section', async () => {

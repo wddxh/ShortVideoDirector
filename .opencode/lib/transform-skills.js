@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, readdir, copyFile, stat } from 'fs/promises';
 import path from 'path';
 import { parseAgentFile as parseFrontmatterFile } from './load-agents.js';
-import { TASK_PROMPT_TEMPLATE, LEAF_CONTEXT_HINT, ENTRY_WORKFLOW_DISPATCH_DISCIPLINE, USER_INVOCABLE_ENTRY_WORKFLOWS } from './tool-mapping.js';
+import { ENTRY_WORKFLOW_DISPATCH_DISCIPLINE, USER_INVOCABLE_ENTRY_WORKFLOWS } from './tool-mapping.js';
 
 // parseSkillFile 与 parseAgentFile 行为一致；alias 出来让代码语义更清晰
 export const parseSkillFile = parseFrontmatterFile;
@@ -34,7 +34,7 @@ export function inlineSubstitutePluginRoot(text, pluginRoot, cacheSkillsDir) {
 }
 
 // 匹配 "使用 Skill tool 调用 <skill-name>"，包含可选反引号/包裹词
-const SKILL_CALL_RE = /使用\s+Skill\s+tool\s+(?:重新|再次|依次)?调用\s+`?([a-z][a-z0-9-]*)`?(?:\s+skill)?(?:[，,]\s*(?:传递)?参数(?:为)?\s*[：:]?\s*`([^`\n]+)`)?/g;
+const SKILL_CALL_RE = /使用\s+Skill\s+tool\s+(?:重新|再次|依次)?调用\s+`?([a-z][a-z0-9-]*)`?(?:\s+skill)?/g;
 
 export function rewriteSkillCalls(text, skillMeta) {
   // 行扫描 + code-block 状态机：在 ``` block 与 > quote block 内不替换
@@ -51,7 +51,7 @@ export function rewriteSkillCalls(text, skillMeta) {
       outLines.push(line);
       continue;
     }
-    outLines.push(line.replace(SKILL_CALL_RE, (match, skillName, explicitParams) => {
+    outLines.push(line.replace(SKILL_CALL_RE, (match, skillName) => {
       // Templated refs like `creator-image-{X}` are captured truncated as `creator-image-`.
       // Leave them verbatim — the LLM resolves the template at runtime.
       if (skillName.endsWith('-')) {
@@ -61,25 +61,10 @@ export function rewriteSkillCalls(text, skillMeta) {
       if (!meta) {
         throw new Error(`Unknown skill referenced in source: ${skillName}`);
       }
-      if (meta.fork && meta.agent) {
-        const prompt = TASK_PROMPT_TEMPLATE({
-          skillName,
-          agentName: meta.agent,
-          params: explicitParams || '<由调用方填充>',
-        });
-        return `调用 task 工具：\n\`\`\`\ntask({\n  subagent_type: "${meta.agent}",\n  description: "执行 ${skillName}",\n  prompt: \`\n${prompt}\n\`,\n})\n\`\`\``;
-      } else {
-        const params = explicitParams ? `，参数 \`${explicitParams}\`` : '';
-        return `调用 \`skill({ name: "${skillName}" })\`${params}`;
-      }
+      return `调用 \`skill({ name: "${skillName}" })\``;
     }));
   }
   return outLines.join('\n');
-}
-
-export function injectLeafHint(body, meta) {
-  if (!meta.fork || !meta.agent) return body;
-  return LEAF_CONTEXT_HINT(meta.agent) + '\n\n' + body;
 }
 
 export function injectDispatchDiscipline(body, meta) {
@@ -115,7 +100,6 @@ async function buildSkillMeta(skillsDir) {
       const { frontmatter } = await parseSkillFile(skillFile);
       meta[frontmatter.name || name] = {
         agent: frontmatter.agent || null,
-        fork: frontmatter.context === 'fork',
         userInvocable: frontmatter['user-invocable'] === 'true' ||
                        frontmatter['user-invocable'] === true,
       };
@@ -157,11 +141,10 @@ export async function transformAllSkills(pluginRoot, cacheSkillsDir) {
       continue;
     }
     const { frontmatter, body } = parsed;
-    const myMeta = meta[skillName] || { agent: null, fork: false, userInvocable: false };
+    const myMeta = meta[skillName] || { agent: null, userInvocable: false };
 
     let newBody = body;
     newBody = rewriteSkillCalls(newBody, meta);
-    newBody = injectLeafHint(newBody, myMeta);
     newBody = injectDispatchDiscipline(newBody, { ...myMeta, name: skillName });
     newBody = inlineSubstitutePluginRoot(newBody, pluginRoot, cacheSkillsDir);
 

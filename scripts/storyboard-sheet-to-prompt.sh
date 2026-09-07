@@ -8,7 +8,12 @@ fail() {
   exit 1
 }
 
-[ "$#" -eq 1 ] || fail 'usage: storyboard-sheet-to-prompt.sh <card>'
+OPTIONS=()
+if [ "${1:-}" = '--json' ]; then
+  OPTIONS+=(--json)
+  shift
+fi
+[ "$#" -eq 1 ] || fail 'usage: storyboard-sheet-to-prompt.sh [--json] <card>'
 
 case "$0" in
   */*) SCRIPT_DIR=${0%/*} ;;
@@ -44,4 +49,4 @@ TASKS="story/episodes/$EP/videos/tasks.json"
 STATUS=$?
 [ "$STATUS" -eq 0 ] || exit "$STATUS"
 
-node "$PARSER" "$CARD" "$EP"
+node "$PARSER" "${OPTIONS[@]}" "$CARD" "$EP"

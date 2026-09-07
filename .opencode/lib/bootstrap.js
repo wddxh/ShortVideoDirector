@@ -1,4 +1,4 @@
-import { USER_INVOCABLE_ENTRY_WORKFLOWS } from './tool-mapping.js';
+import { ROLE_HANDOFF_GUIDANCE, USER_INVOCABLE_ENTRY_WORKFLOWS } from './tool-mapping.js';
 
 export function generateBootstrap(pluginRoot, agents) {
   const agentList = Object.entries(agents)
@@ -26,21 +26,21 @@ ${workflowList}
 
 ## 如何启动
 
-用户用 \`/skill-name args...\` 触发入口工作流（如 \`/auto-video ep01 60\`），args 由 OC commands 自动注入到 SKILL.md 的 \`$ARGUMENTS\` 占位符。
+用户用 \`/skill-name 自然语言请求\` 触发入口工作流；OC command 用原生 \`$ARGUMENTS\` 原样传输请求，加载 skill 不再构造位置参数。
 
-- args 可选：未提供时按 SKILL.md "### 动态参数" 段定义的默认值处理
-- 切换非 build agent 后再触发 \`/skill-name\` 可能与 dispatch discipline 段假设不符（高级用法）
+- 写入或付费前解析明确目标与授权；歧义不默认全部或最新。查看配置只读，不强制初始化。
+- 主 AI 保持用户交互与忠实转交职责，不接管 Director 的创作决策
 - 也可用自然语言（"帮我做一个新的短视频，主题是 XXX"）触发，LLM 会自行决定调用对应 skill
 
 ## 关键执行规则
 
-1. **调度链路**：orchestrator skill 调用带 \`context: fork\`（已在 cache 中标注）的 leaf skill 时，使用 \`task\` 工具派发到对应子代理；不带 fork 的 leaf 用 \`skill\` 工具同上下文加载
-2. **task prompt 模板**：派发时 prompt 内容是"加载并执行 skill X"的轻量指令，子代理自己调 \`skill()\` 拉完整内容
-3. **自然语言确认**：剧情选项类 skill 会主动向用户提问选择，请直接回答即可，不会有 OC 系统弹窗
+${ROLE_HANDOFF_GUIDANCE}
+
+需要用户决定时由主 AI 询问；制作前确认与独立审核不能互相替代。每次 Write/Edit 保持 2000 字符上限，不限制文件最终长度。
 
 ## auto-video 安全提示
 
-\`auto-video\` 在 OpenCode 中通过 \`nohup\` 启动本地 loop，并通过 OpenCode HTTP session/prompt 接口调用 check-video。任务完成后 loop 自动退出；skill 负责 PID、日志和失败上限。
+\`auto-video\` 仅在用户要求或已同意默认时通过 \`nohup\` 启动本地 loop，以 OpenCode HTTP session/prompt 委托 checker。新提交/重试需真实 Creator，depth1 由主 AI 派 sibling 后恢复同一 checker。只按有效且 target 匹配的 JSON 摘要停止，不从 prose 推断；skill 负责 PID、日志和运行错误上限。
 
 ## 子代理与 skill 间的关系
 

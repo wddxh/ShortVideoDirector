@@ -13,6 +13,7 @@ from pathlib import Path
 def check_sibling_files(source_dir, skill_md_content, skill_name):
     pattern = rf'`skills/{re.escape(skill_name)}/([\w-]+\.md)`'
     referenced = set(re.findall(pattern, skill_md_content))
+    referenced.update(re.findall(r'\]\((?:\./)?([\w-]+\.md)\)', skill_md_content))
     missing = []
     for sibling in referenced:
         if sibling == 'SKILL.md':
@@ -30,6 +31,7 @@ TOOL_MAPPING = ROOT / ".codex" / "tool-mapping.md"
 PRESERVED_FRONTMATTER_KEYS = (
     "name",
     "description",
+    "agent",
     "user-invocable",
     "argument-hint",
 )
@@ -102,9 +104,9 @@ def render_wrapper(source_skill: Path, mapping: str) -> str:
         + mapping.rstrip()
         + "\n\n"
         + "## 执行源 Skill\n\n"
-        + f"1. 读取 `{plugin_source}`，并使用用户的原始参数执行该 skill 的说明。\n"
+        + f"1. 读取 `{plugin_source}`；入口保留用户原始自然语言请求，内部 skill 使用当前委托，不构造位置参数。\n"
         + f"2. 将 `{plugin_skill_dir}` 视为源 skill 目录。"
-        + "当源 skill 引用 `rules.md` 或 `config-template.md` 等同级文件时，"
+        + "当源 skill 引用 `rules.md`、`config-template.md` 或 provider 同级指南时，"
         + "相对该目录解析。\n"
         + "3. plugin directory 是 `${CLAUDE_PLUGIN_ROOT}`；plugin 内 scripts/agents/skills "
         + "相对它解析。项目的 story/assets/config.md 仍相对当前工作区根目录。\n"

@@ -43,6 +43,41 @@ test('字段缺失 → 退出码 1', () => {
   } finally { rmSync(dir, { recursive: true }); }
 });
 
+test('templates do not activate unchosen creative settings', () => {
+  for (const mode of ['short', 'series']) {
+    const config = join(process.cwd(), `skills/${mode}-video/config-template.md`);
+    for (const key of ['视频风格', '每集分镜数', '单镜头时长范围', '每集时长目标']) {
+      const result = run(process.cwd(), key, config);
+      assert.equal(result.status, 1, `${mode}: ${key}`);
+      assert.equal(result.stdout, '');
+    }
+    const count = run(process.cwd(), '总集数', config);
+    assert.equal(count.status, mode === 'short' ? 0 : 1);
+    assert.equal(count.stdout.trim(), mode === 'short' ? '1' : '');
+  }
+});
+
+test('provider and model keys remain distinct from sheet overrides', () => {
+  const values = {
+    '图像提供方': 'dreamina', '视频提供方': 'none',
+    '图像模型版本': 'image-fixture', '视频模型版本': 'video-fixture',
+    '图片比例': '1:1', '图片分辨率': '2k',
+    '分镜板图像提供方': 'sheet-provider', '分镜板图像模型版本': 'sheet-fixture',
+    '分镜板图片比例': '9:16', '分镜板图片分辨率': '4k',
+  };
+  const dir = setupConfig(Object.entries(values).map(([k, v]) => `- ${k}: ${v}`).join('\n'));
+  try {
+    for (const [key, value] of Object.entries(values)) {
+      const result = run(dir, key);
+      assert.equal(result.status, 0);
+      assert.equal(result.stdout.trim(), value);
+    }
+    for (const key of ['图像模型', '视频模型', '即梦模型版本', '即梦视频模型版本']) {
+      assert.equal(run(dir, key).status, 1);
+    }
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
 test('既有用法不受影响: 总集数: 10 → 10', () => {
   const dir = setupConfig('- 总集数: 10\n');
   try {

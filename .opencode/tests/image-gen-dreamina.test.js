@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 const SCRIPT = join(process.cwd(), 'scripts/image-gen-dreamina.sh');
 
 function runImage({ refs = '', response, prompt = 'draw this', force = false,
-  existing = false, source = '', pending = null, corruptAfterProvider = false }) {
+  existing = false, source = 'assets/items/test.md', pending = null, corruptAfterProvider = false }) {
   const dir = mkdtempSync(join(tmpdir(), 'svd-image-dreamina-'));
   const fake = join(dir, 'dreamina');
   const argsFile = join(dir, 'args');
@@ -22,6 +22,11 @@ printf '%s\\n' "$DREAMINA_RESPONSE"
   chmodSync(fake, 0o755);
 
   const output = join(dir, 'output.png');
+  for (const ref of refs ? refs.split(',') : []) {
+    const file = join(dir, ref);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, 'reference PNG');
+  }
   if (existing) writeFileSync(output, 'old');
   if (pending !== null) {
     mkdirSync(join(dir, 'assets/images'), { recursive: true });
@@ -100,7 +105,7 @@ test('persists basic pending before returning exit 2', () => {
     assert.equal(run.result.stdout, 'PENDING image-123\n');
     assert.deepEqual(JSON.parse(readFileSync(run.pendingPath, 'utf8')), [{
       submit_id: 'image-123', asset_path: source, output_path: run.output,
-      type: 'basic-asset',
+      type: 'basic-asset', provider: 'dreamina', model: '4.0', ratio: '4:3', resolution: '2k',
     }]);
     const rerun = run.rerun();
     assert.equal(rerun.status, 2);
@@ -116,7 +121,7 @@ test('pending persistence failure returns FAIL instead of PENDING', () => {
     corruptAfterProvider: true });
   try {
     assert.equal(run.result.status, 1);
-    assert.match(run.result.stdout, /^FAIL cannot persist pending$/m);
+    assert.match(run.result.stdout, /^FAIL .*submit_id=image-123;/m);
     assert.doesNotMatch(run.result.stdout, /^PENDING /m);
   } finally {
     run.cleanup();

@@ -1,232 +1,113 @@
 ---
 name: check-video
-description: 查询视频生成任务的状态，下载已完成的视频，处理失败的任务。使用 /check-video ep01 查询。
+description: 查询已登记视频任务、下载完成视频，或处理需要授权重试与创作修正的失败。
 user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Bash, Skill
-argument-hint: "集数 [--auto]"
+allowed-tools: Read, Write, Edit, Glob, Bash, Skill, Task
+argument-hint: "自然语言查询目标、镜头范围或无人值守检查委托"
 model: opus
 ---
 
-## 失败处理（核心规则）
+## 范围与持久记录
 
-**sub-agent task 失败后，永远不要在主 session 自己接管本应由 sub-agent 做的工作。**
+check/auto 本身不是新视频生成请求，只取回已登记任务或延续有效 initial/retry grants。generate-video 已将用户实际生成请求登记为 initial grant 时，首次续交不再询问生成许可；缺 grant 不从“使用本系统”或监控意图补造。交互中用户另行要求新生成则交 generate-video 入口，按该实际请求登记，不另设批准握手；重试仍按真实 retry grant，不推断无限次数。
 
-正确做法：
-1. 分析失败原因（task return 值 / 错误信息）
-2. 如可修复：用修正后的参数重新派发同一 sub-agent
-3. 如不可修复：将失败原因和已尝试方案返回给用户，停止流程
+先复用当前配置、材料和真实 grants，许可内的首次续交、原输入重试和取回不逐次求批准，不重问已定 provider、限制或重试范围。新阻塞先交责任角色在原权限内诊断，内部 review/fix 不自动触发用户确认；仅缺必要权限、关键冲突或用户指定检查点才问，进度只陈述。无人值守仍不得新授权或发起创作修复，不能用减少打断绕过 human_needed/inflight 边界。
 
-错误做法：
-- ❌ "sub-agent 失败了，我自己来写这个 novel.md"
-- ❌ "task 报错了，我在主 session 直接调用 Write"
-- ❌ "我 fallback 一下，自己生成 storyboard sheet"
+查询/下载可直接按记录进行，不补创作问卷。需要新创作时按共享 intake 规则，先复用已知需求或取得明确角色/范围/约束委托，不先编修正候选、设计、提示或聊天预览；意外问题仅暂停受影响工作。无人值守缺决定仅报 human_needed。
 
-原因：主 session 缺少 sub-agent 的隔离上下文（专属 system prompt、skill 加载、permission 配置），自己接管会导致质量下降、跨步骤上下文污染、permission 错配等问题。即使 sub-agent 失败，工作所有权也必须留在 sub-agent 层。
+按已选模型/参数执行，不要求预算、费用、积分/余额或最低价检查，不为省钱降级；用户实际费用限制仍绑定，真实账号/provider 失败如实报告。constraints 无需费用字段，首次/重试与监控授权及 inflight 保护不变。
 
-## 使用示例
+必读 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/user-decision-relay.md`。发起角色一次给齐相关问题/表及题界/分支；主 AI 读全并内部保留，沿作者题界完整展示当前题全部选项/解释后原生单题询问，仅应用所给条件，不摘要或倾倒全表。相关原始答复及全部条件批量完整回原角色原任务，不逐题往返，提前回询仅限共享规则例外，创作事项保留 Director 协调。无人值守仅报告需决策，不擅自提问或代选，完整计划保留供后续交互，不被状态摘要替代。
 
+纯查询/下载首先按持久任务处理，不运行 generation config、videoProfile 或审核门禁。只有查看/修改配置、准备或获准提交需要配置时，从项目根运行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" config-path`，把 SVD_CONFIG（未设才 config.md）规范为项目相对 config_path，再读取/写入/取证。项目内绝对路径及 ./ 支持；外部配置（含 symlink 越界）不支持，任何相关副作用前报告，不能因此阻断其他已提交任务取回。
+
+配置/approval 只写 config_path；Task/relay 传同一路径，各相关 Bash 显式用 `SVD_CONFIG="{config_path}"`，有配置位置参数的 helper 同时传该路径。fingerprint 用 canonical 路径，videoProfile 与 evidence 共用配置。规范化失败归 human_needed；不补默认、不刷新持久 tuple。
+
+整体理解原始请求 `$ARGUMENTS` 与当前委托，先确定 canonical ep/all 和具体镜头范围。all 只来自明确全项目请求，缺目标或冲突先澄清，不默认最新/全部。监控模式来自明确 unattended 委托，不要求用户 flags；普通查询不自动安装监控或授权重试。查看配置只读实际配置，缺失不初始化。仅用现有 scripts，不临时编写执行脚本。
+
+任务在 `story/episodes/{ep}/videos/tasks.json`，为 JSON 数组，每个 shot 唯一。保留 `shot,submit_id,status,prompt,images,duration,fail_reason`；submission 保存 `provider,model,ratio,resolution,images:[{path,sha256}]`，顺序与 CSV 相同。reserve/settle 由 wrapper 写 tasks；checker 只维护实际用户授权及查询结果，不重复提交写回，不与脚本并发编辑。每次写前重读，只改当前 shot，保留其他变更/grants/inflight。
+
+status 为 pending/submitted/done/failed。done 仅表示当前任务已下载，不表示视频质量通过。submitted/done 不允许刷新输入或自动重提。缺 submission 的历史 submitted 仍可查询下载；历史 failed 需授权准备，不能猜配置或补造哈希。
+
+## 查询与下载
+
+1. 解析目标；all 用 Glob 找所有 tasks.json。缺文件、无匹配或损坏时报告错误；auto 仍输出末行 JSON。
+2. pending 有 inflight 则核实，不提交。无则用 `node ${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs initial "{tasks}" "{shot}" "{ep}"` 读取授权并判断 constraints。获准 untouched pending 委托下方真实 Creator 执行首次提交，不需 retry grant、不增加 retry attempts。无授权则 human_needed，提示缺少已登记生成请求；用户随后要求生成时交 generate-video 登记实际请求，无人值守不补授权。
+3. submitted 且 id 非空时按 recorded submission.provider 路由取回，不看当前 config。Dreamina 使用下列查询；缺 provider 的历史 Dreamina-only 记录仅可如此取回，未知显式 provider 保留记录、报告 human_needed，不静默 Dreamina。仅查询无需 Creator 或新生成 help：
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-check-dreamina.sh "{submit_id}" "story/episodes/{ep}/videos/shot{NN}.mp4"
 ```
-/check-video ep01              # 交互模式，失败任务询问用户
-/check-video ep01 --auto       # 自动模式，只处理可自动重试的失败，跳过需人工介入的
-/check-video all --auto        # 自动模式，检查所有集
-```
 
-## 模式
+查询下载不经过创作 review gate，也不因旧材料/配置/身份 metadata 缺失而被阻塞。submitted 缺 id 时保留状态，报告人工核实，不新建付费任务。
 
-- **交互模式**（默认）：失败任务分为可自动重试和需人工介入两类，人工介入的会询问用户
-- **自动模式**（`--auto`）：只处理可自动重试的失败任务，需人工介入的仅输出提示，不询问用户。由 `auto-video` 定时调用
+无法路由的显式 provider 或 submitted 缺 id 需要人工解决：保留状态和已收集结果，摘要附 error、recoverable=false 与 human_needed，不能伪装 querying 或让监控无限等待。临时 CLI/下载错误仍 recoverable=true。
 
-## 约束
+| 输出 / exit | 更新 |
+| --- | --- |
+| success / 0 | 同一 submit_id 的下载成功，改 done，清空 fail_reason |
+| querying / 1 | 正常等待；保留 submitted 和 submit_id，不记异常 |
+| fail:reason / 0 | 实际生成失败，改 failed 并记录原因 |
+| error:reason / 2 | 查询、CLI、下载或本地移动错误；保留 submitted 和 submit_id，之后对同一 id 重试取回 |
 
-- **严禁自行编写脚本（包括 Python、Node.js、内联 bash 脚本等）。只能调用插件内 `scripts/` 目录下的现有脚本。**
-- **tasks.json 的读取和写入由你（LLM）直接完成：用 Read 工具读取，用 Write 工具写入。不要用脚本操作 tasks.json。**
-- **调用插件脚本时，如果相对路径 `scripts/xxx.sh` 找不到，使用 Glob 工具搜索 `**/scripts/xxx.sh` 找到插件目录下的脚本绝对路径。**
-- **本 skill 仅在两条路径调用 dreamina 提交：(a) **阶段 5a 自动重试** —— failed 且分类为可自动重试，使用 tasks.json 原 prompt/images 重提，不得修改；(b) **阶段 5b 交互重试** —— 用户明确给出修改意见 → 调 fix-storyboard/fix-asset 改 storyboard → 重跑 storyboard-to-prompt.sh → 新 prompt 写入 tasks.json → 用新 prompt 重提。其他任何场景（测试、验证、调试、未登记 shot、已 submitted/done 的 shot）一律禁止提交。**
+非预期输出按查询错误处理。写回时核实当前 id 未变化。禁止用任意已有 shotNN.mp4 将新任务标 done，禁止为无登记文件添加 done 记录；禁止为下载失败付费重生。auto 遇单项错误继续其他项并记录 recoverable error。
 
-## tasks.json 格式
+## 重试授权记录
 
-文件路径：`story/episodes/{集数}/videos/tasks.json`
-
-每条记录包含以下字段：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| shot | number | 镜头编号（主键，从 1 开始） |
-| submit_id | string | dreamina 返回的任务 ID（未提交时为 `""`） |
-| status | string | `pending`（已登记未提交）/ `submitted`（等待结果）/ `done`（视频已下载）/ `failed`（生成失败） |
-| prompt | string | 提交时使用的完整 prompt 文本 |
-| images | string | 逗号分隔的参考图片路径列表 |
-| duration | number | 视频时长（秒） |
-| fail_reason | string | 失败原因（成功时为 `""`） |
-
-完整示例（含所有 status）：
+每条 task 可有 `retry_authorization`；缺失/null 表示无自动重试授权。由实际与用户交互的 generate-video 或交互 checker 记录用户的明确决定，不从 failed、入口名称或默认监控推断。示例仅为格式，不是授权：
 
 ```json
-[
-  {"shot": 1, "submit_id": "0a7fdfa1711442ee", "status": "done", "prompt": "### 镜头 1\n- **镜头类型：** 特写\n...", "images": "assets/images/characters/林知意.png,assets/images/locations/郊外泥地.png", "duration": 15, "fail_reason": ""},
-  {"shot": 2, "submit_id": "ba99c56731e2bf2a", "status": "submitted", "prompt": "### 镜头 2\n- **镜头类型：** 中景\n...", "images": "assets/images/characters/林知意.png", "duration": 15, "fail_reason": ""},
-  {"shot": 3, "submit_id": "", "status": "failed", "prompt": "### 镜头 3\n...", "images": "assets/images/characters/林知意.png", "duration": 15, "fail_reason": "ExceedConcurrencyLimit"}
-]
+{"decision":"允许 ep01 镜头1 遇临时生成失败时原输入自动重试","episode":"ep01","shot":1,"constraints":["仅临时生成失败；不修改输入、模型或比例"]}
 ```
 
-写入规则：
-- 每个 shot 编号只能有一条记录，更新时替换已有条目
-- 写入完整 JSON 数组，不要追加或部分修改
-- 必须用 Read 读取最新内容后再修改，避免覆盖其他 shot 的变更
+decision 保留用户实际授权原文；episode/shot 是该条任务的授权范围，constraints 保留用户实际失败类型、截止等条件，无额外条件可为 []，不要求费用字段。只在用户明确给出次数限制时增加 `max_attempts:N, attempts:0`；不自行添加次数或预算。attempts 为该授权下已预留的重试次数，在调用 provider 前增加，不含首次提交、查询、下载或 gate 拒绝；未知结果不退还次数。
 
-## 流程
+首次提交不例行询问重试许可。仅用户要求自动重试，或实际失败阻塞且不能按现有权限解决时，才处理重试决定；实际重试请求本身是其范围依据，无须再问同一授权。无 grant 不重试，不重复追问已拒绝/未答的问题，也不从初始生成意图推断无限重试。有效持续 grant 内无需再次同意。撤销时清除对应 grant；修改输入/范围不自动继承旧 grant，原输入重试许可不涵盖修改。仅真实授权明确覆盖变化及重准备/重提时可据其记录当前目标授权，否则取得必要决定；保留剩余次数等限制。不能把示例填入用户记录。
 
-### 阶段 1: 读取任务状态
+## 初始授权与 Inflight
 
-1. 从 `$ARGUMENTS` 中解析集数（如 `ep01` 或 `all`）和模式（是否有 `--auto`）。对每个目标集先使用 Bash 调用 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-legacy-kf.sh "{ep}" "story/episodes/{ep}/storyboard.md" "story/episodes/{ep}/videos/tasks.json"`；失败立即原码停止，旧持久任务不得重提。
-2. 若为 `all` → 使用 Glob 扫描 `story/episodes/*/videos/tasks.json`；否则读取指定集的 tasks.json
-3. 若文件不存在（或 `all` 模式下 Glob 无匹配）：
-   - **交互模式**：提示"未找到视频生成任务，请先使用 `/generate-video {集数}` 提交任务"，结束
-   - **`--auto` 模式**：按"异常时的 JSON 输出"章节要求输出 JSON 摘要（`recoverable=false`，`error` 描述文件缺失），然后结束。不要仅输出人类可读的提示而跳过 JSON
-4. 使用 Read 工具读取 tasks.json，解析 JSON 内容
+`initial_authorization` 与 retry grant 分开，结构为 `{decision,episode,shot,constraints}`，由 generate-video 将用户实际调用/生成请求原文及条件登记到已解析目标，不另索同意、不造通用 consent。checker 读取该记录；查询/监控本身不创建它，不含重试次数。未调用 pending 即使因前面镜头限流而暂停，也保持 pending 和该授权。输入重新准备先核对实际授权覆盖，不自动继承或重复索取许可，不将实际失败伪装成未调用任务。
 
-### 阶段 2: 逐个查询 submitted 任务
+wrapper 在 provider 前调用 `reserve`，原子写入 `inflight:{token,kind,reserved_at}`（token 为随机 UUID，kind 为 initial/retry，reserved_at 为 ISO 时间），并在 retry 有上限时增加 attempts。原 status 保持 pending/failed；文件 fsync+rename 后才调用 provider。明确结果由 `settle` 更新 submitted/id 或 failed/reason 并移除 inflight，LLM 不重复扣次数或写状态。
 
-若 tasks.json 中存在 status 为 `pending` 的记录 → 输出一行提示："检测到 {N} 个 shot 为 pending 状态（已登记未提交）。请运行 `/generate-video {集数}` 完成提交。本 skill 仅处理 submitted/done/failed。" → 继续处理其他状态的 shot。
+任何遗留 inflight 或 `.submit-lock` 禁止自动提交、capture 或重置，加入 human_needed。只知道超时/断线/旧 submit_id/旧 MP4 不能清理意图。人工核实 provider 的该次调用：找到新 id 后用 `node ${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs settle "{output}" "{token}" submitted "{verified_id}"` 登记并正常查询下载；确认该次明确失败或确实未被接受后可用同命令 `failed "{verified_reason}"`，之后重提仍需 retry grant 且不退还预留次数。证据不明则保留 intent。锁仅在确认无活跃写入者、检查 tasks 完整性后人工清理，不按时间自动过期。已有 submitted 的查询下载不受这些创作/授权检查阻塞。
 
-对每个 status 为 `submitted` 且 submit_id 非空的任务：
-1. 查询状态：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-check-dreamina.sh "{submit_id}" "story/episodes/{集数}/videos/shot{NN}.mp4"`
-2. 根据输出更新 tasks.json 中该 shot 的记录（用 Read 读取最新内容，修改后用 Write 写回）：
-   - `success` → 将 status 改为 `done`
-   - `fail:{原因}` → 将 status 改为 `failed`，将 fail_reason 改为 `{原因}`
-   - `querying` → 不修改，仍为 submitted
+## 原输入重试
 
-**`--auto` 模式异常处理：** 若 `scripts/video-check-dreamina.sh` 返回非预期输出或非零退出码，按"JSON 摘要契约 → 异常时的 JSON 输出"章节规则处理——记录 `error`（说明哪个 shot 查询失败），继续处理其他 shot，最终输出时标记 `recoverable=true`。不要因单个 shot 查询失败就跳出整个流程。
+对 failed 按 `${CLAUDE_PLUGIN_ROOT}/skills/check-video/failure-classification.md` 语义分类。每次（包括无人值守检查）从 tasks.json 读取 retry_authorization，执行 `node ${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs retry "{tasks}" "{shot}" "{ep}"`。非零归 human_needed；通过后仍须按 decision/constraints 判断本次失败是否获准、用户实际限制是否满足，无法确认则 human_needed，不额外要求余额预检。脚本只校验结构、scope 和次数，不替用户授权或解释语义。
 
-### 阶段 3: 同步已有视频文件
+1. 读取原 prompt/images/duration 和 submission.provider/model/ratio/resolution。执行 `node ${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs verify "{tasks}" "{shot}"`。缺身份或图片字节漂移归 human_needed，不重新 capture，不以当前 config 替换参数。
+2. 重提前执行 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-legacy-kf.sh "{ep}" "{storyboard}" "{tasks}"`；非零停止重提。仅付费提交检查此边界，不拦截旧任务取回。
+3. 新提交/重试必须用 Task 委托真实 Creator：成果为按持久 tuple 和实际 grant 执行当前目标，给出 tasks/材料路径、canonical ep/shots、失败原文及约束。Creator 自选 provider 知识，验证最新能力但不重选参数，再用现有 wrapper 执行。checker 加载 skill 不能冒充 Creator，不直接调用生成 wrapper。
 
-1. 使用 Bash `ls story/episodes/{集数}/videos/shot*.mp4` 列出已有视频文件
-2. 对比 tasks.json，如果某个 shot 有视频文件但 status 不是 `done` → 将 status 改为 `done`
-3. 如果某个 shot 有视频文件但不在 tasks.json 中 → 添加一条 done 记录
+嵌套不可用或明确深度拒绝时，checker 返回 `role:creator`、outcome、references、scope、constraints 与原 checker task_id。主 AI 忠实派发 sibling Creator，再恢复同一个 checker task_id 传回实际结果；不可用的 relay 归 human_needed，不伪造执行或新建 checker 丢失状态。记住已确认深度结论，普通失败不是深度拒绝。此协议同时适用于首次检查和周期检查。
 
-### 阶段 4: 输出进度摘要
+wrapper gate 必须匹配登记字段及当前 scoped material review。gate 失败保持记录、归 human_needed，不冒充 provider 生成失败；过期 evidence 需评估，不等于必须重生材料。
 
-1. 统计各状态数量：pending / done / submitted / failed（`all` 模式下跨所有集合计）
-2. 输出人类可读摘要：已登记未提交 N 个 / 完成 N 个 / 排队中 N 个 / 失败 N 个
+4. wrapper 返回后只重读持久结果，不再手写提交状态或计数。`FAIL submission_unknown` / `FAIL settlement_unknown` 保留 inflight 并报告人工核实。并发限制停止本轮剩余提交，未调用 pending 仍 pending，不改 failed、不扣 retry 次数；下轮分别按 initial/retry grant 继续。不得重置或丢弃授权和 intent。
 
-**`--auto` 模式额外要求**：在本 skill 所有输出的**最后一行**追加一行 JSON 摘要，供自动化调用方（如 auto-video 的 sub-agent）解析。字段与填充规则见下方"JSON 摘要契约"章节。human_needed 列表在阶段 5 收集完毕后并入本 JSON。
+## 创作修正委托
 
-交互模式（非 `--auto`）不输出 JSON，保持现状。
+auto 对 human_needed 用现有 `{"ep":"ep01","shot":1,"reason":"原因"}` 报告需决策，不询问、不修改材料、不发起创作修复。已收到的完整问题计划在 JSON 外完整保留或给出其明确文件/章节，供后续交互读全并沿作者题界逐题完整展示当前内容；状态摘要不替代计划，不改末行 JSON 契约。
 
-### 阶段 5: 失败处理（仅当有 failed 任务时）
+交互模式展示原始失败和用户请求，仅补必要的修正范围、实际约束及是否允许重提的决定，不要求费用确认。将期望成果、失败详情、tasks/材料路径、shot 范围、用户意见和授权交 Director 负责诊断与协调，不指定 asset/storyboard/sheet 的固定 skill 链。用户说“自动修复”也不能扩大授权范围或违反明确限制。
 
-对每个 status 为 `failed` 的任务，按 `${CLAUDE_PLUGIN_ROOT}/skills/check-video/failure-classification.md` 中的规则分类为"可自动重试"或"需人工介入"。每次失败都重新分类（同一镜头多次失败原因可能不同）。
+嵌套实际可用时直接委托 Director。不可用或明确拒绝时，请主 AI 忠实转交 Director 的专家请求并将结果送回同一 Director `task_id` 继续；主 AI 不另排创作流程，不同上下文自审兜底。一般任务失败不视为嵌套禁用，也不在主会话接管创作。
 
-**a. 可自动重试的任务：**
-1. 告知用户该镜头因临时原因失败，正在自动重试
-2. 从 tasks.json 中读取该 shot 的原 prompt/images/duration，保持 `images` 原顺序和三个字段原值
-3. 读取配置：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "即梦视频模型版本"` 和 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh "视频比例"`
-4. 重新提交：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamina.sh "{prompt}" "story/episodes/{集数}/videos/shot{NN}.mp4" "{images}" "{duration}" "{比例}" "{模型版本}"`
-5. 根据提交结果，用 Read 读取 tasks.json 最新内容，修改该 shot 的记录后用 Write 写回：
-   - 成功 → 更新 submit_id、status 改为 `submitted`、清空 fail_reason
-   - 失败 → status 保持 `failed`、更新 fail_reason
-6. 若提交失败且仍为并行限制 → 停止重试剩余任务，提示用户稍后再试
+Director 返回实际变更范围、独立材料审核证据和未决事项。仅在当前材料通过且用户授权准备/重提后，将当前委托交 generate-video 入口处理获准 shots 的重新转换/capture，仍保护 submitted/done，不刷新其他 failed。未授权或审核未决则阻塞。视频质量由用户判断，不自动审片或合成。
 
-**b. 需人工介入的任务：**
+## JSON 摘要契约
 
-**自动模式（`--auto`）：**
-1. 不询问用户
-2. 将该 shot 加入 human_needed 列表：`{"ep": "{集数}", "shot": {镜头编号}, "reason": "{fail_reason 原文}"}`
-3. 该列表在阶段 5 全部 failed 任务分类完成后，并入阶段 4 要输出的 JSON 摘要的 `human_needed` 字段
-4. 输出人类可读提示：失败镜头和原因，提示用户可用 `/check-video {集数}` 手动处理
-
-**交互模式（默认）：**
-1. 显示镜头编号和 `fail_reason` 原文
-2. 询问用户："镜头 {N} 生成失败，原因：{fail_reason}。您有修改建议吗？（输入建议，或回复「自动修复」交给我判断）"
-3. **用户有建议** → 根据建议内容判断目标类型并调用相应 skill：
-   - 涉及分镜/画面描述修改 → 使用 Skill tool 调用 `storyboarder-fix-storyboard` skill，参数 `{集数} --direct {target} {instruction}`，记录真实 changed/added/deleted/renumbered shots
-   - asset target gate：从建议和当前 shot 引用解析候选 `asset_path`，用 Glob 确认文件。候选为 0 或 >1 时向用户询问并停止本次重试，不猜测目标
-   - asset review closure：唯一目标确认后使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} {instruction}`；再使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `{集数} basic {asset_path}`。Needs_revision 时使用 Skill tool 调用 `creator-fix-asset` skill，参数 `{asset_path} story/episodes/{集数}/.review-asset-prompts.md`；再使用 Skill tool 调用 `director-review-asset-prompts` skill，参数 `{集数} basic {asset_path}`，通过后才继续。
-   - 使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {asset_path}`；读取 `successful asset paths`，仅非空时使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {集数} {successful_asset_paths...}`。Needs_revision 时使用 Skill tool 调用 `creator-fix-asset-image` skill，参数 `story/episodes/{集数}/.review-basic-assets-visual.md {集数}`；读取 `successful asset paths` 为 `{successful_fixed_asset_paths...}`，仅非空时使用 Skill tool 调用 `director-review-assets-visual` skill，参数 `--type=characters,locations,items,buildings {集数} {successful_fixed_asset_paths...}`。
-   - 两层 review 各自共享 `fix_attempts=2`；prompt 仍未通过则 `stop_before_image`，visual 仍未通过则 `stop_before_direct_sheets`。通过后根据 sheet cards 的直接引用得到 `direct_affected_card_paths`；为空则错误并停止，非空时使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {direct_affected_card_paths...}`。读取 `successful shots`，仅非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{集数} {successful_shots...}`；随后使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill，参数 `{集数} {successful_shot}`。
-   - 涉及 sheet card/panel/prompt 修改 → 记录 `{card}` 与 `{instruction}`，在阶段 6 使用 sheet prompt fixer direct mode；不拼接旧 review
-4. **用户选择自动修复** → 自行分析 `fail_reason`，判断最可能的原因并调用相应 skill
-5. direct sheet retry sequence：使用 Skill tool 调用 `creator-fix-storyboard-sheet-prompt` skill，参数 `{集数} --direct {card} {instruction}`；再使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill并完成 owner loop；通过后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {card}`
-6. storyboard retry sequence：使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill，编号集合变化传 full，否则传 incremental shots；再使用 Skill tool 调用 `director-review-storyboard-sheet-prompts` skill并完成 owner loop；通过后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {受影响 card_paths...}`
-7. shared regeneration sequence：读取实际 `successful shots`；successful_shots 为空则不调用 visual review。非空时使用 Skill tool 调用 `director-review-storyboard-sheets-visual` skill，参数 `{集数} {successful_shots...}`；dirty 时使用 Skill tool 调用 `creator-fix-storyboard-sheet-image` skill，并再次只 review 其 successful shots
-8. generator summary routing：解析 `mode/created/updated/deleted` 和 storyboard fixer 的 `renumbered`。`created + updated` 仅转换为仍存在的 `existing_changed_card_paths`，先使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} paths {existing_changed_card_paths...}`。有 `deleted`、`mode=full` 或 `renumbered` 时，随后使用 Skill tool 调用 `creator-generate-images` skill，参数 `{集数} storyboard-sheets`。`deleted cards never enter paths`。合并两次实际 `successful shots union` 后 scoped visual review，再 impact。
-9. 对 dirty batch 外直接依赖使用 Skill tool 调用 `director-review-storyboard-sheet-impact` skill；仅 `affected` 继续修复传播。图像模型 `none` 时 PNG/visual/impact skipped，因视频缺 sheet PNG 停止重试
-10. 重建链全部成功后运行 `storyboard-to-prompt.sh`，解析并刷新新 prompt / images / duration，验证每张图存在且 sheet 为第一张
-11. 读取配置并运行 `video-gen-dreamina.sh` 重新提交
-12. 用 Read 读取 tasks.json，更新该 shot 记录（新 submit_id、status、prompt、images、duration），用 Write 写回
-13. 提示用户稍后再次使用 `/check-video {集数}` 查询
-
-## JSON 摘要契约（仅 `--auto` 模式）
-
-### 正常 JSON 格式
+交互模式返回进度和处理结果。auto 必须最后一行输出单行 JSON，统计处理后的各状态；all 跨集合计。示例表示监控停止，但不是全部成功：
 
 ```json
-{
-  "target": "ep01",
-  "pending": 0,
-  "done": 12,
-  "submitted": 3,
-  "failed": 2,
-  "all_complete": false,
-  "human_needed": [
-    {"ep": "ep01", "shot": 5, "reason": "内容安全拦截"},
-    {"ep": "ep01", "shot": 9, "reason": "参数错误"}
-  ]
-}
+{"target":"ep01","pending":0,"done":2,"submitted":0,"failed":1,"all_complete":true,"human_needed":[{"ep":"ep01","shot":3,"reason":"需用户决定"}]}
 ```
 
-### 字段
+- `target` 原样回传 epNN/all；pending/done/submitted/failed 为数值，无法统计填 `"unknown"` 而非 0。
+- `human_needed` 包含 pending/failed 的授权、身份、审核或 inflight 阻塞；同一 ep/shot 仅一条，不将未调用任务改 failed。
+- 无异常且数字齐备时，all_complete 仅当 submitted 为 0 且所有 pending/failed 都已列入 human_needed 才为 true。仍有可自动继续的 pending/failed 时为 false。它表示无需继续监控，不表示每条视频下载成功或质量通过。
+- 异常附 `error`（简短描述）与 `recoverable`，all_complete 强制 false；保留已经收集的 human_needed。临时查询/下载失败为 true，任务文件缺失/损坏等需人工解决为 false，不确定偏 true。
+- querying/1 不是异常；error/2 不是 failed 生成任务。不得因为单项异常省略最终 JSON。
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| target | string | 原样回传（`epNN` 或 `all`） |
-| pending | number \| `"unknown"` | 已登记未提交的数量（需用户运行 `/generate-video` 完成提交） |
-| done | number \| `"unknown"` | done 数量，all 模式下跨所有集合计 |
-| submitted | number \| `"unknown"` | 仍在排队的数量 |
-| failed | number \| `"unknown"` | 最终仍 failed（含需人工介入类） |
-| all_complete | bool | `(pending == 0) && (submitted == 0) && (failed == human_needed.length)` |
-| human_needed | array | 阶段 5 分类为"需人工介入"的 failed；每条 `{"ep": "...", "shot": N, "reason": "fail_reason 原文"}` |
-| error | string | *仅异常时*；简短错误描述（≤100 字） |
-| recoverable | bool | *仅异常时*；错误性质（见"异常时的 JSON 输出"） |
-
-### 规则
-
-- 数值字段无法统计时填字符串 `"unknown"`（不要填 0）
-- 异常场景下 `all_complete` 强制为 `false`
-- `human_needed` 在阶段 5 `--auto` 分支完成分类后填充
-- JSON 必须是**单行有效 JSON**（无注释、无多余换行），作为 skill 输出的最后一行
-- `all_complete` 仅当 `pending`/`done`/`submitted`/`failed` 均为数字时才按公式计算；任一字段为 `"unknown"` 时强制 `false`
-
-### 异常时的 JSON 输出（仅 `--auto` 模式）
-
-skill 在 `--auto` 模式下遇到任何异常（文件不存在、Glob 无匹配、tasks.json 格式损坏、脚本偶发失败等），**仍必须输出 JSON 摘要**，字段：
-
-- `target`：原样
-- `pending` / `done` / `submitted` / `failed`：已统计到的填数字，完全无法统计的填字符串 `"unknown"`
-- `all_complete`：`false`（强制）
-- `human_needed`：`[]`
-- `error`：简短错误描述（≤100 字，不要 dump 堆栈）
-- `recoverable`：bool。按错误性质判断：
-  - **可恢复**（临时性、外部环境性）：某个 shot 查询脚本偶发失败、临时文件锁、dreamina API 抖动等；后续调用有机会成功
-  - **不可恢复**（根因性、配置性）：目标集数对应 tasks.json 不存在、Glob 无匹配（`all` 模式下没有任何 ep 目录）、tasks.json 格式彻底损坏需人工修复；后续调用仍会同样失败
-
-**判定原则：** LLM 按语义判断，不硬编码关键词。不确定时偏向 `recoverable=true`（保守）。
-
-示例（tasks.json 不存在）：
-
-```json
-{"target":"ep99","pending":"unknown","done":"unknown","submitted":"unknown","failed":"unknown","all_complete":false,"human_needed":[],"error":"tasks.json 不存在：story/episodes/ep99/videos/tasks.json","recoverable":false}
-```
-
-示例（某 shot 查询脚本偶发失败，但其他 shot 已统计）：
-
-```json
-{"target":"ep01","pending":0,"done":10,"submitted":2,"failed":1,"all_complete":false,"human_needed":[],"error":"shot 3 查询脚本返回非预期输出","recoverable":true}
-```
-
-**不得因异常跳过 JSON 输出**——自动化调用方依赖它判断 cron 生命周期。
-
-## 输出
-
-### 返回内容
-- 进度摘要 + 失败处理结果
+监控只能报告并等待人工决定，不自动授权 creative changes。交付下载结果及未决执行失败给用户。

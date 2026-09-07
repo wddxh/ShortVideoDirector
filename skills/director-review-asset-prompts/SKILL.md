@@ -1,148 +1,51 @@
 ---
 name: director-review-asset-prompts
-description: Director 汇总层——按集内序号分批并行调用 director-review-asset-prompt-single（每批 ≤5 个），聚合成完整 review 结果 + dirty list。
+description: 在本集或指定基础资产提示需要独立审核汇总时使用。
 user-invocable: false
-context: fork
 agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: opus
 ---
 
-## 输入
+## 委托与范围
 
-### 文件读取
-- `config.md` — 必须读取（确认语言设置）
-- 按下方 Scope 合同得到的候选 asset .md 卡；显式 scope 不 Glob 扩大
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` — 必须读取
+接收集数 ep 或明确的全局资产范围、可选完整 card paths、审核 outcome 与保留要求。basic-only，仅 characters/locations/items/buildings，不审核 storyboard sheets。不设位置参数或类型开关协议。
 
-### 动态参数（$ARGUMENTS）
-- 本 reviewer 是 basic-only。解析完整 `$ARGUMENTS` token 序列：token 0 为集数（如 `ep01`）或全局范围（`assets`）；token 1 必须为 `basic`；其余 token 是可选显式 basic asset card paths。
+读取共享 review-meta-rules.md、output-language.md 与实际配置 SVD_CONFIG（未设时 config.md）。本上下文是与生产者分离的新 Director 汇总者，只处理范围所需文本、真实单项结果和证据，不读 PNG，不代单项 reviewer 作提示质量判断。
 
-## Scope 优先级合同
+显式路径按 canonical path 去重，只审指定目标，可包含复用资产；历史 dirty/unknown 不自动加入。范围外未解决记录原样保留，另报生产 Director。缺卡保留目标并记 unknown，不静默删除或 Glob 扩大范围。
 
-```json
-{
-  "argument_parser": "complete $ARGUMENTS token sequence",
-  "candidate_sources": ["explicit", "previous_dirty"],
-  "default_source": "parse-new-assets.sh",
-  "explicit_may_include_existing": true,
-  "pure_pass_without_explicit": "short_circuit",
-  "pure_pass_with_explicit": "dispatch_explicit"
-}
-```
+未指定目标时，用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all` 获得本集新增与复用全集，验证最新证据，仅审缺失、过时、未通过项。明确委托全局资产审核且未给路径时，才列举四类基础卡；`assets/.review-asset-prompts.md` 不替代集内验收。历史纯 pass 不跳过身份核对，显式目标仍审核。
 
-显式路径必须 canonical、存在且属于 character/location/item/building；按 path 去重，不 Glob 扩大范围。无显式路径且无 previous dirty 时，默认仍只调用 `parse-new-assets.sh` 收集本集新增资产。
+## 独立单项审核
 
-## 职责描述
+每个目标交全新 Director context，委托审核该卡提示的身份表达、可生成性、语言与引用一致性，附目标路径、实际配置、相关参考、只读边界和所需 result JSON。Reviewer 自行发现方法，不要求加载指定 skill。无嵌套时请主 AI 忠实 relay；无法提供隔离则 unknown，不在汇总上下文自审。
 
-### 核心使命
+按资源选择并行或串行，例如每批最多五项；这不是审核门禁。收齐原始结果，空响应、技术失败、缺项或非法 JSON 均为 unknown，协议修正交原 reviewer。结果保留 target/status/inputs/blockers 及 asset_path/issue/prompt_direction；不自动接受、不调度修复。
 
-分批并行调用 `director-review-asset-prompt-single`，聚合结果写入 `.review-asset-prompts.md`。类比 `director-review-assets-visual` 的汇总+派发模式。
+## 证据与落盘
 
-### 工作流
+集内路径为 `story/episodes/{ep}/.review-asset-prompts.md`。按最大标题轮号续轮，保留未完成历史；阅读目标前声明 kind=`asset-prompt`、scope 和 results=[] 的开工块，暂不写 footer。用于选范围的 script/config 也须阅读前 fingerprint，按共享规则合入依赖它们的 result.inputs。
 
-0. **Round 自检 + 入参收敛**：
-   a. 推导 review md 路径（按 $ARGUMENTS[0]：epXX → `story/episodes/{ep}/.review-asset-prompts.md`；"assets" → `assets/.review-asset-prompts.md`）
-   b. Read 该路径
-      - 文件不存在 → 本次为第 1 轮 → 跳到 step 1（按现有方式收集全量入参）
-      - 文件存在但 grep `<!-- /round-([0-9]+) -->` 无命中 → 报错退出，stderr「review md 文件存在但缺 round footer，可能是手工编辑破坏 / 旧版本 schema；请删除该文件后重跑」
-      - 命中 → 取最大 N，本次为第 N+1 轮
-   c. **最后一轮已通过检查**：仅无 explicit paths 时直接返回 `pass`，不写新轮段、不派发 single；有 explicit paths 时仍 dispatch explicit，不能被历史 pass 短路。
-   d. 第 N+1 轮：在 round-N 段内提取 `### dirty list` 每行 asset_path，与 explicit paths 合并去重作为本轮入参。
-   e. 入参为空 → 执行 step 10 写一轮「通过」段 + footer → 跑 step 11 自检 → 返回 `pass`（自检失败则报错退出，不返回 pass）
-1. **收集 asset 列表**（按 scope 合同）：
-   - epXX 无 explicit 且无 previous dirty：调用 `parse-new-assets.sh` 得本集新增 basic asset 列表。
-   - epXX 有 explicit 或 previous dirty：只用二者 union，允许 existing assets。
-   - $ARGUMENTS[0] = "assets" → Glob `assets/**/*.md`（scope 参数忽略；全集合）
-2. **分批并行派发**：每批 ≤ 5 个 asset，用 `task` 工具并行调 `director-review-asset-prompt-single($ARGUMENTS[0]=asset_path)`
-3. **聚合结果**：收集所有子任务返回值——空字符串（通过）和 JSON 对象（需修改）
-4. **写入 review md**（实际执行入口见 step 10；本段仅定义模板规则）：
-   - 第 1 轮 (文件不存在)：Write 完整文件 = 本轮段 + `\n\n---\n<!-- /round-1 -->\n`
-   - 第 N+1 轮：Edit append
-     - oldString: `<!-- /round-{N} -->` (严格唯一锚点)
-      - newString: 同 oldString + `\n\n## 第 {N+1} 轮 ...` + body + `\n\n---\n<!-- /round-{N+1} -->`
+完成时每个 scope target 恰好一个 result。单项 inputs 保留原快照，终检全部依赖；同路径不同摘要是漂移，不选最新值覆盖。按共享规则更新同一证据块，写 Markdown 意见与唯一 `<!-- /round-{N} -->`，Read 自检结果覆盖、证据和 footer；写入失败不能返回 pass。空 scope 只有清单成功解析为空才成立。
 
-10. **写入 review md**（强制步骤，必须执行）：按 step 4 模板规则执行：
-    a. 推导路径（同 step 0.a）
-    b. 构造完整 round 段（heading + body + footer `\n\n---\n<!-- /round-{N} -->\n`）
-    c. 第 1 轮 → Write 创建
-    d. 第 N+1 轮 → Edit append（oldString = `<!-- /round-{N} -->`；newString = 同 + `\n\n` + 本轮段）
+## 输出外形
 
-11. **写入自检**（subagent 返回前硬约束）：
-    a. Read review md 文件
-    b. grep `<!-- /round-{当前轮号} -->` 必须命中且仅 1 次
-       - 未命中 → 报错退出 + stderr「review 写入失败：本轮 round footer 未落盘，请检查 review md 路径权限或 Edit anchor 是否漂移」
-       - 命中 ≥2 次 → 报错退出 + stderr「review 写入异常：本轮 round footer 出现多次，可能 anchor 不唯一」
+每轮保留 `## 第 {N} 轮 ({timestamp}) - 通过` 或需修改/无法判定标题；heading-only 不通过。以下意见结构放在完整 evidence 与 footer 之前：
 
-12. **返回简报**（仅 step 11 通过后执行）：
-    - 通过 → 返回 `pass`
-    - 需修改 → 返回 `needs_revision {M}`（M = 本轮 dirty asset 数）
-
-### 常见误区
-
-- **串行派发** — 用 task 工具串行调每个 single skill 浪费时间 — 必须按批并行（每批 ≤ 5）
-- **汇总丢失** — 子任务返回值未收集全就写文件 — 等所有子任务完成再聚合
-- **意见格式不规整** — 直接拼 JSON 不转可读 markdown — 输出格式见下
-- **不去重 asset** — outline 资产清单可能含重复名 — Glob 后去重再派发
-- **scope 越界** — 漏传 `basic` 或传入其他 scope 会污染职责边界；立即拒绝。
-- **默认 scope 改用 outline 资产清单 superset** — 无 explicit paths 时读整段会无差别重审已有资产 — 默认必须用 `parse-new-assets.sh` 仅取新增资产；调用方明确传入的 existing paths 仍按显式 scope 审核
-- **沿用旧 anchor (末尾 50 字符)** — 多轮后末尾不唯一会让 Edit 报错 — 必须用 `<!-- /round-{N} -->` 严格唯一锚点
-- **漏写 round footer** — 不写 `---\n<!-- /round-{N} -->` → 下轮 append 找不到 anchor → 全链路断 — round footer 是硬约束
-- **第 N+1 轮重审全量** — 模型本能再次 Glob 收全量 → 浪费 + 误判 — 必须按上轮 round-N dirty list 收敛
-- **跳过 step 10 写入步骤** — subagent 跑完 step 9 聚合后直接 return 简报，没执行 step 10 → review md 无新轮次 → 上层卡死循环 — step 10 是强制步骤；step 11 自检兜底
-- **跳过 step 11 自检** — subagent 执行了 step 10 但没验证 footer 是否真落盘 → Edit anchor 漂移 / 权限错时假象返回 pass — step 11 必须 grep 验证后才允许返回
-
-## 输出格式
-
-写入路径：
-- $ARGUMENTS[0] = epXX → `story/episodes/{ep}/.review-asset-prompts.md`
-- $ARGUMENTS[0] = "assets" → `assets/.review-asset-prompts.md`
-
-**Round 自检**：见工作流 step 0。append anchor 改用 `<!-- /round-{N} -->`（严格唯一），不再用「文件末 50 字符」。每轮段末尾必须追加 `---\n<!-- /round-{N} -->` 作为本轮终止符（round footer）。
-
-**本轮段格式**（前留空行）：
-
-通过时仅 heading：
 ```markdown
-
-## 第 {N} 轮 ({YYYY-MM-DD HH:MM}) - 通过
-
----
-<!-- /round-{N} -->
-```
-
-不通过时：
-```markdown
-
-## 第 {N} 轮 ({YYYY-MM-DD HH:MM}) - 需修改 ({M} 项)
-
 ### dirty list
 - assets/items/玄铁古剑灵核.md
-- assets/characters/沈昭.md
 
 ### 意见列表
 - **assets/items/玄铁古剑灵核.md**：
-  - issue: ## 图像生成提示 段含 negative phrasing...
-  - prompt_direction: 删除所有'严禁/不要'句式...
-- **assets/characters/沈昭.md**：
-  - issue: ...
-  - prompt_direction: ...
----
-<!-- /round-{N} -->
+  - issue: 提示中的材质与卡片身份描述不一致
+  - prompt_direction: 明确实心金属表面、刻痕与透光位置
+
+### 无法判定
+- assets/characters/沈昭.md: 无法读取当前卡片
 ```
 
-## 规则
+dirty list 只列需修改完整路径；unknown 单列原因，不混为艺术失败。M/K 是本轮去重的需修改/未知目标数。落盘成功后返回 `pass`、`needs_revision {M}`、`unknown {K}` 或 `needs_revision {M} {K}_unknown`，说明仅覆盖当前范围。
 
-- 最多 2 轮反馈
-- 第 2 轮聚焦仍影响图像生成质量的关键问题
-- 意见必须符合 review-meta-rules.md（无 negative phrasing / 用 config 语言）
-
-## 输出
-
-### 文件操作
-- 使用 Write / Edit 维护 `.review-asset-prompts.md`（append 模式）
-
-### 返回内容
-- 简报：`pass` 或 `needs_revision {M}` → 返回给 workflow
-- 详细意见已写入文件，下游 creator-fix-asset 自行读取最后一轮段
+意见与 prompt_direction 是供负责人和修复者读取的数据，不要求调用某技能。遵循共享意见规约：可以指出缺失/不一致，推荐具体目标状态；有用专业建议与 blockers 分开。生产 Director 决定修正与独立重审，次数或资源耗尽不改变验收结论。

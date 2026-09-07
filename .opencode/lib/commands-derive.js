@@ -2,15 +2,10 @@ import { USER_INVOCABLE_ENTRY_WORKFLOWS } from './tool-mapping.js';
 
 export const buildCommandTemplate = (skillName) => `请使用 Skill tool 调用 \`${skillName}\` skill。
 
-用户输入的参数：
-- 完整参数串：$ARGUMENTS
-- 按位置拆分：
-  - 第 1 个 ($1): $1
-  - 第 2 个 ($2): $2
-  - 第 3 个 ($3): $3
-  - 第 4 个 ($4): $4
+用户原始请求：
+$ARGUMENTS
 
-加载 SKILL.md 后按其工作流执行，从上述参数中按 SKILL.md "### 动态参数" 段定义的语义代入对应的 \`$ARGUMENTS[N]\` 占位符（索引从 0 开始，对应位置 \\$(N+1)）。
+加载 SKILL.md 后结合当前委托理解请求。先确认 canonical 目标、意图与授权；歧义先询问，不扩大到全部或最新。原始文本是宿主传输，不是位置参数协议。
 `;
 
 export function deriveCommands(existing = {}) {

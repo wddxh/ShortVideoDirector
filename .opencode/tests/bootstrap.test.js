@@ -1,6 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateBootstrap } from '../lib/bootstrap.js';
+import { ROLE_HANDOFF_GUIDANCE } from '../lib/tool-mapping.js';
 
 describe('generateBootstrap', () => {
   const sampleAgents = {
@@ -14,6 +15,10 @@ describe('generateBootstrap', () => {
   test('contains SVD_BOOTSTRAP_MARKER', () => {
     const out = generateBootstrap('/fake/root', sampleAgents);
     assert.ok(out.includes('SVD_BOOTSTRAP_MARKER'));
+  });
+
+  test('includes the same role handoff guidance as agent and entry injection', () => {
+    assert.ok(generateBootstrap('/fake/root', sampleAgents).includes(ROLE_HANDOFF_GUIDANCE));
   });
 
   test('lists all 5 agent names', () => {

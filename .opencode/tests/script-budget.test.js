@@ -22,6 +22,29 @@ function run(cwd, ...args) {
   return spawnSync('bash', [SCRIPT, ...args], { cwd, encoding: 'utf8' });
 }
 
+test('H2 appendices do not inflate scenes, including the last scene', () => {
+  const scene = `## 场景 1: A\n- 目标时长: 10s\n${'中'.repeat(90)}\n`;
+  const dir = setupEp(scene);
+  try {
+    const baseline = run(dir, 'ep01');
+    assert.equal(baseline.status, 0, baseline.stderr);
+    const appendix = `## 本集资产清单\n### 新增资产\n- characters: ${'甲'.repeat(200)}\n`;
+    writeFileSync(join(dir, 'story/episodes/ep01/script.md'), scene + appendix);
+    const r = run(dir, 'ep01');
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, baseline.stdout);
+
+    const second = scene.replace('场景 1', '场景 2');
+    writeFileSync(join(dir, 'story/episodes/ep01/script.md'), scene + second);
+    const twoScenes = run(dir, 'ep01');
+    writeFileSync(join(dir, 'story/episodes/ep01/script.md'),
+      scene + appendix + second + `## 制作备注\n${'乙'.repeat(200)}\n`);
+    const withAppendices = run(dir, 'ep01');
+    assert.equal(withAppendices.status, 0, withAppendices.stderr);
+    assert.equal(withAppendices.stdout, twoScenes.stdout);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
 test('单场景 ok: actual 在 [lower, upper]', () => {
   const script = `# ep01\n\n## 场景 1: 测试场景\n- 目标时长: 10s\n${'中'.repeat(90)}\n`;
   const dir = setupEp(script);
@@ -61,6 +84,23 @@ test('missing:script when script.md absent', () => {
   try {
     const r = run(dir, 'ep01');
     assert.match(r.stdout, /^status:missing:script$/m);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('installed budget script uses its sibling helper, not project cwd', () => {
+  const dir = setupEp(`## 场景 1: A\n- 目标时长: 10s\n${'中'.repeat(90)}\n`);
+  try {
+    const baseline = run(dir, 'ep01');
+    assert.match(baseline.stdout, /^summary:.*status=ok$/m);
+    const installed = join(dir, 'installed scripts');
+    mkdirSync(installed);
+    copyFileSync(SCRIPT, join(installed, 'script-budget.sh'));
+    copyFileSync(WC, join(installed, 'word-count.sh'));
+    rmSync(join(dir, 'scripts'), { recursive: true });
+    const r = spawnSync('bash', [join(installed, 'script-budget.sh'), 'ep01'],
+      { cwd: dir, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, baseline.stdout);
   } finally { rmSync(dir, { recursive: true }); }
 });
 

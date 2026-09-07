@@ -5,11 +5,8 @@
 #   success   — video downloaded to output_path
 #   querying  — still generating
 #   fail:{reason} — generation failed
+#   error:{reason} — query/download error; retain submitted and submit_id
 # Exit codes: 0=success/fail (terminal), 1=querying (still in progress), 2=error
-
-# grep -P (PCRE) requires a UTF-8 or C locale. Force it to avoid silent
-# "grep: -P supports only unibyte and UTF-8 locales" on systems with legacy locale.
-export LC_ALL=C.UTF-8
 
 if [ $# -lt 2 ]; then
   echo "Usage: bash scripts/video-check-dreamina.sh {submit_id} {output_path}"
@@ -18,19 +15,32 @@ fi
 
 SUBMIT_ID="$1"
 OUTPUT_PATH="$2"
-DOWNLOAD_DIR=$(mktemp -d)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOWNLOAD_DIR=$(mktemp -d) || { echo "error:temp_failed"; exit 2; }
+trap 'rm -rf "$DOWNLOAD_DIR"' EXIT
 
 # Query dreamina
 RESULT=$(dreamina query_result --submit_id="$SUBMIT_ID" --download_dir="$DOWNLOAD_DIR" 2>&1)
-STATUS=$(printf '%s' "$RESULT" | grep -oP '"gen_status"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"gen_status"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
+if [ $? -ne 0 ]; then
+  echo "$RESULT" >&2
+  echo "error:cli_failed"
+  exit 2
+fi
+STATUS=$(printf '%s' "$RESULT" | bash "$SCRIPT_DIR/json-string-field.sh" gen_status)
 
 case "$STATUS" in
   success)
-    DL_FILE=$(ls "$DOWNLOAD_DIR"/${SUBMIT_ID}_* 2>/dev/null | head -1)
+    DL_FILE=""
+    for candidate in "$DOWNLOAD_DIR/${SUBMIT_ID}_"*; do
+      if [ -s "$candidate" ] && [ -f "$candidate" ]; then
+        DL_FILE="$candidate"
+        break
+      fi
+    done
     if [ -z "$DL_FILE" ]; then
       rm -rf "$DOWNLOAD_DIR"
-      echo "fail:download_empty"
-      exit 0
+      echo "error:download_empty"
+      exit 2
     fi
     # Retry mv up to 3 times
     MOVE_OK=false
@@ -46,19 +56,23 @@ case "$STATUS" in
       echo "success"
       exit 0
     else
-      echo "fail:move_failed"
-      exit 0
+      echo "error:move_failed"
+      exit 2
     fi
     ;;
   fail)
-    REASON=$(printf '%s' "$RESULT" | grep -oP '"fail_reason"\s*:\s*"(?:[^"\\]|\\.)*"' | head -1 | sed -E 's/^"fail_reason"[[:space:]]*:[[:space:]]*"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g')
+    REASON=$(printf '%s' "$RESULT" | bash "$SCRIPT_DIR/json-string-field.sh" fail_reason)
     rm -rf "$DOWNLOAD_DIR"
     echo "fail:${REASON:-unknown}"
     exit 0
     ;;
-  *)
+  querying)
     rm -rf "$DOWNLOAD_DIR"
     echo "querying"
     exit 1
+    ;;
+  *)
+    echo "error:invalid_status"
+    exit 2
     ;;
 esac

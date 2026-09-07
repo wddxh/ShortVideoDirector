@@ -1,56 +1,34 @@
-// The `USER_INVOCABLE_ENTRY_WORKFLOWS` assertion below mirrors the constant
-// in `.opencode/lib/tool-mapping.js`, which itself MUST stay in sync with
-// source skills that have `user-invocable: true` in their frontmatter. If
-// you add/remove a user-invocable skill, update BOTH the constant and this
-// test's hardcoded Set — see `.opencode/README.md` § 维护契约.
-import { describe, test } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  USER_INVOCABLE_ENTRY_WORKFLOWS,
-  TASK_PROMPT_TEMPLATE,
-  LEAF_CONTEXT_HINT,
-} from '../lib/tool-mapping.js';
+import * as mapping from '../lib/tool-mapping.js';
 
-describe('tool-mapping constants', () => {
-  test('USER_INVOCABLE_ENTRY_WORKFLOWS contains exactly 7 entries', () => {
-    assert.deepStrictEqual(USER_INVOCABLE_ENTRY_WORKFLOWS, new Set([
-      'series-video', 'short-video',
-      'edit-story', 'repair-story',
-      'generate-video', 'check-video', 'auto-video',
-    ]));
-  });
-
-  test('TASK_PROMPT_TEMPLATE renders with all required fields', () => {
-    const out = TASK_PROMPT_TEMPLATE({
-      skillName: 'director-arc',
-      agentName: 'director',
-      params: '- topic: test\n- episode: 1',
-    });
-    assert.ok(out.includes('director-arc'));
-    assert.ok(out.includes('director'));
-    assert.ok(out.includes('topic: test'));
-    assert.ok(out.includes('skill({ name: "director-arc" })'));
-  });
-
-  test('LEAF_CONTEXT_HINT renders with agent name', () => {
-    const out = LEAF_CONTEXT_HINT('director');
-    assert.ok(out.includes('director'));
-    assert.ok(out.includes('执行上下文'));
-  });
+test('keeps exactly seven entry workflows', () => {
+  assert.deepEqual(mapping.USER_INVOCABLE_ENTRY_WORKFLOWS, new Set([
+    'series-video', 'short-video', 'edit-story', 'repair-story',
+    'generate-video', 'check-video', 'auto-video',
+  ]));
 });
 
-describe('ENTRY_WORKFLOW_DISPATCH_DISCIPLINE', () => {
-  test('contains key directive phrases', async () => {
-    const { ENTRY_WORKFLOW_DISPATCH_DISCIPLINE } = await import('../lib/tool-mapping.js');
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('派发约束'));
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('分段策略'));
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('逐镜头'));
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('JSON'));
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('长度原则'));
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('不限制最终文件总长度'));
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('反例'));
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('oldString'));
-    assert.ok(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('.json 数组型（tasks）'));
-    assert.equal(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes('keyframes / tasks'), false);
-  });
+test('entry injection shares role guidance, not named-skill dispatch templates', () => {
+  assert.ok(mapping.ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.includes(mapping.ROLE_HANDOFF_GUIDANCE));
+  assert.equal(mapping.TASK_PROMPT_TEMPLATE, undefined);
+  assert.equal(mapping.LEAF_CONTEXT_HINT, undefined);
+});
+
+test('native question example has one single-choice item and stable option labels', () => {
+  const guidance = mapping.NATIVE_QUESTION_GUIDANCE;
+  assert.equal(typeof guidance, 'string');
+  assert.ok(mapping.ROLE_HANDOFF_GUIDANCE.includes(guidance));
+  const call = JSON.parse(guidance.match(/```json\n([\s\S]*?)\n```/)[1]);
+  assert.deepEqual(Object.keys(call), ['questions']);
+  assert.equal(call.questions.length, 1);
+  const item = call.questions[0];
+  assert.deepEqual(Object.keys(item).sort(), ['header', 'multiple', 'options', 'question']);
+  assert.equal(item.multiple, false);
+  assert.equal(item.options.length, 4);
+  assert.equal(new Set(item.options.map(option => option.label)).size, 4);
+  for (const option of item.options) {
+    assert.deepEqual(Object.keys(option).sort(), ['description', 'label']);
+    assert.ok(option.label && option.description);
+  }
 });

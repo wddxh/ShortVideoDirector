@@ -7,6 +7,7 @@
 # Exit code: always 0 (consumer parses status to decide)
 
 set -u
+SCRIPT_DIR=$(dirname -- "${BASH_SOURCE[0]}")
 
 if [ $# -lt 1 ]; then
   echo "Usage: bash scripts/script-budget.sh <ep> [config_path]" >&2
@@ -31,14 +32,18 @@ TMPDIR_RUN=$(mktemp -d)
 trap "rm -rf $TMPDIR_RUN" EXIT
 
 awk -v tmpdir="$TMPDIR_RUN" '
+  /^##[[:space:]]/ {
+    if (in_scene) close(f)
+    in_scene=0
+  }
   /^## 场景 [0-9]+[:：]/ {
-    if (n > 0) close(f)
     n++
+    in_scene=1
     f = tmpdir "/scene-" n ".md"
     print > f
     next
   }
-  n > 0 { print >> f }
+  in_scene { print >> f }
 ' "$SCRIPT_FILE"
 
 TOTAL_ACTUAL=0
@@ -61,7 +66,7 @@ for f in "$TMPDIR_RUN"/scene-*.md; do
     SCENES_FAIL=$((SCENES_FAIL + 1))
     continue
   fi
-  ACTUAL=$(bash scripts/word-count.sh "$f" 2>/dev/null)
+  ACTUAL=$(bash "$SCRIPT_DIR/word-count.sh" "$f" 2>/dev/null)
   [ -z "$ACTUAL" ] && ACTUAL=0
   LOWER=$((DURATION * 8))
   UPPER=$((DURATION * 104 / 10))

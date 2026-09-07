@@ -1,17 +1,40 @@
 ---
 name: creator-fix-asset-image
-description: 消费基础资产 visual review dirty list，修提示并重生整张资产图。
+description: 在基础资产图与目标形象不符时使用，检查图像、提示或引用根因并按授权修复。
 user-invocable: false
-context: fork
 agent: creator
-allowed-tools: Read, Edit, Glob, Grep, Bash, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Skill
 model: sonnet
 ---
 
 ## 范围
 
-本 generic image fix 是 basic-only，只接受 `.review-basic-assets-visual.md`。Storyboard sheet 由 `creator-fix-storyboard-sheet-image` 修复。
+读取原请求及持续有效 grants：普通图片制作意图包含同范围可恢复失败重试及必要修卡、替换/重生和独立复审，默认不设尝试或轮次上限，不另问重试许可。生成一张图不等于用户明确只许尝试一次；用户明确的单次、次数、范围、检查点和费用限制仍绑定。当前 prompt/visual 独立审核由 Director 自动协调，审核失败本身不是新的用户决策。按共享 user-decision-relay 规则诊断失败与进展，不盲目无限尝试；参数不支持、账号/额度或其他不可恢复问题停止受影响工作，替代方案仅限固定配置与实际裁量授权，否则报告阻塞。保持 pending 和 scope 保护。
 
-读取最后一轮 `{asset_path}|{image_path}` dirty entries。仅修改 dirty 基础资产卡的 `## 图像生成提示`，再使用 Skill tool 调用 `creator-generate-images` skill，参数 `{ep} paths {asset_path}`；`router owns targeted PNG deletion`，provider 仅删除 target PNG 并强制重生。不读取图片，不改其他 section 或非 dirty 资产。系统类失败最多重试 2 次，保留原始失败供下一轮 review。
+本方法仅处理基础资产（basic-only）。Sheet 的格间构图与连续性属于整板诊断，不把基础图修复范围自动扩展到 sheet。
 
-返回处理、修改、成功和失败清单，并透传 router 的稳定集合 `successful asset paths: {asset_path...} | none`；只含本次修复后实际落盘成功的基础资产卡。
+输入可以是本集 `.review-basic-assets-visual.md` 中当前目标的 `{asset_path}|{image_path}` dirty entries，也可以是明确的 ep、基础资产路径与授权指令。直接指令不要求旧 review；诊断委托不授权付费重生。
+
+读取目标卡、对应 PNG、实际配置（`SVD_CONFIG` 或 `config.md`）、相关 script 场景与清单，以及必要的基础/衍生参考。分清形象定义矛盾、提示表达、参考不匹配和生成偏差；看不到图片时报告诊断限制，不声称已确认视觉根因。意见与当前文件不符时先核实范围。
+
+可从识别度最高的轮廓、五官、体型比例和服饰层次对比入手，再检查材质、光线及状态变化。若只是火光让肤色偏暖，先区分照明与身份误差；参考错误不应靠堆叠形容词补偿，纯采样偏差也不必强改正确卡片。
+
+## 修复与返回
+
+方向问题按 [通用视觉原则 6](../_meta/rules/visual-prompt-craft-common.md) 对照本图实际视角与参考：画面左右不等于角色自己的左右，不把不同视图的投影变化误修为换手或同实体布局错误。必要的提示修正写画面方位与纵深，缺依据先交负责人，不猜罗盘到屏幕的映射。
+
+同实体整体/局部/视图诊断可读取目标声明的必要直接参考卡和 PNG（包括跨类别），比较共享标志物、几何布局、材质和当前状态。Creator 决定现图复用还是必要独立视图；保持独立名称/目录与无环锚点，不把视角差异改成状态衍生。修复标准卡仍保留完整目标提示及有序「同实体参考」，重生时逐项经 asset-to-image-path 映射到 job.images；缺参考报告 prerequisite blocked，不能静默清空或扩范围重生锚点。参考变化需评估实际受影响证据，不自动全量修复。
+
+按授权最小修正目标卡：表达问题调整 `## 图像生成提示`；形象事实需要改变时同步视觉/状态描述。保留身份、出场记录及无关字段。涉及剧本事实、资产清单或其他目标时返回跨负责人建议，不扩大编辑范围。也可仅提交诊断 findings。
+
+修复成果是满足当前目标形象与剧情需要的可用资产图，或有依据的诊断及未解决项，不要求精确复刻卡片。当前独立视觉证据已 pass 即停止质量循环；不为无影响的细节、色彩、布局或视角偏好重生，可选精修仅在用户要求或出现新需求时进行。明显错误、关键设计或必要连续性问题仍须处理，证据失效先评估，不能自判 pass；失败重试默认无次数上限不变。
+
+Creator 判断问题需要改卡、恢复还是重生；委托规定 ep、目标、替换意图、固定设置与操作授权，不规定内部方法，不要求费用确认。按已选模型/参数执行，用户明确限制仍绑定。执行方仅对获授权目标提交，路径不授予 force。生产重生须具备当前 asset-prompt 验收和实际依赖；卡片或配置改变后旧 pass 不能放行。缺验收返回 blocked 并保留旧图，由 Director 协调独立审核，不自动修完即生图。
+
+整张资产图为修复单位；制作委托内已诊断必要的目标替换无需另问，删除仅由现有 wrapper/provider 在 preflight 后执行，本 skill 不提前删图。优先按已有 id 恢复或核实同目标 pending/未知结果，未终态或结果未知不得重提；轮询超时不算生成失败。终态失败保留原始原因，可恢复失败在原制作范围与用户限制内重试，无默认次数上限。恢复不被新卡审核阻断；纯恢复委托无论结果如何均不新提交。
+
+有 `.generation.json` 时读取其实际 tuple、status 和成功哈希辅助追溯；它不是视觉 pass，且不含参考图列表，不能证明原始输入图。导入或历史图片可无 receipt，不为补记录重生或编造来源。恢复既有任务使用其记录，settle 后再清 pending，不以当前设置重新 prepare。
+
+多个授权修复目标使用 [图像接口](../creator-provider-dreamina/image.md) 的最小 manifest 与 `generate-images-dreamina.mjs [--force] [--concurrency N] JOBS.json`，不 shell 并行 raw CLI/wrapper。Write 仅准备该 manifest，每次不超过 2000 字符。默认本地 5，并非账号配额；Creator 按当前接入限制覆盖，不反复询问。只等实际基础/衍生图片依赖，不为无关目标造顺序；当前 prompt/依赖证据仍是前提。force 全批仅含明确替换目标，普通 completed skip 不算本次成功。首次失败/pending 停止新启动、排空 active，汇总全批成功与 IDs；未启动旧图保留。pending helper 互斥写入，stale claim/未知结果人工核实，不自动过期或盲重试。
+
+返回处理、修改、保留、成功、失败/pending 和未处理建议，并透传稳定集合 `successful asset paths: {asset_path...} | none`，只含本次实际落盘成功的基础卡；纯诊断写 none。该集合供覆盖本次更新图片的复审，不替换 outstanding review scope；Director 可另纳入已有未审核、过时或 unknown 目标，缺图失败项仍保持阻塞。Director 另行委派独立审核，本地自检不写 pass、不自动续接其他技能。

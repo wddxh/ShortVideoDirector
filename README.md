@@ -1,56 +1,32 @@
 # ShortVideoDirector
 
-一个以 Claude Code 为主体的插件，通过 5 个 AI 子代理协作，将故事创意转化为 AI 视频分镜提示词、资产参考图片和视频片段。Codex 与 OpenCode 支持以兼容层形式提供。
+以 Claude Code 为主要目标、提供 OpenCode 与 Codex 适配的短视频创作插件。主 AI 负责用户沟通和授权，Director 对最终制作材料负责，五个专业角色按实际需要协作，而非执行固定创作顺序。
 
-本仓库只维护一套事实上的 skill 内容层：`skills/`。Claude Code 直接加载这套源 skills；Codex 通过 `.codex/` 下生成的轻量适配层执行同一套 skill 内容；OpenCode 通过 `.opencode/` 下的运行时插件加载（启动时把 skills 转换缓存到 `~/.cache/short-video-director/<hash>/`，不污染源仓库）。
+`skills/` 是唯一人工维护的技能内容层；Claude Code 直接加载，OpenCode 转换到运行时 cache，Codex 加载生成的轻量 wrapper。当前代码契约不等于宿主实测通过，见下文「验证边界」。
 
-## 功能
+## 角色与协作
 
-- 将故事点子/原文/概述转化为短视频分镜提示词（1-2 分钟/集）
-- 自动生成人物、物品、场景、建筑的图像提示词
-- 支持持续创作，保持人物、资产和声音在整个故事中的一致性
-- 支持即梦CLI（Dreamina）自动生成资产参考图片，与分镜流程并行执行
-- 支持即梦CLI（Dreamina）异步生成视频片段，分镜自动转化为 multimodal2video prompt，资产图片作为全能参考
-- 视频生成定时任务（`/auto-video`），自动查询状态、下载完成视频、重试因并行限制失败的任务
-- 视频生成失败智能判断：LLM 分析 fail_reason，可重试的自动重试，需人工介入的交互修复
-- 可配置图像模型（none / dreamina）和视频模型（none / dreamina），选择 dreamina 后可配置模型版本、比例、分辨率
-- 可配置视频风格（2D动漫/3D动漫/3D写实/2D手绘/自定义）
-- 首次运行交互式引导配置，支持自定义模型和风格输入
-- 支持 Director 自动生成剧情选项供选择，不满意可重新生成或提供偏好
-- 用户自行输入时 Director 生成结构化确认说明（default mode 下等待用户确认；full-auto mode 下自动确认）
-- 支持角色换装（独立造型变体文件，需对剧情有实质影响的视觉区分）
-- 人物基础资产基于角色气质和世界观设定，剥离职业/场景特定装束
-- 分镜采用时间线连贯叙事格式，画面动作、对白、音效自然融合
-- 每集开场强力钩子 + 结尾悬念钩子，最大化观众留存
-- 高角色台词密度（对白、自白、旁白、角色声音反应），丰富短视频内容表现力
-- 支持角色旁白快速补充背景知识（人物介绍、世界观等），加速观众理解
-- 丰富的环境音效设计，2 秒内必须有声音（台词或音效）
-- 角色声音特征一致性保障
-- 版权规避：不使用现实中的明星/公众人物名字、真实地名、商标名
-- 资产创建完成后再生成分镜，确保分镜师可引用完整资产信息
-- 剧情弧线（arc）支持每集剧情规划，outline 严格遵循 arc 分集规划
-- 支持 full-auto 批量生成脚本（`scripts/run-batch.ps1`）
+| 角色 | 所有权与专业判断 |
+| --- | --- |
+| Director | 诊断委托、评估已有材料、协调专家与独立审核，对材料整体叙事、视觉和情感连贯性负责。 |
+| Writer | 小说与散文叙事、人物动机和声音；按需要发展或修订文本，不强制写小说。 |
+| Scriptwriter | 可拍摄剧本、改编和 script breakdown（从剧本识别制作所需元素），拥有剧本资产清单。 |
+| Storyboarder | shot（镜头）设计、人物与动作的空间调度、表达场景所需的镜头组合及连续性；保留七字段分镜。 |
+| Creator | 人物、环境与道具的视觉设计，基础资产卡/图和 storyboard sheet（每镜头一张多画格分镜板）的画格、卡片与图片。 |
 
-## 五个子代理
+所有角色浏览 skill description，选择性加载方法。Skill 是当前上下文中的知识加载，不是角色切换或独立审核。跨所有者建议交 Director 协调，不静默修改他人材料。
 
-| 子代理 | 角色 | 职责 |
-|--------|------|------|
-| **Director** | 总导演 | 全局统筹、生成剧情大纲、审核 Writer/Scriptwriter 和 Storyboarder 输出 |
-| **Writer** | 网络小说作家 | 根据剧情大纲生成小说原文，擅长悬念设置和人物描写 |
-| **Scriptwriter** | 短视频编剧 | 将大纲转化为剧本，擅长在极短篇幅内构建完整故事 |
-| **Storyboarder** | 分镜师 | 把剧本翻译为七字段 shot 时间线和完整视听 prose，不规划 panel |
-| **Creator** | 创意总监 | 创建基础视觉资产，并为每个 shot 规划和生成 storyboard sheet |
+主 AI 委托成果、材料路径、范围、约束、决策余地和升级条件，不指定技能调用链。宿主允许嵌套任务时 Director 直接委托；明确深度拒绝后记住限制，由主 AI 忠实转交专家请求，再恢复原 Director 任务传回结果。主 AI 不另排创作流程，也不自动提高宿主深度。缺少必要角色或独立审核上下文时报告阻塞。
 
 ## 安装
 
+Claude Code：
+
 ```bash
-# 通过 --plugin-dir 加载（每次启动时指定）
 claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
-### For OpenCode users
-
-本仓库同时支持 OpenCode（`.opencode/` 兼容层）。在 `~/.config/opencode/opencode.json` 添加：
+OpenCode：在 `~/.config/opencode/opencode.json` 添加：
 
 ```json
 {
@@ -61,361 +37,194 @@ claude --plugin-dir /path/to/ShortVideoDirector
 }
 ```
 
-启动 OC 即按 `agents/` 与 `skills/*/SKILL.md` 动态注册当前子代理和 skills。完整安装/升级/troubleshooting 说明见 [`.opencode/README.md`](./.opencode/README.md)。
+重启宿主后核对当前角色和技能，详见 [OpenCode 安装与维护](.opencode/README.md)。Codex 使用 `.codex-plugin/plugin.json` 和 `.codex/skills/`，见 [Codex 安装说明](.codex/INSTALL.md)。
 
-## Codex
+本地工具需要 Bash、Node.js（测试使用 Node 18+）、Python 3；实际即梦生成还需已安装且可用的 `dreamina` CLI。本任务不安装或升级 provider。
 
-Codex 支持是对 Claude Code plugin 的兼容层，由 `.codex-plugin/plugin.json` 提供。
-
-Claude Code 是主要运行目标，直接从 `skills/` 加载源 skills。Codex 从 `.codex/skills/` 加载生成的轻量适配层；每个适配层会应用 `.codex/tool-mapping.md`，并执行原始源 skill。
-
-只维护 `skills/` 这一套事实上的 skill 内容层。修改 skill 行为时只改 `skills/`；修改源 skill 头部元数据或 Codex 映射后，重新生成 Codex 适配层：
+Claude 的模型提示以源 frontmatter 为准，常用 Opus/Sonnet；使用对应模型需账号权限。仅有 Sonnet 时可选择：
 
 ```bash
-python3 .codex/build-codex-skills.py
+CLAUDE_CODE_SUBAGENT_MODEL=sonnet claude --plugin-dir /path/to/ShortVideoDirector
 ```
 
-## 模型要求
-
-本插件按任务复杂度分配模型：编排与 Director 审核通常使用 Opus，内容生成和机械执行通常使用 Sonnet；以各源 skill frontmatter 为准。
-
-**前置条件**：账号需同时有 Opus 和 Sonnet 访问权限。
-
-只有 Sonnet 配额时，可全局降级：
-
-```bash
-CLAUDE_CODE_SUBAGENT_MODEL=sonnet claude ...
-```
-
-env var 优先级最高，会覆盖所有 frontmatter 的 `model`，整个 session 全跑 Sonnet（编排稳定性可能受影响）。
+Codex 使用当前活动模型，Claude 模型字段仅作提示；OpenCode 的角色 `model: inherit` 由宿主继承。
 
 ## 使用
 
-```bash
-# 开始新故事（提供输入）
-/series-video 一个穿越到异世界的少年，发现自己拥有操控时间的能力...
-
-# 开始新故事（从文件读取）
-/series-video story-idea.txt
-
-# 开始新故事（指定总集数 + 故事材料，自动生成剧情弧线）
-/series-video 30 一个穿越到异世界的少年...
-/series-video 30 story-idea.txt
-
-# 开始新故事（仅指定总集数，交互式选择剧情方向）
-/series-video 30
-
-# 开始新故事（交互式，可让 Director 生成主题选项）
-/series-video
-
-# 续写故事（自动检测已有 story/ 目录）
-/series-video 主角发现了隐藏在古城下的秘密通道...
-
-# 编辑配置
-/series-video config
-```
-
-```bash
-# 单集短视频（独立完整故事）
+```text
 /short-video 一个外卖小哥送错餐发现客户是自己的前女友
 /short-video story-idea.txt
-/short-video
 /short-video config
-```
-
-```bash
-# 编辑已有内容（自然语言，自动判断系列/单集）
-/edit-story ep01大纲的集尾钩子改成更有悬念的
-/edit-story ep02分镜镜头3的台词太少，增加内心独白
-/edit-story ep03主角的外貌描述改成短发
-/edit-story 在ep01的资产清单中增加一个新角色"老王"
-/edit-story 重新生成张三的参考图片
+/series-video story-idea.txt
+/series-video 主角发现了隐藏在古城下的秘密通道
+/series-video config
+/edit-story ep01 分镜镜头3的动作不清楚，请局部修正
 /edit-story 张三的头发改成红色，重新生成图片
-/edit-story 大纲的结局改成开放式结局
-/edit-story 剧本场景2的台词太少，增加内心独白
-```
-
-```bash
-# 修复中断的生成（自动检测系列/单集 + 最新一集）
 /repair-story ep03
-/repair-story            # 自动检测最新一集
-/repair-story            # 单集短视频项目自动定位 ep01
+/repair-story 恢复最新一集
 ```
+
+七个入口整体理解自然语言，可混合文件、集/镜头范围和意见；`ep01` 等短写仍可理解，不是位置参数协议。配置查看只读，缺失不自动初始化。目标遗漏、歧义或冲突先澄清，不默认 latest/all；监控仅支持明确 epNN/all，部分镜头需先确认范围。系列每次委托一集；新系列确认总集数，明确续作请求才选择下一集，已有集恢复不另开集。
+
+编辑与恢复由 Director 诊断实际影响，复用有效材料和任务，不因缺少可选规划文件重做故事。缺资产清单时请 Scriptwriter 接纳现有剧本并补齐，不默认重写。可选的 [制作情境参考](skills/director-outline/reference-workflows.md) 保留有用的整合方法、依据与取舍，不恢复固定技能链。
+
+## 材料与确认
+
+完整制作交付需要当前相容的剧本、分镜、本集实际使用的基础资产卡与图片、每 shot 的 sheet 卡与图片，以及有效独立审核。必需不等于重新生成；可以复用合适材料。有效作用域的图像提供方 `none` 只禁用新提交，不阻断已有任务取回，也不豁免必需图片。缺图、授权不足或审核未决应报告部分交付/阻塞；局部委托完成不代表整集就绪。
+
+`outline.md`、`novel.md`、`arc.md` 是按用途选择的规划材料，不是统一前置。系列仍需评估人物弧（人物随事件发生的变化）、铺垫回收及跨集连续性，结合已有规划决定工作。
+
+用户要求先看规划材料时，主 AI 在实际配置的 `## 制作前确认 epNN` 段记录所需 outline/novel/arc 和用户批准及输入身份。只交约定材料，等待实际批准后再正式制作；缺失、空白、未批准或材料已变化均阻塞。质量审核不能代替用户批准。
+
+独立材料审核另开全新 Director 上下文，不继承制作历史，也不只看生产者的有利总结。审核者只写受托 review 记录，可做只读 Bash 检查，不改材料或接管修复。逐图通常分别隔离审核；跨图只看最小必要比较集，另设独立汇总上下文聚合原始结论，制作 Director 不代写汇总 pass。分歧由制作 Director 协调修正、重审或升级用户；没有“两轮后自动通过”。
+
+六类证据覆盖 script、storyboard、基础资产 prompt/visual、sheet prompt/visual。现有 `.review-*.md` 保存 scope、逐目标 `pass|needs_revision|unknown`、阻塞和真实输入 SHA-256；最新声明范围优先，未完成审核不能回退旧 pass。哈希只证明版本，不证明独立性或艺术质量。输入变化需评估影响，不等于自动重生所有材料。
+
+配置相关工作先从故事项目根运行 `node /path/to/ShortVideoDirector/scripts/review-evidence.mjs config-path [PATH]`。未显式传 PATH 时用 SVD_CONFIG，未设才用 config.md；结果为 canonical 项目相对路径。项目内绝对路径/./ 可规范化，外部或 symlink 越界配置不支持，不静默回退。每次相关命令显式传同一 SVD_CONFIG，委托、配置/批准写入和指纹也使用该路径；纯已登记任务取回不经过配置门禁。
+
+使用默认配置时，在故事项目根目录运行：
 
 ```bash
-# 提交视频生成任务（异步，提交后自动启动定时监控）
-/generate-video ep01                    # 整集所有镜头
-/generate-video ep01 镜头3 镜头5        # 指定镜头
+bash /path/to/ShortVideoDirector/scripts/check-episode.sh ep01
+node /path/to/ShortVideoDirector/scripts/review-evidence.mjs check ep01 1 3
+```
 
-# 查询视频生成结果（交互模式，可处理失败任务）
+整集检查覆盖 script 清单中的新增/复用资产和所有镜头；选镜头提交仍要求 script/storyboard 验收，并检查所选引用。就绪为 exit 0，阻塞为 1；`check-episode.sh` 保留旧 KF 格式阻塞 exit 2。
+
+## 视频执行
+
+```text
+/generate-video ep01
+/generate-video ep01 镜头3 镜头5
 /check-video ep01
-/check-video ep01 --auto                # 自动模式，只重试可重试的失败
-/check-video all --auto                 # 检查所有集
-
-# 启动/管理视频生成定时监控
-/auto-video ep01                        # 监控 ep01，默认每 20 分钟检查
-/auto-video ep01 300                    # 自定义间隔（秒）
-/auto-video all                         # 监控所有集
+/check-video ep01 无人值守检查，返回监控摘要
+/check-video 查询所有已登记任务
+/auto-video ep01
+/auto-video ep01 300
+/auto-video all
 ```
 
-## 生成的目录结构
+视频仅提交、查询和下载，成片质量由用户判断，不自动审片、剪辑或合成。short/series 制作包含所需图片并停在视频提交前；用户随后调用视频生成入口的实际请求即为对应范围的提交依据，不另问生成授权。`done` 仅表示当前任务下载成功。
 
+`generate-video` 按实际请求范围准备任务，保持 sheet 图片第一、基础参考随后。`tasks.json` 记录 prompt/images/duration 和 `submission` 中的 provider/model/ratio/resolution 及有序图片 path/SHA-256。首次请求原文、解析范围和真实条件写入 `initial_authorization`，不需要另一条同意消息。原输入重试使用已有 `retry_authorization`；不在首次提交前例行询问重试许可。仅用户要求自动重试或实际失败缺少必要决定时处理该问题，未答复不推断无限重试；只有用户明确限制次数才记录 max_attempts/attempts。
+
+提交 wrapper 核对登记输入、身份、授权结构、保护状态和当前范围审核；授权条件的语义仍由调用方判断。调用 provider 前，`reserve` 加锁并原子持久化 `inflight`，有限额的重试在此预扣次数；`settle` 记录明确提交 ID/失败并清除 intent。未知结果保留 inflight，必须人工核实，不能按超时清除或重复付费。首次提交、查询下载和 gate 拒绝不扣重试次数。
+
+限流后未调用的 pending 保留原输入和初始授权，监控可继续首次提交；真正生成失败才走重试授权。重试使用原登记模型/比例和图片身份，不偷偷套用当前配置。输入漂移需授权准备和当前材料验收；submitted/done 不刷新或自动重提。
+
+| 查询输出 / exit | 含义 |
+| --- | --- |
+| `success` / 0 | 本次 submit_id 已下载，记 done。 |
+| `querying` / 1 | 正常等待，保留 submitted/id。 |
+| `fail:reason` / 0 | 实际生成失败，记 failed。 |
+| `error:reason` / 2 | 查询或取回错误，保留 submitted/id，重试同一任务取回，不付费重生。 |
+
+查询下载不受创作就绪检查阻挡；历史 submitted 仍可取回。任意已有 MP4 不能证明当前任务完成。监控不做创作修复或扩大授权；`all_complete` 表示可停止监控，可能仍有 `human_needed`，不代表全部下载或质量通过。用户反馈需修正时，由 Director 接收授权成果委托。
+
+## 图像与接口
+
+Sheet 卡 `## 基本信息` 保存四项：`已解析图像提供方`、`已解析图像模型版本`、`已解析图片比例`、`已解析图片分辨率`。它们是执行选择，不是用户锁；画布比例与 panel/视频比例分开。修改设置需获准 card 准备和当前 prompt 审核。
+
+以下是脚本接口参考，不是绕过角色、审核或付费授权的调用建议。相对材料路径以故事项目根为准：
+
+```text
+image-gen-dreamina.sh [--force] PROMPT OUTPUT RATIO RESOLUTION MODEL REFS SOURCE
+generate-images-dreamina.mjs [--force] [--concurrency N] JOBS.json
+storyboard-sheet-to-prompt.sh [--json] CARD
+generate-storyboard-sheets-dreamina.sh [--force] [--concurrency N] CARD...
+video-gen-dreamina.sh PROMPT OUTPUT IMAGES DURATION RATIO MODEL RESOLUTION
+video-check-dreamina.sh ID OUTPUT
 ```
+
+图片和视频 wrapper 均要求七个位置参数，图片空引用仍占第六位；不接收任意额外 CLI flags。当前图片每 job 单输出，不支持自定义宽高/多输出。Sheet JSON 返回 `{images,prompt,settings,sourcePath}`；默认保留 `IMAGES:`、分隔线、prompt。Coordinator 使用每卡设置和共同并发 runner，数字排序仅确定 ready-job 选择，不要求 sheets 全部串行；不接收旧的批次模型/分辨率参数。
+
+Sheet card 不复制源 shot：转换器现读完整源分镜，拼接完整 `Panel 规划` 与仅含格式/阅读顺序/比例/风格/labels 的 `图像生成提示`。对白与声音帮助表情姿态，不自动绘成字幕；refs 合并源 header 与 sheet 补充，人物优先稳定去重、previous 最后。解析不依赖 PNG，执行检查实际图片依赖。旧卡冗余提示不自动改写，缺唯一非空 Panel 或实际源 shot 的卡不兼容；不迁移用户项目。详见 [完整请求与兼容边界](docs/evaluations/full-shot-sheet.md)。
+
+新图执行在 PNG 旁记录同名 `.generation.json`，含 source/output、实际四元组、status、可用 submit_id 和成功 output_sha256。取回按保存的 receipt settle 后才移除 pending，不以当前配置重选。普通跳过、外来或历史图片不补造 receipt；receipt 是执行证据，不是审核通过或必填的导入历史。
+
+普通图片批次使用 runner，不 shell 并行 raw CLI/wrapper。`JOBS.json` 是数组，每项仅 `{source,output,prompt,images,settings:{provider,model,ratio,resolution}}`，来自授权目标和当前已审核提示；refs 为全量有序真实图片。默认本地并发 5，Creator 按当前接入限制/用户约束用 `--concurrency N` 覆盖，不反复询问，不代表账号总配额。只等待实际基础/衍生/previous-sheet 依赖，无关 jobs 不设阶段屏障；当前依赖证据仍须满足。
+
+首次失败/pending 停止新启动、排空 active 并保留所有成功/IDs；命中 target/ref pending 的批次预检即整体阻塞。冲突 output 拒绝，非 force completed skip 在 claim 内复查；force 仅限全批明确替换目标，未启动旧图不删除。pending helper 互斥更新；stale output claims/locks 和未知 receipt 人工核实恢复，无自动过期。调度器不盲重试或代替角色规定质量轮次。
+
+CLI 仅全成功时给 `OK generated N skipped M`；非零不能推断无成功，须结合落盘 PNG/receipts/pending 核对排空后的全批结果。实际成功集合排除 skip，既有 accepted evidence 与 outstanding review scope 不因成功子集而清空；完整协议见 [图像执行说明](skills/creator-provider-dreamina/image.md)。
+
+## 项目文件
+
+```text
 your-project/
-├── story/
-│   ├── outline.md              # 整体故事大纲（append-only）
-│   ├── arc.md                  # 剧情弧线（可选，指定总集数时生成）
-│   └── episodes/
-│       ├── ep01/
-│       │   ├── outline.md      # 本集剧情大纲（含资产清单）
-│       │   ├── novel.md        # 本集小说原文（系列视频）
-│       │   ├── script.md       # 本集可拍摄剧本（series / short 均生成）
-│       │   ├── storyboard.md   # 本集分镜提示词
-│       │   ├── videos/
-│       │   │   ├── tasks.json    # 视频生成任务跟踪
-│       │   │   ├── shot01.mp4
-│       │   │   └── ...
-│       └── ep02/
-│           └── ...
-├── assets/
-│   ├── characters/             # 人物提示词（含性格特征、声音特征、造型变体）
-│   ├── items/                  # 重要物品提示词
-│   ├── locations/              # 场景提示词
-│   ├── buildings/              # 建筑提示词
-│   ├── storyboard-sheets/      # 每 shot 的多 panel sheet 卡
-│   └── images/                 # 生成的参考图片（按类型分子目录）
-│       ├── characters/
-│       ├── items/
-│       ├── locations/
-│       ├── buildings/
-│       └── storyboard-sheets/  # 每 shot 的 16:9 sheet PNG
-└── config.md                   # 项目配置
+  config.md
+  story/
+    outline.md                     # 可选总体规划
+    arc.md                         # 可选剧情弧规划
+    episodes/ep01/
+      outline.md                   # 按需本集大纲
+      novel.md                     # 按需小说
+      script.md                    # 剧本及本集资产清单
+      storyboard.md                # 七字段 shot 及完整视听描述
+      .review-*.md                 # 独立材料审核证据
+      videos/
+        tasks.json                 # 异步任务、授权与提交意图
+        shot01.mp4
+  assets/
+    characters/                    # 人物卡，含声音和造型变体
+    items/                         # 物品卡
+    locations/                     # 场景卡
+    buildings/                     # 建筑卡
+    storyboard-sheets/ep01/shot01.md
+    images/                        # 与卡对应的分类/名称 PNG
+      storyboard-sheets/ep01/shot01.png
 ```
 
-## 配置项
+`script.md` 的 `## 本集资产清单` 含 `### 新增资产` 和 `### 已有资产（本集出场）`，引用四类基础资产路径。资产按实际需要列出，不为填分类凭空创建。人物身份、视觉基线和声音保持一致；换装可用独立造型变体，已建立资产不随意改写。内容语言遵循配置，资产文件名与资产名一致。沿用角色规则中的虚构命名约束，不使用现实明星/公众人物名字、真实地名或商标名。
 
-首次运行时会交互式引导配置，模型和风格支持自定义输入。
+分镜保留引用资产、镜头类型、镜头运动、视频风格、时长、转场、画面与声音描述七字段。时间线描述把动作、对白、音效组织成连贯视听段落；Storyboarder 设计镜头，Creator 决定 sheet 画格。结局按用户意图和作品需要处理，不一律强制续集悬念。
 
-| 配置 | 默认值 | 说明 |
-|------|--------|------|
-| 视频模型 | none | none / dreamina |
-| 图像模型 | none | none / dreamina |
-| 视频风格 | 3D写实 | 2D动漫 / 3D动漫 / 3D写实 / 2D手绘 / 自定义 |
-| 语言 | auto | auto / zh / en / 自定义 |
-| 每集分镜数 | 15 | 建议 10-20 |
-| 每集时长目标 | 1-2分钟 | — |
-| 单镜头时长范围 | 10-15秒 | 每个分镜镜头的时长范围 |
-| 上下文集数 | 1 | 续写时 Director 读取前 N 集 novel.md |
-| 默认模式 | default | default（用户确认剧情方向）/ full-auto（全自动） |
-| 即梦模型版本 | 4.0 | 3.0-5.0（仅图像模型为 dreamina 时） |
-| 图片比例 | 1:1 | 1:1 / 3:4 / 16:9 等（仅图像模型为 dreamina 时） |
-| 图片分辨率 | 2k | 2k / 4k（仅图像模型为 dreamina 时） |
-| 即梦视频模型版本 | seedance2.0fast | seedance2.0 / seedance2.0fast / seedance2.0_vip / seedance2.0fast_vip（仅视频模型为 dreamina 时） |
-| 视频比例 | 16:9 | 16:9 / 9:16 / 1:1 等（仅视频模型为 dreamina 时） |
-| 视频分辨率 | 720p | 当前仅支持 720p（仅视频模型为 dreamina 时） |
+## 配置
 
-## 工作模式
+获准初始化时交互配置。Creator 根据当前 CLI 版本和操作 help 解释能力及已接入限制，不维护静态模型表，不付费探测或自动升级。完整模板见 [series](skills/series-video/config-template.md) 与 [short](skills/short-video/config-template.md)。
 
-- **Default mode**：用户在剧情方向选择和输入确认阶段参与决策，其余步骤自动执行。Director 审核小说原文和分镜（最多 2 轮修改反馈）
-- **Full-auto mode**：全自动执行，所有决策由 Director 自主做出（自动选择最能吸引观众的剧情方向），无需任何用户交互。Director 审核小说原文和分镜（最多 2 轮修改反馈）
+| 配置 | 默认值 / 说明 |
+| --- | --- |
+| mode | series / short，显式记录，不根据 arc 是否存在猜测。 |
+| 总集数 | 模板 1；新系列询问 N≥2，short 固定 1。 |
+| 视频提供方 / 图像提供方 | 模板 none；当前仅接入 dreamina，新提交需用户明确选择或授权选择。 |
+| 视频风格 / 语言 | 3D写实 / auto，可选其他风格、zh、en 或自定义。 |
+| 每集分镜数 | 15，建议 10-20。 |
+| 每集时长目标 / 单镜头时长范围 | 集目标无默认，开始时由用户决定；模板单镜头参考 10-15秒不用于反推集目标。 |
+| 上下文集数 | series 模板为 1；按连续性需要选择现有材料，不强制补小说。 |
+| 默认模式 | series 模板保留 default / full-auto；不替代实际用户确认或付费授权。 |
+| 图像模型版本 / 图片比例 / 图片分辨率 | 无执行默认；固定值或明确委托 Creator 解析的当前支持组合。 |
+| 分镜板图像提供方 / 分镜板图像模型版本 / 分镜板图片比例 / 分镜板图片分辨率 | 可选独立覆盖，须明确授权；空值不解除共享固定值。 |
+| 视频模型版本 / 视频比例 / 视频分辨率 | 无执行默认；wrapper 转发登记值，不再固定 720p。 |
 
-## 工作流程
+`## 参数选择授权` 的 JSON 保存真实 `decision` 与 `delegated`：作用域 images/sheets/video，字段 provider/model/ratio/resolution。缺失、空值、auto 均不授予选择权；任务选择不升为项目默认。共享图像设置默认约束 sheets，共享模型需覆盖所需 text2image/image2image 操作。仅有明确作用域授权时 sheet override 可在共享 none 下启用，或单独禁用 sheets。
 
-### 统一管线（series & short 共用骨架）
+系列视频从全部 canonical episode tasks 的一致 submission 继承 provider/model/ratio/resolution 四元组，包括本任务已有快照；无快照才首次解析。short 仅要求整集 ratio/resolution 一致。历史缺项、冲突或固定配置不符阻止新准备/付费，不阻止取回。profile 不继承镜头内容、时长或 grants；系列准备串行执行，本集锁不保证跨集原子性。
 
-```
-plot-options → input-confirm → [arc (series only)] → outline
-  → [novel (series only)] → script → 基础资产创建/生图
-  → storyboard → 每 shot storyboard sheet 卡/图片 → 视频生成
-```
+系列各集共用用户初始集时长目标/范围，不按前集实际时长漂移。单值初次设置说明并确认 ±10%，更严格限制优先；显式范围不再放宽。Director 核对场景目标和完整 shot 合计，Creator 不得改变集预算；这不等于测量编码视频片长。
 
-差异点：
-- **series-video**：包含 `arc`（多集时）与 `novel`（小说原文）两层；novel 由 Director 审核后再产出 script
-- **short-video**：跳过 `arc` 与 `novel`，从 outline 直接生成 script（单集独立完整故事）
-- **storyboard sheets**：每个 shot 固定一张多 panel 分镜板；图像模型为 `none` 时仍生成并审核卡片，跳过 PNG
-
-### New Story（新故事，series）
-
-1. 创建目录结构 + 交互式配置引导
-2. 用户提供输入或让 Director 生成主题选项（default mode 下用户选择；full-auto mode 下 Director 自动选择）
-3. Director 生成结构化确认说明供用户确认（default mode 下用户确认；full-auto mode 下自动确认）
-4. （可选）若指定总集数且 arc.md 不存在 → Director 生成剧情弧线
-5. Director 生成本集剧情大纲（参考 arc 如有）
-6. Writer 生成小说原文 → Director 审核（最多 2 轮）
-7. Scriptwriter 基于 outline + novel 生成剧本 → Director 审核（最多 2 轮）
-8. Creator 创建基础资产并生成参考图，Director 完成 prompt/visual 审核
-9. Storyboarder 生成分镜 → Director 审核（最多 2 轮）
-10. Creator 为每 shot 规划 sheet，经过 prompt review 后串行生图并 visual review
-11. （触发 `/generate-video` 时）提交视频任务并跟踪
-
-### Continue Story（续写，series）
-
-1. 检测最新集数，创建新集目录
-2. 用户提供输入或让 Director 生成剧情走向选项
-3. Director 生成结构化确认说明
-4. （可选）arc 不存在且指定总集数 → 生成剧情弧线
-5. Director 生成新集大纲（append-only 追加到总大纲）
-6. Writer 生成小说原文 → Director 审核（最多 2 轮）
-7. Scriptwriter 生成剧本 → Director 审核（最多 2 轮）
-8. Creator 创建新资产、更新记录并生成基础图
-9. Storyboarder 生成分镜并审核；Creator 再生成和审核每 shot storyboard sheet
-
-### Short Story（单集短视频）
-
-1. 创建目录结构 + 交互式配置引导
-2. plot-options → input-confirm → outline（无 arc）
-3. **跳过 novel** → Scriptwriter 基于 outline 直接生成剧本 → Director 审核
-4. Creator 生成并审核基础资产图
-5. Storyboarder 生成分镜并审核；Creator 生成并审核每 shot storyboard sheet
-6. 视频生成同上
-
-### 重大变更（vs 旧版本，clean break）
-
-- **管线统一**：旧的 `new-story` / `continue-story` / `short-*` / `series-*` 分流 workflow 合并为单一 `generate-episode-pipeline`，由 `series-video` / `short-video` 入口透传 mode 参数（`series` / `short`）
-- **命令简化**：9 → 7 个 user-invocable command；`series-edit-story` + `short-edit-story` → `edit-story`；`series-repair-story` + `short-repair-story` → `repair-story`
-- **Skill 发现**：运行时从 `skills/*/SKILL.md` 动态发现，不维护手工总数
-- **Storyboard sheets clean break**：每 shot 一张多 panel sheet，视频输入固定 sheet 第一、基础资产随后；旧项目由 detector 明确拒绝
-- **mode-specific 内容外置**：管线 SKILL.md 主体保持通用，差异化指令拆到 sibling 文件（`series.md` / `short.md`），Phase 1 强制 Read 当前 mode 文件
-- **不向后兼容**：旧 `episodes/` 目录若用新 skill 触发会报错——旧项目请固定到上一个 release tag 使用，或迁移到新结构
-
-## 分镜格式
-
-每个镜头包含：引用资产、镜头类型、镜头运动、视频风格、时长、转场，以及按时间线组织的连贯叙事描述：
-
-```
-[0s-3s] 阴暗的石室内，火把在墙上摇曳，低沉的风声回荡。张三（低沉沙哑男声）站在
-石门前，眉头紧锁，双手握拳，低声说："这扇门后面，就是答案。"
-[3s-9s] 他深吸一口气，猛地抬手推开石门，门轴发出刺耳的摩擦声，碎石从门框上簌簌
-掉落。张三（低沉沙哑男声）旁白道："三年了……终于走到这里。那一刻我才明白，这里
-不只是一个墓穴——它是一整个被遗忘的世界。"
-[9s-12s] 他向前迈出一步，靴底踩在碎石上咔嚓作响，眼睛猛然睁大。远处传来悠扬的
-古琴旋律，画面渐暗。
-```
-
-> 画面动作、角色台词、音效必须融合为连贯叙事段落，禁止分离列举。时间段划分根据叙事节奏灵活调整。
-
-## 一致性规则
-
-- `outline.md` 是 append-only，新集只追加不修改已有内容
-- 已有资产的核心视觉描述和声音特征不可修改，只能追加出场记录
-- 角色换装通过独立造型变体文件实现（`角色名-造型名.md`）
-- 角色说话时声音特征必须与资产文件中的描述一致
-- Director 只规划当前集，不预设后续剧情
-- 不使用现实中的明星/公众人物名字、真实地名、商标名，必要时使用虚构替代
-- 资产文件名必须与资产名称完全一致，不得翻译或转写
-- 所有输出内容（含视觉描述提示词）语言严格遵循 config.md 语言设置
-- 编辑场景下 `story/outline.md` 允许修改已有内容（正常生成流程中仍为 append-only）
-
-## 批量生成
-
-使用 `scripts/run-batch.ps1` 在 full-auto 模式下批量生成多集内容：
+`scripts/run-batch.ps1` 保留多集批处理工具，例如：
 
 ```powershell
-# 新故事，30集规划，本次生成5集
-.\scripts\run-batch.ps1 -WorkDir "C:\projects\my-story" -PluginDir "C:\path\to\ShortVideoDirector" -TotalEpisodes 30 -NewEpisodes 5 -StoryInput "一个外卖小哥穿越到古代的故事"
-
-# 续写10集
-.\scripts\run-batch.ps1 -WorkDir "C:\projects\my-story" -PluginDir "C:\path\to\ShortVideoDirector" -TotalEpisodes 30 -NewEpisodes 10
-
-# 纯续写3集，生成后推送 GitHub
-.\scripts\run-batch.ps1 -WorkDir "C:\projects\my-story" -PluginDir "C:\path\to\ShortVideoDirector" -NewEpisodes 3 -Push
+.\scripts\run-batch.ps1 -WorkDir "C:\projects\story" -PluginDir "C:\tools\ShortVideoDirector" -TotalEpisodes 30 -NewEpisodes 5 -StoryInput "故事材料"
 ```
 
-**参数：**
-- `-WorkDir`（必填）— 项目工作目录
-- `-PluginDir`（必填）— ShortVideoDirector 插件目录路径
-- `-TotalEpisodes`（可选）— 总集数，仅当 arc.md 不存在时传给 claude
-- `-NewEpisodes`（必填）— 本次新增集数
-- `-StoryInput`（可选）— 故事材料（文本或文件路径），仅第一集传入
-- `-Push`（可选）— 每集生成后自动 git commit + push
+WorkDir/PluginDir/NewEpisodes 必填，TotalEpisodes/StoryInput 可选，`-Push` 会提交并推送故事项目。脚本达到新增或总集数目标时退出，但按目录计数，不代表材料验收。它在缺 arc 时仍把 TotalEpisodes 拼成入口前置数字，与当前入口解析不一致；并使用 `--dangerously-skip-permissions`。因此此处仅保留旧工具参考，不保证当前可无人值守运行；本次不修脚本、不实测，不能以此绕过批准或视频授权。
 
-**退出条件（满足任一）：** 新增集数达标 或 总集数达标
+## 维护与验证
 
-## 源 skill 引用约定
+源角色在 `agents/`，方法在 `skills/`，确定性检查和执行在 `scripts/`。插件内路径统一使用 `${CLAUDE_PLUGIN_ROOT}`：Claude 原生解析，OpenCode 转换时替换并通过 shell.env 兜底，Codex 按环境变量解析。项目 story/assets/config 路径仍相对故事工作区。
 
-源 `skills/` / `agents/` / `scripts/` 中**一律**用 `${CLAUDE_PLUGIN_ROOT}/...` 表达插件内绝对路径（bash 命令、文档引用、配置示例皆然），不要写相对路径，也不要使用任何自定义 env var。三种 runtime 各自的兼容方式：
-
-- **Claude Code**：原生支持。CC 在 prompt 注入时把 `${CLAUDE_PLUGIN_ROOT}` inline 替换为插件根目录绝对路径；同时也作为 env var 暴露给 bash subprocess。
-- **OpenCode**：plugin-side 模拟。`.opencode/` 兼容层在 transform-time 做 inline 替换（与 CC 行为对齐），同时通过 `shell.env` hook 注入同名 env var 给 bash 兜底。详见 `.opencode/README.md` 的「Inline 替换 `${CLAUDE_PLUGIN_ROOT}`」段。
-- **Codex**：使用原生 `CLAUDE_PLUGIN_ROOT` env var。详见 `.codex/tool-mapping.md`。
-
-零 adapter、零自定义 env var、零运行时 path-rewrite——单一约定贯穿三个 runtime。
-
-## 插件结构
-
+```bash
+npm test
+python3 .codex/build-codex-skills.py --check
+git diff --check
 ```
-ShortVideoDirector/
-├── .claude-plugin/
-│   └── plugin.json
-├── .codex-plugin/
-│   └── plugin.json
-├── .codex/
-│   ├── INSTALL.md
-│   ├── CODEX_COMPAT_IMPLEMENTATION_PLAN.md
-│   ├── build-codex-skills.py
-│   ├── skills/                  # Codex 适配层 skills
-│   └── tool-mapping.md
-├── agents/
-│   ├── director.md              # Director（总导演）
-│   ├── writer.md                # Writer（小说作家）
-│   ├── scriptwriter.md          # Scriptwriter（短视频编剧）
-│   ├── storyboarder.md          # Storyboarder（分镜师）
-│   └── creator.md               # Creator（创意总监）
-├── skills/                          # 源 skills，运行时动态发现
-│   ├── series-video/                # 系列视频入口（user-invocable，含 series.md）
-│   ├── short-video/                 # 单集短视频入口（user-invocable，含 short.md）
-│   ├── generate-episode-pipeline/   # 统一管线（series/short 共用骨架）
-│   ├── edit-story/                  # 编辑已有内容（user-invocable，自然语言）
-│   ├── repair-story/                # 修复中断的生成（user-invocable）
-│   ├── generate-video/              # 提交视频任务（user-invocable）
-│   ├── check-video/                 # 查询视频结果（user-invocable）
-│   ├── auto-video/                  # 视频生成定时监控（user-invocable）
-│   ├── director-plot-options/       # Director 生成剧情选项
-│   ├── director-input-confirm/      # Director 确认用户输入
-│   ├── director-arc/                # Director 生成弧线
-│   ├── director-review-arc/         # Director 审核弧线
-│   ├── director-outline/            # Director 生成大纲
-│   ├── director-review-outline/     # Director 审核大纲
-│   ├── director-fix-outline/        # Director 修正大纲
-│   ├── director-review-novel/       # Director 审核小说
-│   ├── director-review-script/      # Director 审核剧本
-│   ├── director-review-storyboard/  # Director 审核分镜
-│   ├── director-review-assets-visual/         # Director 视觉审核汇总层
-│   ├── director-review-asset-visual-single/   # Director 单资产视觉审核
-│   ├── writer-novel/                # Writer 生成小说
-│   ├── writer-fix-novel/            # Writer 修正小说
-│   ├── scriptwriter-script/         # Scriptwriter 生成剧本
-│   ├── scriptwriter-fix-script/     # Scriptwriter 修正剧本
-│   ├── storyboarder-storyboard/     # Storyboarder 生成分镜
-│   ├── storyboarder-fix-storyboard/ # Storyboarder 修正分镜
-│   ├── creator-create-assets/       # Creator 创建资产
-│   ├── creator-update-records/      # Creator 更新出场记录
-│   ├── creator-fix-asset/           # Creator 修正资产
-│   ├── creator-fix-asset-image/     # Creator 修订资产 prompt 并重抽图
-│   ├── creator-storyboard-sheet-prompts/ # Creator 生成每 shot 的 sheet 卡
-│   ├── creator-fix-storyboard-sheet-prompt/ # Creator 修订 sheet prompt
-│   ├── creator-fix-storyboard-sheet-image/  # Creator 重生整张 sheet
-│   ├── director-review-storyboard-sheet-prompts/ # Sheet prompt 审核
-│   ├── director-review-storyboard-sheets-visual/ # Sheet 视觉审核汇总
-│   ├── director-review-storyboard-sheet-visual-single/ # 单 sheet 视觉审核
-│   ├── director-review-storyboard-sheet-impact/ # 下游连续性影响审核
-│   ├── creator-generate-images/     # Creator 批量生成图片（路由层）
-│   ├── creator-image-dreamina/      # Creator 即梦图片生成（模型编排层）
-│   └── creator-video-dreamina/      # Creator 即梦视频生成（模型编排层）
-├── scripts/
-│   ├── run-batch.ps1            # 批量生成脚本
-│   ├── image-gen-dreamina.sh    # 即梦单张图片生成脚本（支持参考图）
-│   ├── video-gen-dreamina.sh    # 即梦单镜头视频提交脚本（异步）
-│   ├── video-check-dreamina.sh  # 视频生成状态查询与下载
-│   ├── read-config.sh           # config.md 键值提取
-│   ├── check-episode.sh         # 集文件完整性入口
-│   ├── check-storyboard-sheets.mjs # shot/card/PNG 完整性
-│   ├── storyboard-sheet-to-prompt.sh # sheet 生图输入转换
-│   ├── generate-storyboard-sheets-dreamina.sh # 串行 sheet 生图
-│   ├── storyboard-to-prompt.sh  # sheet-first 视频输入转换
-│   ├── asset-to-image-path.sh   # 资产路径转图片路径
-│   ├── latest-episode.sh        # 最新集数检测
-│   ├── word-count.sh            # 字数统计脚本
-│   └── speech-rate.sh           # 台词语速检查脚本
-└── README.md
-```
+
+修改源元数据或 Codex 映射后才运行 `python3 .codex/build-codex-skills.py` 更新生成层，不手改 wrapper。当前文档任务只检查，不重建。
+
+## 验证边界
+
+历史 OpenCode 记录包含深度 1 嵌套拒绝、主 AI 转交/原 Director 恢复及局部独立审核；cache `a68637a1939665f7` 另有两项重启后探测。这些是旧版本的限定证据，不验证本次 provider/autonomy 源码或新 cache。需要退出重启并核对实际加载路径，再验证当前委托与审核；工具可见不等于深度可用。
+
+Claude Code、Codex 及当前适配器的完整 live-host 行为尚未验证。自动测试不证明创作质量、审核隔离或真实监控成功。详见本地 [审计索引](docs/evaluations/skill-autonomy-audit.md)、[Provider 记录](docs/evaluations/creator-provider.md) 与 [历史评估](docs/evaluations/role-led-creation.md)；`docs/` 按仓库规则忽略，未强制加入 Git，发行副本可能不包含这些记录。

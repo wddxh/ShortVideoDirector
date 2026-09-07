@@ -5,13 +5,13 @@ import { describe, test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { mkdtemp, readFile as readFileAsync, rm, readdir } from 'fs/promises';
+import { mkdtemp, readFile as readFileAsync, rm, readdir, mkdir, writeFile } from 'fs/promises';
 import os from 'os';
+import { NATIVE_QUESTION_GUIDANCE } from '../lib/tool-mapping.js';
 import {
   parseSkillFile,
   rewriteFrontmatter,
   rewriteSkillCalls,
-  injectLeafHint,
   injectDispatchDiscipline,
   transformAllSkills,
 } from '../lib/transform-skills.js';
@@ -31,6 +31,24 @@ describe('parseSkillFile', () => {
 });
 
 describe('rewriteFrontmatter', () => {
+  test('source role capabilities preserve descriptions and association without fork', async () => {
+    const roles = new Set(['director', 'creator', 'writer', 'scriptwriter', 'storyboarder']);
+    let checked = 0;
+    for (const entry of await readdir(path.join(PROJECT_ROOT, 'skills'))) {
+      if (![...roles].some(role => entry.startsWith(`${role}-`))) continue;
+      const file = path.join(PROJECT_ROOT, 'skills', entry, 'SKILL.md');
+      if (!await readFileAsync(file).then(() => true, () => false)) continue;
+      const { frontmatter } = await parseSkillFile(file);
+      assert.ok(roles.has(frontmatter.agent), entry);
+      assert.equal(frontmatter.context, undefined, entry);
+      const mapped = rewriteFrontmatter(frontmatter);
+      assert.equal(mapped.description, frontmatter.description);
+      assert.equal(mapped.metadata['svd-agent'], frontmatter.agent);
+      checked++;
+    }
+    assert.ok(checked > 0);
+  });
+
   test('keeps name and description, drops context/agent/user-invocable/allowed-tools/model', () => {
     const fm = rewriteFrontmatter({
       name: 'x', description: 'd', 'context': 'fork', agent: 'director',
@@ -62,24 +80,21 @@ describe('rewriteFrontmatter', () => {
 describe('rewriteSkillCalls', () => {
   const skillMeta = {
     'director-arc': { agent: 'director', fork: true },
-    'creator-image-dreamina': { agent: 'creator', fork: true },
+    'creator-provider-dreamina': { agent: 'creator', fork: false },
     'writer-novel': { agent: 'writer', fork: true },
     'series-video': { agent: null, fork: false },
   };
 
-  test('fork-skill call becomes task() invocation', () => {
-    const input = '2. 使用 Skill tool 调用 `director-arc` skill, 传递参数: topic=xxx, episode=1';
+  test('role skill loads locally even with legacy fork metadata', () => {
+    const input = '使用 Skill tool 调用 `director-arc` skill，评估当前系列转折。';
     const out = rewriteSkillCalls(input, skillMeta);
-    assert.ok(out.includes('task('));
-    assert.ok(out.includes('subagent_type: "director"'));
-    assert.ok(out.includes('director-arc'));
+    assert.equal(out, '调用 `skill({ name: "director-arc" })`，评估当前系列转折。');
   });
 
-  test('fork-skill task prompt receives explicit standard call parameters', () => {
-    const input = '使用 Skill tool 调用 `writer-novel` skill，参数 `{ep}`。';
+  test('local load preserves the natural-language commission', () => {
+    const input = '使用 Skill tool 调用 `writer-novel` skill，参考 ep01/notes.md，只诊断动机。';
     const out = rewriteSkillCalls(input, skillMeta);
-    assert.ok(out.includes('参数：\n{ep}\n'));
-    assert.ok(!out.includes('<由调用方填充>'));
+    assert.equal(out, '调用 `skill({ name: "writer-novel" })`，参考 ep01/notes.md，只诊断动机。');
   });
 
   test('non-fork skill call becomes skill() invocation', () => {
@@ -89,11 +104,11 @@ describe('rewriteSkillCalls', () => {
     assert.ok(!out.includes('task('));
   });
 
-  test('non-fork skill call preserves explicit standard call parameters', () => {
-    const input = '使用 Skill tool 调用 `series-video` skill，参数 `ep02`。';
+  test('entry load preserves mixed references and intent', () => {
+    const input = '使用 Skill tool 调用 `series-video` skill，继续下一集，参考 "notes two.md"。';
     const out = rewriteSkillCalls(input, skillMeta);
     assert.ok(out.includes('skill({ name: "series-video" })'));
-    assert.ok(out.includes('参数 `ep02`'));
+    assert.ok(out.endsWith('，继续下一集，参考 "notes two.md"。'));
   });
 
   test('does not affect prose mentions', () => {
@@ -116,7 +131,7 @@ describe('rewriteSkillCalls', () => {
       '继续：使用 Skill tool 调用 series-video',
     ].join('\n');
     const out = rewriteSkillCalls(input, skillMeta);
-    assert.ok(out.includes('task('));
+    assert.ok(out.includes('skill({ name: "director-arc" })'));
     assert.ok(out.includes('示例代码：使用 Skill tool 调用 director-arc'));
     assert.ok(out.includes('skill({ name: "series-video" })'));
   });
@@ -127,7 +142,7 @@ describe('rewriteSkillCalls', () => {
       '> 引用：使用 Skill tool 调用 director-arc',
     ].join('\n');
     const out = rewriteSkillCalls(input, skillMeta);
-    assert.ok(out.includes('task('));
+    assert.ok(out.includes('skill({ name: "director-arc" })'));
     assert.ok(out.includes('> 引用：使用 Skill tool 调用 director-arc'));
   });
 
@@ -142,45 +157,26 @@ describe('rewriteSkillCalls', () => {
     const input = [
       '步骤 1：使用 Skill tool 调用 director-arc skill',
       '步骤 2：使用 Skill tool 调用 series-video skill',
-      '步骤 3：使用 Skill tool 调用 creator-image-dreamina skill',
+      '步骤 3：使用 Skill tool 调用 creator-provider-dreamina skill',
     ].join('\n');
     const out = rewriteSkillCalls(input, skillMeta);
     assert.ok(out.includes('director-arc'));
     assert.ok(out.includes('series-video'));
-    assert.ok(out.includes('creator-image-dreamina'));
-    // Two fork dispatches → two task() blocks with subagent_type
-    assert.equal((out.match(/subagent_type:/g) || []).length, 2);
-    // Non-fork series-video becomes a top-level `调用 \`skill({ name: "series-video" })\``
+    assert.ok(out.includes('creator-provider-dreamina'));
+    assert.equal((out.match(/skill\(\{/g) || []).length, 3);
+    assert.ok(!out.includes('task('));
     assert.ok(out.includes('调用 `skill({ name: "series-video" })`'));
-  });
-});
-
-describe('injectLeafHint', () => {
-  test('inserts hint at top of body for fork leaf', () => {
-    const body = '# Title\n\n正文段落';
-    const out = injectLeafHint(body, { fork: true, agent: 'director' });
-    assert.match(out, /^> \*\*执行上下文\*\*/);
-    assert.ok(out.includes('director'));
-    assert.ok(out.includes(body));
-  });
-
-  test('does not inject for non-fork skill', () => {
-    const body = '# Title\n\n正文';
-    const out = injectLeafHint(body, { fork: false, agent: null });
-    assert.equal(out, body);
   });
 });
 
 describe('injectDispatchDiscipline', () => {
   test('injects for user-invocable entry workflow', () => {
-    const body = '# series-video\n\n正文';
-    const out = injectDispatchDiscipline(body, {
-      name: 'series-video', userInvocable: true
-    });
-    assert.ok(out.includes('派发约束'));
-    assert.ok(out.includes('分段策略'));
-    assert.ok(out.includes('反例'));
-    assert.ok(out.includes(body));
+    for (const name of ['short-video', 'series-video']) {
+      const body = `# ${name}\n\nBody`;
+      const out = injectDispatchDiscipline(body, { name, userInvocable: true });
+      assert.ok(out.includes(NATIVE_QUESTION_GUIDANCE), name);
+      assert.ok(out.endsWith(body));
+    }
   });
 
   test('does not inject for non-entry skill', () => {
@@ -211,6 +207,22 @@ describe('transformAllSkills (integration)', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
+  test('retired scheduler and route guides are absent from source and cache', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    for (const root of [path.join(PROJECT_ROOT, 'skills'), tmpDir]) {
+      for (const relative of [
+        'generate-episode-pipeline/SKILL.md',
+        'generate-episode-pipeline/new-series.md',
+        'generate-episode-pipeline/continue-series.md',
+        'generate-episode-pipeline/short.md',
+        'edit-story/series.md', 'edit-story/short.md',
+        'repair-story/series.md', 'repair-story/short.md',
+      ]) {
+        await assert.rejects(readFileAsync(path.join(root, relative)), { code: 'ENOENT' });
+      }
+    }
+  });
+
   test('produces one SKILL.md for every source skill', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const skillNames = async (root) => {
@@ -230,6 +242,26 @@ describe('transformAllSkills (integration)', () => {
     );
   });
 
+  test('provider package retains sibling guides and retires old entries', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const dir = path.join(tmpDir, 'creator-provider-dreamina');
+    const { body } = await parseSkillFile(path.join(dir, 'SKILL.md'));
+    const transformed = await readFileAsync(path.join(dir, 'SKILL.md'), 'utf8');
+    assert.match(transformed, /svd-agent: "creator"/);
+    for (const name of ['capabilities', 'image', 'video']) {
+      assert.ok(body.includes(`](${name}.md)`));
+      const guide = await readFileAsync(path.join(dir, `${name}.md`), 'utf8');
+      const source = await readFileAsync(path.join(
+        PROJECT_ROOT, 'skills/creator-provider-dreamina', `${name}.md`), 'utf8');
+      assert.equal(guide, source
+        .replaceAll('${CLAUDE_PLUGIN_ROOT}/skills/', `${tmpDir}/`)
+        .replaceAll('${CLAUDE_PLUGIN_ROOT}', PROJECT_ROOT));
+    }
+    for (const name of ['creator-image-dreamina', 'creator-video-dreamina']) {
+      await assert.rejects(readFileAsync(path.join(tmpDir, name, 'SKILL.md')), { code: 'ENOENT' });
+    }
+  });
+
   test('director-arc cache file has correct frontmatter', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(
@@ -237,7 +269,8 @@ describe('transformAllSkills (integration)', () => {
     );
     assert.match(content, /^---\nname: "director-arc"/);
     assert.ok(!content.includes('\ncontext: fork'));
-    assert.ok(content.includes('svd-context'));
+    assert.ok(content.includes('svd-agent: "director"'));
+    assert.ok(!content.includes('svd-context'));
   });
 
   test('auto-video cache uses OC override (no CronCreate, no crontab)', async () => {
@@ -268,124 +301,66 @@ describe('transformAllSkills (integration)', () => {
     const dispatchHeadingIdx = content.indexOf('## 派发约束', bodyStart);
     assert.ok(firstHeadingIdx > 0 && firstHeadingIdx === dispatchHeadingIdx,
       'dispatch discipline directive should be the FIRST ## heading in body');
-    // I-3: source `失败处理（核心规则）` section must survive plugin transform
-    assert.ok(content.includes('失败处理（核心规则）'),
-      '失败处理 section from source SKILL.md must survive plugin transform');
+    const { body } = await parseSkillFile(path.join(PROJECT_ROOT, 'skills/series-video/SKILL.md'));
+    assert.ok(content.includes(body
+      .replaceAll('${CLAUDE_PLUGIN_ROOT}/skills/', `${tmpDir}/`)
+      .replaceAll('${CLAUDE_PLUGIN_ROOT}', PROJECT_ROOT)));
   });
 
-  test('aux files (rules.md) are copied', async () => {
+  test('decision references retain complete source content in the cache', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
-    const rulesPath = path.join(tmpDir, 'writer-novel/rules.md');
-    const exists = await readFileAsync(rulesPath, 'utf-8').then(() => true).catch(() => false);
-    assert.equal(exists, true);
+    for (const relative of [
+      'short-video/config-template.md', 'series-video/config-template.md',
+      'director-input-confirm/short.md', 'director-input-confirm/series.md',
+      'director-plot-options/short.md', 'director-plot-options/series.md',
+      'director-outline/reference-workflows.md',
+    ]) {
+      const source = await readFileAsync(path.join(PROJECT_ROOT, 'skills', relative), 'utf8');
+      const cached = await readFileAsync(path.join(tmpDir, relative), 'utf8');
+      assert.equal(cached, source
+        .replaceAll('${CLAUDE_PLUGIN_ROOT}/skills/', `${tmpDir}/`)
+        .replaceAll('${CLAUDE_PLUGIN_ROOT}', PROJECT_ROOT), relative);
+    }
   });
 
   test('standard skill calls in aux markdown are transformed', async () => {
-    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    const source = path.join(tmpDir, 'source');
+    const cache = path.join(tmpDir, 'cache');
+    const skillDir = path.join(source, 'skills/creator-create-assets');
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(path.join(skillDir, 'SKILL.md'),
+      '---\nname: creator-create-assets\ndescription: fixture\nagent: creator\n---\nBody');
+    await writeFile(path.join(skillDir, 'rules.md'),
+      '使用 Skill tool 调用 `creator-create-assets` skill，只诊断当前剧本的资产缺口。');
+    await transformAllSkills(source, cache);
     const content = await readFileAsync(
-      path.join(tmpDir, 'generate-episode-pipeline/new-series.md'), 'utf-8'
+      path.join(cache, 'creator-create-assets/rules.md'), 'utf-8'
     );
-    assert.ok(content.includes('description: "执行 creator-storyboard-sheet-prompts"'));
-    assert.ok(content.includes('subagent_type: "creator"'));
-    assert.ok(!content.includes('使用 Skill tool 调用 `creator-storyboard-sheet-prompts` skill'));
+    assert.equal(content, '调用 `skill({ name: "creator-create-assets" })`，只诊断当前剧本的资产缺口。');
   });
 
   test('main skill resolves and reads transformed aux from cache', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const main = await readFileAsync(
-      path.join(tmpDir, 'generate-episode-pipeline/SKILL.md'), 'utf8');
-    const expected = path.join(tmpDir, 'generate-episode-pipeline/new-series.md');
+      path.join(tmpDir, 'creator-create-assets/SKILL.md'), 'utf8');
+    const expected = path.join(tmpDir, 'creator-create-assets/rules.md');
     assert.ok(main.includes(`\`${expected}\``));
     assert.ok(!main.includes(
-      `${PROJECT_ROOT}/skills/generate-episode-pipeline/new-series.md`));
+      `${PROJECT_ROOT}/skills/creator-create-assets/rules.md`));
     const aux = await readFileAsync(expected, 'utf8');
-    assert.ok(aux.includes('description: "执行 creator-storyboard-sheet-prompts"'));
-    assert.ok(aux.includes('subagent_type: "creator"'));
+    const source = await readFileAsync(
+      path.join(PROJECT_ROOT, 'skills/creator-create-assets/rules.md'), 'utf8');
+    assert.equal(aux, source
+      .replaceAll('${CLAUDE_PLUGIN_ROOT}/skills/', `${tmpDir}/`)
+      .replaceAll('${CLAUDE_PLUGIN_ROOT}', PROJECT_ROOT));
   });
 
-  test('short repair standard recovery calls become OpenCode tasks', async () => {
+  test('sheet image fix cache preserves the source body', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
-    const content = await readFileAsync(
-      path.join(tmpDir, 'repair-story/short.md'), 'utf8');
-    for (const [skill, agent] of [
-      ['scriptwriter-script', 'scriptwriter'],
-      ['director-review-script', 'director'],
-      ['scriptwriter-fix-script', 'scriptwriter'],
-      ['creator-create-assets', 'creator'],
-    ]) {
-      assert.ok(content.includes(`description: "执行 ${skill}"`), skill);
-      assert.ok(content.includes(`subagent_type: "${agent}"`), agent);
-    }
-    assert.ok(content.includes('short ep01'));
-  });
-
-  test('repair aux tasks embed actual content-stage parameters', async () => {
-    await transformAllSkills(PROJECT_ROOT, tmpDir);
-    for (const [file, expected] of [
-      ['short.md', ['short ep01', 'ep01']],
-      ['series.md', ['{ep}', '{series_script_mode} {ep}']],
-    ]) {
-      const content = await readFileAsync(
-        path.join(tmpDir, `repair-story/${file}`), 'utf8');
-      const beforeImages = content.slice(0, content.indexOf('basic visual recovery'));
-      assert.ok(!beforeImages.includes('<由调用方填充>'), file);
-      for (const params of expected) {
-        assert.ok(beforeImages.includes(`参数：\n${params}\n`),
-          `${file}: ${params}`);
-      }
-    }
-  });
-
-  test('repair aux tasks embed storyboard-stage episode parameters', async () => {
-    await transformAllSkills(PROJECT_ROOT, tmpDir);
-    for (const [file, ep] of [['short.md', 'ep01'], ['series.md', '{ep}']]) {
-      const content = await readFileAsync(
-        path.join(tmpDir, `repair-story/${file}`), 'utf8');
-      const start = content.indexOf('storyboard recovery');
-      const block = content.slice(start, content.indexOf('visual missing recovery', start));
-      assert.ok(start >= 0, file);
-      assert.ok(!block.includes('<由调用方填充>'), file);
-      for (const skill of [
-        'storyboarder-storyboard',
-        'director-review-storyboard',
-        'storyboarder-fix-storyboard',
-        'creator-storyboard-sheet-prompts',
-        'creator-fix-storyboard-sheet-prompt',
-        'director-review-storyboard-sheet-prompts',
-        'creator-generate-images',
-        'director-review-storyboard-sheets-visual',
-      ]) assert.ok(block.includes(`description: "执行 ${skill}"`), `${file}: ${skill}`);
-      assert.ok(block.includes(`参数：\n${ep}\n`), `${file}: ${ep}`);
-      assert.ok(block.includes(`参数：\n${ep} full\n`), `${file}: full`);
-      assert.ok(block.includes(`参数：\n${ep} storyboard-sheets\n`), `${file}: images`);
-    }
-  });
-
-  test('repair aux transforms forced sheet rebuild and scoped review', async () => {
-    await transformAllSkills(PROJECT_ROOT, tmpDir);
-    for (const [file, ep] of [['short.md', 'ep01'], ['series.md', '{ep}']]) {
-      const content = await readFileAsync(
-        path.join(tmpDir, `repair-story/${file}`), 'utf8');
-      const start = content.indexOf('storyboard repair sheet rebuild');
-      const block = content.slice(start, content.indexOf('visual missing recovery', start));
-      assert.ok(start >= 0, file);
-      assert.ok(block.includes(`参数：\n${ep} paths {existing_changed_card_paths...}\n`));
-      assert.ok(block.includes(`参数：\n${ep} storyboard-sheets\n`));
-      assert.ok(block.includes(`参数：\n${ep} {successful_shots_union...}\n`));
-      assert.ok(!block.includes('<由调用方填充>'));
-    }
-  });
-
-  test('sheet image fix routes generation through a creator task', async () => {
-    await transformAllSkills(PROJECT_ROOT, tmpDir);
-    const content = await readFileAsync(
-      path.join(tmpDir, 'creator-fix-storyboard-sheet-image/SKILL.md'), 'utf-8'
-    );
-    assert.ok(content.includes('description: "执行 creator-generate-images"'));
-    assert.ok(content.includes('subagent_type: "creator"'));
-    assert.ok(content.includes('{ep} paths {cards...}'));
-    assert.ok(content.includes('router owns targeted PNG deletion'));
-    assert.equal(content.includes('rm -f'), false);
+    const relative = 'creator-fix-storyboard-sheet-image/SKILL.md';
+    const source = await parseSkillFile(path.join(PROJECT_ROOT, 'skills', relative));
+    const cached = await parseSkillFile(path.join(tmpDir, relative));
+    assert.equal(cached.body, source.body);
   });
 
   test('.md aux files have ${CLAUDE_PLUGIN_ROOT} inline-substituted', async () => {
@@ -442,51 +417,18 @@ describe('transformAllSkills (integration)', () => {
   });
 });
 
-describe('OC auto-video override shares core sections with CC source', () => {
-  // 共享段：必须在两个 SKILL.md 里 byte-for-byte 一致
-  // 注：`### 阶段 1: 解析参数` 不在此列 —— Task 1 重写了其 step 3
-  // （CC: 秒→分钟 cron 换算；OC: INTERVAL ≥60 校验），属设计性分歧。
-  const SHARED_HEADINGS = [
-    '## 失败处理（核心规则）',
-    '## 使用示例',
-    '## 约束',
-  ];
-
-  test('shared sections byte-for-byte identical between CC and OC', async () => {
+describe('monitor adapter metadata', () => {
+  test('both hosts retain the public monitor ID and task capability', async () => {
     const ccPath = path.join(PROJECT_ROOT, 'skills/auto-video/SKILL.md');
     const ocPath = path.join(
       PROJECT_ROOT, '.opencode/skill-overrides/auto-video/SKILL.md'
     );
-    const cc = await readFileAsync(ccPath, 'utf-8');
-    const oc = await readFileAsync(ocPath, 'utf-8');
-
-    // 按 markdown heading 切分段（每段从 heading 开始到下一个同级或更高级 heading）
-    const extractSection = (text, heading) => {
-      const idx = text.indexOf('\n' + heading + '\n');
-      if (idx === -1) return null;
-      const start = idx + 1;
-      // 找下一个 ## 或 ### heading（同级或更高级）
-      const level = heading.match(/^#+/)[0].length;
-      const nextHeadingRe = new RegExp(
-        `\\n#{1,${level}} `, 'g'
-      );
-      nextHeadingRe.lastIndex = start + heading.length + 1;
-      const m = nextHeadingRe.exec(text);
-      const end = m ? m.index : text.length;
-      return text.slice(start, end).trimEnd();
-    };
-
-    for (const heading of SHARED_HEADINGS) {
-      const ccSection = extractSection(cc, heading);
-      const ocSection = extractSection(oc, heading);
-      assert.ok(ccSection, `CC SKILL.md 缺 heading: ${heading}`);
-      assert.ok(ocSection, `OC override SKILL.md 缺 heading: ${heading}`);
-      assert.equal(
-        ocSection, ccSection,
-        `共享段 "${heading}" 在 OC override 与 CC 源不一致。\n` +
-        `CC 改了共享段后，请同步到 .opencode/skill-overrides/auto-video/SKILL.md。\n` +
-        `CC 内容:\n${ccSection}\n\nOC override 内容:\n${ocSection}`
-      );
+    for (const file of [ccPath, ocPath]) {
+      const { frontmatter } = await parseSkillFile(file);
+      assert.equal(frontmatter.name, 'auto-video');
+      assert.equal(String(frontmatter['user-invocable']), 'true');
+      assert.ok(frontmatter['allowed-tools'].split(', ').includes('Task'));
     }
+
   });
 });

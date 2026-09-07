@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const [episode, model] = process.argv.slice(2);
+const [episode] = process.argv.slice(2);
 const boardPath = `story/episodes/${episode}/storyboard.md`;
 const cardDir = `assets/storyboard-sheets/${episode}`;
 const imageDir = `assets/images/storyboard-sheets/${episode}`;
@@ -106,11 +106,6 @@ if (metadata.length) cardParts.push(`metadata=${metadata.join(',')}`);
 if (cardParts.length) detail('storyboard-sheets', cardParts);
 else console.log('storyboard-sheets:ok');
 
-if (model === 'none') {
-  console.log('storyboard-sheet-images:skipped');
-  process.exit(issue ? 1 : 0);
-}
-
 const allImages = fs.existsSync(imageDir) ? fs.readdirSync(imageDir).filter((file) => file.endsWith('.png')) : [];
 const imageFiles = allImages.filter((file) => {
   if (!/^shot(?:0[1-9]|[1-9]\d+)\.png$/u.test(file)) return false;
@@ -125,6 +120,8 @@ const missingImages = [...shotSet].filter((value) => !imageSet.has(value));
 const orphanImages = [...imageSet].filter((value) => !shotSet.has(value));
 if (missingImages.length) imageParts.push(`missing=${missingImages.join(',')}`);
 if (orphanImages.length) imageParts.push(`orphan=${orphanImages.join(',')}`);
+const unpairedImages = missingCards.filter((value) => imageSet.has(value));
+if (unpairedImages.length) imageParts.push(`missing-card=${unpairedImages.join(',')}`);
 if (imageParts.length) detail('storyboard-sheet-images', imageParts);
 else console.log('storyboard-sheet-images:ok');
 

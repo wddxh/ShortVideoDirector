@@ -1,29 +1,28 @@
-自动视频检查任务触发。目标：{{TARGET}}。
+自动视频检查。已解析目标：{{TARGET}}。当前监控 session：{{SID}}。无人值守。
 
-1. 使用 task tool 发起一个隔离的 sub-agent（subagent_type: general），
-   prompt 为：
-     "使用 Skill tool 调用 check-video skill，传递参数：{{TARGET}} --auto。
-     完整返回 skill 的输出。不要自行调用 dreamina CLI 或视频生成脚本，
-     不要绕过 skill 做查询/重试。"
+配置上下文：{{CONFIG}}。UNRESOLVED 明确表示未解析，空值表示传输错误；两者只允许取回并报告 human_needed，禁止选择默认配置或进入新提交。已绑定路径需要配置操作时用 review-evidence.mjs config-path 显式验证该路径，不读取其他环境默认；外部配置不支持，相关副作用前报告。纯取回不验证生成配置。checker 和 Creator relay 保留 canonical config_path；所有相关 Bash 显式 SVD_CONFIG，videoProfile/evidence/fingerprint/配置写入共用该文件，不静默回退。
 
-2. 从 sub-agent 返回文本中提取 JSON 摘要（LLM 理解，不固定最后一行规则）。
-   解析失败或无 JSON 时，基于整段返回文本语义推断 all_complete 与
-   recoverable（不确定偏向 all_complete=false / recoverable=true）。
+用 task 新建 general checker，保留 task_id，委托检查此目标登记视频任务、取回完成输出并报告进度、阻塞和是否仍需监控；自行从 descriptions 选择适用知识。
+返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；异常附 error/recoverable，计数不明用 unknown。
+查询使用任务 recorded provider；缺 provider 的历史 Dreamina 记录仅允许取回，未知显式 provider 不静默 fallback。
+新提交/重试由真实 Creator task 负责，不能用 checker 加载 provider skill 代替角色。
+checker 无法嵌套时返回 role/outcome/references/scope/constraints；主 AI 忠实派 sibling Creator，等待实际结果后恢复同一个 checker task_id。
+relay 也无法提供角色上下文则让 checker 报 human_needed，不自行提交。普通任务失败不是深度拒绝，不调高宿主深度。
 
-3. 按 JSON 决定：
-   - **all_complete == true** → kill loop 并清理：
-       kill $(cat /tmp/svd-auto-video-loop-{{TARGET}}-{{SID}}.pid) 2>/dev/null
-       rm -f /tmp/svd-auto-video-loop-{{TARGET}}-{{SID}}.{pid,log}
-       rm -f /tmp/svd-cron-prompt-{{TARGET}}-{{SID}}.txt
-     输出最终摘要 + human_needed 详情 +
-     "可用 /check-video {{TARGET}} 手动处理"
-   - **含 error 且 recoverable=false** → 同上 kill + 清理；输出 error 描述
-   - **其他** → 输出一行进度（完成 X / 排队 Y / 失败 Z），等下次触发
+按 tasks 的真实 initial_authorization/retry_authorization 判断许可和约束，不补 grant。
+监控/查询不是新生成请求。已登记用户实际 generate-video 请求的 initial grant 可继续执行，无额外生成批准；缺失不补造 consent，不从生成意图推断无限重试。short/series 停在视频提交前，新生成须用户后续手动 generate-video。
+有效持续授权内的动作不逐轮求批准；新阻塞先查配置、材料与 grants 并由责任角色在原权限内判断，无法解决再报 human_needed。内部审核或进度不自动生成用户决策包；不借此授权新的创作修复。
+按已选模型/参数执行，不加费用/预算/积分/余额或最低价预检、不为省钱降级；仅用户实际费用限制仍绑定，真实账号/provider 失败照实报告。constraints 无需费用字段。缺创作需求仅报 human_needed，不先编候选/设计/提示；后续交互完成 intake 或明确角色/范围/约束委托后才创作，仅暂停受影响工作。
+untouched pending 首次提交不扣 retry 次数；inflight 保留人工核实。wrapper 持久化提交结果，LLM 不覆盖。
+下载错误保留 submitted/id，只重试取回，不付费重生。human_needed 不授权创作修复。
+无人值守仅报告需决策，不发起未经授权的提问或自动选择；发起角色的完整问题计划另行保留，不压缩进状态摘要。后续交互先读全并内部保留计划，仅沿作者题界逐题完整展示当前选项/解释并原生单选，不倾倒全表；只应用作者条件，相关原始答复及全部条件批量回原上下文，不逐题往返，缺内容/映射、不相容或计划外决定才提前回询。
 
-严禁：
-- 不要以任何理由（包括测试、验证、调试）自行调用 dreamina CLI 提交
-  视频/图片生成任务。视频生成成本很高，只有 check-video skill 内的
-  重试流程才允许提交。
-- 不要绕过 sub-agent → check-video 路径直接执行查询/重试/生成。
-- 不要在主会话里直接调 check-video skill —— 必须通过 task tool sub-agent
-  隔离上下文。
+只解析 checker 最后一非空行 JSON；验证 check-video 摘要结构且 target 严格等于 {{TARGET}}。
+缺失、无效或目标不符时报告可恢复协议错误并保留监控，绝不从 prose 推断停止。
+有效同目标摘要 all_complete=true，或 error 且 recoverable=false 时才停止本 loop：
+kill $(cat /tmp/svd-auto-video-loop-{{TARGET}}-{{SID}}.pid) 2>/dev/null
+rm -f /tmp/svd-auto-video-loop-{{TARGET}}-{{SID}}.{pid,log}
+rm -f /tmp/svd-cron-prompt-{{TARGET}}-{{SID}}.txt
+
+输出 done/pending/submitted/failed、human_needed 和错误。all_complete 表示无需继续监控，不保证全部下载成功。
+其余情况等待下一轮。不得清理其他目标/session，不绕过 checker/Creator 接管专业工作。

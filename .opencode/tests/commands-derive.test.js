@@ -1,12 +1,23 @@
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
 import { USER_INVOCABLE_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
 import { buildCommandTemplate, deriveCommands } from '../lib/commands-derive.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
+
+const originalHome = process.env.HOME;
+const testHome = await mkdtemp(path.join(os.tmpdir(), 'svd-commands-home-'));
+process.env.HOME = testHome;
+after(async () => {
+  if (originalHome === undefined) delete process.env.HOME;
+  else process.env.HOME = originalHome;
+  await rm(testHome, { recursive: true, force: true });
+});
 
 async function loadPlugin() {
   const mod = await import(path.resolve(PROJECT_ROOT, '.opencode/plugin/index.js'));
@@ -51,17 +62,13 @@ test('commands derive: template 含 $ARGUMENTS 完整串占位符', () => {
   assert.ok(template.includes('$ARGUMENTS'), 'template 应含 $ARGUMENTS');
 });
 
-test('commands derive: template 含 $1~$4 位置参数', () => {
-  const template = buildCommandTemplate('auto-video');
-  for (let i = 1; i <= 4; i++) {
-    assert.ok(template.includes(`$${i}`), `template 应含 $${i}`);
+test('commands transport one raw request without positional interpolation', () => {
+  const request = '监控 ep01，每五分钟；不要重试 "shot 2"';
+  for (const name of USER_INVOCABLE_ENTRY_WORKFLOWS) {
+    const template = buildCommandTemplate(name);
+    assert.deepEqual(template.match(/\$(?:ARGUMENTS(?:\[[^\]]*\])?|\d+|\([^)]*\))/g), ['$ARGUMENTS']);
+    assert.ok(template.replace('$ARGUMENTS', request).includes(request));
   }
-});
-
-test('commands derive: template 不含 $5+（防 over-engineering）', () => {
-  const template = buildCommandTemplate('auto-video');
-  assert.ok(!template.includes('$5'), 'template 不应含 $5');
-  assert.ok(!template.includes('$6'), 'template 不应含 $6');
 });
 
 test('commands derive: template 指引 LLM 调 skill tool', () => {
@@ -69,11 +76,6 @@ test('commands derive: template 指引 LLM 调 skill tool', () => {
   assert.ok(template.includes('Skill tool') || template.includes('skill tool'),
     'template 应提到 Skill tool');
   assert.ok(template.includes('SKILL.md'), 'template 应提到 SKILL.md');
-});
-
-test('commands derive: template 保留 $(N+1) 字面量（非占位符）', () => {
-  assert.ok(buildCommandTemplate('auto-video').includes('$(N+1)'),
-    'template 应含字面量 $(N+1)');
 });
 
 test('commands derive: 用户已配置同名 command 时跳过（不覆盖）', () => {

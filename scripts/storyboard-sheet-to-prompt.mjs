@@ -2,6 +2,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { readStoryboardShot } from './storyboard-shot.mjs';
 
 function escapeText(value) {
   return value.replace(/[\\\u0000-\u001f\u007f-\u009f]/gu, (character) => {
@@ -14,14 +16,10 @@ function escapeText(value) {
 }
 
 function fail(message) {
-  process.stderr.write(`FAIL ${escapeText(message)}\n`);
-  process.exit(1);
+  throw new Error(message);
 }
 
-const args = process.argv.slice(2);
-if (args.length !== 2) fail('usage: parser <card> <episode>');
-
-const [card, episode] = args;
+export function parseSheetCard(card, episode = card.split('/')[2]) {
 const match = /^assets\/storyboard-sheets\/(ep(?:0[1-9]|[1-9]\d+))\/shot(0[1-9]|[1-9]\d+)\.md$/u.exec(card);
 if (!match || match[1] !== episode) fail(`noncanonical card: ${card}`);
 const shotNumber = Number(match[2]);
@@ -42,6 +40,7 @@ try {
   }
   source = fs.readFileSync(realCard);
 } catch (error) {
+  if (!error?.code) throw error;
   if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') {
     fail(`file not found: ${card}`);
   }
@@ -108,24 +107,37 @@ function section(title) {
 const assetRange = section('引用资产');
 const continuityRange = section('连续性参考');
 const promptRange = section('图像生成提示');
+const panelRange = section('Panel 规划');
+const basicRange = section('基本信息');
+const settings = {};
+for (const [key, label] of Object.entries({ provider: '已解析图像提供方',
+  model: '已解析图像模型版本', ratio: '已解析图片比例', resolution: '已解析图片分辨率' })) {
+  const prefix = `- ${label}：`;
+  const values = lines.slice(basicRange.start, basicRange.end).filter((line, i) =>
+    active[basicRange.start + i] && line.startsWith(prefix));
+  if (values.length !== 1) fail(`setting must appear once: ${label}`);
+  const value = values[0].slice(prefix.length).trim();
+  if (!value || value === 'none') fail(`invalid setting: ${label}`);
+  settings[key] = value;
+}
+if (settings.provider !== 'dreamina') fail('unsupported image provider');
+if (!/^[1-9]\d*:[1-9]\d*$/u.test(settings.ratio)) fail('invalid image ratio');
 
 function containsUnsafe(value) {
   return /[\u0000-\u001f\u007f-\u009f]/u.test(value);
 }
 
-function assetFromBullet(line) {
-  const bullet = /^- \[([^\]]+)\]\(([^)]*)\)$/u.exec(line);
-  if (!bullet) return null;
-  const [, name, relative] = bullet;
+function assetReference(name, relative, directory = path.posix.dirname(card)) {
   if (containsUnsafe(name) || containsUnsafe(relative) || relative.includes(',') ||
       relative.includes('\\') || path.posix.isAbsolute(relative)) {
     fail(`invalid asset link: ${relative}`);
   }
-  const normalized = path.posix.normalize(path.posix.join(path.posix.dirname(card), relative));
+  const normalized = path.posix.normalize(path.posix.join(directory, relative));
   const allowed = /^assets\/(characters|locations|items|buildings)\/(.+)\.md$/u.exec(normalized);
   if (!allowed) fail(`invalid asset link: ${relative}`);
   return {
     name,
+    markdown: normalized,
     category: allowed[1],
     image: `assets/images/${normalized.slice('assets/'.length, -3)}.png`,
   };
@@ -134,13 +146,24 @@ function assetFromBullet(line) {
 const assets = [];
 for (let index = assetRange.start; index < assetRange.end; index++) {
   if (!active[index]) continue;
-  const asset = assetFromBullet(lines[index]);
-  if (asset) assets.push(asset);
+  const bullet = /^- \[([^\]]+)\]\(([^)]*)\)$/u.exec(lines[index]);
+  if (bullet) assets.push(assetReference(bullet[1], bullet[2]));
 }
 if (/[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f-\u009f]/u.test(text)) {
   fail(`invalid control byte in prompt or card: ${card}`);
 }
+const sourcePath = `story/episodes/${episode}/storyboard.md`;
+const shot = readStoryboardShot(sourcePath, shotNumber);
+const sourceAssets = shot.headerRefs.map(({ name, markdown }) => assetReference(name, markdown, '.'));
+assets.unshift(...sourceAssets);
 if (assets.length === 0) fail('no base asset references');
+
+const labels = new Map();
+function checkLabel(name, markdown) {
+  if (labels.has(name) && labels.get(name) !== markdown) fail(`conflicting reference label: ${name}`);
+  labels.set(name, markdown);
+}
+for (const asset of assets) checkLabel(asset.name, asset.markdown);
 
 const seen = new Set();
 const unique = assets.filter((asset) => {
@@ -158,7 +181,7 @@ for (let index = continuityRange.start; index < continuityRange.end; index++) {
   if (active[index] && lines[index].trim() !== '') continuityLines.push(lines[index]);
 }
 const previousPattern = /^- \[(shot(?:0[1-9]|[1-9]\d+))\]\(\.\/(shot(?:0[1-9]|[1-9]\d+))\.md\)$/u;
-const previousLines = continuityLines.filter((line) => line.includes(']('));
+const previousLines = continuityLines.filter((line) => !line.startsWith('- 继承元素：') && line.includes(']('));
 let previousImage = null;
 let inheritance = null;
 if (previousLines.length === 0) {
@@ -184,22 +207,67 @@ if (previousLines.length === 0) {
   previousImage = `assets/images/storyboard-sheets/${episode}/${expected}.png`;
 }
 
-let firstPrompt = promptRange.start;
-let lastPrompt = promptRange.end;
-while (firstPrompt < lastPrompt && lines[firstPrompt].trim() === '') firstPrompt++;
-while (lastPrompt > firstPrompt && lines[lastPrompt - 1].trim() === '') lastPrompt--;
-const prompt = lines.slice(firstPrompt, lastPrompt).join('\n');
-if (prompt.trim() === '') fail('prompt section is empty');
+function body(range, title) {
+  let { start, end } = range;
+  while (start < end && lines[start].trim() === '') start++;
+  while (end > start && lines[end - 1].trim() === '') end--;
+  const value = lines.slice(start, end).join('\n');
+  if (!value.trim()) fail(`${title} section is empty`);
+  return value;
+}
+const prompt = body(promptRange, 'prompt');
+const panels = body(panelRange, 'Panel 规划');
+
+const slots = new Map(ordered.map((asset, index) => [asset.markdown, index + 1]));
+const previousCard = previousImage?.replace(/^assets\/images\//u, 'assets/').replace(/\.png$/u, '.md');
+if (previousCard) slots.set(previousCard, ordered.length + 1);
+const sourcePaths = new Set(sourceAssets.map((asset) => asset.markdown));
+function bind(value, directory, declared) {
+  return value.replace(/\[([^\]]+)\]\(([^)]*)\)/gu, (_, name, relative) => {
+    const normalized = path.posix.normalize(path.posix.join(directory, relative));
+    const markdown = normalized === previousCard ? normalized
+      : assetReference(name, relative, directory).markdown;
+    if (!declared.has(markdown)) fail(`undeclared reference for shot ${shotNumber}: ${relative}`);
+    checkLabel(name, markdown);
+    return `[${name}:{图片${slots.get(markdown)}}]`;
+  });
+}
+const boundSource = bind(shot.block, '.', sourcePaths);
+const boundPanels = bind(panels, path.posix.dirname(card), slots);
+const boundPrompt = bind(prompt, path.posix.dirname(card), slots);
+if (inheritance) inheritance = bind(inheritance, path.posix.dirname(card), slots);
 
 const images = ordered.map((asset) => asset.image);
 if (previousImage) images.push(previousImage);
-const bindings = ordered.map((asset, index) => `[${asset.name}:{图片${index + 1}}]`);
+const bindings = ordered.flatMap((asset, index) =>
+  [...new Set(assets.filter(({ markdown }) => markdown === asset.markdown).map(({ name }) => name))]
+    .map((name) => `[${name}:{图片${index + 1}}]`));
 if (previousImage) bindings.push(`[PREVIOUS_SHOT_SHEET:{图片${images.length}}]`);
 
-const output = [`IMAGES:${images.join(',')}`, '---', `**参考资产：** ${bindings.join('、')}`];
+const output = [
+  '**分镜板生成意图：** 生成一张静态 storyboard sheet，不生成视频。完整源分镜提供动作、对白、声音与时间上下文，完整 Panel 规划决定各格姿态、构图与时序，图像生成提示补充整板绘制要求。对白、旁白和声音用于理解表情与姿态，不自动绘制为字幕。',
+  `**参考资产：** ${bindings.join('、')}`,
+];
 if (previousImage) {
   output.push(`**连续性约束：** [PREVIOUS_SHOT_SHEET:{图片${images.length}}] ` +
     `继承元素：${inheritance}；只继承本卡声明元素，不复制前板网格、panel、构图、机位。`);
 }
-output.push('', prompt);
-process.stdout.write(`${output.join('\n')}\n`);
+output.push('', '**完整源分镜：**', boundSource, '', '## Panel 规划', boundPanels,
+  '', '## 图像生成提示', boundPrompt);
+return { images, prompt: output.join('\n'), settings, sourcePath };
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    const args = process.argv.slice(2);
+    const json = args[0] === '--json';
+    if (json) args.shift();
+    if (args.length !== 2) fail('usage: parser [--json] <card> <episode>');
+    const parsed = parseSheetCard(...args);
+    process.stdout.write(json ? `${JSON.stringify(parsed)}\n` :
+      `IMAGES:${parsed.images.join(',')}\n---\n${parsed.prompt}\n`);
+  } catch (error) {
+    process.stderr.write(`FAIL ${escapeText(error.message)}\n`);
+    process.exitCode = 1;
+  }
+}

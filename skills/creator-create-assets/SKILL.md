@@ -1,42 +1,45 @@
 ---
 name: creator-create-assets
-description: Creator为新资产创建完整Markdown文件，包含视觉描述和图像生成提示。
+description: 在剧本视觉资产需要设计、查重或补齐卡片时使用，兼顾已有形象复用与图像提示表达。
 user-invocable: false
-context: fork
 agent: creator
-allowed-tools: Read, Write, Edit, Glob
+allowed-tools: Read, Write, Edit, Glob, Bash, Skill
 model: sonnet
 ---
 
 ## 输入
 
 ### 文件读取
-- `story/episodes/$ARGUMENTS[0]/script.md` — 必须读取（series / short 的资产事实源）
-- `story/episodes/$ARGUMENTS[0]/novel.md` — series mode 必须读取；short mode 不存在时跳过
-- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取（从「本集资产清单」的「新增资产」部分获取资产列表）
-- `config.md` — 必须读取（目标图像模型）
+- 委托本集的 `story/episodes/{ep}/script.md` — 必须读取（series / short 的资产事实源）
+- 已有 novel、outline 或设定材料 — 仅在需要补充视觉细节时读取，不是制作前提，也不能覆盖剧本事实
+- 实际配置（`SVD_CONFIG` 或 `config.md`）— 读取风格、语言、固定图像设置与参数选择授权
 - `assets/**/*.md` — 使用 Glob 列出所有已有文件，选择性读取（风格一致性 + 查重）
-- `${CLAUDE_PLUGIN_ROOT}/skills/creator-create-assets/rules.md` — 必须读取并严格遵循（输出格式、规则）
+- `${CLAUDE_PLUGIN_ROOT}/skills/creator-create-assets/rules.md` — 输出 schema 与资产设计参考；字段契约有效，设计方法按问题取用
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
-- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 必须读取（视觉 prompt 5 条核心原则 + 资产引用分场景规则）
+- `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` — 具体视觉表达与引用参考，不是必经方法
 
-### 动态参数（$ARGUMENTS）
-- `$ARGUMENTS[0]` — 当前集数（如 ep01）
+### 委托上下文
+- 确认 ep、资产范围、设计/补卡/诊断目的及保留要求；不从缺省参数推定整集重做。图像模型未确定时可诊断设计，准备生产提示前由 Creator 按当前 provider 能力与明确授权解析设置，不把空值当自由选择。
 
 ## 职责描述
 
 ### 核心使命
 
+加载本 skill 为当前负责人提供本地设计方法，不转移角色或承诺后续生图。按委托可先诊断识别度、轮廓和材质可读性；探索设计应明确标为探索，不能作为未入剧本清单的已验收资产交付。
+
 为本集出现的每个新资产（角色/物品/场景/建筑）创建 Markdown 文件，包含视觉描述和图像生成提示。下游消费者是图像模型（用提示词生成参考图）和 storyboarder（用资产名引用、用图片作为视频生成参考）。视觉描述和图像提示词必须足够具体，让图像模型能生成稳定一致的形象——抽象描述（"美丽的女孩"）会导致每次生成都不一样，毁掉视频生成的资产一致性。
 
 ### 工作思路
 
-1. 先用 Glob 列出所有已有资产，对照 outline 的「新增资产」清单查重——若名字相近或形象相似，使用已有资产而非新建
-2. 通读 novel，提取每个新资产的视觉细节（外貌/服饰/物品材质/场景光线）
-3. 视觉描述要详细到图像模型能复现：人物五官形状、肤色、眼睛颜色、发型、服装层次；物品材质纹理；场景光线空间
-4. 图像提示词按 config 中目标图像模型的格式写，但语言严格遵循 config 语言设置
-5. 人物基础资产用中性表情和姿态、日常便装——特殊状态作为衍生资产单独建（适用 character / location / building / item 4 类）
-6. 创建衍生资产前对比基础资产，无明显视觉差异则拒绝创建；衍生资产禁止递归派生（基础资产字段必须指向非衍生资产）
+以下是可按风险调整顺序的设计方法，不是强制工序。身份难辨时先比较轮廓，材质误读时先做光线与表面描述；清单、授权和资产 schema 仍是交付边界。
+
+- 生产事实：script 的「本集资产清单」是唯一生产清单。可运行 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" new` 获取初建范围；恢复时按委托检查 all 范围缺卡。清单缺失或矛盾时提请 Scriptwriter 整理，不回退 outline。
+- 复用判断：对照已有卡和剧本的外貌、服饰、材质、光线，保留合用卡；相似名称只是线索，不擅自合并不同身份。需换路径或增资产时提出清单调整建议，不静默改剧本。
+- 同实体视图：跨目录核对整体、局部与内外视角是否属于同一实体。Creator 判断现有图能否直接复用，只有制作确需不同可见范围时才保留/设计独立视图；不因名称或类别不同各自重设计。保留独立名称与目录，选明确锚点，在基本信息用可选「同实体参考」有序直链声明实际参考卡，遵循 rules.md 的无环约束。共同标志物、几何布局、材质与当前状态一致；视角差异不是状态衍生，不建新 registry。
+- 视觉细节：具体描述人物五官形状、肤色、眼睛颜色、发型和服装层次，物品材质纹理，场景光线与空间。
+- 模型与语言：提示格式适配当前目标模型，语言遵循实际配置。
+- 身份基准：中性表情、自然站姿和清楚面部有助复用，但不强制日常便装。制服、礼服或护甲可作为代表性基础形象；显著且剧情需要的特殊状态另建衍生资产（适用四类）。
+- 衍生边界：对比基础资产，无明显视觉差异不另建；基础资产字段须指向非衍生资产，禁止递归派生。
 
 ### 常见误区
 
@@ -47,11 +50,7 @@ model: sonnet
 - **就地改基础资产视觉** — 状态变化（场景被摧毁/武器破损/建筑焚毁/人物受伤）模型本能就地改基础 .md 的视觉描述污染基础形象 — 必须派生新「衍生资产」文件，基础资产不动
 - **衍生资产递归派生** — 模型本能给衍生资产再派生子衍生（`A-焚毁-坍塌`）— 禁止；基础资产字段必须指向非衍生 asset，多状态请直接以基础资产为基底另起新衍生
 
-## 规则参考
-
-- `${CLAUDE_PLUGIN_ROOT}/skills/creator-create-assets/rules.md` — 必须读取并严格遵循
-
 ## 输出
 
 ### 文件操作
-- 使用 Write 在 `assets/` 对应子目录（`characters/`、`items/`、`locations/`、`buildings/`）下创建每个资产的 `.md` 文件
+- 在 `assets/` 对应子目录（`characters/`、`items/`、`locations/`、`buildings/`）下写入实际需要且获授权的 `.md` 文件；返回 created、reused、未解决问题及清单调整建议。恢复时不因文件已存在改变 new/existing 分类，不重复追加本集出场记录。独立验收由 Director 另行委派。

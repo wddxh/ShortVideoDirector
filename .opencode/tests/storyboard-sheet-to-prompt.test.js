@@ -12,6 +12,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { settingsText } from './fixtures/image-project.js';
 
 const SCRIPT = join(process.cwd(), 'scripts/storyboard-sheet-to-prompt.sh');
 
@@ -19,10 +20,21 @@ function write(root, path, content = '') {
   const target = join(root, path);
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, content);
+  const sheet = /^assets\/storyboard-sheets\/(ep\d+)\/shot(\d+)\.md$/.exec(path);
+  if (sheet) {
+    const board = join(root, `story/episodes/${sheet[1]}/storyboard.md`);
+    mkdirSync(dirname(board), { recursive: true });
+    const existing = existsSync(board) ? readFileSync(board, 'utf8') : '';
+    const number = Number(sheet[2]);
+    if (!existing.includes(`### shot ${number}\n`)) writeFileSync(board,
+      existing + `### shot ${number}\n- 时长：8s\n**画面与声音描述：**\nSOURCE_${number}\n\n`);
+  }
 }
 
 function card(refs, continuity = '无', prompt = '生成彩色分镜板。') {
   return `# Sheet
+
+${settingsText}
 
 ## 引用资产
 ${refs}
@@ -70,6 +82,113 @@ function images(result) {
   return result.stdout.split('\n')[0].slice(7).split(',');
 }
 
+test('composes complete source and panels with one normalized binding map, without PNGs', () => {
+  project(root => {
+    const path = 'assets/storyboard-sheets/ep01/shot02.md';
+    const source = `### shot 2
+- 时长：8s
+- 引用资产：[Hall](assets/locations/hall.md)
+- 出场人物：
+  - [Hero](assets/characters/hero.md)
+
+  - [Alias](assets/characters/./hero.md)
+    声音特征：soft
+- 自定义：keep${'  '}
+**画面与声音描述：**
+[0s-4s] [Face](assets/characters/hero.md): "Stay."
+
+[4s-8s] VO: "Go." Hall remains bare.  `;
+    const panels = '### PANEL 1 [0s-4s]\n[Face](../../characters/hero.md) waits.\n\n' +
+      '### PANEL 2 [4s-8s]\n[Key](../../items/key.md) drops.  ';
+    write(root, path, card('- [Key](../../items/key.md)',
+      '- [shot01](./shot01.md)\n- 继承元素：light', 'Draw [Key](../../items/key.md).')
+      .replace('测试', panels));
+    write(root, 'story/episodes/ep01/storyboard.md', source + '\n\n## Next scene\nEXCLUDED');
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(images(result), ['assets/images/characters/hero.png',
+      'assets/images/locations/hall.png', 'assets/images/items/key.png',
+      'assets/images/storyboard-sheets/ep01/shot01.png']);
+    const bind = text => text.replace(/\[([^\]]+)\]\([^)]*\/(hero|hall|key)\.md\)/g,
+      (_, label, name) => `[${label}:{图片${{ hero: 1, hall: 2, key: 3 }[name]}}]`);
+    assert.ok(result.stdout.includes(bind(source)));
+    assert.ok(result.stdout.includes(bind(panels)));
+    assert.ok(result.stdout.endsWith('Draw [Key:{图片3}].\n'));
+    assert.ok(!result.stdout.includes('EXCLUDED'));
+  });
+});
+
+test('sheet-only aliases bind bare Panel names without duplicating image uploads', () => {
+  project(root => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    const panels = '### PANEL 1\nMasked stranger waits.\n' +
+      '[Hidden face](../../characters/hero.md) turns.';
+    write(root, path, card('- [Masked stranger](../../characters/./hero.md)\n' +
+      '- [Masked stranger](../../characters/hero.md)').replace('测试', panels));
+    write(root, 'story/episodes/ep01/storyboard.md',
+      '### shot 1\n- 时长：8s\n- 出场人物：[Hero](assets/characters/hero.md)\n' +
+      '**画面与声音描述：**\nHero waits.');
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(images(result), ['assets/images/characters/hero.png']);
+    assert.equal(result.stdout.split('\n').find(line => line.startsWith('**参考资产：**')),
+      '**参考资产：** [Hero:{图片1}]、[Masked stranger:{图片1}]');
+    assert.ok(result.stdout.includes(panels.replace(
+      '[Hidden face](../../characters/hero.md)', '[Hidden face:{图片1}]')));
+  });
+});
+
+test('source declarations cannot be supplied by sheet extras; labels cannot conflict', () => {
+  project(root => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, card('- [A](../../items/a.md)'));
+    const board = 'story/episodes/ep01/storyboard.md';
+    const source = '### shot 1\n- 时长：8s\n- 引用资产：[A](assets/items/a.md)\n' +
+      '**画面与声音描述：**\n';
+    write(root, board, source + '[B](assets/items/b.md)');
+    write(root, path, card('- [B](../../items/b.md)'));
+    fail(run(root, path), /undeclared reference/);
+    write(root, board, source + 'Action');
+    write(root, path, card('- [A](../../items/b.md)'));
+    fail(run(root, path), /conflicting.*label/);
+    write(root, path, card('- [B](../../items/b.md)', '无',
+      '[A](../../items/b.md)'));
+    fail(run(root, path), /conflicting.*label/);
+  });
+});
+
+test('binds declared previous links to the last slot but rejects current sheet links', () => {
+  project(root => {
+    const path = 'assets/storyboard-sheets/ep01/shot02.md';
+    const content = card('- [A](../../items/a.md)',
+      '- [shot01](./shot01.md)\n- 继承元素：[A](../../items/a.md) position',
+      'Use [prior](./shot01.md).').replace('测试',
+      '### PANEL 1\nMatch [previous](./shot01.md).');
+    write(root, path, content);
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.stdout.includes('继承元素：[A:{图片1}] position'));
+    assert.ok(result.stdout.includes('Match [previous:{图片2}].'));
+    assert.ok(result.stdout.endsWith('Use [prior:{图片2}].\n'));
+    write(root, path, content.replace('[previous](./shot01.md)', '[self](./shot02.md)'));
+    fail(run(root, path), /undeclared reference|invalid asset link/);
+  });
+});
+
+test('requires canonical source file and unique target shot', () => {
+  project(root => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, card('- [A](../../items/a.md)'));
+    const board = 'story/episodes/ep01/storyboard.md';
+    rmSync(join(root, board));
+    fail(run(root, path), /file not found/);
+    write(root, board, '### shot 2\n');
+    fail(run(root, path), /shot 1 not found/);
+    write(root, board, '### shot 1\n### shot 1\n');
+    fail(run(root, path), /duplicate shot 1/);
+  });
+});
+
 test('converts full sheet with ordered assets and previous sheet last', () => {
   project((root) => {
     const path = 'assets/storyboard-sheets/ep07/shot02.md';
@@ -106,12 +225,8 @@ test('无 continuity omits constraint and emits exact protocol', () => {
     const result = run(root, path);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stderr, '');
-    assert.equal(result.stdout, `IMAGES:assets/images/characters/角色甲.png
----
-**参考资产：** [角色甲:{图片1}]
-
-单行提示。
-`);
+    assert.ok(result.stdout.startsWith('IMAGES:assets/images/characters/角色甲.png\n---\n'));
+    assert.ok(result.stdout.endsWith('\n单行提示。\n'));
   });
 });
 
@@ -132,8 +247,9 @@ test('character-first sort and normalized path dedupe are stable', () => {
       'assets/images/locations/地点.png',
       'assets/images/items/道具.png',
     ]);
-    assert.match(result.stdout, /\[角色乙:\{图片1\}\]、\[角色甲:\{图片2\}\]、\[地点:\{图片3\}\]、\[道具:\{图片4\}\]/);
-    assert.doesNotMatch(result.stdout, /别名/);
+    assert.equal(result.stdout.split('\n').find(line => line.startsWith('**参考资产：**')),
+      '**参考资产：** [角色乙:{图片1}]、[角色乙别名:{图片1}]、[角色甲:{图片2}]、' +
+      '[地点:{图片3}]、[地点别名:{图片3}]、[道具:{图片4}]');
   });
 });
 
@@ -172,8 +288,7 @@ test('preserves prompt metacharacters and only trims outer blank lines', () => {
     write(root, path, card('- [角色](../../characters/角色.md)', '无', prompt));
     const result = run(root, path);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout.slice(result.stdout.indexOf('\n\n') + 2),
-      `${prompt.replace(/^\n+|\n+$/g, '')}\n`);
+    assert.ok(result.stdout.endsWith(`${prompt.replace(/^\n+|\n+$/g, '')}\n`));
     assert.equal(result.stderr, '');
   });
 });
@@ -221,15 +336,30 @@ test('requires each schema section once and a nonempty prompt', () => {
     valid.replace('## 引用资产', '## 其他资产'),
     valid.replace('## 连续性参考', '## 其他连续性'),
     valid.replace('## 图像生成提示', '## 其他提示'),
+    valid.replace('## Panel 规划', '## Other'),
+    `${valid}\n## Panel 规划\nDuplicate\n`,
+    valid.replace('测试', ' \t '),
     `${valid}\n## 引用资产\n${refs}\n`,
     `${valid}\n## 连续性参考\n无\n`,
     `${valid}\n## 图像生成提示\n另一个提示\n`,
     card(refs, '无', '\n \t\n'),
   ];
   for (const [index, content] of cases.entries()) project((root) => {
-    const path = `assets/storyboard-sheets/ep0${index + 1}/shot01.md`;
+    const path = `assets/storyboard-sheets/ep${String(index + 1).padStart(2, '0')}/shot01.md`;
     write(root, path, content);
     fail(run(root, path), /section|prompt/);
+  });
+});
+
+test('shot-only references suffice without duplicating declarations in the card', () => {
+  project(root => {
+    const path = 'assets/storyboard-sheets/ep01/shot01.md';
+    write(root, path, card('无'));
+    write(root, 'story/episodes/ep01/storyboard.md',
+      '### shot 1\n- 时长：8s\n- 引用资产：[A](assets/items/a.md)\n**画面与声音描述：**\nAction');
+    const result = run(root, path);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(images(result), ['assets/images/items/a.png']);
   });
 });
 
@@ -289,15 +419,12 @@ test('rejects multiple, non-adjacent, malformed, and shot01 previous links', () 
   });
 });
 
-test('ignores links outside 引用资产 and preserves them in prompt', () => {
+test('rejects undeclared explicit links in board instructions', () => {
   project((root) => {
     const path = 'assets/storyboard-sheets/ep01/shot01.md';
     const prompt = '[非资产](../../vehicles/车.md) 保持正文。';
     write(root, path, card('- [甲](../../characters/甲.md)', '无', prompt));
-    const result = run(root, path);
-    assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(images(result), ['assets/images/characters/甲.png']);
-    assert.match(result.stdout, /\[非资产\]\(\.\.\/\.\.\/vehicles\/车\.md\)/);
+    fail(run(root, path), /invalid asset link|undeclared reference/);
   });
 });
 

@@ -1,8 +1,7 @@
 ---
 name: writer-fix-novel
-description: Writer根据Director修改意见定向修正小说原文。读取现有小说，只修改指出的问题。
+description: 当现有小说的人物声音、动机、铺垫或场景连续性需要按授权请求或当前 findings 局部修订时使用。
 user-invocable: false
-context: fork
 agent: writer
 allowed-tools: Read, Write, Edit, Glob, Bash
 model: sonnet
@@ -11,38 +10,43 @@ model: sonnet
 ## 输入
 
 ### 文件读取
-- `story/episodes/$ARGUMENTS[0]/novel.md` — 必须读取（现有小说）
-- `story/episodes/$ARGUMENTS[0]/outline.md` — 必须读取
-- `story/outline.md` — 必须读取（整体故事大纲）
-- `config.md` — 必须读取
-- `assets/characters/*.md` — 若存在则全部读取（角色一致性参考）
+- `story/episodes/{ep}/novel.md` — 必须读取，ep 为委托确认的目标集数
+- 本集 outline、全局摘要及相关前集 script / novel — 存在且与修改相关时选读
+- 实际配置 SVD_CONFIG（未设时 config.md）；本文 config.md 均指实际路径
+- 受影响角色的资产卡 — 存在时读取以核对人物声音和身份
 - `${CLAUDE_PLUGIN_ROOT}/skills/writer-novel/rules.md` — 必须读取并严格遵循
-- `story/episodes/$ARGUMENTS[0]/.review-novel.md` — 仅 review mode 必须读取；direct mode 不读取
+- `story/episodes/{ep}/.review-novel.md` — 仅委托指定为意见来源时读取；直接请求或当前 findings 不需要历史 review
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
-### 动态参数（$ARGUMENTS）
-- review mode CLI：`ep`。读取 latest `.review-novel.md`，保持 pipeline 现有行为。
-- direct mode CLI：`ep + --direct + target + instruction`。`target` 是段落/场景定位，`instruction` 是 Phase 3 已确认的具体修改描述。
-- 参数数量或 `--direct` 位置不符时失败；direct mode 不读取或拼接旧 review 意见。
+### 委托理解
+- 可接收 `ep` 与当前 findings；以 review 文件为依据时读取最新相关轮次，核对当前文本仍有该问题。
+- 从直接请求理解集数、段落/场景定位、具体意见及保留范围，不要求参数语法或先经过某个阶段。
+- 意图或范围不清则返回澄清问题；直接请求不读取或拼接旧 review 意见。
 
 ## 职责描述
 
 ### 核心使命
 
-按 Director 审稿意见或用户编辑请求，定向修正现有 novel.md。下游消费者依然是 storyboarder-storyboard 和 director-review-novel，但它们已经基于"修改前"的版本运作过一轮——你的修正必须只动指出的问题，未涉及部分逐字保留，否则下游会被无关变更打断（已生成的分镜 / 已得出的审稿结论失效）。修正成本远低于重写；超改不是"加分"，是引入回归。
+按当前 findings 或授权请求修订 novel.md，保留无关段落及原有画面质感。文学稿交 Scriptwriter 改编为可拍剧本，不直接交分镜师；不假设其他角色已经处理过旧稿。报告变化对现有剧本的具体影响，交 Director 协调，不擅自重写别人的文件。
 
-### 工作思路
+### 工作思路（按问题选用）
 
-1. review mode 读取 `.review-novel.md` 最大轮意见；direct mode 仅使用传入 target/instruction。完整通读 novel.md 后把当前模式的意见映射到具体段落。
+**场景薄弱时，恢复现场体验**：可先想“人物眼前看见什么、身体正在做什么、哪句回应让他改口”，再补相关对白与内心。把“A 告诉 B 真相”展开为告知的具体措辞、回避视线或被打断，以及 B 的反应怎样改变 A 的下一句话。视觉先行是找回空间与动作的办法，不是所有段落的书写顺序；纯内在叙述也可从感受和联想切入。
+
+**声音与动机一起修**：寻找**潜台词（话语表面之外真正想表达或回避的意思）**。角色说“随便你”可能在请求挽留，改稿可用吞回后半句、重复问时间或内心自辩呈现。保留原文成立的感官细节与内心独白，不把修复写成情绪标签；新增事实或扩大段落范围先协调。
+
+局部声音问题可直接试写相关对白，因果问题可追踪依赖段落；以下不是逐项执行的改稿链。保留原文有效的叙述视角、声音、动机和感官质地。
+
+1. 把当前有效 findings 或授权请求映射到具体段落；review 过时或与授权冲突时先协调。通读 novel.md，直接请求不附带旧意见。
 2. 评估每条修正的连锁影响：改某一段的事件细节，是否让后续基于此事件的对白 / 状态 / 转场失去因果？
-3. 必要时把"修正一处"扩展为"修正这一处 + 后续被影响的段落"——但不擅自修改与意见无关的章节
-4. 动笔时仍用 writer-novel 的"画面在前，对白在后"原则；画面密度不能因为是"小修"而稀薄
+3. 授权内同步必要一致性；若需改其他场景或扩大范围，先说明依赖并协调，不把连锁影响当全文重写授权
+4. 可用动作、对白、心理或叙述修复当前问题，不固定先画面后对白；保留原有质感而非为小修改成摘要
 5. 修正完毕自检：每条意见是否落地？rules.md 格式是否仍合规？被改段落与上下文是否仍连贯？
 
 ### 常见误区
 
 - **把意见当全文重写信号** — Director 一次给多条意见，模型本能"既然要改，不如全部重写一遍更顺"，结果丢失原本无问题的段落 — 每改一段都问"这段在意见列表里吗"，不在就不动
-- **改一处忘下游连锁** — 改了某段事件，后续段落基于此事件的对白 / 角色情绪 / 转场仍是旧的，前后矛盾 — 改完每一段都通读其后两三段，确认逻辑链没断
+- **改一处忘连锁** — 后续对白、情绪或转场仍依赖旧事件；按实际因果追踪相关段落，不限于相邻几段，范围外问题只报告
 - **为了"改得明显"丢失原画面** — 模型倾向"既然在改不如换个写法"，结果细节描写被替换成更平的总结 — 改前先记住原段落的画面元素（动作/环境/感官），改后这些元素必须仍在（除非意见明确要求换）
 - **格式漂移** — 修正时局部输入输出，容易丢掉 rules.md 的标题层级 / 段落分隔 / 标签写法 — 写完每段对照 rules.md 检查格式
 
@@ -53,4 +57,6 @@ model: sonnet
 ## 输出
 
 ### 文件操作
-- 使用 Write 覆写 `story/episodes/$ARGUMENTS[0]/novel.md`
+- 保存 `story/episodes/{ep}/novel.md` 的授权修订，保留无关文本
+- 有适用 timed outline 时可按 writer-novel/rules.md 使用 `novel-budget.sh` 诊断；如实报告 status，不把计数 fail 当创作失败或自动补删理由。缺输入说明不适用，不补造规划。
+- 返回修订范围、伏笔/因果和人物状态影响及检查结果；本次修订不等于独立审核通过。

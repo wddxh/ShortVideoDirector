@@ -1,98 +1,37 @@
-// Asserts the documentation protocol for asset section naming across skills.
-// Covers spec §3.3 acceptance B/C/F/G + §3.5 R1/R2.
-// If you add/rename skills referencing 本集资产清单 / 本集新增资产 headings,
-// update the allowlists / downstream lists below — see `.opencode/README.md`
-// § 维护契约.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
-import { join } from 'node:path';
+import { parseAssetInventory } from '../../scripts/episode-assets.mjs';
 
-const REPO = join(import.meta.dirname, '..', '..');
-
-function read(p) { return readFileSync(join(REPO, p), 'utf-8'); }
-
-function grepHits(pattern, paths) {
-  try {
-    return execSync(
-      `grep -rlE "${pattern}" ${paths.join(' ')} 2>/dev/null || true`,
-      { cwd: REPO }
-    ).toString().trim().split('\n').filter(Boolean);
-  } catch { return []; }
-}
-
-test('段名分工 B: ^## 本集新增资产 heading 仅出现在 outline 阶段 skill', () => {
-  const allowedOutlineFiles = [
-    'director-outline/SKILL.md',
-    'director-outline/series.md',
-    'director-outline/short.md',
-    'director-outline/rules.md',
-    'director-review-outline/series.md',
-    'director-review-outline/short.md',
-    'director-fix-outline/SKILL.md',
-    'scriptwriter-script/rules.md',
-    'scriptwriter-script/SKILL.md',
-  ];
-  const hits = grepHits('^## 本集新增资产', ['skills/']);
-  for (const h of hits) {
-    assert.ok(
-      allowedOutlineFiles.some(a => h.endsWith(a)),
-      `${h} should not contain ^## 本集新增资产 heading (outline 阶段专用)`
-    );
-  }
+test('screenwriter inventory example is a parseable producer fixture', () => {
+  const rules = readFileSync(new URL('../../skills/scriptwriter-script/rules.md', import.meta.url), 'utf8');
+  const fixture = rules.split('```').find(block => block.trimStart().startsWith('## 本集资产清单\n'));
+  assert.ok(fixture, 'missing inventory format example');
+  assert.deepEqual(parseAssetInventory(fixture.trim()), {
+    newAssets: ['assets/characters/王五.md', 'assets/characters/赵六.md',
+      'assets/locations/地下室.md', 'assets/items/旧怀表.md'],
+    existingAssets: ['assets/characters/张三.md', 'assets/characters/李四.md',
+      'assets/locations/茶馆.md', 'assets/buildings/鼓楼.md'],
+  });
 });
 
-test('段名分工 C: ^## 本集资产清单 出现在下游 8 skill / 10 文件', () => {
-  const expectedDownstream = [
-    'scriptwriter-script/rules.md',
-    'scriptwriter-script/SKILL.md',
-    'storyboarder-storyboard/SKILL.md',
-    'storyboarder-fix-storyboard/SKILL.md',
-    'director-review-storyboard/SKILL.md',
-    'creator-create-assets/SKILL.md',
-    'creator-update-records/SKILL.md',
-    'creator-generate-images/SKILL.md',
-    'creator-storyboard-sheet-prompts/SKILL.md',
-    'edit-story/SKILL.md',
-    'edit-story/series.md',
-    'edit-story/short.md',
-    'director-review-script/SKILL.md',
-  ];
-  const hits = grepHits('本集资产清单', ['skills/']);
-  let downstreamCount = 0;
-  for (const exp of expectedDownstream) {
-    if (hits.some(h => h.endsWith(exp))) downstreamCount++;
-  }
-  assert.ok(
-    downstreamCount >= 8,
-    `下游应至少 8 个文件含「本集资产清单」, actual=${downstreamCount}`
-  );
+test('provisional outline inventory cannot substitute for script inventory', () => {
+  assert.throws(() => parseAssetInventory([
+    '## 本集新增资产', '- items: 旧怀表 (assets/items/旧怀表.md)',
+  ].join('\n')), /Missing inventory/);
 });
 
-test('detect-then-write F: scriptwriter rules.md 含状态 A/B/C', () => {
-  const content = read('skills/scriptwriter-script/rules.md');
-  assert.match(content, /状态 A.+本集新增资产/, '状态 A: 应描述删除本集新增资产 + append 本集资产清单');
-  assert.match(content, /状态 B.+本集资产清单.+in-place/, '状态 B: 应描述 in-place 重写本集资产清单');
-  assert.match(content, /状态 C.+Append/, '状态 C: 应描述 Append 本集资产清单');
-});
-
-test('R2 文档协议: scriptwriter Phase 5 必须按 ^## 严格分段定界', () => {
-  const content = read('skills/scriptwriter-script/rules.md');
-  assert.match(content, /\^## [`\s]*严格分段定界|按[ `]*\^## /, 'Phase 5 必须显式声明按 ^## 严格分段, 不破坏用户手工段');
-});
-
-test('Hard gate G: director-review-script 含 asset 引用必带路径规则', () => {
-  const content = read('skills/director-review-script/SKILL.md');
-  assert.match(content, /[Hh]ard gate/, '应含 Hard gate 关键字');
-  assert.match(content, /\(assets\/.+\.md\)/, '应含 (assets/.../*.md) 路径示例');
-  assert.match(content, /review fail|不带路径.+fail/, '应说明 fail 条件');
-});
-
-test('asset id 规则文档化: director-outline/rules.md 含 asset id 定义', () => {
-  const content = read('skills/director-outline/rules.md');
-  assert.match(content, /asset id = 资产名/, 'asset id 必须 = 资产名');
-  assert.match(content, /Shen_Zhao/, '应含 en 下划线正例');
-  assert.match(content, /char-shen-zhao|char-沈昭/, '应含 kebab/前缀反例');
-  assert.match(content, /skills\/_meta\/rules\/output-language\.md/, '应引用共享语言规则 output-language.md');
+test('adopted script inventory is bounded independently of scenes and notes', () => {
+  const script = [
+    '## 场景 1: 茶馆', '- 地点: 茶馆 (assets/locations/茶馆.md)',
+    '## 本集资产清单', '### 新增资产',
+    '- characters: (无)', '- locations: (无)', '- items: (无)', '- buildings: (无)',
+    '### 已有资产（本集出场）', '- characters: 张三 (assets/characters/张三.md)',
+    '- locations: 茶馆 (assets/locations/茶馆.md)', '- items: (无)', '- buildings: (无)',
+    '## 拍摄备注', '- items: 已删道具 (assets/items/已删道具.md)',
+  ].join('\n');
+  assert.deepEqual(parseAssetInventory(script), {
+    newAssets: [],
+    existingAssets: ['assets/characters/张三.md', 'assets/locations/茶馆.md'],
+  });
 });

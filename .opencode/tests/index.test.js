@@ -1,6 +1,18 @@
-import { describe, test } from 'node:test';
+import { after, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ShortVideoDirectorPlugin } from '../plugin/index.js';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+const originalHome = process.env.HOME;
+const testHome = await mkdtemp(path.join(os.tmpdir(), 'svd-plugin-home-'));
+process.env.HOME = testHome;
+const { ShortVideoDirectorPlugin } = await import('../plugin/index.js');
+after(async () => {
+  if (originalHome === undefined) delete process.env.HOME;
+  else process.env.HOME = originalHome;
+  await rm(testHome, { recursive: true, force: true });
+});
 
 describe('ShortVideoDirectorPlugin', () => {
   test('returns object with 3 expected hooks', async () => {

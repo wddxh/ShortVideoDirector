@@ -1,6 +1,7 @@
 // .opencode/plugin/load-agents.js
 import { readFile, readdir } from 'fs/promises';
 import path from 'path';
+import { ROLE_HANDOFF_GUIDANCE } from './tool-mapping.js';
 
 /**
  * 读取 agent .md 文件，解析 YAML frontmatter 与 body。
@@ -56,6 +57,7 @@ function parseSimpleYaml(text) {
  *     CLI even with permission allows in place. WHICH bash commands actually
  *     run is gated by `permission.bash` (see buildPermissionForAgent).
  *   - Drops `model: inherit` (OC defaults to inheriting from parent)
+ *   - Explicitly enables skill discovery; task follows the source role allowlist
  *   - Keeps explicit `model: <name>` values
  *   - Sets `mode: 'subagent'` (all 5 ShortVideoDirector agents are subagents)
  *   - Passes through `description` verbatim
@@ -64,7 +66,11 @@ export function convertAgentFrontmatter(cc) {
   const out = {
     description: cc.description,
     mode: 'subagent',
-    tools: { bash: true },
+    tools: {
+      bash: true,
+      skill: true,
+      task: (cc.tools || '').split(',').some(tool => tool.trim() === 'Task'),
+    },
   };
   if (cc.model && cc.model !== 'inherit') {
     out.model = cc.model;
@@ -73,7 +79,6 @@ export function convertAgentFrontmatter(cc) {
 }
 
 const BASE_PERMISSION = {
-  task: 'allow',
   skill: 'allow',
   read: 'allow',
   edit: 'allow',
@@ -130,6 +135,7 @@ export function buildPermissionForAgent(agentName, _allScripts = []) {
   }
   return {
     ...BASE_PERMISSION,
+    task: ['director', 'creator'].includes(agentName) ? 'allow' : 'deny',
     bash: 'allow',
     external_directory: cfg.externalDir,
   };
@@ -139,21 +145,15 @@ const OC_EXECUTION_CONTRACT = `
 
 ## OC 执行契约
 
-当主代理通过 \`task\` 工具派发任务给你时：
-
-1. **第一步必须**调用 \`skill({ name: "<被指定的 skill>" })\` 加载完整 SKILL.md
-2. 严格按 SKILL.md 工作流逐步执行，不跳步、不缩短
-3. 按 SKILL.md "## 输出" 段定义的格式将最终结果返回给主代理
-
-不要凭印象或缩短步骤。如果同一 skill 内部又需要派发其他带 \`context: fork\` 的 skill，使用 \`task\` 工具派发；不带 \`context: fork\` 的 skill 用 \`skill\` 工具同上下文加载。
+${ROLE_HANDOFF_GUIDANCE}
 
 ## 写入纪律
 
-orchestrator 在 task prompt 中会指定"分段单元"（逐章 / 逐镜头 / 逐 JSON 条目 / 逐 yaml key）。严格遵循：
+按文件格式选分段单元（自然段 / 镜头 / JSON 条目 / yaml key），过长单元继续拆分：
 
 - 写完一个单元 → 停 → Edit 追加下一单元
-- 绝不在单次 Write 中提交多个单元 —— 即便你"觉得不算长"
-- 单次 Write/Edit 内容应 ≤ 1 单元
+- 切勿单次 Write 提交完整长内容
+- 每次 Write/Edit 内容不得超过 2000 字符，JSON/YAML 同样适用
 
 **长度原则**：本约束仅针对单次 Write/Edit 操作内容，不限制文件最终总长度。需要写多长就写多长；按 SKILL.md 要求的质量和内容完整度生成，按单元分段累积即可。不要因"避免分段"而省略或压缩内容。
 
@@ -169,7 +169,7 @@ orchestrator 在 task prompt 中会指定"分段单元"（逐章 / 逐镜头 / �
 1. 首：Write 完整骨架，数组内只放第 1 条
 2. 续：Edit oldString=数组结束 \`  ]\`（含其前的换行+缩进），newString=\`,\\n    <entryN>\\n  ]\`
 
-orchestrator 未明确指定单元时默认：.md → 逐自然段，.json → 逐条目。每段长度由内容自然决定，不设上限。`;
+默认 .md 按自然段，.json 按条目；单元超限继续拆分，文件总长度不设上限。`;
 
 /**
  * Load all agents from `<pluginRoot>/agents/`, scan `<pluginRoot>/scripts/`,
@@ -188,13 +188,14 @@ export async function loadAllAgents(pluginRoot) {
   const files = (await readdir(agentsDir)).filter(f => f.endsWith('.md'));
   const result = {};
   for (const file of files) {
-    const filePath = path.join(agentsDir, file);
+    const filePath = path.resolve(agentsDir, file);
     const { frontmatter, body } = await parseAgentFile(filePath);
     if (!frontmatter.name) {
       throw new Error(`Agent file ${file} missing 'name' in frontmatter`);
     }
     const oc = convertAgentFrontmatter(frontmatter);
-    oc.prompt = body + OC_EXECUTION_CONTRACT;
+    oc.prompt = `Source role file: \`${filePath}\`\nResolve relative links in this role relative to this file's directory.\n\n`
+      + body + OC_EXECUTION_CONTRACT;
     oc.permission = buildPermissionForAgent(frontmatter.name, allScripts);
     result[frontmatter.name] = oc;
   }
