@@ -6,11 +6,11 @@
 //
 // 设计决策：
 //   - 通用检查：deep walk args，覆盖所有 tool 的所有字符串字段（包括 apply_patch.patch / bash.command 等）
-//   - 无文件类型例外：.json / .yaml 同样 2000 阈值（按 ENTRY_WORKFLOW_DISPATCH_DISCIPLINE 的 JSON 增量模式分段）
+//   - 无文件类型例外：.json / .yaml 同样 4000 阈值（按 ENTRY_WORKFLOW_DISPATCH_DISCIPLINE 的 JSON 增量模式分段）
 //   - throw error 不自动 chunk（chunk 会破坏 OC file state tracking）
 // 详见 docs/superpowers/specs/2026-05-18-runtime-write-guard-design.md
 
-export const MAX_STRING_ARG_LEN = 2000;
+export const MAX_STRING_ARG_LEN = 4000;
 
 /**
  * 深度遍历 args，找出所有长度 > threshold 的字符串值。
@@ -36,10 +36,10 @@ export function findLargeStrings(args, threshold = MAX_STRING_ARG_LEN) {
 }
 
 const ADVICE_WRITE = `For Write/apply_patch:
-1. First call with content ≤2000 chars
+1. First call with content ≤${MAX_STRING_ARG_LEN} chars
 2. Then Edit append for each subsequent chunk:
    - oldString = last 30-50 chars of prior chunk (must be unique in file)
-   - newString = those chars + next chunk (≤2000)
+   - newString = those chars + next chunk (≤${MAX_STRING_ARG_LEN})
 
 For JSON arrays:
 - Write '[\\n  <entry1>\\n]' first (single entry, small)
@@ -50,14 +50,14 @@ Each subsequent Edit's oldString = last 30-50 chars of previous newString.
 Same JSON incremental pattern as Write applies.`;
 
 const ADVICE_TASK = `For task: don't pass large data via prompt parameter.
-1. Write the data to a file first (using incremental Write+Edit if >2000)
+1. Write the data to a file first (using incremental Write+Edit if >${MAX_STRING_ARG_LEN})
 2. Pass only the file path in task prompt
 3. Subagent reads via Read tool`;
 
 const ADVICE_BASH = `For bash: store the command in a script file and invoke it.
 Or split into multiple shorter commands.`;
 
-const ADVICE_GENERIC = `Split the long string into multiple smaller operations (each ≤2000 chars).`;
+const ADVICE_GENERIC = `Split the long string into multiple smaller operations (each ≤${MAX_STRING_ARG_LEN} chars).`;
 
 function getAdvice(tool) {
   switch (tool) {
