@@ -2,14 +2,17 @@
 name: director-fix-outline
 description: 当现有单集大纲的因果、场景节奏、信息传达或结局需要按授权请求或当前 findings 修改时使用。
 user-invocable: false
-agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 
 ## 输入
 
-从委托确定目标集数、单集/系列语境、授权范围与具体意见，或读取指定的当前 findings / `.review-outline.md`。补充要求按本次授权理解，不要求内部参数格式；目标或范围不清先询问。
+顶层主 AI/Director 本地加载本知识，直接修订授权规划并处理用户确认。跨 owner 工作协调专家，独立验收交全新 Reviewer；自编计划与答复本地保留，不做自我 relay。
+
+从委托确定目标集数、单集/系列语境、授权范围与具体意见，或读取指定的当前 findings / `reviews/{ep}/outline.md`。补充要求按本次授权理解，不要求内部参数格式；目标或范围不清先询问。
+
+按 [项目布局](../_meta/rules/project-layout.md) 在原 canonical 大纲上修订；临时交接按需使用 `story/work/epNN/<work-unit>/`，委托前指定精确输出路径，不为每轮修订另建副本或迁移既有来源。
 
 ## 必读文件
 - `story/episodes/{ep}/outline.md` — 必读 (现有大纲)
@@ -63,7 +66,7 @@ DURATION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh" "每集时长目�
 
 结合用户已确认的容差/严格限制换算秒数。仅已确认 ±10% 的单值用 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/scene-duration.sh" "story/episodes/{ep}/outline.md" --target <N>`；显式范围/更严格限制用 `--target-min <M> --target-max <X>` 替换 target 参数，精确目标 M=X，不额外扩大。单值格式不代表同意容差；系列沿用初始共同目标，不以前集实际时长重设。
 
-缺失、空白、读取失败、边界不清或冲突先交主 AI 澄清，不套旧模板或其他配置；已有明确决定不重复问。实跑记录 sum、边界、退出状态。失败仅在授权内修正后复查；无法解决则返回缺口或预算冲突，不自动拉长目标、不宣称整份验收通过，也不要求补建未采用的大纲。
+缺失、空白、读取失败、边界不清或冲突由顶层主 AI/Director 直接澄清，不套旧模板或其他配置；已有明确决定不重复问。实跑记录 sum、边界、退出状态。失败仅在授权内修正后复查；无法解决则返回缺口或预算冲突，不自动拉长目标、不宣称整份验收通过，也不要求补建未采用的大纲。
 
 ### Phase 5: 输出
 - 保存 `story/episodes/{ep}/outline.md` 的授权修订，保留无关内容

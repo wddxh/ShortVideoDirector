@@ -2,17 +2,20 @@
 name: director-fix-arc
 description: 当现有 arc 的人物弧、转折分布、连续性或集数预算需要按授权请求或当前 findings 定向修订时使用。
 user-invocable: false
-agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
 ---
 
 ## 输入
 
+顶层主 AI/Director 本地加载本知识，直接修订授权规划并处理用户确认。跨 owner 工作协调专家，独立验收交全新 Reviewer；自编计划与答复本地保留，不做自我 relay。
+
 通过 prompt 接收:
-- 授权修改请求（目标及具体意见），或当前 findings / `.review-arc.md` 路径（一般 `story/.review-arc.md`）
+- 授权修改请求（目标及具体意见），或当前 findings / `reviews/story/arc.md` 路径
 
 从请求理解受影响节点、人物或集数范围；定位、意图或保留要求不清先询问，不把“修 arc”解释为整份重构。
+
+按 [项目布局](../_meta/rules/project-layout.md) 在原 canonical 规划上修订；跨集临时交接按需使用 `story/work/shared/<work-unit>/`，完整决策依据按需保留，不自行归档、合并或迁移既有来源。
 
 ## 必读
 

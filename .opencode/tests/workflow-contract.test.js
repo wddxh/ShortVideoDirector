@@ -44,16 +44,17 @@ test('content fixers retain owner metadata and deprecated config stays absent', 
   assert.doesNotMatch(read('README.md'), /^\| 每集小说字数 \|/m);
 });
 
-test('review evidence and single results expose the helper schema', () => {
-  assert.deepEqual(firstJson(read('skills/_meta/rules/review-meta-rules.md')), {
-    kind: 'script', scope: ['story/episodes/ep01/script.md'], results: [],
-  });
+test('single reviewer examples supply judgment payloads without helper-owned fingerprints', () => {
   for (const name of ['asset-prompt-single', 'asset-visual-single']) {
-    const text = read(`skills/director-review-${name}/SKILL.md`);
-    assert.equal(frontmatter(text).agent, 'director');
-    const result = firstJson(text);
-    assert.equal(result.target, result.asset_path);
-    assert.ok(Array.isArray(result.inputs));
+    const text = read(`skills/reviewer-review-${name}/SKILL.md`);
+    assert.equal(frontmatter(text).agent, 'reviewer');
+    const payload = firstJson(text);
+    assert.deepEqual(Object.keys(payload).sort(), ['commentary', 'result']);
+    assert.equal(typeof payload.commentary, 'string');
+    const result = payload.result;
+    assert.equal(typeof result.asset_path, 'string');
+    assert.equal(Object.hasOwn(result, 'target'), false);
+    assert.equal(Object.hasOwn(result, 'inputs'), false);
     assert.equal(result.status, 'needs_revision');
     assert.ok(result.blockers.length > 0);
   }
@@ -64,15 +65,15 @@ test('reviewers retain Bash and Task skills have Task-enabled owners', () => {
   for (const name of readdirSync('skills')) {
     if (!existsSync(`skills/${name}/SKILL.md`)) continue;
     const fm = frontmatter(read(`skills/${name}/SKILL.md`));
-    if (name.startsWith('director-review-') && fm['allowed-tools'] !== undefined) {
+    if (name.startsWith('reviewer-review-') && fm['allowed-tools'] !== undefined) {
       assert.match(fm['allowed-tools'], /(?:^|, )Bash(?:,|$)/, name);
     }
     if (!fm.agent || !fm['allowed-tools']?.split(', ').includes('Task')) continue;
     assert.ok(frontmatter(read(`agents/${fm.agent}.md`)).tools.split(', ').includes('Task'), name);
     covered.add(fm.agent);
   }
-  assert.ok(covered.has('director'));
-  for (const role of ['creator', 'director']) {
+  assert.ok(covered.has('reviewer'));
+  for (const role of ['creator', 'reviewer']) {
     const tools = frontmatter(read(`agents/${role}.md`)).tools.split(', ');
     for (const tool of ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'Task', 'Skill']) assert.ok(tools.includes(tool));
   }
@@ -84,12 +85,32 @@ test('all seven public entry IDs survive production retirement', () => {
     .filter(fm => fm['user-invocable'] === 'true').map(fm => fm.name).sort();
   assert.deepEqual(entries, ['auto-video', 'check-video', 'edit-story',
     'generate-video', 'repair-story', 'series-video', 'short-video']);
-  for (const name of ['series-video', 'short-video', 'edit-story', 'repair-story']) {
+  for (const name of entries) {
     const fm = frontmatter(read(`skills/${name}/SKILL.md`));
-    assert.equal(fm.agent, 'director');
+    assert.equal(fm.agent, undefined, name);
     assert.equal(fm.context, undefined);
     assert.ok(fm['allowed-tools'].split(', ').includes('Task'));
     assert.ok(fm['argument-hint']);
+  }
+});
+
+test('planning stays local and acceptance belongs to registered reviewer', () => {
+  const names = readdirSync('skills').filter(n => existsSync(`skills/${n}/SKILL.md`));
+  assert.ok(names.includes('director-orchestrate'));
+  assert.equal(existsSync('agents/director.md'), false);
+  assert.deepEqual(readdirSync('agents').filter(n => n.endsWith('.md')).sort(),
+    ['creator.md', 'reviewer.md', 'scriptwriter.md', 'storyboarder.md', 'writer.md']);
+  const reviews = names.filter(n => n.startsWith('reviewer-review-'));
+  assert.deepEqual(reviews.sort(), ['arc', 'asset-prompt-single', 'asset-prompts',
+    'asset-visual-single', 'assets-visual', 'novel', 'outline', 'script',
+    'shot-inputs', 'storyboard'].map(n => `reviewer-review-${n}`));
+  assert.equal(names.some(n => n.startsWith('director-review-')), false);
+  for (const name of names.filter(n => n.startsWith('director-')).concat(reviews)) {
+    const fm = frontmatter(read(`skills/${name}/SKILL.md`));
+    assert.equal(fm.name, name);
+    assert.equal(fm.agent, name.startsWith('reviewer-') ? 'reviewer' : undefined, name);
+    assert.equal(fm.context, undefined, name);
+    assert.equal(fm['user-invocable'], 'false', name);
   }
 });
 

@@ -2,13 +2,13 @@
 
 Before config reads or preparation, obtain canonical project-relative config_path with `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" config-path`. In-project absolute/./ paths normalize; external config is unsupported before related side effects. Pass the same path explicitly as SVD_CONFIG on every profile/capture/submission/evidence command and through relay; fingerprints and config/approval writes use it too. Pure recorded-job retrieval bypasses config validation entirely.
 
-New submissions/retries belong to an actual Creator task, not a checker loading this skill. Consume canonical episode/shots, task paths and real grants from the commission. Preserve prompt/references/duration/submission and actual grants; `pending` and `failed` alone authorize nothing.
+New submissions/retries belong to an actual Creator task, not a checker loading this skill. Consume canonical episode/task_id/full shots, task paths and real grants. Preserve membership, prompt/references/duration/submission and grants; `pending` and `failed` alone authorize nothing. Records are an array unique by task_id; output is `videos/taskNN.mp4`. Grants bind `{decision,episode,task_id,shots,constraints}` plus actual optional retry counters.
 
 Current explicit `视频提供方: none` disables new submissions/retries but not retrieval. Report the block without changing the stored tuple; changed config cannot silently switch an existing task's provider or settings.
 
 Before preparation writes, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/video-task-inputs.mjs" profile TASKS` with canonical SVD_CONFIG. It is read-only even when TASKS is absent. Nonzero blocks preparation. `{mode,profile,source}` distinguishes series `tasks` inheritance, first-choice `config` (null fields require delegation), and short `episode` (profile=null). Resolve authorized first-choice fields, then capture returns the snapshot to persist. Retries and untouched pending use saved settings and ordered media identities, without re-resolving/capturing or guessing defaults.
 
-Each paid attempt requires typed references and at least one local MP4. Validate saved settings, operation, duration and references against current capabilities. Unsupported providers block without substitution. Check grants with `video-task-inputs.mjs initial/retry TASKS SHOT EP`, media with `verify TASKS SHOT`, and structure with `check-shot-inputs.mjs EP SHOT`, using the same SVD_CONFIG. Require scoped evidence, converter equality and canonical output.
+Each paid attempt requires typed references and at least one full-group local MP4. Validate saved settings, operation, task duration and references against actual capabilities. Check grants with `video-task-inputs.mjs initial/retry TASKS TASK_ID EP`, media with `verify TASKS TASK_ID`, and structure with `check-shot-inputs.mjs EP SHOT...` for all members, using the same SVD_CONFIG. Require scoped evidence, converter equality and canonical output. Current manifest membership must equal record/grant; wrong identity, membership/input drift or partial scope makes zero calls and changes no counters. Report full group/additional members, never silently expand selection.
 
 ```bash
 SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamina.sh" --references-json "{prompt}" "{output}" "{references JSON array}" "{duration}" "{submission.ratio}" "{submission.model}" "{submission.resolution}"
@@ -16,7 +16,9 @@ SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamin
 
 Exactly seven positional arguments follow `--references-json`; references is one JSON array of `{media,path}`. Forward ordered PNG/MP4, dreamina to reserve and actual resolution; sources do not upload. Read [shot inputs](../_meta/rules/shot-inputs.md). Retrieve submitted tasks by recorded ID/provider. Use the guarded wrapper with approved inputs/settings.
 
-The model sees the full prompt and uploaded references. Converter binds header identities first, then local PNG/MP4, with separate slots. Each shot requires MP4 controlling camera/layout/positions/whole-object trajectories; static shots may use static clips. Work-wide style appears once in source `视频风格`; detailed action, expression and sound stay in prose, use states controls only. No style injection or deduplication. Undeclared links fail; sources do not upload. Independent shot-input review covers the package and necessary story boundary pairs.
+Creator groups consecutive photographic shots after design, preserving durations, dialogue and cuts. With verified model maximum M, aim for `ceil(0.7*M)..M` per task as semantic packing guidance, not a lower quota. Provider limits apply to task duration, not photographic-shot minimums. Unsuitable groups return to owners without extending runtime or scene/episode budgets.
+
+The model sees the final prompt and uploads. Task manifests are `{shots,references}` under `task-inputs/taskNN.json`; header identity union follows first-use order before local media, with separate slots. Each member must declare its own explicit links. Emit the exact identical single-line `视频风格` once at task level, removing only that field from member blocks; differing fields block for owner reconciliation. Preserve all other prose, dialogue, spaces and continuation lines. Only leading bracket cues rebase to task time; inline elapsed times explicitly remain local to named shots. Creator aligns group MP4, internal cuts and sound bridges to this reference clock. Sources do not upload; shot-input review checks final integration/deltas and necessary boundaries using actual dependencies.
 
 The shot ends at the next ATX heading, standalone `---`, line-start HTML comment or EOF. Authors keep scene budgets and production notes outside those boundaries; converter preserves text inside. Semantic gaps return to the owner, not a provider-side rewrite. Converter equality blocks changed inputs; preparation belongs to the entry, with submitted/done/inflight protected.
 
@@ -28,7 +30,7 @@ Series shares provider/model/ratio/resolution across every episode. All canonica
 
 Serialize series profile checks, preparation writes and submissions across episodes. The existing episode locks are not a global transaction; do not claim atomic cross-episode updates.
 
-For short mode, resolve one common `resolution + ratio` for the entire episode, not per-shot quality. Read all participating submissions, including shots outside the requested subset. Before capture, an unsupported NEW choice in explicitly delegated fields may be resolved by Creator within the existing scope and common output constraints, without reasking. Fixed values and persisted profiles cannot be substituted: incompatibility stops affected preparation/submission and escalates only when owner judgment cannot resolve it within authority. Only short allows different provider/model with the common output; no per-shot downgrade.
+For short mode, resolve one common `resolution + ratio` for all episode generation tasks. Read all submissions, including tasks outside the requested subset. Before capture, Creator may resolve unsupported NEW choices in explicitly delegated fields within scope and common output constraints without reasking. Fixed values and persisted profiles remain binding; incompatibility stops affected preparation/submission and escalates only when owner judgment cannot resolve it within authority. Only short allows different provider/model between generation tasks with the common output; no per-shot downgrade.
 
 Capture and gate/reserve recheck the series four-tuple or short episode output profile under the local episode lock. Rejection leaves records and retry counts unchanged and makes no provider call. Only in short mode may authorized pending preparation replace its own profile without conflict with other tasks. Protected tasks cannot be rewritten. Unknown historical ratio/resolution blocks new generation in short too; retrieval remains available.
 
@@ -48,7 +50,7 @@ The wrapper alone reserves inflight and settles submission outcomes atomically. 
 
 ## Retrieval Knowledge
 
-Pure query/download stays in the checker and needs no generation capability, credit or current-review gate. Route using the recorded provider. A provider-less historical Dreamina job may use this retrieval-only compatibility path; an unknown explicit provider must not silently route here.
+Pure query/download stays in the checker and needs no generation capability, credit, current materials or review gate. Route using recorded ID/provider. Missing or unknown provider requires human_needed, preserving the record without guessing. Counts are generation tasks; human_needed is `{ep,task_id,shots,reason}` with full membership.
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/video-check-dreamina.sh" "{submit_id}" "{recorded_output}"

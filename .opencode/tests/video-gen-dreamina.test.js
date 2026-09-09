@@ -9,9 +9,9 @@ const script = join(process.cwd(), 'scripts/video-gen-dreamina.sh');
 function fixture(t, references = 1, shots = 1) {
   const f = videoProject(t, references, shots);
   f.task.submission = JSON.parse(f.cli('video-task-inputs.mjs',
-    ['capture', f.tasks, '1', 'dreamina', 'stored-model', '16:9', '1080p']).stdout);
+    ['capture', f.tasks, 'task01', 'dreamina', 'stored-model', '16:9', '1080p']).stdout);
   f.task.initial_authorization = { decision: 'Submit ep01 shot 1 once', episode: 'ep01',
-    shot: 1, constraints: [] };
+    task_id: 'task01', shots: [1], constraints: [] };
   f.save();
   const calls = join(f.root, 'calls');
   writeFileSync(join(f.root, 'dreamina'), `#!/usr/bin/env bash
@@ -33,13 +33,13 @@ test('series rechecks cross-episode conflicts at gate/reserve with zero mutation
   const f = fixture(t);
   f.write('config.md', '- mode: series\n'); f.evidence();
   f.task.status = 'failed';
-  f.task.retry_authorization = { decision: 'Retry once', episode: 'ep01', shot: 1,
+  f.task.retry_authorization = { decision: 'Retry once', episode: 'ep01', task_id: 'task01', shots: [1],
     constraints: [], max_attempts: 1, attempts: 0 };
   f.save();
   const other = 'story/episodes/ep02/videos/tasks.json';
   for (const submission of [undefined, ...Object.entries({ provider: 'other', model: 'other',
     ratio: '9:16', resolution: '720p' }).map(([key, value]) => ({ ...f.task.submission, [key]: value }))]) {
-    f.write(other, JSON.stringify([{ shot: 1, status: 'done', submission }]));
+    f.write(other, JSON.stringify([{ task_id: 'task01', shots: [1], status: 'done', submission }]));
     const before = [f.tasks, other].map((file) => readFileSync(join(f.root, file), 'utf8'));
     for (const action of ['gate', 'reserve']) {
       const result = f.cli('video-task-inputs.mjs', [action, '--references-json', ...f.args().slice(0, 6), 'dreamina', '1080p']);
@@ -55,7 +55,7 @@ test('series rechecks cross-episode conflicts at gate/reserve with zero mutation
 test('series fixed config mismatches block payment; same profile allows different duration', (t) => {
   const f = fixture(t);
   f.write('story/episodes/ep02/videos/tasks.json', JSON.stringify([
-    { shot: 1, status: 'done', submission: f.task.submission, duration: 5 }]));
+    { task_id: 'task01', shots: [1], status: 'done', submission: f.task.submission, duration: 5 }]));
   for (const [key, value] of [['视频提供方', 'none'], ['视频提供方', 'other'],
     ['视频模型版本', 'other'], ['视频比例', '9:16'], ['视频分辨率', '720p']]) {
     f.write('config.md', `- mode: series\n- ${key}: ${value}\n`); f.evidence();
@@ -72,7 +72,7 @@ test('series fixed config mismatches block payment; same profile allows differen
 
 test('short fixed output conflicts block initial and retry gates without rewriting snapshots', (t) => {
   const f = fixture(t);
-  f.task.retry_authorization = { decision: 'Retry once unchanged', episode: 'ep01', shot: 1,
+  f.task.retry_authorization = { decision: 'Retry once unchanged', episode: 'ep01', task_id: 'task01', shots: [1],
     constraints: [], max_attempts: 1, attempts: 0 };
   for (const status of ['pending', 'failed']) {
     f.task.status = status; f.save();
@@ -94,13 +94,13 @@ test('short fixed output conflicts block initial and retry gates without rewriti
 test('partial submission rejects conflicting or unknown episode profiles before side effects', (t) => {
   const f = fixture(t);
   f.task.status = 'failed';
-  f.task.retry_authorization = { decision: 'Retry once', episode: 'ep01', shot: 1,
+  f.task.retry_authorization = { decision: 'Retry once', episode: 'ep01', task_id: 'task01', shots: [1],
     constraints: [], max_attempts: 1, attempts: 0 };
   for (const status of ['pending', 'submitted', 'done', 'failed']) {
     for (const submission of [{ ...f.task.submission, resolution: '720p' },
       { ...f.task.submission, ratio: '9:16' }, undefined]) {
       if (!submission && status === 'pending') continue;
-      f.write(f.tasks, JSON.stringify([f.task, { shot: 2, status, submission }]));
+      f.write(f.tasks, JSON.stringify([f.task, { task_id: 'task02', shots: [2], status, submission }]));
       const before = readFileSync(join(f.root, f.tasks), 'utf8');
       const args = [...f.args().slice(0, 6), 'dreamina', f.task.submission.resolution];
       for (const action of ['gate', 'reserve']) {
@@ -119,7 +119,7 @@ test('partial submission rejects conflicting or unknown episode profiles before 
 test('same episode output profile allows different models and preserves other tasks', (t) => {
   const f = fixture(t);
   const others = ['pending', 'submitted', 'done', 'failed'].map((status, i) => ({
-    shot: i + 2, status, submission: { provider: 'another-provider', model: 'other-model',
+    task_id: `task0${i + 2}`, shots: [i + 2], status, submission: { provider: 'another-provider', model: 'other-model',
       ratio: '16:9', resolution: '1080p' },
   }));
   f.write(f.tasks, JSON.stringify([f.task, ...others]));
@@ -132,10 +132,10 @@ test('same episode output profile allows different models and preserves other ta
 test('query remains available for unknown or inconsistent episode output profiles', (t) => {
   const f = fixture(t);
   f.write('config.md', '- mode: series\n- 视频提供方: none\n');
-  f.write('story/episodes/ep02/videos/tasks.json', JSON.stringify([{ shot: 1, status: 'failed' }]));
+  f.write('story/episodes/ep02/videos/tasks.json', JSON.stringify([{ task_id: 'task01', shots: [1], status: 'failed' }]));
   f.task.status = 'submitted'; f.task.submit_id = 'job-1';
   delete f.task.submission;
-  f.write(f.tasks, JSON.stringify([f.task, { shot: 2, status: 'done',
+  f.write(f.tasks, JSON.stringify([f.task, { task_id: 'task02', shots: [2], status: 'done',
     submission: { ratio: '9:16', resolution: '720p' } }]));
   const before = readFileSync(join(f.root, f.tasks), 'utf8');
   const result = spawnSync('bash', [join(process.cwd(), 'scripts/video-check-dreamina.sh'),
@@ -171,8 +171,8 @@ test('gate blocks missing/stale review evidence and changed PNG before provider'
     assert.equal(existsSync(f.calls), false);
     assert.equal(JSON.parse(readFileSync(join(f.root, f.tasks), 'utf8'))[0].inflight, undefined);
   };
-  for (const kind of ['script', 'storyboard', 'basic-assets-visual', 'shot-inputs']) {
-    rmSync(join(f.root, `story/episodes/ep01/.review-${kind}.md`));
+  for (const kind of ['script', 'storyboard', 'asset-visual', 'shot-input']) {
+    rmSync(join(f.root, f.reviews[kind][0]));
     blocked();
     f.evidence();
   }
@@ -187,7 +187,7 @@ test('gate blocks missing/stale review evidence and changed PNG before provider'
 for (const change of ['dialogue', 'duration', 'images']) test(`renewed reviews cannot authorize stale converter ${change}`, (t) => {
   const f = fixture(t);
   f.task.status = 'failed';
-  f.task.retry_authorization = { decision: 'Retry twice unchanged', episode: 'ep01', shot: 1,
+  f.task.retry_authorization = { decision: 'Retry twice unchanged', episode: 'ep01', task_id: 'task01', shots: [1],
     constraints: [], max_attempts: 2, attempts: 0 };
   f.save();
   const before = readFileSync(join(f.root, f.tasks), 'utf8');
@@ -199,7 +199,7 @@ for (const change of ['dialogue', 'duration', 'images']) test(`renewed reviews c
   f.write(board, text);
   f.evidence();
   assert.equal(f.cli('review-evidence.mjs', ['check', 'ep01', '1']).status, 0);
-  assert.equal(f.cli('video-task-inputs.mjs', ['verify', f.tasks, '1']).status, 0);
+  assert.equal(f.cli('video-task-inputs.mjs', ['verify', f.tasks, 'task01']).status, 0);
   const result = f.run();
   assert.equal(result.status, 1);
   assert.match(result.stderr, /authorized preparation/);
@@ -216,11 +216,11 @@ test('current converter passes the gate and forwards the entire bound shot witho
     '[0s-10s] [lamp](assets/items/lamp.md) lights the room.  ',
     '\tVoice: "Stay." Music fades.  '].join('\n');
   f.write(board, `# SOURCE_METADATA\n${block}\n\n## Next scene\nNEXT_BUDGET\n<!-- FOOTER -->\n`);
-  const converted = f.cli('storyboard-to-prompt.mjs', [board, '1', 'ep01']);
+  const converted = f.cli('storyboard-to-prompt.mjs', [board, 'task01', 'ep01']);
   assert.equal(converted.status, 0, converted.stderr);
   f.task.prompt = JSON.parse(converted.stdout).prompt;
-  assert.equal(f.task.prompt.split('\n').slice(3).join('\n'),
-    block.replaceAll('[lamp](assets/items/lamp.md)', '[lamp:{图片1}]'));
+  assert.equal(f.task.prompt.slice(f.task.prompt.indexOf('### shot 1')),
+    block.replace('- 视频风格：写实\n', '').replaceAll('[lamp](assets/items/lamp.md)', '[lamp:{图片1}]'));
   f.save(); f.evidence();
   const result = f.run();
   assert.equal(result.status, 0, result.stderr);
@@ -232,7 +232,7 @@ for (const format of ['unbound', 'field-selected']) test(`stale ${format} prompt
   const board = readFileSync(join(f.root, 'story/episodes/ep01/storyboard.md'), 'utf8');
   f.task.prompt = f.task.prompt.split('\n\n')[0] + '\n\n' + (format === 'unbound'
     ? board.trimEnd() : board.slice(board.indexOf('**画面与声音描述：**')).trimEnd());
-  f.task.retry_authorization = { decision: 'Retry unchanged', episode: 'ep01', shot: 1,
+  f.task.retry_authorization = { decision: 'Retry unchanged', episode: 'ep01', task_id: 'task01', shots: [1],
     constraints: [], max_attempts: 2, attempts: 0 };
   for (const status of ['pending', 'failed', 'submitted', 'done']) {
     f.task.status = status;
@@ -249,12 +249,12 @@ for (const format of ['unbound', 'field-selected']) test(`stale ${format} prompt
 
 for (const withRetry of [false, true]) test(`batch resumes untouched pending as initial, retry grant=${withRetry}`, (t) => {
   const f = fixture(t, 1, 3);
-  const tasks = [f.task, ...[2, 3].map((shot) => ({ ...structuredClone(f.task), shot,
-    initial_authorization: shot === 2 ? { ...f.task.initial_authorization, shot } : undefined }))];
+  const tasks = [f.task, ...[2, 3].map((shot) => ({ ...structuredClone(f.task), task_id: `task0${shot}`, shots: [shot],
+    initial_authorization: shot === 2 ? { ...f.task.initial_authorization, task_id: `task0${shot}`, shots: [shot] } : undefined }))];
   for (const task of tasks) {
     task.prompt = JSON.parse(f.cli('storyboard-to-prompt.mjs', ['story/episodes/ep01/storyboard.md',
-      String(task.shot), 'ep01']).stdout).prompt;
-    if (withRetry) task.retry_authorization = { decision: 'Retry twice', episode: 'ep01', shot: task.shot,
+      task.task_id, 'ep01']).stdout).prompt;
+    if (withRetry) task.retry_authorization = { decision: 'Retry twice', episode: 'ep01', task_id: task.task_id, shots: task.shots,
       constraints: [], max_attempts: 2, attempts: 0 };
   }
   f.write(f.tasks, JSON.stringify(tasks));
@@ -264,7 +264,7 @@ for (const withRetry of [false, true]) test(`batch resumes untouched pending as 
   assert.deepEqual(state().slice(1), JSON.parse(JSON.stringify(tasks.slice(1))));
   for (const shot of [2, 3]) {
     const task = tasks[shot - 1];
-    const result = f.run([task.prompt, f.output.replace('shot01', `shot0${shot}`), JSON.stringify(task.references),
+    const result = f.run([task.prompt, f.output.replace('task01', `task0${shot}`), JSON.stringify(task.references),
       '10', task.submission.ratio, task.submission.model, task.submission.resolution]);
     assert.equal(result.status, shot === 2 ? 0 : 1, result.stderr);
     assert.equal(existsSync(f.calls), shot === 2);
@@ -275,8 +275,8 @@ for (const withRetry of [false, true]) test(`batch resumes untouched pending as 
 
 test('gate rejects unregistered outputs, protected tasks and mismatched arguments', (t) => {
   const f = fixture(t);
-  for (const [index, value] of [[0, 'other prompt'], [1, f.output.replace('shot01', 'shot02')],
-    [1, './' + f.output], [1, f.output.replace('shot01', 'shot1')],
+  for (const [index, value] of [[0, 'other prompt'], [1, f.output.replace('task01', 'task02')],
+    [1, './' + f.output], [1, f.output.replace('task01', 'task1')],
     [2, JSON.stringify([...f.task.references].reverse())], [3, '11'], [4, '9:16'], [5, 'new-model']]) {
     const args = f.args(); args[index] = value;
     assert.equal(f.run(args).status, 1);
@@ -297,10 +297,10 @@ test('retry after unrelated config change forwards stored settings and ordered i
   const board = 'story/episodes/ep01/storyboard.md';
   f.write(board, readFileSync(join(f.root, board), 'utf8').replace('Action',
     'first line says "go"  \n\tsecond line costs $5'));
-  f.task.prompt = JSON.parse(f.cli('storyboard-to-prompt.mjs', [board, '1', 'ep01']).stdout).prompt;
+  f.task.prompt = JSON.parse(f.cli('storyboard-to-prompt.mjs', [board, 'task01', 'ep01']).stdout).prompt;
   f.task.status = 'failed';
   f.task.retry_authorization = { decision: 'Retry ep01 shot 1 unchanged on temporary failure',
-    episode: 'ep01', shot: 1, constraints: [] };
+    episode: 'ep01', task_id: 'task01', shots: [1], constraints: [] };
   f.save();
   f.write('config.md', '- mode: short\n- 视频比例: 16:9\n- 视频分辨率: 1080p\n- 语言: en\n');
   f.evidence();
@@ -337,7 +337,7 @@ test('failed task needs a persisted unexhausted retry grant before any provider 
   f.task.status = 'failed'; f.save();
   assert.equal(f.run().status, 1);
   assert.equal(existsSync(f.calls), false);
-  f.task.retry_authorization = { decision: 'Retry once unchanged', episode: 'ep01', shot: 1,
+  f.task.retry_authorization = { decision: 'Retry once unchanged', episode: 'ep01', task_id: 'task01', shots: [1],
     constraints: [], max_attempts: 1, attempts: 1 };
   f.save();
   assert.equal(f.run().status, 1);
@@ -349,7 +349,7 @@ test('failed task needs a persisted unexhausted retry grant before any provider 
 test('provider-side crash leaves a durable retry reservation and blocks resume', (t) => {
   const f = fixture(t);
   f.task.status = 'failed';
-  f.task.retry_authorization = { decision: 'Retry at most twice', episode: 'ep01', shot: 1,
+  f.task.retry_authorization = { decision: 'Retry at most twice', episode: 'ep01', task_id: 'task01', shots: [1],
     constraints: [], max_attempts: 2, attempts: 0 };
   f.save();
   writeFileSync(join(f.root, 'dreamina'), `#!/usr/bin/env bash

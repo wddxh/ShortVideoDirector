@@ -109,7 +109,7 @@ const BASE_PERMISSION = {
 // bash usable. Security boundary lives in SKILL.md prompts (LLM is told what
 // commands to run; the LLM is the gatekeeper, not OC permission system).
 const AGENT_BASH_CONFIG = {
-  director: { externalDir: 'allow' },
+  reviewer: { externalDir: 'allow' },
   writer: { externalDir: 'allow' },
   scriptwriter: { externalDir: 'allow' },
   storyboarder: { externalDir: 'allow' },
@@ -125,7 +125,7 @@ const AGENT_BASH_CONFIG = {
  * permission popups and guaranteed tool availability (OC won't disable
  * bash/external_directory tools when permission is blanket-allow).
  *
- * @param agentName - one of director, writer, scriptwriter, storyboarder, creator
+ * @param agentName - one of reviewer, writer, scriptwriter, storyboarder, creator
  * @param allScripts - unused; kept for API compat with prior signature
  */
 export function buildPermissionForAgent(agentName, _allScripts = []) {
@@ -135,7 +135,7 @@ export function buildPermissionForAgent(agentName, _allScripts = []) {
   }
   return {
     ...BASE_PERMISSION,
-    task: ['director', 'creator'].includes(agentName) ? 'allow' : 'deny',
+    task: ['reviewer', 'creator'].includes(agentName) ? 'allow' : 'deny',
     bash: 'allow',
     external_directory: cfg.externalDir,
   };

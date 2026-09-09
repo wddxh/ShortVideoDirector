@@ -27,7 +27,8 @@ describe('ShortVideoDirectorPlugin', () => {
     const config = {};
     await plugin.config(config);
     assert.ok(config.skills.paths.length > 0);
-    assert.ok(Object.keys(config.agent).includes('director'));
+    assert.deepEqual(Object.keys(config.agent).sort(),
+      ['creator', 'reviewer', 'scriptwriter', 'storyboarder', 'writer']);
   });
 
   test('shell.env hook sets CLAUDE_PLUGIN_ROOT', async () => {

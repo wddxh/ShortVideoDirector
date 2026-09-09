@@ -9,7 +9,7 @@ model: sonnet
 
 ## 委托范围
 
-本方法只生产授权基础/衍生资产图。最终 [输入包](../_meta/rules/shot-inputs.md) 由 Creator 组装，每镜至少一个本地 MP4，并做独立 shot-input 审核；本图像 runner 不创建视频任务。最终就绪接受当前 asset-visual；asset-prompt 只审核授权新增/重生集合，复用库存仅作必要参考。保留下述 pending/receipt/force 保护，按 recorded ID 恢复已提交图像任务。
+本方法只生产授权基础/衍生资产图。最终 [输入包](../_meta/rules/shot-inputs.md) 由 Creator 将设计后的连续 shots 装组，`task-inputs/taskNN.json` 恰为 `{shots,references}`，每生成任务至少一个全组 MP4；独立 shot-input 审核 task manifest 的最终集成、内部切点/声音桥及必要边界。本图像 runner 不创建视频任务，也不因视频选镜扩图片授权。最终就绪接受当前 asset-visual；asset-prompt 仅审核授权新增/重生集合，复用库存作必要参考。保留 pending/receipt/force 保护，按 recorded ID 恢复图像任务。
 
 short/series 请求包含本集所需新增基础资产图与本地参考；直接生成/重生请求表达目标操作，不另问生图许可。普通图片制作包含同范围可恢复失败重试、必要质量修复/重生与独立复审，无默认次数/轮次上限。生成一张不等于只许一次；用户明确次数、范围、检查点及费用限制优先。Director 转交实际请求，intake、设置、审核及依赖满足后执行。路径或纯诊断/取回不授权生成；超范围覆盖、固定值冲突和 pending/未知结果仍阻塞。
 
@@ -42,7 +42,7 @@ Dreamina 的 text2image/image2image 使用 `--poll=0`，先持久化 receipt 与
 既有任务按 recorded provider 取回。缺 provider 的 Dreamina-only 记录仅可取回；未知显式 provider 保留并报告，不猜测或重提。纯恢复空集合直接返回，新生产无 pending 则继续配置/证据/授权检查。下载后先按 receipt settle，再移除 matching pending，不重新 prepare 或选设置。纯恢复始终返回，不 force/续生成。none 报 `images:skipped` 仅指新生成，另列实际恢复成功项；缺必需图片仍 blocked，取回不等于验收。
 
 
-缺证据或哈希过时返回 blocked 和具体目标，交由 Director 协调独立审核或兼容性评估；不自行写 pass、不自动重生所有依赖。`review-evidence.mjs check {ep} [SHOT...]` 用于完整交付检查，不要求待生成图片先有 visual pass。已提交 pending 的查询/下载不因新的创作门禁而中断；恢复不等于授权新提交。
+缺证据或哈希过时返回 blocked 和具体目标，交由 Director 协调独立审核或兼容性评估；不自行写 pass、不自动重生所有依赖。资产图以身份/外观、风格、画质与材质为主，无影响细节或参考视频可承担的透视、遮挡、相机、布局/整体运动差异不作为质量重生理由；当前独立 pass 后停止循环。剧情关键特征/动作、用户明确要求及真实身份/质量冲突仍处理。`review-evidence.mjs check {ep} [SHOT...]` 用于完整交付检查，基础图生产/验收不要求未来参考视频，待生成图片无需先有 visual pass；已声明本地图/源码及必要资产依赖仍须就绪。已提交 pending 的查询/下载不因新的创作门禁而中断；恢复不等于授权新提交。
 
 新提交由 Creator 按当前能力与授权字段解析 provider/model/ratio/resolution，验证操作组合及接入限制。none 仅恢复；缺失、不支持或冲突阻塞，不静默 fallback 或覆盖固定值。以下是范围规则，不是固定创作链。
 `basic`：从当前 script 的「本集资产清单」定位卡，再与实际授权新增/重生集合取交集作为生产及 prompt-review 目标；复用库存只作必要依赖。恢复/visual 就绪可用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all`，不因此扩大生产范围。缺清单交责任人补齐。普通生成由 wrapper 在 claim 内确认 completed skip，不凭已有 PNG 跳过 unresolved/failed receipt；明确替换授权才 force。
@@ -67,9 +67,9 @@ Dreamina 的 text2image/image2image 使用 `--poll=0`，先持久化 receipt 与
 
 Dreamina 批量用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-images-dreamina.mjs" [--force] [--concurrency N] JOBS.json`。每项 `{source,output,prompt,images,settings:{provider,model,ratio,resolution}}` 只含审核提示、解析设置及授权资产。Write/Edit 仅写此临时 manifest，每次不超过 2000 字符，不改卡片/review/pending。
 
-默认本地最多 5 个 active jobs，不是账号总配额。Creator 按接入限制与用户约束用 `--concurrency N` 覆盖，不反复问。images 完整有序；同实体及基础/衍生实际引用形成等待边，批内前置完成后供下游使用，批外须就绪。无关目标不加依赖或阶段屏障，待审依赖先满足证据门禁。
+按 [视觉上下文规则](../_meta/rules/visual-context.md)，一个全新 Creator 生成上下文用单一 runner 承接相干、已授权、当前 prompt 门禁通过且就绪的多 job 有限批次，只回文本状态、全部 IDs/路径，不读图或附图。默认最多 5 个 active jobs，不是账号总配额。仅实际 scope、依赖、provider、本地资源或用户约束要求时串行/设 `--concurrency 1` 或调整并发，在现有 handoff 简记依据，不新增报告、schema 或必填配额。images 完整有序；同实体及基础/衍生实际引用形成等待边，批内前置完成后供下游使用，批外须就绪。无关目标不必等待另一目标的视觉验收；同一 review 文件写入串行不等于生图串行，实际待审依赖仍须先满足证据门禁。
 
-禁止用 shell 后台并行 raw provider/单图 wrapper 绕过 runner。重复相同 output 去重，冲突请求拒绝；命中 target/ref pending 的批次整体阻塞。output claim 内复查 pending/receipt 与非 force completed skip，不凭旧 PNG 推定已完成。force 作用于全批，只传明确替换目标；缺少授权的前置不得借入批覆盖。
+单一 runner 管理本批并发，不同时另开 runner 或用 shell 后台并行 raw provider/单图 wrapper 绕过调度。重复相同 output 去重，冲突请求拒绝；命中 target/ref pending 的批次整体阻塞。output claim 内复查 pending/receipt 与非 force completed skip，不凭旧 PNG 推定已完成。force 作用于整次 invocation，按不同 force 授权拆分调用，force 批只传明确替换目标；缺少授权的前置不得借入批覆盖，拆批仍遵守下述停止与恢复边界。
 
 调度发现首次失败/pending 即停止新启动并等待 active 全部结束；保留所有成功、IDs、原始错误与未启动输出，不另开批绕过停止。pending 状态只经 mutex helper 更新；claim 冲突不排队、不自动过期，stale claim/lock 或未知 receipt 先人工核实恢复。调度器不盲重试，也不设置质量轮次上限，后续诊断/修复/复审仍由责任角色决定。具体 CLI/API 输出及整批部分成功恢复见 [图像接口](../creator-provider-dreamina/image.md)。
 
@@ -77,9 +77,9 @@ Dreamina 批量用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-images-dreamina
 
 此门禁在调用 provider、单图 wrapper 或执行任何 force 删除之前生效，覆盖 `basic` 与 `paths` 中所有待新提交的基础/衍生卡，不区分 new、reused 或修正来源。普通 existing skip 不触发付费生成，也不由此取得验收；已有 job 的 recovery-only 查询/下载不受此门禁阻断。
 
-读取 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md` 和本集 `.review-asset-prompts.md`。授权新增/重生集合内每个待提交 target 须有独立 Director 当前 `asset-prompt` pass：取最新声明目标的轮次，核对 kind/scope/results、footer、唯一结果和空 blockers。singleton 或相干纯文本批次可直接写受托轮次；复用库存不扩 scope。最新轮未完成或不可解析为 unknown，用户授权或作者自检不替代验收。
+读取 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/review-meta-rules.md`。对授权新增/重生集合内每个待提交 asset_path，从项目根运行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" check-target asset-prompt "{ep}" "{asset_path}"`。它核对 canonical 文件最新轮的 kind/scope、唯一 result/footer、status/blockers 和全部已记录输入当前性；要求真实独立 Reviewer 的当前 pass。复用库存不扩 scope；缺失、未完成、不可解析或目标不符只使所属目标未验收。失败时按返回 path/status 读取相关意见诊断，用户授权或作者自检不替代验收。
 
-在项目根目录运行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint "{config_path}" "{asset_path}" ...`；config_path 必须是上述规范化结果，不直接传绝对路径或 ./。逐项核对证据 inputs，至少含当前卡和该配置，以及实际参考的剧本、基础卡等输入；对证据内全部项目输入重新采指纹，不能漏掉配置。提交前复核身份，哈希由 helper 计算，不编造或刷新证据冒充审核。
+config_path 使用上述规范化结果。check-target 是提交前的当前证据检查，不是 Reviewer finish 后的必需重复动作；其 exit 0 才表示该目标当前 pass，与 review-round finish 的“记录写入”含义不同。必要语义参考完整性与真实独立上下文仍须成立，helper 不替代判断；不编造或刷新证据冒充审核，门禁范围不变。
 
 缺项、needs_revision、unknown 或过时目标报告 blocked，保留旧 PNG，不传 provider/force；Director 协调独立复审或兼容性评估。仅放行通过的明确目标，缺依赖阻止对应提交。整集 readiness 不是基础图生成前提，不要求未来输出先有 asset-visual pass。
 

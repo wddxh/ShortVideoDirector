@@ -9,7 +9,7 @@ model: opus
 
 ## 范围与许可
 
-付费续交/重试使用当前 typed references，每镜至少一个本地 MP4，manifest 条目仅 local PNG/MP4。按 recorded ID/provider 取回 submitted 任务；缺 ID 则 human_needed，保留状态等待核实。首次与周期 checker 均携带当前输入契约、真实 grants 和 inflight 边界。
+付费续交/重试使用 typed references，每任务至少一个全组本地 MP4，`task-inputs/taskNN.json` 为 `{shots,references}`，条目仅 local PNG/MP4。记录/授权以 task_id 和完整 shots 绑定，输出 `videos/taskNN.mp4`。成员必须匹配当前 manifest/record/grant，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 则 human_needed，保留状态。首次与周期 checker 均携带该契约、真实 grants 和 inflight 边界。
 
 本入口调用表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。缺首次 grant 的新生成交用户后续手动 generate-video；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
 
@@ -35,9 +35,9 @@ model: opus
 
 用 Task 新建 general-purpose checker 并保存 task_id，委托：
 
-> 检查已解析目标 {目标} 的登记视频任务，取回已完成输出并报告进度、阻塞和是否仍需监控；无人值守，按持久 grant 处理，保留原输入和 intent。根据 descriptions 自行选择适用知识。返回末行 JSON，字段为 target、pending、done、submitted、failed、all_complete、human_needed；异常附 error/recoverable，计数不明用 unknown。纯取回由 checker 执行；新提交/重试委托真实 Creator。嵌套不可用返回 role/outcome/references/scope/constraints 给主 AI 转交，不冒充角色。
+> 检查已解析目标 {目标} 的登记视频任务，取回输出并报告进度、阻塞和是否仍需监控；无人值守，按持久 grant 处理，保留原输入和 intent。按 descriptions 选择知识。末行 JSON 为 target、pending、done、submitted、failed、all_complete、human_needed；按生成任务计数，不明用 unknown，human_needed 每 ep/task_id 一条 `{ep,task_id,shots,reason}`，保留完整成员；异常附 error/recoverable。纯取回由 checker 执行；新提交/重试委托真实 Creator。嵌套不可用返回 role/outcome/references/scope/constraints 给主 AI 转交。
 >
-> 配置上下文：{canonical config_path 或 UNRESOLVED}。将此显式值继续传给 Creator；UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认。配置操作用绑定路径显式运行 config-path 核验，所有相关命令共用 SVD_CONFIG；纯取回不验证生成配置。任务保留 prompt/duration/references，submission 为 provider/model/ratio/resolution 和 references:[{media,path,sha256}]；付费输入须含本地 MP4，遵守真实 grants/inflight，submitted 缺 ID 人工核实。
+> 配置上下文：{canonical config_path 或 UNRESOLVED}。继续传给 Creator；UNRESOLVED 只取回并报 human_needed，空值是传输错误，不选默认。配置操作显式验证绑定路径，相关命令共用 SVD_CONFIG；纯取回不验证生成配置。任务保留 task_id/shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 保留四元组和有序媒体指纹，grant 为 {decision,episode,task_id,shots,constraints} 加真实可选次数。每任务须全组 MP4，manifest/record/grant 成员一致才 reserve，漂移或部分选组零调用、不改次数。遵守 inflight，submitted 缺 ID 人工核实。
 
 收到 relay 时，主 AI 派发 sibling Creator，传原请求与实际 grants，等待后恢复同一 checker task_id 并传回结果。不能用新 checker 替代；无角色上下文则让 checker 报 human_needed。普通任务失败不等于深度拒绝；记住确认过的能力，不自动调高深度。
 
@@ -50,13 +50,13 @@ model: opus
 ```text
 监控已解析目标 {目标}，无人值守。本任务以该明确目标绑定，由宿主 job ID 标识。
 监控不是新生成请求；仅延续已登记 initial/retry grants，不补 consent 或无限重试，不向 short/series 自动接入视频提交。
-付费动作只接受当前 typed references，每镜至少一个本地 MP4；按 recorded ID/provider 取回 submitted 任务，缺 ID 报 human_needed，保留记录与 inflight 等待核实。
-任务保留 prompt/duration/references；submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]，保留原始有序媒体、真实 grants 和状态，查询不重建输入快照。
+付费动作使用 typed references，每任务至少一个全组本地 MP4；按 recorded ID/provider 取回 submitted，缺 ID 报 human_needed，保留记录与 inflight。
+任务保留 task_id/shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]。grant 为 {decision,episode,task_id,shots,constraints} 加实际可选次数；manifest/record/grant 成员一致才 reserve，漂移或部分选组零调用、不改次数。查询不重建输入快照。
 有效持续 grants 内的动作不逐轮求批准；新阻塞先查配置、材料与 grants 并由责任角色在权限内判断，无法解决再报 human_needed。进度不自动生成用户决策包，不授权新创作修复。
 按已选模型/参数执行真实授权，不加费用/余额预检、不为省钱降级；仅用户明确费用限制仍有效。缺需求仅报 human_needed，不先编创作候选/提示；仅暂停受影响工作。
 配置上下文：{canonical config_path 或 UNRESOLVED}。显式传入 checker/Creator relay；UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认。配置操作用绑定路径显式运行 config-path 核验，videoProfile/evidence 共用 SVD_CONFIG；纯取回不验证生成配置。
 用 Task 新建 general-purpose checker，委托检查此目标登记任务、取回已完成输出并报告进度和阻塞；按持久授权处理，自行从 descriptions 选择适用知识。
-返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；异常附 error/recoverable，计数不明用 unknown。
+返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；按生成任务计数，不明用 unknown，human_needed 为 {ep,task_id,shots,reason}，每 ep/task_id 一条完整成员。异常附 error/recoverable；监控范围仍 epNN/all，部分选镜报告完整组和额外成员，不静默扩范围。
 查询按 recorded provider；新提交/重试委托真实 Creator，不由 checker 加载 skill 冒充。
 若 checker 因深度限制返回 Creator 请求，主 AI 派 sibling Creator，等待结果后恢复同一个 checker task_id。
 relay 不可用让 checker 报 human_needed，不自行提交、补 grant、清理 inflight 或修创作材料。

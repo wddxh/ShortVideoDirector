@@ -1,5 +1,16 @@
 # Repository Working Agreement
 
+## Context And Ownership
+
+- When developing SVD, the main AI is the engineering lead and delegates repository research, implementation, and testing to engineering agents.
+- When producing a short video, the top-level main AI loads Director orchestration knowledge and directly owns user interaction, creative coordination, scope, and authorization. Production experts own their craft; fresh independent Reviewer tasks own acceptance judgments.
+- Engineering and production share the assistant entry point, while each commission uses its own focused responsibilities and instructions. Loading a skill supplies knowledge; it does not switch roles, grant authority, or establish review independence.
+- Specialists delegate directly when supported. After a confirmed nesting/depth failure or unavailable tool, the main AI/Director relays the requested role, outcome, references, scope, and constraints, then returns the actual result to the original requesting task. Reuse the confirmed capability limit; preserve fresh-context requirements for subsequent visual operations.
+
+## Project Files
+
+Follow [story project layout](skills/_meta/rules/project-layout.md) when choosing production output paths. Choose precise paths before dispatch, keep canonical materials and tool-owned records stable, and use scoped work directories only when a task needs files. Simple tasks may return text; this guidance does not authorize migration or duplicate status ledgers.
+
 ## Engineering Scope
 
 - Prefer the smallest correct change. Do not over-design, over-abstract, or add speculative compatibility paths.

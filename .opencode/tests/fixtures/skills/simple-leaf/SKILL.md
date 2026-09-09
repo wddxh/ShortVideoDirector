@@ -1,8 +1,7 @@
 ---
 name: simple-leaf
 description: A simple leaf skill fixture
-agent: director
-context: fork
+agent: reviewer
 ---
 
 # 简单 leaf

@@ -21,7 +21,8 @@ test('all Codex wrappers resolve source skills from plugin root', () => {
     const name = wrapper.split('/').at(-2);
     const source = readFileSync(join(process.cwd(), 'skills', name, 'SKILL.md'), 'utf8');
     const role = source.match(/^agent: (.+)$/m)?.[1];
-    if (role) assert.match(text, new RegExp(`^agent: ${role}$`, 'm'));
+    assert.equal(text.match(/^agent: (.+)$/m)?.[1], role, name);
+    assert.doesNotMatch(text, /^context: fork$/m);
     assert.match(text, /\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/[^/]+\/SKILL\.md/);
     assert.match(text, /plugin directory.*\$\{CLAUDE_PLUGIN_ROOT\}/i);
     assert.doesNotMatch(text, /读取 `skills\/[^`]+\/SKILL\.md`/);
@@ -36,7 +37,7 @@ test('Codex Task mapping dispatches and fails closed for isolation', () => {
   assert.equal(task.with_subagent, 'dispatch_apply_role_outcome_wait');
   assert.equal(task.role_source, 'agents/<role>.md');
   assert.deepEqual(task.payload, ['role', 'outcome', 'references', 'scope', 'constraints']);
-  assert.equal(task.nesting_unavailable, 'main_relay_resume_owner');
+  assert.equal(task.nesting_unavailable, 'main_director_relay_resume_requester');
   assert.equal(task.review_context, 'fresh_without_producer_history');
   assert.equal(task.relay_unavailable, 'blocked_no_self_review');
 });
@@ -70,7 +71,7 @@ test('Codex regeneration removes retired wrappers and stale guides only in its o
     for (const name of ['demo', 'retired']) {
       mkdirSync(join(root, 'skills', name), { recursive: true });
       writeFileSync(join(root, 'skills', name, 'SKILL.md'),
-        `---\nname: ${name}\ndescription: fixture\nagent: director\n---\nBody`);
+        `---\nname: ${name}\ndescription: fixture\nagent: reviewer\n---\nBody`);
     }
     const build = () => execFileSync('python3', [join(root, '.codex/build-codex-skills.py')]);
     build();

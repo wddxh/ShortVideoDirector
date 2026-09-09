@@ -15,7 +15,7 @@ model: sonnet
 - 实际配置 SVD_CONFIG（未设时 config.md）；本文 config.md 均指实际路径
 - 受影响角色的资产卡 — 存在时读取以核对人物声音和身份
 - `${CLAUDE_PLUGIN_ROOT}/skills/writer-novel/rules.md` — 必须读取并严格遵循
-- `story/episodes/{ep}/.review-novel.md` — 仅委托指定为意见来源时读取；直接请求或当前 findings 不需要历史 review
+- `reviews/{ep}/novel.md`：仅委托指定为意见来源时读取；直接请求或当前 findings 不需要历史 review
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ### 委托理解

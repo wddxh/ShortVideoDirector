@@ -2,19 +2,18 @@
 name: series-video
 description: 在开始多集系列、续作下一集或用 /series-video config 查看配置时使用。
 user-invocable: true
-agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, Skill
 model: opus
 argument-hint: "自然语言目标、材料或配置请求"
 ---
 
 ## 委托入口
 
-交付采用 [shot-inputs](../_meta/rules/shot-inputs.md)：manifest 顶层仅 references，每镜至少一个本地 MP4，可辅以 PNG；header 资产图提供身份，sources 不上传。静态相机可用静态 clip。独立 shot-input 审核聚焦实际输入集成、变化细节与必要跨镜/跨集边界，已有 storyboard 判断在无冲突时复用。就绪要求 script/storyboard/asset-visual/shot-input，asset-prompt 只覆盖授权新增/重生集合。系列预算、继承四元组及视频独立授权保持。
+交付采用 [shot-inputs](../_meta/rules/shot-inputs.md)：Creator 设计后将连续摄影 shots 装组，保留时长/对白/切点，`task-inputs/taskNN.json` 恰为 `{shots,references}`，独立 task_id 来自文件名，每生成任务至少一个全组 MP4，可辅 PNG；header 身份图在前，sources 不上传，静态段可用 clip。独立 shot-input target 为 task manifest，审核最终集成/delta、内部切点/声音桥及必要跨镜/跨集边界，无冲突复用 storyboard 判断。就绪要求 script/storyboard/asset-visual/shot-input，asset-prompt 仅覆盖授权新增/重生集合。选镜须完整组，部分组报告完整成员/额外镜头，不扩授权；系列预算、四元组及视频独立授权保持。
 
 用户决策前必读 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/user-decision-relay.md`。原角色一次给齐全部可预见相关问题/表、题界、完整选项/解释、稳定标签及条件分支。主 AI 读全并内部保留计划，仅沿作者题界展示当前题全部内容，再用可用原生键盘选择器，questions 恰好一项。等回答再问下一适用题，相关原始答复及全部条件经 Director 批量完整回原角色原任务，不逐题往返；仅缺内容/映射、不相容或计划外新决定才提前回询。只应用作者条件，不有损改写、不提前展示全表；长解释在控件前，Markdown 不替代可用控件，宿主限制明确披露。
 
-主 AI 负责配置、输入、目标与用户决策；用 Task 将创作成果委托 Director，不自己编排创作步骤。每次仅制作一集；制作请求包含所需新增基础资产图和本地参考，intake/当前审核满足后执行，不另问生图授权。配置查看/纯诊断不生成；范围外覆盖、固定设置冲突或受保护任务仍须处理。本流程始终停在付费视频提交前；只有用户后续手动调用 generate-video 才提交视频。
+主 AI 在当前上下文用 Skill 加载 `director-orchestrate`，作为生产 Director 负责配置、输入、目标、用户决策与创作协调。每次仅制作一集；制作请求包含所需新增基础资产图和本地参考，intake/当前审核满足后执行，不另问生图授权。配置查看/纯诊断不生成；范围外覆盖、固定设置冲突或受保护任务仍须处理。本流程始终停在付费视频提交前；只有用户后续手动调用 generate-video 才提交视频。
 
 ## 配置与目标
 
@@ -38,9 +37,9 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 新系列在第一集开始时由用户决定每集总时长。结合本次请求读取 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh" "每集时长目标" "{config_path}"`；用户已给出的目标或明确配置直接复用，续集不重复询问。两处均缺失、空白或仅有未经确认模板值时，正式制作前询问目标或范围，不默用 1-2 分钟；冲突先澄清。查看配置不初始化或追问制作设置。
 
-初次设置单值时说明并确认 scene-duration 的 ±10% 容差及对应秒数边界；用户更严格的限制优先，精确时长用相等上下界。显式范围不额外放宽。实际目标与确认的容差/严格边界保存到实际配置，并随每集委托传给 Director。
+初次设置单值时说明并确认 scene-duration 的 ±10% 容差及对应秒数边界；用户更严格的限制优先，精确时长用相等上下界。显式范围不额外放宽。主 AI 将实际目标与确认的容差/严格边界保存到实际配置，并向每集受托专家和 Reviewer 传递同一预算。
 
-全部集始终共用这个初始用户目标/范围，使各集总时长大致相同；不能拿上一集实际时长作为下一集目标而逐集漂移。单 shot 时长与内容可在 provider/项目约束内灵活安排，但合计遵守共同预算。Creator 参数自主权不含修改集目标；冲突或内容无法适配由 Director 提修改方案或经主 AI 询问用户，不自动拉长或静默改系列共同目标。
+全部集共用初始用户目标/范围，不拿上一集实际时长作下一集目标。摄影 shot 按叙事及项目限制分配正整数秒，可用短镜，不受 provider 最短时长或 70% 任务目标约束，合计遵守共同预算。Creator 只对装组后的生成任务核对模型边界，不改原时长、对白和切点；参数自主权不含修改集目标。冲突交 Director 协调，不自动拉长或改系列共同目标。
 
 ## Provider 配置
 
@@ -64,11 +63,11 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 ## 成果委托与转交
 
-用 Task 派发 `director`，保存原始 `task_id`。委托本集 mode/ep、期望成果、config/材料路径、用户原意、已知需求与明确委托、制作前确认、授权范围、集时长与限制、决策余地及升级条件。交付相容剧本、分镜、基础资产卡/图、逐镜 manifest 与媒体、独立证据、必要跨镜/跨集连续性判断和未决项。缺 script 清单请 Scriptwriter 接纳现有剧本补齐；arc/outline/novel 按需采用，不强制补齐规划文件。
+主 AI 直接统筹本集 mode/ep，保留成果、config/材料路径、用户原意、已知需求与明确委托、制作前确认、授权范围、集时长与限制、决策余地及升级条件。按成果委托专家，交付相容剧本、分镜、基础资产卡/图、生成 task manifest/完整 shots 与媒体、独立证据、必要跨镜/跨集连续性判断和未决项；生成 task_id 与代理任务 ID 分开。缺 script 清单请 Scriptwriter 接纳剧本补齐；arc/outline/novel 按需采用。
 
-Director 按 descriptions 自选知识，不派发“加载并执行某 skill”的任务。嵌套实际可用时由 Director 协作；明确深度拒绝后在会话内记住限制，普通任务失败不算嵌套不可用。收到转交请求时，主 AI 按其目标角色、成果、路径、范围和约束忠实派发，将结果送回原 Director `task_id` 继续；不另排顺序、不升宿主深度。审核另开全新 Director 上下文，不继承制作历史；无独立上下文则保持阻塞。
+Director 与专家按 descriptions 自选知识，委托说明成果而非技能链。专家/审核协调者可嵌套时直接委派；工具不可用或明确深度拒绝后复用已知限制，普通失败不算。主 AI 忠实转交角色、成果、路径、范围与约束，并恢复原专家、审核协调者或 checker 任务传回实际结果，不调高深度。审核用全新 Reviewer 上下文，不继承制作历史；后续视觉操作仍新 task。必要角色或隔离不可用则阻塞。
 
-用户待决问题由主 AI 完整呈现，未委托的选择明确询问；实际答复完整送回同一 Director 及原发起角色。候选选定须来自实际用户决定或其明确的选择委托，主 AI 不代选、不接管创作、不代写 pass。
+主 AI 可编写自己的完整剧情候选并直接呈现，未委托的选择询问用户；已有选择委托由责任角色在范围内决定。自编计划的完整答复本地保留；专家计划及相关原始答复/条件完整批量回原发起任务，不做主 AI 自我 relay，不代写 pass。
 
 ## 交付与失败
 
@@ -78,4 +77,4 @@ Director 报告当前范围与证据；整集用 `SVD_CONFIG="{config_path}" nod
 
 ## 输入
 
-请求可混合文件参考、内联材料与修改意见；按语义识别路径，无法定位或读取先澄清，不把整句按扩展名分类。长材料向 Director 传路径及简短意图，不复制整篇。已有剧本、分镜和用户选定方向可复用，不强迫重选候选。
+请求可混合文件参考、内联材料与修改意见；按语义识别路径，无法定位或读取先澄清，不把整句按扩展名分类。长材料由主 AI 读取，向专家委托时传路径及准确意图，不复制整篇；决策包仍须全文转交。已有剧本、分镜和用户选定方向可复用，不强迫重选候选。

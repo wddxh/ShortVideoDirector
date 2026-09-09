@@ -71,6 +71,15 @@ test('commands transport one raw request without positional interpolation', () =
   }
 });
 
+test('entry commands stay in the main context without a director command', () => {
+  const commands = deriveCommands({});
+  assert.deepEqual(Object.keys(commands).sort(), [...USER_INVOCABLE_ENTRY_WORKFLOWS].sort());
+  for (const command of Object.values(commands)) {
+    assert.equal(command.agent, undefined);
+    assert.equal(command.subtask, undefined);
+  }
+});
+
 test('commands derive: template 指引 LLM 调 skill tool', () => {
   const template = buildCommandTemplate('auto-video');
   assert.ok(template.includes('Skill tool') || template.includes('skill tool'),

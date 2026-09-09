@@ -42,7 +42,7 @@ describe('loadAndTransform integration', () => {
       assert.ok(cached.includes(cachedRule), name);
       assert.ok(cached.includes(ROLE_HANDOFF_GUIDANCE), name);
     }
-    for (const name of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+    for (const name of ['reviewer', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
       const source = await readFile(path.join(PROJECT_ROOT, 'agents', name + '.md'), 'utf8');
       const link = '../' + rule;
       assert.ok(source.includes(`](${link})`), name);
@@ -84,7 +84,8 @@ describe('loadAndTransform integration', () => {
   test('produces valid cacheSkillsDir and agents object', async () => {
     const { cacheSkillsDir, agents } = await loadAndTransform(PROJECT_ROOT);
     assert.match(cacheSkillsDir, /short-video-director/);
-    assert.ok(Object.keys(agents).includes('director'));
+    assert.ok(Object.keys(agents).includes('reviewer'));
+    assert.equal(Object.hasOwn(agents, 'director'), false);
     assert.ok(Object.keys(agents).includes('creator'));
     // 二次调用是 cache hit，结果应一致
     const second = await loadAndTransform(PROJECT_ROOT);

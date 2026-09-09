@@ -18,6 +18,11 @@ export function readStoryboardShot(file, number) {
   const headerEnd = block.search(/^\*\*画面与声音描述：\*\*$/mu);
   if (headerEnd < 0) throw new Error(`prose missing for shot ${shot}`);
   const header = block.slice(0, headerEnd);
+  const styles = [...header.matchAll(/^- 视频风格：([^\n]+)$/gmu)];
+  if (styles.length !== 1 || !styles[0][1].trim() ||
+      header.split('\n').filter(line => line.startsWith('- 视频风格：')).length !== 1) {
+    throw new Error(`video style missing or invalid for shot ${shot}`);
+  }
   const durations = [...header.matchAll(/^- 时长：([1-9]\d*)s$/gmu)];
   if (durations.length !== 1 || header.split('\n').filter(line => line.startsWith('- 时长：')).length !== 1) {
     throw new Error(`duration missing or invalid for shot ${shot}`);
@@ -26,5 +31,7 @@ export function readStoryboardShot(file, number) {
     .map(([field]) => field).join('\n');
   const headerRefs = [...declarations.matchAll(/\[([^\]]+)\]\((assets\/(?:characters|locations|items|buildings)\/[^)]+\.md)\)/gu)]
     .map(([, name, markdown]) => ({ name, markdown }));
-  return { block, duration: Number(durations[0][1]), headerRefs };
+  const duration = Number(durations[0][1]);
+  if (!Number.isSafeInteger(duration)) throw new Error(`invalid duration for shot ${shot}`);
+  return { block, duration, headerRefs, style: styles[0][0] };
 }

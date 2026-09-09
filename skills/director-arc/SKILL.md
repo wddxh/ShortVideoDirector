@@ -2,12 +2,13 @@
 name: director-arc
 description: 当多集故事需要统筹人物转变、关键转折、伏笔回收和集数分配，或已有阶段规划不足时使用。
 user-invocable: false
-agent: director
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 
 ## 输入
+
+顶层主 AI/Director 在当前上下文加载本知识，直接规划、落盘和处理用户确认；专家协作与全新 Reviewer 验收沿用 director-orchestrate 和共享决策规则，自编计划不做自我 relay。
 
 ### 文件读取
 - 实际配置 `SVD_CONFIG`（未设时 `config.md`）；本文与 rules.md 的 config.md 均指此路径
@@ -25,6 +26,8 @@ model: sonnet
 - 若 N > 1 → 作为节点分布的总集数
 
 continue-series 同样从 config.md 读（不再从 arc.md 推断）。
+
+按 [项目布局](../_meta/rules/project-layout.md) 保留 `story/arc.md` 的当前来源；跨集临时交接按需放入 `story/work/shared/<work-unit>/`，委托前指定精确输出路径，不额外复制规划或状态。
 
 ## 职责描述
 

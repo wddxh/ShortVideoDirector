@@ -5,7 +5,7 @@ import { ROLE_HANDOFF_GUIDANCE } from '../lib/tool-mapping.js';
 
 describe('generateBootstrap', () => {
   const sampleAgents = {
-    director: { description: 'Senior director' },
+    reviewer: { description: 'Independent reviewer' },
     writer: { description: 'Novel writer' },
     scriptwriter: { description: 'Script writer' },
     storyboarder: { description: 'Storyboard' },
@@ -23,9 +23,8 @@ describe('generateBootstrap', () => {
 
   test('lists all 5 agent names', () => {
     const out = generateBootstrap('/fake/root', sampleAgents);
-    for (const name of ['director', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
-      assert.ok(out.includes(name), `bootstrap should contain agent name "${name}"`);
-    }
+    assert.deepEqual([...out.matchAll(/^- \*\*([a-z]+)\*\*/gm)].map(m => m[1]),
+      ['reviewer', 'writer', 'scriptwriter', 'storyboarder', 'creator']);
   });
 
   test('lists user-invocable entry workflows', () => {

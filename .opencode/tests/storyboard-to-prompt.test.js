@@ -43,10 +43,12 @@ function shot(number = 1, duration = 8) {
 
 function validProject(root, block = shot()) {
   write(root, 'story/episodes/ep01/storyboard.md', `# ep01 分镜\n\n${block}\n`);
-  for (const n of [1, 2]) write(root, `story/episodes/ep01/shot-inputs/shot0${n}.json`, JSON.stringify({
-    references: [{ kind: 'local', media: 'video', path: 'references/motion.mp4',
+  for (const n of [...block.matchAll(/^### shot ([1-9]\d*)$/gm)].map(m => Number(m[1]))) {
+    write(root, `story/episodes/ep01/task-inputs/task${String(n).padStart(2, '0')}.json`, JSON.stringify({
+    shots: [n], references: [{ kind: 'local', media: 'video', path: 'references/motion.mp4',
       use: 'Motion', sources: ['references/scene.blend'] }],
   }));
+  }
   write(root, 'references/motion.mp4', 'MP4');
   write(root, 'references/scene.blend', 'scene');
   for (const file of ['assets/characters/阿青.md', 'assets/characters/阿明.md',
@@ -59,7 +61,7 @@ function validProject(root, block = shot()) {
 }
 
 function run(root, shotNumber = 1) {
-  return spawnSync('bash', [SCRIPT, 'story/episodes/ep01/storyboard.md', String(shotNumber)], {
+  return spawnSync('bash', [SCRIPT, 'story/episodes/ep01/storyboard.md', `task${String(shotNumber).padStart(2, '0')}`, 'ep01'], {
     cwd: root,
     encoding: 'utf8',
   });
@@ -85,7 +87,7 @@ test('emits stable deduplicated assets, local MP4 and complete bound shot', () =
     const expected = block.replaceAll('[阿青](assets/characters/阿青.md)', '[阿青:{图片1}]')
       .replaceAll('[古城](assets/locations/古城.md)', '[古城:{图片2}]')
       .replaceAll('[铜镜](assets/items/铜镜.md)', '[铜镜:{图片3}]');
-    assert.equal(prompt.split('\n').slice(5).join('\n'), expected);
+    assert.equal(prompt.slice(prompt.indexOf('### shot 1')), expected.replace('- 视频风格：写实\n', ''));
     assert.ok(!prompt.includes('assets/'));
   });
 });
@@ -96,7 +98,7 @@ test('shared shot reader returns complete source, duration and raw header aliase
     const file = join(root, 'board.md');
     write(root, 'board.md', `${block}\n\n## Next scene\nEXCLUDED\n`);
     assert.deepEqual(readStoryboardShot(file, 1), {
-      block, duration: 8,
+      block, duration: 8, style: '- 视频风格：写实',
       headerRefs: [
         { name: '阿青', markdown: 'assets/characters/阿青.md' },
         { name: '阿青', markdown: 'assets/characters/阿青.md' },
@@ -126,7 +128,8 @@ test('blank lines within declared lists preserve reference order and the complet
       .replaceAll('[阿明](assets/characters/阿明.md)', '[阿明:{图片2}]')
       .replaceAll('[古城](assets/locations/古城.md)', '[古城:{图片3}]')
       .replaceAll('[铜镜](assets/items/铜镜.md)', '[铜镜:{图片4}]');
-    assert.equal(JSON.parse(result.stdout).prompt.split('\n').slice(6).join('\n'), expected);
+    const prompt = JSON.parse(result.stdout).prompt;
+    assert.equal(prompt.slice(prompt.indexOf('### shot 1')), expected.replace('- 视频风格：写实\n', ''));
   });
 });
 
@@ -135,8 +138,8 @@ test('selects only an exact unique shot heading', () => {
     validProject(root, `${shot(1)}\n\n### shot 10\n- 时长：5s\n`);
     assert.equal(run(root, 1).status, 0);
     write(root, 'story/episodes/ep01/storyboard.md', `${shot(1)}\n\n${shot(1)}\n`);
-    fail(run(root, 1), /duplicate shot 1/);
-    fail(run(root, 2), /shot 2 not found/);
+    fail(run(root, 1), /unique and increasing/);
+    fail(run(root, 2), /unique and increasing/);
   });
 });
 
@@ -152,7 +155,8 @@ test('rewrites declared paths throughout the shot without changing local text or
       .replaceAll('[古城](assets/locations/古城.md)', '[古城:{图片2}]')
       .replaceAll('[铜镜](assets/items/铜镜.md)', '[铜镜:{图片3}]')
       .replaceAll('[镜面](assets/items/铜镜.md)', '[镜面:{图片3}]');
-    assert.equal(JSON.parse(result.stdout).prompt.split('\n').slice(5).join('\n'), expected);
+    const prompt = JSON.parse(result.stdout).prompt;
+    assert.equal(prompt.slice(prompt.indexOf('### shot 1')), expected.replace('- 视频风格：写实\n', ''));
   });
 });
 
@@ -178,7 +182,8 @@ test('scene and trailing section boundaries preserve only the selected shot cont
     const expected = block.replaceAll('[阿青](assets/characters/阿青.md)', '[阿青:{图片1}]')
       .replaceAll('[阿明](assets/characters/阿明.md)', '[阿明:{图片2}]')
       .replaceAll('[铜镜](assets/items/铜镜.md)', '[铜镜:{图片3}]');
-    assert.equal(JSON.parse(first.stdout).prompt.split('\n').slice(5).join('\n'), expected);
+    const prompt = JSON.parse(first.stdout).prompt;
+    assert.equal(prompt.slice(prompt.indexOf('### shot 1')), expected.replace(/^- 视频风格：[^\n]+\n/m, ''));
     assert.doesNotMatch(first.stdout, /SOURCE_|NEXT_|TRAILING_/);
     const last = run(root, 2);
     assert.equal(last.status, 0, last.stderr);
@@ -202,7 +207,7 @@ test('prose ends at section headings, separators, comment footers or EOF', () =>
 test('fails before output when duration, manifest, local MP4, or base PNG is missing', () => {
   const cases = [
     ['duration', (root) => write(root, 'story/episodes/ep01/storyboard.md', `${shot().replace('- 时长：8s\n', '')}\n`)],
-    ['shot01.json', (root) => rmSync(join(root, 'story/episodes/ep01/shot-inputs/shot01.json'))],
+    ['task01.json', (root) => rmSync(join(root, 'story/episodes/ep01/task-inputs/task01.json'))],
     ['motion.mp4', (root) => rmSync(join(root, 'references/motion.mp4'))],
     ['铜镜.png', (root) => rmSync(join(root, 'assets/images/items/铜镜.png'))],
   ];

@@ -4,16 +4,17 @@ import { readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { videoProject } from './fixtures/video-project.js';
+import { reviewPath } from '../../scripts/review-evidence.mjs';
 
 const ep = 'story/episodes/ep01';
-const input = `${ep}/shot-inputs/shot01.json`;
+const input = `${ep}/task-inputs/task01.json`;
 const script = join(process.cwd(), 'scripts/check-episode.sh');
 const run = (f, config = 'config.md') => spawnSync('bash', [script, 'ep01', config], { cwd: f.root, encoding: 'utf8' });
 const read = (f, file) => readFileSync(join(f.root, file), 'utf8');
 
 test('scoped checker resolves selected manifests and rejects invalid selections', t => {
   const f = videoProject(t, 1, 2);
-  rmSync(join(f.root, input.replace('shot01', 'shot02')));
+  rmSync(join(f.root, input.replace('task01', 'task02')));
   assert.equal(f.cli('check-shot-inputs.mjs', ['ep01', '1']).status, 0);
   assert.equal(f.cli('review-evidence.mjs', ['check', 'ep01', '1']).status, 0);
   for (const args of [['ep01'], ['ep01', '2'], ['ep01', '9'], ['ep01', '--unknown']]) {
@@ -23,18 +24,17 @@ test('scoped checker resolves selected manifests and rejects invalid selections'
 
 test('scoped shot 15 accepts gaps but rejects duplicate or decreasing provided headings', t => {
   const f = videoProject(t);
-  const board = `${ep}/storyboard.md`, target = input.replace('shot01', 'shot15');
+  const board = `${ep}/storyboard.md`, target = input.replace('task01', 'task15');
   const block = read(f, board).replace('shot 1', 'shot 15');
-  f.write(target, read(f, input));
+  f.write(target, JSON.stringify({ ...JSON.parse(read(f, input)), shots: [15] }));
   rmSync(join(f.root, input));
   const renew = () => {
-    for (const [kind, file, path] of [['script', 'script', `${ep}/script.md`],
-      ['storyboard', 'storyboard', board], ['asset-visual', 'basic-assets-visual', 'assets/items/lamp.md'],
-      ['shot-input', 'shot-inputs', target]]) {
+    for (const [kind, path] of [['script', `${ep}/script.md`],
+      ['storyboard', board], ['asset-visual', 'assets/items/lamp.md'], ['shot-input', target]]) {
       const required = f.cli('review-evidence.mjs', ['required', kind, path]);
       assert.equal(required.status, 0, required.stderr);
       const inputs = JSON.parse(f.cli('review-evidence.mjs', ['fingerprint', ...JSON.parse(required.stdout)]).stdout);
-      f.write(`${ep}/.review-${file}.md`, '## 第 1 轮\n<!-- svd-review-evidence -->\n```json\n' +
+      f.write(reviewPath(kind, path, 'ep01'), '## 第 1 轮\n<!-- svd-review-evidence -->\n```json\n' +
         JSON.stringify({ kind, scope: [path],
           results: [{ target: path, status: 'pass', inputs, blockers: [] }] }) + '\n```\n<!-- /round-1 -->\n');
     }
@@ -50,7 +50,7 @@ test('scoped shot 15 accepts gaps but rejects duplicate or decreasing provided h
   assert.equal(check('15').status, 0);
   assert.equal(review('15').status, 0);
   for (const headings of ['### shot 3\n### shot 3', '### shot 4\n### shot 3', '### shot 20']) {
-    f.write(board, `${headings}\n\n${block}`); renew();
+    f.write(board, `${headings}\n\n${block}`);
     assert.equal(check('15').status, 1, headings);
     assert.equal(review('15').status, 1, headings);
   }
@@ -78,8 +78,8 @@ test('selected review checks only referenced assets; reused assets still need cu
 });
 
 test('interrupted scoped evidence and heading-only reviews cannot establish acceptance', t => {
-  const f = videoProject(t, 1, 2), file = `${ep}/.review-shot-inputs.md`;
-  const old = read(f, file), target = input.replace('shot01', 'shot02');
+  const f = videoProject(t, 1, 2), file = f.reviews['shot-input'][1];
+  const old = read(f, file), target = input.replace('task01', 'task02');
   const start = '\n## 第 2 轮\n<!-- svd-review-evidence -->\n```json\n';
   const check = shot => f.cli('review-evidence.mjs', ['check', 'ep01', shot]);
   for (const suffix of [JSON.stringify({ kind: 'shot-input', scope: [target], results: [] }),
@@ -89,23 +89,40 @@ test('interrupted scoped evidence and heading-only reviews cannot establish acce
     assert.equal(check('2').status, 1);
   }
   for (const text of [old + start + '{', '## 第 1 轮\n<!-- /round-1 -->\n']) {
-    f.write(file, text); assert.equal(check('1').status, 1);
+    f.write(file, text);
+    assert.equal(check('1').status, 0);
+    assert.equal(check('2').status, 1);
   }
-  rmSync(join(f.root, file)); assert.equal(check('1').status, 1);
+  rmSync(join(f.root, file));
+  assert.equal(check('1').status, 0);
+  assert.equal(check('2').status, 1);
 });
 
 test('neighbor review extra input hashes stale only the dependent shot', t => {
   const f = videoProject(t, 1, 3);
-  const neighbor = `${ep}/.review-neighbor.md`;
+  const neighbor = 'reviews/ep01/neighbor.md';
   f.write(neighbor, 'visual observation');
   const extra = JSON.parse(f.cli('review-evidence.mjs', ['fingerprint', neighbor]).stdout)[0];
-  edit(f, '.review-shot-inputs.md', r => { r.results[1].inputs.push(extra); });
+  edit(f, f.reviews['shot-input'][1], r => { r.results[0].inputs.push(extra); });
   const check = shot => f.cli('review-evidence.mjs', ['check', 'ep01', String(shot)]);
   assert.equal(check(2).status, 0);
   f.write(neighbor, 'new visual observation');
   assert.equal(check(1).status, 0);
   assert.equal(check(2).status, 1);
   assert.equal(check(3).status, 0);
+});
+
+test('unrelated task manifests and media do not become whole-plan review dependencies', t => {
+  const f = videoProject(t, 1, 2);
+  const other = input.replace('task01', 'task02');
+  const required = JSON.parse(f.cli('review-evidence.mjs', ['required', 'shot-input', input]).stdout);
+  assert.ok(!required.includes(other));
+  const manifest = JSON.parse(read(f, other));
+  manifest.references[0].path = 'references/neighbor.mp4';
+  f.write(other, JSON.stringify(manifest));
+  const result = f.cli('review-evidence.mjs', ['check', 'ep01', '1']);
+  assert.equal(result.status, 0, result.stderr + result.stdout);
+  assert.equal(f.cli('review-evidence.mjs', ['check', 'ep01', '2']).status, 1);
 });
 
 test('base inventory completeness and provider-independent image checks stay scoped', t => {
@@ -131,8 +148,8 @@ test('active custom config requires its own fingerprints, never default fallback
   f.write('custom.md', '- mode: short\n');
   assert.equal(run(f, 'custom.md').status, 1);
   const hash = JSON.parse(f.cli('review-evidence.mjs', ['fingerprint', 'custom.md']).stdout)[0];
-  for (const file of ['script', 'storyboard', 'basic-assets-visual', 'shot-inputs']) {
-    edit(f, `.review-${file}.md`, r => {
+  for (const file of Object.values(f.reviews).flat()) {
+    edit(f, file, r => {
       for (const result of r.results) result.inputs = result.inputs.map(i => i.path === 'config.md' ? hash : i);
     });
   }
@@ -188,13 +205,13 @@ test('numbering and exactly one positive duration remain mandatory', t => {
 
 test('required dependency omissions and missing manifests cannot preserve pass', t => {
   const f = videoProject(t);
-  for (const file of ['.review-storyboard.md', '.review-shot-inputs.md']) {
-    const original = read(f, `${ep}/${file}`);
+  for (const file of [...f.reviews.storyboard, ...f.reviews['shot-input']]) {
+    const original = read(f, file);
     const record = JSON.parse(/```json\n([^`]+)\n```/.exec(original)[1]);
     for (const omitted of record.results[0].inputs) {
       edit(f, file, r => { r.results[0].inputs = r.results[0].inputs.filter(i => i.path !== omitted.path); });
       assert.equal(run(f).status, 1, omitted.path);
-      f.write(`${ep}/${file}`, original);
+      f.write(file, original);
     }
   }
   rmSync(join(f.root, input));
@@ -202,23 +219,23 @@ test('required dependency omissions and missing manifests cannot preserve pass',
   assert.equal(f.cli('review-evidence.mjs', ['check', 'ep01', '1']).status, 1);
 });
 function edit(f, file, change) {
-  const text = read(f, `${ep}/${file}`);
+  const text = read(f, file);
   const block = /```json\n([^`]+)\n```/.exec(text);
   const record = JSON.parse(block[1]); change(record);
-  f.write(`${ep}/${file}`, text.replace(block[1], JSON.stringify(record)));
+  f.write(file, text.replace(block[1], JSON.stringify(record)));
 }
 
 test('readiness requires script, storyboard, asset visual and shot input reviews', t => {
   const f = videoProject(t);
-  rmSync(join(f.root, `${ep}/.review-asset-prompts.md`));
+  rmSync(join(f.root, f.reviews['asset-prompt'][0]));
   const result = run(f);
   assert.equal(result.status, 0, result.stdout + result.stderr);
   for (const stage of ['script', 'storyboard', 'asset-visual', 'shot-input']) assert.ok(result.stdout.includes(`${stage}-review:ok`));
   assert.doesNotMatch(result.stdout, /asset-prompt-review/);
-  assert.equal(result.stdout.split('shot-inputs:ok').length - 1, 1);
+  assert.equal(result.stdout.split('task-inputs:ok').length - 1, 1);
   assert.equal(result.stdout.split('storyboard:ok').length - 1, 1);
-  for (const file of ['script', 'storyboard', 'basic-assets-visual', 'shot-inputs']) {
-    const review = `${ep}/.review-${file}.md`, saved = read(f, review);
+  for (const file of ['script', 'storyboard', 'asset-visual', 'shot-input']) {
+    const review = f.reviews[file][0], saved = read(f, review);
     rmSync(join(f.root, review));
     assert.equal(run(f).status, 1, file);
     f.write(review, saved);
@@ -226,6 +243,6 @@ test('readiness requires script, storyboard, asset visual and shot input reviews
   f.write(input, '{');
   for (const checked of [run(f), f.cli('review-evidence.mjs', ['check', 'ep01', '1'])]) {
     assert.equal(checked.status, 1);
-    assert.match(checked.stdout, /^shot-inputs:invalid:shot1:/m);
+    assert.match(checked.stderr, /JSON/);
   }
 });

@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdtemp, readFile as readFileAsync, rm, readdir, mkdir, writeFile } from 'fs/promises';
 import os from 'os';
-import { NATIVE_QUESTION_GUIDANCE } from '../lib/tool-mapping.js';
+import { NATIVE_QUESTION_GUIDANCE, USER_INVOCABLE_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
 import {
   parseSkillFile,
   rewriteFrontmatter,
@@ -24,15 +24,15 @@ describe('parseSkillFile', () => {
     const fp = path.join(__dirname, 'fixtures/skills/simple-leaf/SKILL.md');
     const { frontmatter, body } = await parseSkillFile(fp);
     assert.equal(frontmatter.name, 'simple-leaf');
-    assert.equal(frontmatter.agent, 'director');
-    assert.equal(frontmatter.context, 'fork');
+    assert.equal(frontmatter.agent, 'reviewer');
+    assert.equal(frontmatter.context, undefined);
     assert.ok(body.includes('简单 leaf'));
   });
 });
 
 describe('rewriteFrontmatter', () => {
   test('source role capabilities preserve descriptions and association without fork', async () => {
-    const roles = new Set(['director', 'creator', 'writer', 'scriptwriter', 'storyboarder']);
+    const roles = new Set(['reviewer', 'creator', 'writer', 'scriptwriter', 'storyboarder']);
     let checked = 0;
     for (const entry of await readdir(path.join(PROJECT_ROOT, 'skills'))) {
       if (![...roles].some(role => entry.startsWith(`${role}-`))) continue;
@@ -51,7 +51,7 @@ describe('rewriteFrontmatter', () => {
 
   test('keeps name and description, drops context/agent/user-invocable/allowed-tools/model', () => {
     const fm = rewriteFrontmatter({
-      name: 'x', description: 'd', 'context': 'fork', agent: 'director',
+      name: 'x', description: 'd', 'context': 'fork', agent: 'reviewer',
       'user-invocable': 'true', 'allowed-tools': 'Read, Write', model: 'opus'
     });
     assert.equal(fm.name, 'x');
@@ -62,10 +62,10 @@ describe('rewriteFrontmatter', () => {
 
   test('moves dropped fields to metadata', () => {
     const fm = rewriteFrontmatter({
-      name: 'x', description: 'd', agent: 'director', context: 'fork',
+      name: 'x', description: 'd', agent: 'reviewer', context: 'fork',
       'user-invocable': 'true', model: 'sonnet'
     });
-    assert.equal(fm.metadata['svd-agent'], 'director');
+    assert.equal(fm.metadata['svd-agent'], 'reviewer');
     assert.equal(fm.metadata['svd-context'], 'fork');
     assert.equal(fm.metadata['svd-user-invocable'], 'true');
     assert.equal(fm.metadata['svd-model'], 'sonnet');
@@ -79,13 +79,15 @@ describe('rewriteFrontmatter', () => {
 
 describe('rewriteSkillCalls', () => {
   const skillMeta = {
-    'director-arc': { agent: 'director', fork: true },
+    'director-arc': { agent: null, fork: false },
+    'director-orchestrate': { agent: null, fork: false },
+    'reviewer-review-script': { agent: 'reviewer', fork: false },
     'creator-provider-dreamina': { agent: 'creator', fork: false },
     'writer-novel': { agent: 'writer', fork: true },
     'series-video': { agent: null, fork: false },
   };
 
-  test('role skill loads locally even with legacy fork metadata', () => {
+  test('production planning skill loads locally', () => {
     const input = '使用 Skill tool 调用 `director-arc` skill，评估当前系列转折。';
     const out = rewriteSkillCalls(input, skillMeta);
     assert.equal(out, '调用 `skill({ name: "director-arc" })`，评估当前系列转折。');
@@ -95,6 +97,13 @@ describe('rewriteSkillCalls', () => {
     const input = '使用 Skill tool 调用 `writer-novel` skill，参考 ep01/notes.md，只诊断动机。';
     const out = rewriteSkillCalls(input, skillMeta);
     assert.equal(out, '调用 `skill({ name: "writer-novel" })`，参考 ep01/notes.md，只诊断动机。');
+  });
+
+  test('orchestration and review metadata only load knowledge, not tasks', () => {
+    for (const name of ['director-orchestrate', 'reviewer-review-script']) {
+      assert.equal(rewriteSkillCalls(`使用 Skill tool 调用 ${name} skill`, skillMeta),
+        `调用 \`skill({ name: "${name}" })\``);
+    }
   });
 
   test('non-fork skill call becomes skill() invocation', () => {
@@ -262,15 +271,16 @@ describe('transformAllSkills (integration)', () => {
     }
   });
 
-  test('director-arc cache file has correct frontmatter', async () => {
+  test('planning, orchestration and entry caches have no agent or fork metadata', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
-    const content = await readFileAsync(
-      path.join(tmpDir, 'director-arc/SKILL.md'), 'utf-8'
-    );
-    assert.match(content, /^---\nname: "director-arc"/);
-    assert.ok(!content.includes('\ncontext: fork'));
-    assert.ok(content.includes('svd-agent: "director"'));
-    assert.ok(!content.includes('svd-context'));
+    for (const name of ['director-arc', 'director-orchestrate', ...USER_INVOCABLE_ENTRY_WORKFLOWS]) {
+      const { frontmatter } = await parseSkillFile(path.join(tmpDir, name, 'SKILL.md'));
+      assert.equal(frontmatter.name, name);
+      assert.equal(frontmatter.agent, undefined);
+      assert.equal(frontmatter.context, undefined);
+      const content = await readFileAsync(path.join(tmpDir, name, 'SKILL.md'), 'utf8');
+      assert.doesNotMatch(content.split('\n---')[0], /svd-(agent|context):/, name);
+    }
   });
 
   test('auto-video cache uses OC override (no CronCreate, no crontab)', async () => {

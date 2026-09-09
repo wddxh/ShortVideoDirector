@@ -20,6 +20,6 @@ If the commission supplies config_path, validate that exact path with `review-ev
 - [capabilities.md](capabilities.md): live discovery, configuration and scoped resolution.
 - [image.md](image.md): image execution, dependencies and pending recovery.
 - [video.md](video.md): persisted video submission and retrieval contracts.
-- [shot-inputs.md](../_meta/rules/shot-inputs.md): local PNG/MP4 manifest with at least one MP4 per shot, input/boundary review, capture and typed wrapper. Sources do not upload; GIF is unsupported. Retrieve submitted tasks by recorded ID/provider. This is tool knowledge, not a production pipeline.
+- [shot-inputs.md](../_meta/rules/shot-inputs.md): grouped `{shots,references}` task manifests, full-group MP4, task clock and input/cut/boundary review, capture and typed wrapper. Sources do not upload; GIF is unsupported. Retrieve by recorded ID/provider. This is tool knowledge, not a production pipeline.
 
 Read only the relevant guidance. Retrieval does not require fresh generation capability discovery. New paid or destructive operations require current capabilities, actual authorization and current scoped production evidence.

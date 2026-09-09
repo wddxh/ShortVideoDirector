@@ -3,12 +3,13 @@ name: repair-story
 description: 在单集制作中断、材料或审核缺失，需要检查现状并恢复时使用。
 argument-hint: "自然语言恢复目标、材料与范围"
 user-invocable: true
-agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, Skill
 model: opus
 ---
 
 ## 接收与检查
+
+主 AI 在当前上下文用 Skill 加载 `director-orchestrate`，作为生产 Director 直接诊断恢复、协调专家、处理用户决策并对交付负责。独立验收委托全新 Reviewer。
 
 实际制作恢复请求包含其范围内所需图片补齐，不另问通用生图授权；纯检查/取回仍止于诊断或恢复已有 job。替换意图不清、超范围覆盖、固定参数冲突或 protected jobs 仍须处理，不借缺图重复提交。视频仍留给用户后续手动 generate-video，不因本次恢复完成自动提交。
 
@@ -24,13 +25,13 @@ model: opus
 
 整体理解原始请求 `$ARGUMENTS` 与会话中的恢复目标、路径和范围。查看只读 config_path，缺失不初始化；配置修改转配置入口。制作恢复读取该配置并运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh" "{config_path}"`，失败停止。写入/生成前确定 canonical ep 和 scope；series 缺目标先问，只有明确“最新一集”才用 latest-episode 并检查退出码。short 仅 ep01，冲突不能忽略。歧义不默认 latest/all。用 Bash `test -d "story/episodes/{ep}"` 检查目录；不存在报告，不自动新建。
 
-运行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" "{ep}"` 和同配置 `review-evidence.mjs check "{ep}"`，保留 stdout/stderr/exit。非零报告未就绪或运行阻塞；输出用于诊断当前缺口，不规定恢复顺序。
+按请求范围运行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" "{ep}" [SHOT...]` 和同配置 `review-evidence.mjs check "{ep}" [SHOT...]`，保留 stdout/stderr/exit。整集省略选镜；局部须覆盖完整组，部分组报告完整成员/额外镜头，不扩授权，也不要求未选媒体或完整全片计划。非零用于诊断缺口，不规定恢复顺序。
 
 ## 恢复判断
 
-按 [shot-inputs](../_meta/rules/shot-inputs.md) 恢复材料：每镜 manifest 顶层仅 references，至少一个本地 MP4，可辅以 PNG。新增/改变输入交 Creator 授权组装，独立 reviewer 聚焦实际输入集成、变化细节与必要边界，已有 storyboard 判断在无冲突时复用。源码/记账变化且媒体未变可 scoped 兼容性评估，不盲刷哈希或自动全量重审；看图仍每次新任务、缩略图优先。sources 参与指纹不上传，必要运动不可查为 unknown。asset-prompt 只覆盖授权新增/重生图；submitted 按 recorded ID/provider 取回，保护 pending/receipt/grants/inflight。
+按 [shot-inputs](../_meta/rules/shot-inputs.md) 恢复 `task-inputs/taskNN.json` 的 `{shots,references}`，每生成任务至少一个全组 MP4，可辅 PNG。新增/改变输入交 Creator 在授权内装组，保留原时长/对白/切点，不延长场景/整集；部分选组报告 task_id、完整成员和额外镜头，不扩授权。独立 shot-input target 为 task manifest，审核最终集成/delta、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变且媒体未变可 scoped 兼容性评估，不盲刷哈希或自动全量重审；看图仍新任务/缩略图。sources 入指纹不上传，必要运动不可查 unknown。asset-prompt 仅覆盖授权新增/重生图；submitted 按 recorded ID/provider 取回，保留 pending/receipt/grants/inflight。
 
-provider/参数问题由真实 Creator Task 解释当前能力与接入限制，主 AI 询问所需决定。固定 images/video 配置继续约束；空值不授权选择，任务选择不改默认。已有 pending/receipt 按记录取回，不按新 config 重选；未知 provider 阻塞，缺 provider 的 Dreamina-only 记录可仅取回。路径不等于 force 授权。
+provider/参数问题由真实 Creator Task 解释当前能力与接入限制，主 AI 询问所需决定。固定 images/video 配置继续约束；空值不授权选择，任务选择不改默认。已有 pending/receipt 按记录取回，不按新 config 重选；视频缺失/未知 provider 保留记录并报 human_needed，不猜路由。图像恢复按其 provider 指引执行。路径不等于 force 授权。
 
 缺 outline/novel/arc 不阻止恢复已有剧本、分镜或资产；仅在有用或用户要求时规划。资产清单以 script 为准，可用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all` 核对新旧资产。缺清单委托 Scriptwriter 采用现有剧本并补齐，不重生故事、不回退 outline。
 
@@ -46,14 +47,14 @@ provider/参数问题由真实 Creator Task 解释当前能力与接入限制，
 
 ## 协作与结果
 
-Director 从 descriptions 选择知识，嵌套实际可用则直接委派。明确深度拒绝后在本会话记住限制，不反复试探；普通失败不等同不可嵌套。主 AI 忠实转交 Director 请求的角色、成果、路径、范围和约束，将结果送回原 Director `task_id`，不重排创作或升宿主深度。
+Director 与专家从 descriptions 选择知识。专家/审核协调者在嵌套支持时直接委派；工具不可用或明确深度拒绝后复用已知限制，普通失败不算。主 AI 按 role/outcome/references/scope/constraints 忠实转交，恢复原专家、审核协调者或 checker 任务传回实际结果，不提高宿主深度；后续视觉操作仍新 task。
 
-独立审核使用全新 Director 上下文，不继承制作历史。独立上下文不可用、needs_revision/unknown 或证据过时均保持阻塞，不自审兜底、不按固定重试次数换取通过。技术失败检查实际落盘与任务状态，报告可恢复范围；取消即停止。
+独立审核使用全新 Reviewer 上下文，不继承制作历史。独立上下文不可用、needs_revision/unknown 或证据过时均保持阻塞，不自审兜底、不按固定重试次数换取通过。技术失败检查实际落盘与任务状态，报告可恢复范围；取消即停止。
 
 返回恢复/保留路径、当前证据、pending 与未决决策。整集交付重跑上述 check-shot-inputs 与 evidence 检查，非零不称就绪。局部恢复不等于整集完成；缺媒体、资源不足或审核未决报告部分交付。视频另获授权提交，取回交 check-video/auto-video；不自动审片或合成。
 
-## 恢复委托
+## 恢复执行
 
-用 Task 委托 `director` 并保存原始 `task_id`。提供 mode/ep、用户期望、config 和现有材料路径、检测结果、已知需求与明确委托、制作前确认、图像授权、集时长及用户实际限制。请其检查当前文件、各 review 的 scope/输入身份/未决结论，以及 `assets/images/pending.json`、本集 `videos/tasks.json`（若存在），诊断需要恢复的成果与风险。原请求/有效 grants 已覆盖的恢复、生成或替换可继续；仅诊断委托或缺权限时返回建议范围，不擅自生成或覆盖。
+主 AI 直接统筹 mode/ep、用户期望、config/材料路径、检测结果、已知需求与明确委托、制作前确认、图像授权、集时长及实际限制。检查当前文件、review 的 scope/输入身份/未决结论及 `assets/images/pending.json`、本集 `videos/tasks.json`（若存在），诊断恢复成果与风险。原请求/有效 grants 已覆盖的恢复、生成或替换交专业 owner 继续；仅诊断或缺权限时返回建议范围，不擅自生成或覆盖。
 
-已有恢复权限充分时不重复确认；Director 在原范围内协调 owner 修复与独立重审。新问题先查配置、材料和 grants 并用专业判断处理，仅用户指定检查点、缺必要权限或无法内部解决的关键冲突才准备完整决策包。主 AI 读全计划，沿作者题界完整展示当前题后原生单题询问，相关原始答复及全部条件批量完整回原 Director 和原发起角色；只暂停受影响工作。进度不是批准请求，不强制最终“开始吗”。已有充分证据且无待办可报告无需修复，但文件存在本身不是艺术验收。
+已有恢复权限充分时不重复确认；Director 在原范围内协调 owner 修复与独立重审。新问题先查配置、材料和 grants 并用专业判断处理，仅用户指定检查点、缺必要权限或无法内部解决的关键冲突才准备完整决策包。主 AI 读全计划，沿作者题界完整展示当前题后原生单题询问；自编计划答复本地保留，专家计划的相关原始答复及全部条件批量完整回原发起任务，只暂停受影响工作。进度不是批准请求，不强制最终“开始吗”。已有充分证据且无待办可报告无需修复，但文件存在本身不是艺术验收。

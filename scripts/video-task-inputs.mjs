@@ -5,7 +5,10 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fingerprintInputs, configPath } from './review-evidence.mjs';
-import { resolveShotInputs, validateReferences } from './shot-inputs.mjs';
+import { resolveTaskInputs, validateReferences, taskInputPath } from './shot-inputs.mjs';
+
+const sameShots = (a, b) => Array.isArray(a) && a.length > 0 && Array.isArray(b) &&
+  a.length === b.length && a.every((n, i) => Number.isSafeInteger(n) && n > 0 && n === b[i]);
 
 const validSettings = (settings) => settings &&
   settings.provider === 'dreamina' &&
@@ -16,6 +19,7 @@ const validSettings = (settings) => settings &&
 
 export function captureInputs(task, settings) {
   if (task.inflight) throw new Error('Unresolved submission intent');
+  if (task.submit_id) throw new Error('Recorded provider ID is protected');
   if (task.status !== 'pending') throw new Error('Only prepared pending tasks can capture inputs');
   if (!validSettings(settings)) throw new Error('Invalid submission settings');
   const references = validateReferences(task.references).map(({ media, path: file }) =>
@@ -27,7 +31,7 @@ export function captureInputs(task, settings) {
 export function verifyInputs(task) {
   try {
     const stored = task.submission;
-    const current = captureInputs({ ...task, status: 'pending' }, stored);
+    const current = captureInputs({ ...task, status: 'pending', submit_id: '' }, stored);
     return Array.isArray(stored.references) && current.references.length === stored.references.length &&
       current.references.every((ref, i) => ['media', 'path', 'sha256'].every(key =>
         ref[key] === stored.references[i]?.[key]));
@@ -35,10 +39,11 @@ export function verifyInputs(task) {
 }
 
 export function retryAuthorization(task, episode) {
+  taskInputPath(episode, task.task_id);
   if (task.inflight) throw new Error('Unresolved submission intent');
   const grant = task.retry_authorization;
   if (!grant || typeof grant.decision !== 'string' || !grant.decision.trim() ||
-      grant.episode !== episode || grant.shot !== task.shot ||
+      grant.episode !== episode || grant.task_id !== task.task_id || !sameShots(grant.shots, task.shots) ||
       !Array.isArray(grant.constraints) || !grant.constraints.every((item) => typeof item === 'string')) {
     throw new Error('Missing or out-of-scope retry authorization');
   }
@@ -51,30 +56,31 @@ export function retryAuthorization(task, episode) {
 }
 
 export function initialAuthorization(task, episode) {
+  taskInputPath(episode, task.task_id);
   if (task.inflight) throw new Error('Unresolved submission intent');
   const grant = task.initial_authorization;
   if (!grant || typeof grant.decision !== 'string' || !grant.decision.trim() ||
-      grant.episode !== episode || grant.shot !== task.shot ||
+      grant.episode !== episode || grant.task_id !== task.task_id || !sameShots(grant.shots, task.shots) ||
       !Array.isArray(grant.constraints) || !grant.constraints.every((item) => typeof item === 'string')) {
     throw new Error('Missing or out-of-scope initial authorization');
   }
   return grant;
 }
 
-function readTask(file, shot) {
+function readTask(file, task_id) {
   const tasks = JSON.parse(fs.readFileSync(file, 'utf8'));
-  if (!/^[1-9]\d*$/.test(shot) || !Array.isArray(tasks)) throw new Error('Invalid task selection');
-  const matches = tasks.filter((task) => task.shot === Number(shot));
+  taskInputPath('ep01', task_id);
+  if (!Array.isArray(tasks)) throw new Error('Invalid task selection');
+  const matches = tasks.filter((task) => task.task_id === task_id);
   if (matches.length !== 1) throw new Error('Missing or duplicate registered task');
   return matches[0];
 }
 
 function outputTask(output) {
-  const match = /^story\/episodes\/(ep(?:0[1-9]|[1-9]\d+))\/videos\/shot(0[1-9]|[1-9]\d+)\.mp4$/.exec(output ?? '');
+  const match = /^story\/episodes\/(ep(?:0[1-9]|[1-9]\d+))\/videos\/(task(?:0[1-9]|[1-9]\d+))\.mp4$/.exec(output ?? '');
   if (!match) throw new Error('Expected canonical video output');
-  const [, episode, padded] = match;
-  const shot = String(Number(padded));
-  return { episode, padded, shot, file: `story/episodes/${episode}/videos/tasks.json` };
+  const [, episode, task_id] = match;
+  return { episode, task_id, file: `story/episodes/${episode}/videos/tasks.json` };
 }
 
 export function videoProfile(file, candidate) {
@@ -122,10 +128,10 @@ export function videoProfile(file, candidate) {
       const stored = task.submission;
       if (!fields.every((key) => typeof stored?.[key] === 'string' && stored[key].trim() &&
           !['auto', 'none'].includes(stored[key])) || !/^[1-9]\d*:[1-9]\d*$/.test(stored.ratio)) {
-        throw new Error(`Series video profile unresolved: ${tasksFile} shot ${task.shot}`);
+        throw new Error(`Series video profile unresolved: ${tasksFile} ${task.task_id}`);
       }
       if (profile && fields.some((key) => profile[key] !== stored[key])) {
-        throw new Error(`Series video profile conflict: ${tasksFile} shot ${task.shot}`);
+        throw new Error(`Series video profile conflict: ${tasksFile} ${task.task_id}`);
       }
       profile = Object.fromEntries(fields.map((key) => [key, stored[key]]));
     }
@@ -173,18 +179,20 @@ function checkEpisodeProfile(tasks, task, profile) {
     if (!stored && other.status === 'pending' && !other.inflight && !other.submit_id) continue;
     if (typeof stored?.resolution !== 'string' || !stored.resolution.trim() ||
         typeof stored?.ratio !== 'string' || !/^[1-9]\d*:[1-9]\d*$/.test(stored.ratio)) {
-      throw new Error(`Episode output profile unresolved for shot ${other.shot}`);
+      throw new Error(`Episode output profile unresolved for ${other.task_id}`);
     }
     if (stored.resolution !== profile.resolution || stored.ratio !== profile.ratio) {
-      throw new Error(`Episode output profile conflict with shot ${other.shot}: ${stored.resolution} ${stored.ratio}`);
+      throw new Error(`Episode output profile conflict with ${other.task_id}: ${stored.resolution} ${stored.ratio}`);
     }
   }
 }
 
 function gate([prompt, output, references, duration, ratio, model, provider, resolution], task, tasks) {
-  const { episode, shot, file } = outputTask(output);
+  const { episode, task_id, file } = outputTask(output);
   // Caller records the actual decision and assesses its semantic constraints.
-  if (!['pending', 'failed'].includes(task.status)) throw new Error('Task is protected');
+  if (!['pending', 'failed'].includes(task.status) || (task.status === 'pending' && task.submit_id)) {
+    throw new Error('Task is protected');
+  }
   if (task.status === 'failed') retryAuthorization(task, episode);
   else initialAuthorization(task, episode);
   if (!verifyInputs(task)) throw new Error('Input identity missing or changed; intervention required');
@@ -197,13 +205,16 @@ function gate([prompt, output, references, duration, ratio, model, provider, res
       provider !== task.submission.provider || resolution !== task.submission.resolution) {
     throw new Error('Arguments do not match registered task');
   }
-  const current = resolveShotInputs(`story/episodes/${episode}/storyboard.md`, Number(shot), episode);
+  const current = resolveTaskInputs(`story/episodes/${episode}/storyboard.md`, task_id, episode);
+  if (task.task_id !== task_id || !sameShots(current.shots, task.shots)) {
+    throw new Error('Task membership differs from current manifest');
+  }
   if (current.prompt !== task.prompt || current.duration !== task.duration ||
       JSON.stringify(current.references) !== JSON.stringify(task.references.map(({ media, path }) => ({ media, path })))) {
     throw new Error('Current converter fields differ; authorized preparation required');
   }
   const review = spawnSync(process.execPath, [fileURLToPath(new URL('./review-evidence.mjs', import.meta.url)),
-    'check', episode, shot], { encoding: 'utf8' });
+    'check', episode, ...task.shots.map(String)], { encoding: 'utf8' });
   if (review.status !== 0) {
     process.stderr.write(review.stdout ?? '');
     process.stderr.write(review.stderr ?? '');
@@ -211,20 +222,21 @@ function gate([prompt, output, references, duration, ratio, model, provider, res
   }
 }
 
-function transition({ file, shot }, change, write = true) {
+function transition({ file, task_id }, change, write = true) {
   // Serialize within this episode only; stale locks need reconciliation.
   const lock = `${file}.submit-lock`;
   const fd = fs.openSync(lock, 'wx');
   const temp = `${file}.${randomUUID()}.tmp`;
   try {
     const tasks = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (!Array.isArray(tasks) || !/^[1-9]\d*$/.test(shot)) throw new Error('Invalid task records');
-    const matches = tasks.filter((item) => item.shot === Number(shot));
+    taskInputPath('ep01', task_id);
+    if (!Array.isArray(tasks)) throw new Error('Invalid task records');
+    const matches = tasks.filter((item) => item.task_id === task_id);
     if (matches.length !== 1) throw new Error('Missing or duplicate registered task');
     const task = matches[0];
     const result = change(task, tasks);
     if (!write) return result;
-    tasks[tasks.findIndex((item) => item.shot === task.shot)] = task;
+    tasks[tasks.findIndex((item) => item.task_id === task.task_id)] = task;
     fs.writeFileSync(temp, `${JSON.stringify(tasks, null, 2)}\n`, { flag: 'wx' });
     const data = fs.openSync(temp, 'r');
     try { fs.fsyncSync(data); } finally { fs.closeSync(data); }
@@ -273,7 +285,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (action === 'profile' && args.length === 1) {
       console.log(JSON.stringify(videoProfile(args[0])));
     } else if (action === 'capture' && args.length === 6) {
-      const captured = transition({ file: args[0], shot: args[1] }, (task, tasks) => {
+      const captured = transition({ file: args[0], task_id: args[1] }, (task, tasks) => {
+        const episode = args[0].split('/')[2];
+        const current = resolveTaskInputs(`story/episodes/${episode}/storyboard.md`, task.task_id, episode);
+        if (!sameShots(current.shots, task.shots) || current.prompt !== task.prompt ||
+            current.duration !== task.duration || JSON.stringify(current.references) !== JSON.stringify(task.references)) {
+          throw new Error('Current task inputs differ; preparation required');
+        }
         const settings = { provider: args[2], model: args[3], ratio: args[4], resolution: args[5] };
         const inputs = captureInputs(task, settings);
         if (videoProfile(args[0], inputs).mode === 'short') checkEpisodeProfile(tasks, task, inputs);
@@ -292,7 +310,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       settle(...args);
     } else if (action === 'gate' && args.length === 8) {
       transition(outputTask(args[1]), (task, tasks) => gate(args, task, tasks), false);
-    } else throw new Error('Usage: profile TASKS | capture TASKS SHOT PROVIDER MODEL RATIO RESOLUTION | verify TASKS SHOT | initial/retry TASKS SHOT EP | gate/reserve --references-json PROMPT OUTPUT REFERENCES DURATION RATIO MODEL PROVIDER RESOLUTION | settle OUTPUT TOKEN submitted/failed VALUE');
+    } else throw new Error('Usage: profile TASKS | capture TASKS TASK_ID PROVIDER MODEL RATIO RESOLUTION | verify TASKS TASK_ID | initial/retry TASKS TASK_ID EP | gate/reserve --references-json PROMPT OUTPUT REFERENCES DURATION RATIO MODEL PROVIDER RESOLUTION | settle OUTPUT TOKEN submitted/failed VALUE');
   } catch (error) {
     console.error(`ERROR: ${error.message}`);
     process.exitCode = 1;

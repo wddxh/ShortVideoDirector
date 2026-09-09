@@ -11,7 +11,7 @@ const script = join(process.cwd(), 'scripts/video-check-dreamina.sh');
 test('current submitted task retrieves without config or production files', t => {
   const f = videoRetrieval(t);
   const before = readFileSync(join(f.root, f.tasks), 'utf8');
-  for (const file of ['config.md', 'assets', 'references', 'story/episodes/ep01/shot-inputs',
+  for (const file of ['config.md', 'assets', 'references', 'story/episodes/ep01/task-inputs',
     'story/episodes/ep01/script.md', 'story/episodes/ep01/storyboard.md']) {
     rmSync(join(f.root, file), { recursive: true, force: true });
   }
@@ -42,7 +42,7 @@ printf '%s\\n' "$RESPONSE"
 exit "$CLI_EXIT"
 `, { mode: 0o755 });
   writeFileSync(join(root, 'sleep'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
-  const output = join(root, 'shot01.mp4');
+  const output = join(root, 'task01.mp4');
   writeFileSync(output, 'old job');
   const run = (response, download = 'no', code = '0', destination = output) =>
     spawnSync('bash', [script, 'job-1', destination], { cwd: root, encoding: 'utf8',

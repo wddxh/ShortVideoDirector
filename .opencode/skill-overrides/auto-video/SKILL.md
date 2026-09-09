@@ -9,7 +9,7 @@ model: opus
 
 ## 范围与职责
 
-付费续交/重试使用当前 typed references，每镜至少一个本地 MP4，manifest 条目仅 local PNG/MP4。按 recorded ID/provider 取回 submitted 任务，缺 ID 则 human_needed，保留状态等待核实。首次与周期 checker 均携带当前输入契约、真实 grants 和 inflight 边界。
+付费续交/重试使用 typed references，每生成任务至少一个全组本地 MP4，`task-inputs/taskNN.json` 为 `{shots,references}`，条目仅 local PNG/MP4。任务和 grant 绑定 task_id/完整 shots，输出 videos/taskNN.mp4；manifest/record/grant 成员一致才 reserve，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 则 human_needed，保留状态。首次与周期 checker 均携带该契约、真实 grants 和 inflight 边界。
 
 本入口调用表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。缺首次 grant 的新生成交用户后续手动 generate-video；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
 
@@ -25,9 +25,11 @@ model: opus
 
 配置读写和 fingerprint 只用 config_path，相关 Bash 显式设置 SVD_CONFIG，helper 配置位置参数也传该路径。首次 checker、周期 prompt、Creator relay 都携带同一路径，videoProfile 与 evidence 共用配置；未用配置的查询不强迫初始化，未决配置不授权提交。
 
-专业执行保留在受托角色上下文。根据 task 返回诊断阻塞，参数问题修正后交原角色继续；无法解决则报告实际错误与已尝试方案，仅暂停受影响工作。主会话负责 relay 与沟通，不接管制作或签发审核结论。每次图片操作仍用全新任务和缩略图，不恢复 image-heavy task。
+创作委托的顶层主 AI 是 Director，在当前上下文本地加载内部 director-orchestrate，不派发 director agent/fork；checker 和专家保留各自职责。专业执行保留在受托角色上下文。根据 task 返回诊断阻塞，参数问题修正后交原请求角色继续；无法解决则报告实际错误与已尝试方案，仅暂停受影响工作。主 Director 负责协调、relay 与沟通，验收必须全新独立 reviewer task 使用 reviewer-review-*，不自签 pass；skill/agent 元数据不建立隔离。每次视觉操作仍用全新任务、缩略图与最小图集，不恢复 image-heavy task。
 
 ## 使用示例
+
+需要审核证据时用 `review-evidence.mjs path KIND EP TARGET` 解析各目标 canonical 文件，按共享 review-meta-rules 检查当前轮。Reviewer 并行直写各自文件，每轮 scope=[target]、一个完成 result，仅同一 ep/kind/target 重审串行；plural 只协调范围和计数，不要求共享账本或汇总者。缺失/未完成/不可解析只影响所属目标；纯取回不新增审核门禁，grants/inflight/真实状态保持原契约。
 
 ```
 /auto-video ep01              # 监控 ep01，默认每 20 分钟检查
@@ -148,14 +150,14 @@ opencode --port 4096 -s YOUR_SESSION_ID
      ```
       检查已解析目标 {目标} 的登记视频任务，取回完成输出并报告进度、阻塞和是否仍需监控。无人值守，按持久 grants 处理，自行从 descriptions 选择适用知识。
        配置上下文：{canonical config_path 或 UNRESOLVED}。此显式值继续传给 Creator；UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认配置。配置操作用绑定路径显式运行 config-path 核验，相关命令共用 SVD_CONFIG；纯取回不验证生成配置。
-       任务保留 prompt/duration/references；submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]。付费输入须含本地 MP4并满足真实 grants/当前证据，按 recorded ID/provider 取回 submitted，缺 ID 或 inflight 未决则 human_needed，保留状态。
-      返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；异常附 error/recoverable，计数不明用 unknown。
+        任务保留 task_id/shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]。每任务输入须含全组本地 MP4；grant 为 {decision,episode,task_id,shots,constraints} 加真实可选次数，manifest/record/grant 成员一致，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 或 inflight 未决则 human_needed，保留状态。
+       返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；按生成任务计数，不明用 unknown。human_needed 每 ep/task_id 一条 {ep,task_id,shots,reason}，含完整成员；部分选镜报告完整组/额外成员，不静默扩大，monitor 仍 epNN/all。异常附 error/recoverable。
        查询按 recorded provider；新提交/重试委托真实 Creator，不加载 skill 冒充角色。
        按已选模型/参数执行真实授权，不加费用/余额预检、不为省钱降级；用户实际限制仍绑定，缺创作需求仅报 human_needed，不编候选/提示，仅暂停受影响工作。
-      嵌套不可用返回 role/outcome/references/scope/constraints，等待主 AI 转交，不直接提交。
+       嵌套可用时直接委托并等待；仅确认深度/嵌套拒绝或工具不可用才返回 role/outcome/references/scope/constraints，等待主 Director 转交，不直接提交。沿用已确认限制，普通失败不算深度拒绝；视觉操作始终另建 fresh task。
      ```
 
-2. 保存 checker task_id；若其返回 Creator relay 请求，主 AI 忠实派 sibling Creator，等待后恢复同一 checker task_id 传回实际结果，不能新建 checker 替代。relay 无角色上下文则让 checker 报 human_needed，不自行提交。记住已确认深度限制，不自动调高深度。
+2. 保存 checker 的宿主 task_id（不是生成 task_id）；若其返回 Creator relay 请求，主 Director 忠实派 sibling Creator，等待后恢复原请求 checker task_id 传回实际结果，不能新建 checker 替代或寻找 Director 任务。relay 无角色上下文则让 checker 报 human_needed，不自行提交。记住已确认深度限制，不反复探测或自动调高深度。
 
 只解析 checker 最后一非空行 JSON，验证 check-video 完整摘要且 target 严格等于 {目标}。缺失/无效/目标不符是可恢复协议错误，保持未完成，不从 prose 推断 all_complete/recoverable，也不清理监控。
 

@@ -2,19 +2,18 @@
 name: short-video
 description: 在开始单集短视频、提供现有故事材料或用 /short-video config 查看配置时使用。
 user-invocable: true
-agent: director
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, Skill
 model: opus
 argument-hint: "自然语言目标、材料或配置请求"
 ---
 
 ## 委托入口
 
-交付采用 [shot-inputs](../_meta/rules/shot-inputs.md)：manifest 顶层仅 references，每镜至少一个本地 MP4，可辅以 PNG；header 资产图提供身份，sources 不上传。静态相机可用静态 clip。独立 shot-input 审核聚焦实际输入集成、变化细节与必要边界，已有 storyboard 判断在无冲突时复用。就绪要求 script/storyboard/asset-visual/shot-input，asset-prompt 只覆盖授权新增/重生集合。图片/视频授权边界保持。
+交付采用 [shot-inputs](../_meta/rules/shot-inputs.md)：Creator 设计后将连续摄影 shots 装组，保留时长/对白/切点，`task-inputs/taskNN.json` 恰为 `{shots,references}`，独立 task_id 来自文件名，每生成任务至少一个全组 MP4，可辅 PNG；header 身份图在前，sources 不上传，静态段可用 clip。独立 shot-input target 为 task manifest，审核最终集成/delta、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。就绪要求 script/storyboard/asset-visual/shot-input，asset-prompt 仅覆盖授权新增/重生集合。选镜须完整组，部分组报告完整成员/额外镜头，不扩授权；图片/视频授权边界保持。
 
 用户决策前必读 `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/user-decision-relay.md`。原角色一次给齐全部可预见相关问题/表、题界、完整选项/解释、稳定标签及条件分支。主 AI 读全并内部保留计划，仅沿作者题界展示当前题全部内容，再用可用原生键盘选择器，questions 恰好一项。等回答再问下一适用题，相关原始答复及全部条件经 Director 批量完整回原角色原任务，不逐题往返；仅缺内容/映射、不相容或计划外新决定才提前回询。只应用作者条件，不有损改写、不提前展示全表；长解释在控件前，Markdown 不替代可用控件，宿主限制明确披露。
 
-主 AI 处理配置、输入和用户决策；Director 拥有创作与专业协作。目标恒为 mode=`short`、ep=`ep01`。制作请求包含所需新增基础资产图和本地参考，intake/当前审核满足后执行，不另问生图授权。配置查看/纯诊断仍只读；范围外覆盖、固定设置冲突或受保护任务仍须处理。本流程始终停在付费视频提交前；只有用户后续手动调用 generate-video 才提交视频。
+主 AI 在当前上下文用 Skill 加载 `director-orchestrate`，作为生产 Director 直接处理配置、输入、用户决策、创作和专业协作。目标恒为 mode=`short`、ep=`ep01`。制作请求包含所需新增基础资产图和本地参考，intake/当前审核满足后执行，不另问生图授权。配置查看/纯诊断仍只读；范围外覆盖、固定设置冲突或受保护任务仍须处理。本流程始终停在付费视频提交前；只有用户后续手动调用 generate-video 才提交视频。
 
 ## 配置与输入
 
@@ -38,7 +37,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 唯一一集的总时长由用户在开始时决定。结合本次请求读取 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh" "每集时长目标" "{config_path}"`；用户已给出的目标或明确配置直接复用，不重复询问。两处均缺失、空白或仅有未经确认的模板值时，正式制作前先询问目标时长或范围，不能默用 1-2 分钟；冲突先澄清。
 
-初次设置单值时向用户说明并确认现有 scene-duration 的 ±10% 容差及对应秒数边界；更严格的用户限制优先，精确时长按上下界相等处理。显式范围直接使用上下界，不再扩大。将实际目标及确认的容差/严格边界保存到实际配置，随委托传给 Director。单镜头可在 provider/项目约束内灵活分配，但合计须符合本集预算；参数选择授权不允许 Creator 改集目标。冲突或内容装不下交 Director 提修改方案，需改目标则询问用户，不自动拉长。查看配置不触发本设置。
+初次设置单值时说明并确认 scene-duration 的 ±10% 容差及秒数边界；严格限制优先，精确值按相等上下界，显式范围不扩大。主 AI 保存实际目标及确认边界，并向受托专家和 Reviewer 传递同一预算。摄影 shot 按叙事和项目限制分配正整数秒，可用短镜，不受 provider 最短或 70% 任务目标约束，合计符合本集预算。Creator 核对装组后任务的模型边界，保留原时长/对白/切点，不改集目标；冲突由 Director 协调，需改用户目标才询问，不自动拉长。查看配置不触发设置。
 
 ## Provider 配置
 
@@ -60,11 +59,11 @@ required 仅列用户所需材料，对应本集 outline.md、novel.md 和 `stor
 
 ## 成果委托与转交
 
-用 Task 派发 `director` 并保留原始 `task_id`。说明 short/ep01、预期成果、config/材料路径、用户原意、已知需求与委托、制作前确认、图像授权、集时长与限制、决策余地及升级条件。交付相容剧本、分镜、基础资产卡/图、逐镜 manifest 与媒体、独立证据、必要连续性判断和未决项。缺 script 清单由 Scriptwriter 接纳现有剧本补齐；规划按需采用，不强制补齐。
+主 AI 直接统筹 short/ep01，保留成果、config/材料路径、用户原意、已知需求与委托、制作前确认、图像授权、集时长与限制、决策余地及升级条件。按成果委托专家，交付相容剧本、分镜、基础资产卡/图、生成 task manifest/完整 shots 与媒体、独立证据、必要连续性判断和未决项；生成 task_id 与代理任务 ID 分开。缺 script 清单由 Scriptwriter 接纳剧本补齐；规划按需采用。
 
-Director 从 descriptions 自选知识；委托不是“加载并执行某 skill”。嵌套实际可用时由 Director 委派；明确深度拒绝后在本会话记住限制，普通失败不当作不可嵌套。需主 AI 转交时，忠实按请求的角色、成果、材料路径、范围和约束派发，将结果送回原 Director `task_id`。不另排创作顺序、不调高深度、不接管创作。审核另开全新 Director 上下文，不继承制作历史；独立上下文不可用则阻塞。
+Director 与专家按 descriptions 自选知识，委托说明成果而非技能链。专家/审核协调者可嵌套时直接委派；工具不可用或明确深度拒绝后复用已知限制，普通失败不算。主 AI 忠实转交角色、成果、路径、范围与约束，并恢复原专家、审核协调者或 checker 任务传回实际结果，不调高深度。审核用全新 Reviewer 上下文，不继承制作历史；后续视觉操作仍新 task。必要角色或隔离不可用则阻塞。
 
-待决问题或剧情候选由主 AI 完整呈现；未委托的选择明确询问用户，不代选。已有明确选择委托由责任角色在范围内决定；实际答复完整送回同一 Director 及原发起角色。
+主 AI 可编写自己的完整剧情候选并直接呈现，未委托的选择询问用户；已有选择委托由责任角色在范围内决定。自编计划的完整答复本地保留；专家计划及相关原始答复/条件完整批量回原发起任务，不做主 AI 自我 relay。
 
 ## 交付与失败
 

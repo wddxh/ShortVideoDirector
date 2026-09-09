@@ -29,7 +29,7 @@ ${workflowList}
 用户用 \`/skill-name 自然语言请求\` 触发入口工作流；OC command 用原生 \`$ARGUMENTS\` 原样传输请求，加载 skill 不再构造位置参数。
 
 - 写入或付费前解析明确目标与授权；歧义不默认全部或最新。查看配置只读，不强制初始化。
-- 主 AI 保持用户交互与忠实转交职责，不接管 Director 的创作决策
+- 创作委托由顶层主 AI 担任 Director，本地加载内部 \`director-orchestrate\` skill；主入口与编排不创建 agent/fork。工程委托使用独立工程 agents。
 - 也可用自然语言（"帮我做一个新的短视频，主题是 XXX"）触发，LLM 会自行决定调用对应 skill
 
 ## 关键执行规则

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, renameSync, readFileSync, writeFileSync, readdirSync, symlinkSync } from 'node:fs';
+import { mkdirSync, renameSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { videoProject } from './fixtures/video-project.js';
 
@@ -15,9 +15,8 @@ test('config aliases share canonical evidence and video profile identity', (t) =
   p.evidence();
   mkdirSync(join(p.root, 'settings'));
   renameSync(join(p.root, 'config.md'), join(p.root, 'settings/live.md'));
-  const ep = join(p.root, 'story/episodes/ep01');
-  for (const file of readdirSync(ep).filter(name => name.startsWith('.review-'))) {
-    const target = join(ep, file);
+  for (const file of Object.values(p.reviews).flat()) {
+    const target = join(p.root, file);
     writeFileSync(target, readFileSync(target, 'utf8').replaceAll('"config.md"', '"settings/live.md"'));
   }
   p.write('config.md', '- mode: short\n- 视频提供方: none\n');

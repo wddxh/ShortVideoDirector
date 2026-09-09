@@ -6,7 +6,9 @@
 
 所有图片读取或操作均须使用全新 task 上下文，不限于独立审核：包括参考查看、生成/渲染、作者自检、诊断、修订、裁剪和动画采样。每次仅委托一个明确操作和最小必要图集；跨图比较只带必要配对，不附全部历史图片。后续读取、细节 crop、修改后再看或重审也另开新 task，不恢复已有图像上下文继续积累图片。
 
-通过文本结论、材料/源码路径、当前版本指纹、必要约束和未决问题交接，不继承图像消息或制作历史。协调任务只接收文本/文件交付，可恢复其纯文本协调上下文；不得恢复 image-heavy task 处理下一次图片操作。独立审核仍须新建 Director reviewer，作者自检不提供独立性。Task 不可用时请求主 AI relay；仍不能提供所需新上下文则报告阻塞，审核保持 unknown，不在当前上下文代看或自审。
+一次明确操作也包括有限批量提交：一个全新 Creator 生成上下文可将相干、已授权、当前 prompt 门禁通过且就绪的多个 jobs 交单一 runner 执行，默认并发 5，不按内部每张图片调用另派任务。该上下文只处理文本与文件路径，返回状态、全部 IDs 和输出路径，不读取或附回图片；输入或输出的实际查看另开全新任务，独立视觉验收仍交全新 Reviewer、helper 缩略图和最小必要图集。批量执行的依赖、force、并发及停止边界见 [依赖与并发](../../creator-generate-images/SKILL.md#依赖与并发)。
+
+通过文本结论、材料/源码路径、当前版本指纹、必要约束和未决问题交接，不继承图像消息或制作历史。协调任务只接收文本/文件交付，可恢复原专家、审核协调者或 checker 的纯文本上下文；不得恢复 image-heavy task 处理下一次图片操作。独立审核须新建 Reviewer，作者自检不提供独立性。支持时直接委派，Task 不可用或明确深度拒绝后复用已知限制，请顶层主 AI/Director relay 并将实际结果回原请求任务。普通失败不算深度拒绝；仍无所需上下文则阻塞、审核 unknown，不在当前上下文代看或自审。
 
 ## 先缩略图，再必要细节
 
@@ -30,10 +32,10 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/review-image.py" "SOURCE" --output-dir /t
 
 动画 GIF 和其他多帧图片不能静默取首帧冒充缩略图；helper 会拒绝此类输入。需要时在全新任务中用适当工具显式抽取有意义的采样帧到指定临时目录，记录原文件/指纹、帧编号或时间点及抽取方式；各次查看仍按上述新任务和缩略图规则，只带最小必要帧集。披露只看采样帧的时间覆盖与运动/时序判断限制，不能据此证明完整动画连续性。此 helper 不是时序验证器，也不新增最终视频审核权限。
 
-审核前后仍按 review-meta-rules 对原材料 fingerprint，`result.inputs` 保留原文件路径与整文件 SHA-256。可选 `result.visual_inspection` 数组可保存每次 helper 的真实 JSON（含源 hash、preview 路径/hash 和 crop），另说明实际查看范围/限制；动画帧另保留到原动画的采样映射。此字段仅记录派生查看证据，不替换或刷新 inputs 的原图哈希，不新增 sidecar 或验收状态。
+五种 runtime 审核按 review-meta-rules 在读取前由目标 owner 用 review-round start/add-input 采集原材料，finish 复核并注入 `result.inputs` 的原路径与整文件 SHA-256。局部视觉 delegate 所需参考也须 owner 在委托读取前采集；新参考先回传路径，采集后再交全新任务查看。delegate 返回实际观察、所读路径、预览依据和限制，不以后采快照追认前次读取，也不建 import registry。可选 `result.visual_inspection` 保存真实预览 helper JSON；动画帧另保留原动画采样映射与覆盖限制。派生依据不替换或刷新 inputs。
 
 ## 写入例外与实际边界
 
-审核者只写受托 review record（single/impact 仍只返回结果），唯一派生文件例外是：可在委托明确指定的 `/tmp/opencode/...` 临时目录生成本次必要缩略图、局部 crop 或显式采样帧。不得修改原图、卡片、源码、工程或其他生产材料，不把临时派生图登记为制作输出；Bash 权限不扩大此范围。
+审核者通过 review-round 写受托 canonical 文件，每轮 scope=[target]、一个完成 result；不同视觉目标并行，仅同一 ep/kind/target 重审串行。指定 `/tmp/opencode/<task>` 目录先存在，允许其中 helper STATE、Reviewer payload、必要缩略图/crop/采样帧；不在工作区复制账本。局部检查回指定独立目标 owner，后续视觉操作另开 fresh task，不恢复 image-heavy 上下文。finish 摘要足以回传，正常完成不要求立即重读全文或重复指纹检查。不得修改原图、卡片、源码、工程或其他生产材料，不把临时派生图登记为制作输出；Bash 权限不扩大此范围。
 
 这些约束由任务执行者遵守。Helper 校验自身调用中的缩放上限、源文件与派生输出；插件不机械拦截直接 Read，也不强制新 task。协调方须确认实际委托上下文与查看方式，不能将 helper 成功视为已满足全部隔离和审核要求。

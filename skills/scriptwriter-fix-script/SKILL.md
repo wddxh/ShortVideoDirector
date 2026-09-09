@@ -10,7 +10,7 @@ model: sonnet
 ## 输入
 
 从委托理解目标集数、单集/系列语境、当前 findings 或授权请求、保留要求及修改范围，不要求内部命令语法或先经过某个阶段。
-- 以 `.review-script.md` 为依据时读取最新相关轮并核对当前文本；直接请求不读取或拼接旧 review。
+- 以 `reviews/{ep}/script.md` 为依据时，用 `review-evidence.mjs path script EP TARGET` 解析，读取该文件最新轮并核对当前文本；直接请求不读取或拼接旧 review。
 - 范围不清或意见与授权冲突时返回待确认问题，不用模式标签猜测修改许可。
 
 ## 必读文件
@@ -19,9 +19,10 @@ model: sonnet
 - 实际配置 SVD_CONFIG（未设时 config.md）；本文及 companions 的 config.md 均指实际路径
 - 受影响角色及视觉资产卡 — 核对相关身份与声音，不全读资产库
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/rules.md` — 必读并严格遵循 (公共规则)
+- [对白 craft](../scriptwriter-script/dialogue-craft.md) 与 [视听 craft](../_meta/rules/audiovisual-craft.md) — 按当前问题诊断措辞、互动、知情时点和声音层次
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-fix-script/series.md` (when mode in {new-series, continue-series}) — 必读
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-fix-script/short.md` (when mode=short) — 必读
-- 仅以 `.review-script.md` 为意见来源时读取该文件；已提供当前 findings 或直接授权请求不需要历史 review
+- 仅以 `reviews/{ep}/script.md` 为意见来源时读取该文件；已提供当前 findings 或直接授权请求不需要历史 review
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 
 ## 修订方法（参考）
@@ -39,6 +40,8 @@ model: sonnet
 ### Phase 3: 按 mode 修正
 - 场景只有概述时，可先恢复现场的站位、注意力和行动：谁在靠近、回避、递出或收回，哪次反应改变了下一句台词。这种视觉先行诊断能把“谈得很尴尬”转成可表演的停顿与选择；再结合具体声音，不规定固定写作顺序，也不替分镜指定景别。
 - 台词修订可检查**潜台词（人物真正想要或不肯直说的意思）**与言语策略：请求失败后是在讨价还价、试探还是装作不在意？用改口、抢话、没接住的笑或明确内心声保留层次，不只换同义词。只补当前问题所需的行为与反应，不趁机改动其他场景。
+- “AI 腔”先定位具体原因：人物都用相同句式总结主题、只答作者的问题、不接对方反应，还是词汇与生活经历不符。恢复当前所求、关系称呼和回应触发的策略变化，让资料成为交涉内容、主题落在选择与代价；直接坦白可保留，不靠全员俚语、结巴、降音高或删光完整句来修复。
+- 视听空泛时补最有作用的证据：注意从哪里转到哪里，遮挡何时解除，谁先看见/听见，声源被什么阻隔，关键声部如何浮到前景。VO 检查是否提供视角、判断或反差，不默认增写解释，也不一律改成动作。只补当前表达缺口，不把细节扩写成物件库存或另造制作资产。
 - 按当前问题选用相关 companion 的修订方法
 - 评估每条修正的连锁影响：改一句台词是否影响场景内时长分配？改场景描写是否需要同步调整动作 / 对白？
 - 必要时把"修正一处"扩展为"修正这一处 + 同场景内被影响的台词与动作描写"，但不擅自改与意见无关的场景
@@ -48,6 +51,7 @@ model: sonnet
 - 按 scriptwriter-script/rules.md 从实际场景更新 script 内 `## 本集资产清单` 及两子段。排除清单自身和未采用提案，删除不再使用的条目，保留仍使用条目的新增/已有分类；建卡不触发改类。不写回 outline。
 - 先保存修订，再运行 `node ${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs story/episodes/{ep}/script.md all` 与 `scene-duration.sh`，按 rules.md 参数读取真实结果。`script-budget.sh` 可作诊断，其 fail 不是创作失败或自动补删授权。
 - 每条意见是否落地？
+- 按人物真实措辞与节奏试读受影响交锋，检查前后回应和必要停留；文本推演标明估读。复核声画变化是否使人物提前获知秘密、关键原句被遮没或重复讲述，报告对已有分镜中原句、揭示时序和声桥的具体影响，不在此改下游文件。
 - 场景结构与节奏未破坏 (`scripts/scene-duration.sh` 校验仍 PASS)？
 - 角色声音是否仍与资产一致？
 - rules.md 格式是否仍合规？

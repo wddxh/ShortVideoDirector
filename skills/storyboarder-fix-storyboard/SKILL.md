@@ -12,7 +12,7 @@ model: sonnet
 - 委托本集的 `story/episodes/{ep}/storyboard.md`
 - `story/episodes/{ep}/script.md`
 - 与本次问题相关的已有规划或邻镜材料（可选）
-- `story/episodes/{ep}/.review-storyboard.md`（委托以审核意见为依据时读取）
+- `reviews/{ep}/storyboard.md`（委托以审核意见为依据时，用 `review-evidence.mjs path storyboard EP TARGET` 解析并读取）
 - 实际配置（`SVD_CONFIG` 或 `config.md`）与相关基础资产卡
 - `${CLAUDE_PLUGIN_ROOT}/skills/storyboarder-storyboard/rules.md`
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md` 与 `visual-prompt-craft-video.md`（同目录，共享视听表达方法）

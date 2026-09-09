@@ -12,6 +12,7 @@ model: sonnet
 
 ## 必读文件
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/rules.md` — 必须读取并严格遵循 (公共规则)
+- [对白 craft](dialogue-craft.md) 与 [视听 craft](../_meta/rules/audiovisual-craft.md) — 人物措辞、互动策略、观众证据及声音层次；方法服从采用与修改范围
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/series.md` (when mode in {new-series, continue-series}) — 连续性与可选文学素材处理
 - `${CLAUDE_PLUGIN_ROOT}/skills/scriptwriter-script/short.md` (when mode=short) — 单集戏剧弧与结局落点
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
@@ -33,6 +34,7 @@ model: sonnet
 
 ### Phase 4: 生成剧本
 - 把重要场景写成“试图达成什么、怎样尝试、对方怎样回应、局面怎样变化”，给动作与反应留可表演的空间。薄场景可先想象具体现场再写对白，声音主导场景也可从听觉切入；rules.md 提供目标、利害关系、戏剧节拍与潜台词的解释和例子。
+- 用人物生活与关系决定词汇、句法和称呼，让下一句受上一次回应影响；信息在交涉中显露，主题由选择及后果承载。组织观众先看/听什么、何时明白，保留有作用的环境细节与声音主次，而非统一警句腔或加形容词。
 - 新写时按场景级 schema 展开；采用现成剧本时保留合适的场景、对白和结局，仅补齐所需格式、路径、时长及清单，不无理由重写故事
 - 自由分配场景时长 (节奏角色为软引导，剧本以可拍摄性为最高目标，不硬 mapping)
 - 写入 `story/episodes/{ep}/script.md`
@@ -71,6 +73,7 @@ model: sonnet
 每类型行齐全顺序固定，条目为 `<名称> (assets/<type>/<名称>.md)`，无内容写 `(无)`。asset id 即资产名，遵守共享语言规则与已存在的路径身份，不自行英文化或增加前缀。
 
 ### Phase 6: 自检
+- 按角色实际节奏试读关键互动并估算倾听/反应空间；仅文本推演如实标为估读。比较人物措辞而不只比较音色，核对观众证据与人物知情时点；VO、直接对白和沉默按具体作用判断，不按术语、字数或技巧数量验收。
 - 保存后按 rules.md 实跑 `scene-duration.sh` 核对确认边界；`script-budget.sh` 可作密度诊断，记录其 status，不作为创作 pass/fail。
 - 运行 `node ${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs story/episodes/{ep}/script.md all` 验证清单格式；再逐场核对真实使用，解析成功不代表语义完整。
 - schema、时长或身份校验失败在授权内修正；无法满足则报告阻塞，不用补造小说或大纲绕开。计数偏差需结合可拍性判断，不自动扩写。

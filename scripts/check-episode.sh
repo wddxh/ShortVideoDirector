@@ -57,7 +57,7 @@ else
 fi
 
 if [ ! -f "$STORYBOARD" ]; then
-  printf '%s\n' 'storyboard:missing' 'shot-inputs:missing'
+  printf '%s\n' 'storyboard:missing' 'task-inputs:missing'
   HAS_ISSUE=1
 fi
 SVD_CONFIG="$CONFIG" node "$SCRIPT_DIR/review-evidence.mjs" check "$EP"

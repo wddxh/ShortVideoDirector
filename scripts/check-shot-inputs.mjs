@@ -1,38 +1,20 @@
 #!/usr/bin/env node
-import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { resolveShotInputs, shotInputPath } from './shot-inputs.mjs';
-import { readStoryboardShot } from './storyboard-shot.mjs';
+import { resolveTaskInputs, readTaskPlan, selectTaskGroups } from './shot-inputs.mjs';
 
 export function checkShotInputs(episode, selected = []) {
-  shotInputPath(episode, 1);
   const storyboard = `story/episodes/${episode}/storyboard.md`;
-  const board = fs.readFileSync(storyboard, 'utf8');
-  const shots = [...board.matchAll(/^### shot ([1-9]\d*)$/gm)].map(m => Number(m[1]));
-  if (selected.some(shot => !/^[1-9]\d*$/.test(shot) || !shots.includes(Number(shot)))) {
-    throw new Error('Usage: check-shot-inputs.mjs EP [SHOT...]; select existing shots');
-  }
+  const groups = selectTaskGroups(readTaskPlan(storyboard, episode), selected);
   let issue = false;
   const resolved = [];
-  if (!shots.length || shots.some((shot, i) => selected.length
-    ? i > 0 && shot <= shots[i - 1] : shot !== i + 1)) {
-    console.log('storyboard:invalid:shots must be unique and increasing; whole episode must be contiguous from 1');
-    issue = true;
-  }
-  for (const shot of selected.length ? [...new Set(selected.map(Number))] : shots) {
-    try { readStoryboardShot(storyboard, shot); }
+  for (const group of groups) {
+    try { resolved.push(resolveTaskInputs(storyboard, group.task_id, episode)); }
     catch (error) {
-      console.log(`storyboard:incomplete:shot${shot}:${error.message}`);
-      issue = true;
-      continue;
-    }
-    try { resolved.push(resolveShotInputs(storyboard, shot, episode)); }
-    catch (error) {
-      console.log(`shot-inputs:invalid:shot${shot}:${error.message}`);
+      console.log(`task-inputs:invalid:${group.task_id}:${error.message}`);
       issue = true;
     }
   }
-  if (!issue) console.log('storyboard:ok\nshot-inputs:ok');
+  if (!issue) console.log('storyboard:ok\ntask-inputs:ok');
   return { issue, resolved };
 }
 

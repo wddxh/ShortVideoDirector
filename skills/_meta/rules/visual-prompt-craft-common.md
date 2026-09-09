@@ -12,7 +12,7 @@
 
 同一作品共享一份明确的风格基线，涵盖写实/风格化程度、造型语言、材质表现、细节尺度、色彩关系、光影与渲染处理。Creator 优先复用项目现有美术说明；缺少时在现有授权内写入一份项目美术说明并交接路径。Storyboarder 结合配置，将适用基线整合进每个源 shot 现有的 `视频风格` 字段。每次新上下文读取该基线及必要身份参考，保持作品风格一致。
 
-每次请求只表达一次适用的作品级共同风格，并绑定实际上传资产参考。基础图像 prompt 写目标风格与外观；视频使用源 shot 的 `视频风格`。Prose 写详细动作、表情、状态、空间、摄影与声音；manifest `use` 只说明控制用途和占位边界。Resolver 不自动注入基线；路径或前次任务记忆不能代替本次输入。
+每次请求只表达一次适用的作品级共同风格，并绑定实际上传资产参考。基础图像 prompt 写目标风格与外观；视频要求同组源 shot 的单行 `视频风格` 字段精确相同，resolver 在任务级输出原字段一次，仅从成员移除此字段。不同字段交 owner 协调，局部变化写 prose，不模糊去重。Prose 保留详细动作、表情、状态、空间、摄影与声音；manifest use 只说明控制用途/占位边界。路径或前次任务记忆不能代替输入。
 
 金属、布料与皮肤采用相容且适合各自主体的材质表达。日夜、景别、情绪与场景光源可以变化，造型与渲染语言保持统一。局部细化不得擅自重设计已确认身份、配色或结构；需要改变作品基线时交 Director 协调影响，保留未变材料，不自动全量重生。
 
@@ -28,13 +28,13 @@
 
 盒体审核仅看声明的取景、尺度、位置/布局、整体轨迹与相机控制；无手、无姿态或无解剖遮挡/接触/换握证明不是失败。另审文字动作是否明确、镜头设计是否让最终动作可读，不把文字表演转成本地动画要求。上述声明控制与目标有实质冲突时定位修正；必要轨迹无法评估仍为 unknown，缺媒体、输入指纹与独立审核门禁不变。
 
-图像和视频使用粗模参考时，最终 prompt 须逐份绑定实际媒体并明确职责。静态 PNG 可控制形态/结构；BOX MP4 控制取景、尺度、位置/布局、整体轨迹及时序、机位/运镜，不承载人物姿态或表演。内部备注不能代替模型输入。
+图像和视频使用粗模参考时，最终 prompt 须逐份绑定实际媒体并明确职责。基础资产图主要提供身份/外观、风格、画质与材质；静态形状 PNG 按声明控制形态/结构，BOX MP4 可控制透视、空间遮挡、取景、尺度、位置/布局、整体轨迹及时序、机位/运镜，不承载人物姿态或表演。资产静帧无需精确复制逐镜控制，非剧情关键的细节不一不自动成为冲突；用户明确要求、关键可辨特征/动作与真实身份/质量问题仍绑定。基础图不以未来视频存在为前提，最终集成按实际媒体核对，不虚称未提供或未查看的视频已解决问题。内部备注不能代替模型输入。
 
 粗模的权限限于声明的结构、布局与相机控制。人物形象与服装由本次实际资产参考和正面目标描述确定，统一材质、配色、光影与渲染按本次风格要求实现。没有其他参考就直接写清外观目标，不能虚称存在风格图。本地视频盒体及其中性表面只作位置/尺度占位；人物按实际身份参考和文字动作实现，保持声明的布局、轨迹与相机关系。
 
 例如，形状参考可声明“采用图2的外壳轮廓、部件连接与取景角度”；视频参考可声明“视频1控制取景、相对尺度、位置与盒体整体移动/旋转轨迹及时序”。其余外观、风格与表演由当前请求对应部分承载。示例槽位按真实上传顺序绑定，不能直接照填。审核比较最终请求是否把各输入权限说清，不用固定关键词代替语义判断。
 
-最终视频输入遵循 [shot-inputs](shot-inputs.md)：header 身份图在前，本地 PNG/MP4 在后，每镜至少一个 MP4；sources 不上传。BOX MP4 表达相机、布局、位置和整体轨迹，静态相机可用静态 clip，GIF 不支持。独立 shot-input 审核检查实际 prompt/media 集成、变化细节和必要边界，已有 storyboard 判断在无具体冲突时复用。以下“参考图”在视频场景也包括已声明 video refs。
+最终视频输入遵循 [shot-inputs](shot-inputs.md)：Creator 设计后装组连续摄影 shots，保留时长、对白和切点；`task-inputs/taskNN.json` 恰为 `{shots,references}`，每生成任务至少一个全组 MP4。Header 身份图按首次使用求并集在前，本地媒体在后；各镜链接须自身 header 声明，sources 不上传。BOX 表达相机/布局/整体轨迹，静态段可用 clip，GIF 不支持。独立 shot-input 以 task manifest 为 target，审核最终集成/delta、任务时钟、内部切点/声音桥和必要边界，无冲突复用 storyboard 判断。以下“参考图”也包括声明的 video refs。
 
 需要可控视觉依据时，Creator 可按知识选择直接 2D/2.5D、Blender 静帧或动画工具，任意脚本与可编辑输入留在故事项目 references/；不强制建模、模板或固定几何 DSL。具体方法见 creator-local-reference，卡片可选声明见 [本地参考契约](local-reference.md)。讲清参考控制什么、哪些只是占位、最终画面如何使用；本地预览不是付费成片，也不改其他 owner 的事实。
 
@@ -49,9 +49,13 @@
 
 ### 从故事事实选择当前证据
 
+取景与细节层次可参考 [视听 craft](audiovisual-craft.md)：选择观众首先注意的主体、随后能辨认的证据及背景的作用。静态图用尺度、明暗、遮挡与空间关系建立主次；视频还要落实显露和反应的时机。必要细节提供身份、生活感、行动条件或叙事证据，不把所有表面与物件等量铺开；精确关系比一串“精致、丰富、电影感”更可用。
+
 事实正确不等于生成指令成立。先判断观众此刻是否需要知道，再选择已有设计支持的可见或可听证据；其余留在源材料。年份、罗盘方位不默认进入最终 prompt，也不把“东北”擅自换成屏幕右侧。确有叙事需要的锚点由内容负责人选择，不能为了逐条兑现背景而新增字幕、显示屏或道具。
 
 例如，夜间岸边的镜头可描述已确认光源、人物相对岸线的位置及当前动作；道具状态可用已确认部件的可见位置与连接关系表达；册页特写写本镜实际可读的内容与布局。具体证据以材料和当前叙事需要为准，缺必要设计时交负责人选择。场景总预算留在 shot 结构边界外，本镜只承载自己的时长与视听事件。
+
+依据上游意图区分观众与人物的知情时点：观众已看见的物件，人物可因视线或遮挡仍未发现；当前请求须让这种差异成立。文字写“尚未发现”却让取景、视线或反应提前泄露，不靠情绪标签修补。揭示前后的可见范围与动作按真实参考表达，不为补证据新增上游没有的秘密、道具或台词。
 
 ## 6 条核心原则
 
@@ -135,20 +139,21 @@
   → image-gen-dreamina.sh (image2image, 第 6 参数=基础资产 png，第 7 参数=asset card path)
   → assets/images/{基础类型}s/{基础名}-{状态名}.png
 
-[storyboard.md shot N]
-  → storyboard-to-prompt.sh --json: header 身份图在前，本地 PNG/MP4 在后，每镜至少一个 MP4
-  → 独立 shot-input review: 最终 prompt/refs、必要时序、源码与实际边界配对
-  → tasks.json (prompt + typed references + duration)，仅授权视频准备
+[storyboard.md 连续 shots + task-inputs/taskNN.json {shots,references}]
+  → storyboard-to-prompt.sh --json STORYBOARD TASK_ID EP（.mjs 同参数）
+    header 身份图首次使用求并集在前，本地 PNG/MP4 在后，每任务至少一个全组 MP4
+  → 独立 shot-input review: task manifest、最终 prompt/refs、内部切点/声音桥及实际边界
+  → tasks.json 数组 (task_id + shots + prompt + typed references + duration)，仅授权视频准备
   → video-gen-dreamina.sh --references-json
     (multimodal2video, 已登记授权与输入快照，原顺序传递 --image/--video，sources 不上传)
-  → submit_id → video-check-dreamina.sh 查询/下载 → mp4
+  → submit_id → video-check-dreamina.sh 查询/下载 → videos/taskNN.mp4
 ```
 
 真实 wrapper flags 和参数以当前接口为准；需要查询执行细节时，可参考 [图像接口说明](../../creator-provider-dreamina/image.md) 与 [视频接口说明](../../creator-provider-dreamina/video.md)，它们不是必经技能或加载指令。生成 wrapper 维护 `.generation.json`（实际设置、状态、成功输出哈希）；导入/历史图片可无 receipt，不为补记录强制重生。receipt 不是独立视觉验收。
 
 **引用绑定**：不手写 `{图片N}`。Shot 链接由转换器绑定，同实体资产 refs 由 Creator 映射；基础 prompt 写真实参考与目标关系。Runner 不推断同实体，但检查本地声明、ready 和有序后缀。缺图不置空或擅自扩目标。
 
-视频上传来自 header 身份声明与 manifest；prose links 必须已声明。保留完整 heading、七字段、声音、时长与本地文本，不从裸名推断资产。按 recorded ID/provider 取回 submitted 任务，付费工作使用 [当前契约](shot-inputs.md) 与真实 grants。
+视频上传来自各成员 header 与 task manifest；prose links 必须在自身 header 声明。除共同风格字段提取、引用绑定和行首结构 bracket cue 重基外，保留 heading、其余字段、对白、空格、续行与 prose。最终 prompt 明示 bracket cues 为任务时间，inline elapsed times 仍属具名 shot 本地时间；Creator 对齐媒体参考时钟和声音桥。部分选组报告完整成员/额外镜头，不扩授权。按 recorded ID/provider 取回 submitted，付费使用 [当前契约](shot-inputs.md) 与真实 grants。
 
 
 ## 适用边界

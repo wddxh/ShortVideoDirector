@@ -36,5 +36,5 @@ check-video 仅处理实际生成失败的 status=failed 任务时，根据 fail
 
 1. **LLM 语义判断**，不做硬编码关键词匹配。fail_reason 可能是英文 code（如 `ExceedConcurrencyLimit`）、中文描述、或自由文本，都按含义归类。
 2. **不确定时默认人工介入**。若 fail_reason 信息不足以明确判断性质（如 `"Unknown error"`、只有错误码没有描述），归为 human_needed 让用户过目。避免 --auto 模式反复重试根因问题。
-3. **每次重新分类**。同一 shot 多次失败时按当次的 fail_reason 重新判断。
-4. **auto 只报告人工介入**。创作修改交由用户授权的 Director 委托，不自动修资产、分镜或本地输入。材料接受后才可在真实授权内准备 typed references 与必需 MP4；submitted 按 recorded ID/provider 取回并保留状态。
+3. **每次重新分类**。同一 task_id 多次失败时按当次 fail_reason 判断，保留完整 shots。成员/输入漂移或部分选组属于 gate 阻塞，零调用且不改次数；human_needed 用 `{ep,task_id,shots,reason}` 报告。
+4. **auto 只报告人工介入**。创作修改交顶层主 AI/Director 按用户实际授权协调，不自动修资产、分镜或本地输入。材料接受后才可在真实授权内准备 typed references 与必需 MP4；submitted 按 recorded ID/provider 取回并保留状态。

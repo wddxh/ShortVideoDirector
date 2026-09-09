@@ -1,6 +1,6 @@
 # ShortVideoDirector OpenCode 适配
 
-插件从 `agents/*.md` 动态加载五个角色，从 `skills/*/SKILL.md` 发现技能并转换到 `~/.cache/short-video-director/<hash>/`。Skill 是知识，不是任务调度或角色切换。工程由主 AI/general 负责；Director 保留实际创作协调和独立艺术审核。
+插件从 `agents/*.md` 动态加载五个子代理，从 `skills/*/SKILL.md` 发现技能并转换到 `~/.cache/short-video-director/<hash>/`。制作主 AI 就是 Director，本地加载 director-orchestrate 并直接协调创作；Reviewer 在全新上下文独立验收。Skill 是知识，不是任务调度或隔离。工程主 AI 委托工程代理研究、实现与测试。
 
 ## 安装与加载
 
@@ -21,20 +21,29 @@ opencode agent list
 opencode debug skill
 ```
 
-应发现 creator/director/scriptwriter/storyboarder/writer、creator-local-reference 和 director-review-shot-inputs，以及七个入口 series-video、short-video、edit-story、repair-story、generate-video、check-video、auto-video。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
+应发现 creator/reviewer/scriptwriter/storyboarder/writer、内部 director-orchestrate、creator-local-reference 和 reviewer-review-shot-inputs，以及七个入口 series-video、short-video、edit-story、repair-story、generate-video、check-video、auto-video。十个 reviewer-review-* 技能由独立 Reviewer 使用；director-* 规划知识由制作主 AI 本地使用。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
 
 Commands 原样传 `$ARGUMENTS`，不拆位置参数。入口整体理解目标、路径和范围；歧义不默认 latest/all。配置查看只读，缺失不初始化。
+
+故事文件按 [项目布局](../skills/_meta/rules/project-layout.md) 选择路径：保留 canonical 单集材料、共享资产、references 与工具记账；候选用 `story/planning/plot-options.md`，临时交接用 scoped `story/work/`。委托前指定精确输出路径，简单任务可只回文本；按需建文件，不迁移现有项目或复制状态账本。
+
 ## 当前制作契约
 
-见 [shot-inputs](../skills/_meta/rules/shot-inputs.md)：manifest 顶层仅 references，条目仅 local PNG/MP4，每镜至少一个本地 MP4；静态相机可用静态 clip。Header 资产图提供身份，BOX 控制相机、布局、位置与整体轨迹，动作表情在完整 prompt，作品基线每请求一次。Sources 参与指纹不上传。Converter/task 保存 prompt/duration/typed references，submission 保存四元组和有序媒体指纹。
+见 [shot-inputs](../skills/_meta/rules/shot-inputs.md)：摄影 shot 保留七字段/正整数秒，不受 provider 最短/70% 目标约束。Creator 设计后将连续 shots 装组，按核实模型最大 M 以 `ceil(0.7*M)..M` 为语义目标而非机械下限；保留时长、对白、切点，不延长场景/整集。`task-inputs/taskNN.json` 恰为 `{shots,references}`，文件名给稳定 task_id，每任务至少一个全组本地 MP4，条目仅 local PNG/MP4，静态段可用静态 clip。身份图首次使用求并集在前；BOX 控制相机/布局/整体轨迹，sources 不上传。
+
+相同单行视频风格字段在任务级输出一次，仅从成员移除此字段；差异交 owner，其他字段/对白/prose/空格/续行保留。只重基行首结构 bracket cues，内联经过时间明确仍属具名 shot 本地时间；每镜链接须自身 header 声明。Creator 统一参考时钟、内部切点/声音桥。Converter 返回 task_id/shots/timeline/prompt/duration/references/assetCards/sources/inputPath，时间派生，无可编辑 offset/duration 或装组索引。
+
+tasks.json 数组按 task_id 唯一，保存 shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 四元组/媒体指纹不变。Grants 为 `{decision,episode,task_id,shots,constraints}` 加真实可选次数；manifest/record/grant 成员一致才 reserve，漂移、错误身份或部分选组零调用、不改次数。
 
 Creator 可按需直接操作 Blender/2D/FFmpeg，源码与媒体在故事项目 references/，不引入固定场景 DSL 或生产链。基础卡可选本地 PNG/sources，见 [卡片契约](../skills/_meta/rules/local-reference.md)。
 
-检查入口为 `scripts/check-shot-inputs.mjs EP [SHOT...]`，配合 review-evidence check。五类 evidence 为 script/storyboard/asset-prompt/asset-visual/shot-input；最终就绪不含 asset-prompt，授权新增/重生图另须它，复用库存不扩 prompt scope。整集编号 1..N，选镜允许缺号且源编号递增唯一、目标存在。接口不相容报告工程阻塞。
+检查入口为 `scripts/check-shot-inputs.mjs EP [SHOT...]`，配合 review-evidence check。五类 evidence 保留 script/storyboard/asset-prompt/asset-visual/shot-input；最终就绪不含 asset-prompt，新生图另须它。整集源 1..N 且每镜分配一次，任务按首成员排序；局部允许源缺号、目标存在且选完整组。全局检查组重叠/缺失源成员，局部不要求未选媒体或全片计划。未分配/部分组报告完整成员及额外镜头，不静默扩授权。接口不相容交工程。
 
-shot-input 审核聚焦实际 prompt/media 集成、变化细节与必要边界，无具体冲突时复用当前 storyboard 判断。比较位置、轨迹、状态、轴线与身份，真实依赖存 inputs 指纹。源码/记账变化且渲染媒体未变可独立 scoped 兼容性评估，有依据才续签，不盲刷哈希或自动全量重审；必要看图仍新 task、缩略图优先。缺必要证据为 unknown。
+shot-input target 为 task manifest；审核最终集成/delta、参考时钟、内部切点/声音桥及必要外部边界，无具体冲突复用 storyboard 判断。比较位置、轨迹、状态、轴线与身份，实际依赖入 inputs，不附全计划哈希。源码/记账变化且媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审；看图仍新 task、缩略图优先。缺必要证据 unknown。
 
 short/series 含资产图与本地参考，停在付费视频提交前；后续手动 generate-video 建立真实 initial grant。submitted 按 recorded ID/provider 取回，缺 ID 人工核实并保留状态。None 禁新提交而非取回；保留 fixed settings、pending/receipt、grants、locks 和 inflight。
+
+Converter 的 `.sh` 与 `.mjs` 均使用 `--json STORYBOARD TASK_ID EP`；显式 EP 与 storyboard 路径一致，生成 task_id 独立于首镜和宿主代理任务 ID。
 
 ## 运行时适配
 
@@ -49,9 +58,21 @@ short/series 含资产图与本地参考，停在付费视频提交前；后续�
 
 `${CLAUDE_PLUGIN_ROOT}/skills/` 转为 cache 路径，其他插件路径指向安装根；shell.env 提供根变量。故事 config/assets/references/story 仍相对故事项目。Cache 输入含源 skills/agents/scripts、OC overrides/lib 与版本；重启才加载更新，不改现有会话。
 
-每次视觉操作按 [visual-context](../skills/_meta/rules/visual-context.md) 使用新 task、helper 缩略图与必要 crop，只 Read 返回 preview，原图用于 provider/指纹。独立 singleton 直接写受托轮次，相干小批纯文本可单任务逐 target 判断并落盘；协调者串行安排同文件写入。仅实际分开的 reviewer 结果需合并时用独立汇总者，生产者不编造 pass。只写受托记录及临时预览；规划按需采用。工具 allow 不等于付费/覆盖许可。
+每次视觉操作按 [visual-context](../skills/_meta/rules/visual-context.md) 使用新 task、helper 缩略图与必要 crop，只 Read 返回 preview，原图用于 provider/指纹。独立 Reviewer 并行写各自 canonical target 文件；同一 ep/kind/target 重审串行。相干纯文本批次逐目标分别落盘，范围协调依据实际完成摘要或既有记录统计结果，不另设共享账本或汇总验收。审核者只写受托 canonical 记录及指定临时 state/payload/预览，生产者不编造 pass。规划按需采用；工具 allow 不等于付费/覆盖许可。
 
-需要用户决定时完整展示原角色当前题和全部选项，再用原生 question 单选。主 AI 只依作者条件逐题呈现，完整原答复批量回原任务。嵌套明确拒绝后走忠实 relay，不接管创作、不自审或自动改深度。
+Director 可直接编写完整剧情候选与计划，逐题展示并保留真实答复，无自我 relay。专家决策包保留全部标签、背景、选项与条件，完整展示当前题后原生 question 单选，完整原答复批量回原专家任务。专家/审核协调者可嵌套时直接委派；工具不可用或明确深度拒绝后复用结论，主 AI 忠实 relay 并恢复原专家、审核协调者或 checker，传回实际结果。普通失败不算深度拒绝，不自审或改深度；后续视觉操作仍新 task。
+
+五种 runtime 审核按 [共享规约](../skills/_meta/rules/review-meta-rules.md) 默认使用 review-round，指定 `/tmp/opencode/<task>` 目录须先存在，STATE/payload 为其中不同绝对路径。在故事项目根运行：
+
+```bash
+SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-round.mjs" start KIND EP TARGET STATE [EXTRA_INPUT...]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/review-round.mjs" add-input STATE PATH...
+node "${CLAUDE_PLUGIN_ROOT}/scripts/review-round.mjs" finish STATE PAYLOAD.json
+```
+
+start 在阅读制作材料前绑定显式配置和首次哈希；新语义参考先 add-input 再读。Reviewer 写指定临时 payload `{commentary,result:{status,blockers,...}}`，helper 注入 target/inputs、复核并验证 canonical 记录，不手填哈希 JSON。采集/发现错误保留，漂移保留首次哈希且 finish 记 unknown；缺显式 status 的 payload 无效。允许受托 canonical 记录和指定临时 state/payload/预览，不在工作区复制账本。可选规划 Markdown 不使用此 helper。
+
+finish exit 0 仅表示记录写入；返回实际 path/round/status/input_count/evidence_issues 和必要意见即可，正常完成不要求立即重复 fingerprint、check-target 或全文 Read，错误/诊断按需查，下游 gates 不变。局部视觉 delegate 由独立 owner 在委托读取前采集必要参考，返回实际观察/路径/限制；新参考先采集再交 fresh task，不以后采快照追认，不需 import registry。独立语义判断、逐 target 并行、全新视觉上下文及缩略图保持不变。
 
 ## 自动监控
 
@@ -64,6 +85,8 @@ opencode --port 4096 -s YOUR_SESSION_ID
 目标仅 epNN/all，部分镜头须确认边界，不静默扩大。间隔建议 1200 秒，最少 60 秒；按 target/SID 管理 PID、日志和 prompt 文件，避免重复。先执行一次隔离检查，无需继续或不可恢复错误则不安装 loop。端口/session/health 和停止细节由 override 负责。
 
 首次及周期 checker payload 显式传 canonical config_path 或 UNRESOLVED，并沿 Creator relay 保留。未解析只取回并报 human_needed，不选择默认配置。Untouched pending 用真实 initial grant，failed 需 retry grant；付费交真实 Creator，嵌套拒绝则主 AI 派 sibling 后恢复同一 checker。未知 inflight 保留待核实。仅有效同目标末行 JSON 决定停止，all_complete 可含 human_needed。下载失败保留 ID 重试取回；监控不创作修复或审片。
+
+查询/监控按生成任务计数；human_needed 为 `{ep,task_id,shots,reason}`，每 ep/task_id 一条完整成员。EP/all scope、HTTP transport、配置上下文及 Creator relay 保持上述约定。
 
 ## 维护与验证
 

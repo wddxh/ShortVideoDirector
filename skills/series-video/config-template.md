@@ -1,5 +1,7 @@
 # ShortVideoDirector 配置
 
+制作 Director 是顶层主 AI，本地加载 director-orchestrate；自编完整候选与决策计划直接呈现并保留原始答复，无自我 relay。下述批量回原角色规则适用于专家决策包；独立验收使用全新 Reviewer。
+
 - mode: series
 
 ## 模型配置
@@ -18,9 +20,9 @@
 # - 视频比例: 用户固定值或明确委托选择
 # - 视频分辨率: 用户固定值或明确委托选择
 
-系列全部集共用视频 provider/model/ratio/resolution 四元组。后续准备从所有 canonical episode tasks 中一致的已准备 submission 继承，包括本镜头已有快照，不逐集重新选择；无前集任务也先查其他已准备任务。仅无任何快照时从实际固定配置和明确参数选择授权解析首次组合，不使用隐式默认。
+系列全部集共用视频 provider/model/ratio/resolution 四元组。后续准备从所有 canonical episode tasks 中一致的已准备 submission 继承，包括本生成任务已有快照，不逐集重新选择；无前集任务也先查其他已准备任务。仅无任何快照时从实际固定配置和明确参数选择授权解析首次组合，不使用隐式默认。
 
-准备写入前运行 `video-task-inputs.mjs profile TASKS`，使用实际 SVD_CONFIG（未设时 config.md）。历史缺项/冲突、固定配置与继承不一致或 provider=none 均停止新准备/付费，不补造旧值，查询下载仍可用。单 shot 时长、内容、引用、初次/重试授权不从 profile 继承；集总时长另由初始用户目标跨集共用。不得为换型删除快照；系列准备串行执行，本集锁不是跨集事务。本说明不是额外 profile 注册表，实际已选组合仍只保存在任务 submission。
+准备写入前运行 `video-task-inputs.mjs profile TASKS`，使用实际 SVD_CONFIG（未设时 config.md）。持久快照缺项/冲突、固定配置与继承不一致或 provider=none 均停止新准备/付费，不补造值，查询下载仍可用。Task 身份/成员、派生时长、内容、引用及 grants 不从 profile 继承；集总时长由初始用户目标跨集共用。不得为换型删除快照；系列准备串行，本集锁不是跨集事务。四元组只保存在任务 submission，不设额外注册表。
 
 ## 参数选择授权
 
@@ -48,13 +50,13 @@ scope 为 images/video；字段为 provider/model/ratio/resolution。缺失、�
 - 语言: auto                 # auto(跟随输入语言) / zh / en / 自定义
 # - 每集分镜数: 用户固定值或明确委托 Storyboarder 按叙事决定
 # - 每集时长目标: 用户确认的单值或允许范围（注明单位；正式制作前填写，无默认值）
-# - 单镜头时长范围: 用户限制或明确委托在模型与集时长边界内分配
+# - 单镜头时长范围: 用户限制或明确委托按叙事在集时长边界内分配正整数秒
 - 上下文集数: 1              # continue mode时Director读取前N集novel.md
 - 默认模式: default           # default / full-auto
 
 第一集开始时由用户确定集总时长，全部集共用同一个初始目标/范围，不按前集实际时长滚动继承。已有明确配置复用、不重复问；缺失先问，模板值不是用户决定。单值初次设置说明并确认 scene-duration 的 ±10% 及对应秒数边界；更严格限制优先，精确值按相等上下界处理。显式范围不放宽。本段保留实际目标及确认的容差/严格边界。
 
-每集分镜数是规划参考；单镜头内容和时长在 provider/项目约束内灵活安排，合计遵守共同预算。Creator 参数自主权不含更改集目标。冲突或内容装不下交 Director 提修改方案或询问用户，不自动拉长或静默改系列目标。仅查看配置不建文件或填写目标。
+每集分镜数是规划参考，用户固定值仍绑定。摄影 shot 按叙事分配正整数秒，可用短镜；provider 最短/70% 目标仅用于 Creator 设计后装组的生成任务，合计遵守共同预算。装组保留原时长、对白和切点，不延长场景/整集；不适配交 Director 协调，参数裁量不授权改集目标。仅查看配置不建文件或填目标。
 
 ## 制作前确认记录（按需）
 
@@ -73,4 +75,4 @@ story/arc.md。缺失、空白或尚未批准的指定材料阻止正式制作�
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 返回的 path/sha256 对。
 确认前后核对相同输入；材料变化后需重新确认。审核通过不能代替用户确认。
 无请求时保留本说明即可，勿创建 episode-specific 记录。
-图像提供方 none 仅禁用新图片提交；必需资产图仍须存在且审核有效。每镜 manifest 顶层仅 references，至少一个本地 MP4，静态相机可渲染静态 clip；sources 不上传。最终就绪包含独立 shot-input 审核及必要跨镜/跨集连续性配对，不因 none 豁免材料。
+图像提供方 none 仅禁新图片提交；必需图仍须存在且审核有效。`task-inputs/taskNN.json` 恰为 `{shots,references}`，每生成任务至少一个全组 MP4，静态段可用 clip，sources 不上传。独立 shot-input 审核 task manifest 的集成、内部切点/声音桥及必要跨镜/跨集边界；部分选组报告完整成员/额外镜头，不扩授权。None 不豁免材料。
