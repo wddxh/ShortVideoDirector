@@ -36,8 +36,8 @@ SUM=$( ( grep -oE '目标时长[:：][[:space:]]*[0-9]+s' "$FILE" 2>/dev/null ||
         | awk 'BEGIN{s=0} {s+=$1} END{print s+0}' )
 
 if [ -n "$TARGET" ]; then
-  MIN=$(awk "BEGIN { printf \"%.0f\", $TARGET * 0.9 }")
-  MAX=$(awk "BEGIN { printf \"%.0f\", $TARGET * 1.1 }")
+  MIN=$(awk "BEGIN { n = $TARGET * 9 / 10; print int(n) + (n > int(n)) }")
+  MAX=$(awk "BEGIN { print int($TARGET * 11 / 10) }")
 elif [ -n "$TARGET_MIN" ] && [ -n "$TARGET_MAX" ]; then
   MIN="$TARGET_MIN"; MAX="$TARGET_MAX"
 else

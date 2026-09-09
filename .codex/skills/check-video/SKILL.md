@@ -40,7 +40,7 @@ argument-hint: "自然语言查询目标、镜头范围或无人值守检查委�
 
 生成意图以实际请求为准，不另问许可。short/series 包含所需资产图与本地参考，intake/审核后执行，始终停在付费视频提交前。后续手动 generate-video 请求由入口按原文与范围登记 initial_authorization，不追加握手。check/auto 仅在当前契约内延续登记 grants 或取回，不补新许可或无限重试。
 
-摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标限制。Creator 在设计后将连续 shots 装组，按核实模型最大 M 以 ceil(0.7*M)..M 为语义目标，不是机械下限；保留时长、对白、切点，不改写或延长场景/整集。`task-inputs/taskNN.json` 恰为 `{shots,references}`，文件名给稳定 task_id，成员按源顺序连续，每任务至少一个全组 MP4，条目仅 local PNG/MP4。Converter 返回 `{task_id,shots,timeline,prompt,duration,references,assetCards,sources,inputPath}`，时间派生，不另存可编辑 offset/duration 或装组索引。
+摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标限制。用户原始集目标已确认的 ±10% 是主动可用的创作预算；Director 协调 owner 更新 canonical script/storyboard 与受影响下游，范围内不逐次求许可，原始基准不随本轮/前集合计滚动，精确要求优先。Creator 在设计后装组连续 shots，按核实模型最大 M 以 ceil(0.7*M)..M 为语义目标，不是机械下限；装组保留当前源时长、对白、切点，重设计交 owner，不暗中延时。`task-inputs/taskNN.json` 恰为 `{shots,references}`，文件名给稳定 task_id，成员按源顺序连续，每任务至少一个全组 MP4，条目仅 local PNG/MP4。Converter 返回 `{task_id,shots,timeline,prompt,duration,references,assetCards,sources,inputPath}`，时间派生，不另存可编辑 offset/duration 或装组索引。
 
 相同单行 `视频风格` 原字段在任务级输出一次，仅从成员移除此字段；不同基线交 owner。保留其他字段、对白、空格、续行和 prose，仅行首结构 bracket cue 重基到任务时钟，内联经过时间明确仍是具名 shot 本地时间。Creator 统一媒体参考时钟、内部切点及声音桥；身份图按成员首次使用求并集在前，本地媒体在后，每镜链接须自身 header 声明，sources 不上传。BOX 控制相机/布局/位置/整体轨迹，动作表情在 prompt。
 
@@ -53,6 +53,8 @@ shot-input target 为 `task-inputs/taskNN.json`，保留五种 kind；审核最�
 Converter 的 `.sh` 与 `.mjs` 入口均显式传 `--json STORYBOARD TASK_ID EP`，EP 与 canonical storyboard 路径一致；task_id 来自 task manifest 文件名，不从首镜编号推导，也不与宿主代理任务 ID 混用。
 
 ## Native User Decision
+
+摄影按现有 camera-language 知识设计调度、覆盖和焦距/距离/焦点，script→shots→reference 保留节拍初态、必要证据、先后/重叠及注意关系，不按动作数或固定秒数。Creator 在 local-reference 内按问题采用低成本 BOX 与可选假音频估时预演，不增加手/rig、TTS 或内容/表演验收。内部标注/假音频默认不上传，全组参考契约不变。shot-input 先报告实际可见性、注意和时序冲突，再给可选修法；独立证据、fresh task 与缩略图规则不变，不加 ledger/schema/gate。
 
 主 AI 完整展示原角色的当前一题正文及全部解释，再用当前模式可用的 `request_user_input` 键盘选择器。questions 恰好一项；id 稳定、header 不超过 12 字符，options 通常 2-3 项，以实际 schema 为准。示例只说明映射，不提供剧情：
 

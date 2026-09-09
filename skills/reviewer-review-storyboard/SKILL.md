@@ -24,7 +24,7 @@ Reviewer 独立负责 storyboard 语义验收；Creator 负责本地参考及 ma
 
 先按共享 review-meta-rules 确认独立新 Reviewer context。kind=`storyboard`，target=`story/episodes/{ep}/storyboard.md`。指定临时目录先存在，读取目标/script/config 前以显式 SVD_CONFIG 执行 `review-round.mjs start storyboard EP TARGET STATE [EXTRA_INPUT...]`；新参考卡/规划材料首次读取前 `add-input STATE PATH...`。局部意见仍须说明完整 storyboard 的验收范围，不能用局部 pass 冒充全文件通过。
 
-1. Storyboard 完整覆盖剧本，节奏和转场合理，对白原文与人物性格一致。
+1. Storyboard 按 [视听 craft](../_meta/rules/audiovisual-craft.md) 覆盖剧本节拍意义：初态、必要证据、先后/合理重叠与注意转移，不按动作条数或固定秒数验收。节奏和转场合理，对白原文与人物性格一致。
 2. 整集 Shot 编号按 `1..N` 有序、唯一、连续；选镜检查允许缺号但源编号递增唯一、目标存在，不重编号。按 storyboarder-storyboard/rules.md 核对单镜、场景和整集预算，并批量运行 `speech-rate.sh`。整集验收实算所有 shot 时长合计与用户边界，局部通过不等于整集通过，不以前集实际时长改预算。超界交生产 Director 协调，不自行放宽。
 3. 每个 shot 严格使用七字段；人物与 location/item/building 引用完整且路径有效。
 4. Prose 可被单镜独立消费，写足影响理解的动作过程与终态、朝向、屏幕方向、持有状态和空间关系，不要求每段机械重复所有字段。
@@ -38,13 +38,13 @@ Reviewer 独立负责 storyboard 语义验收；Creator 负责本地参考及 ma
 
 按摄影 shot 契约审核 prose 与声明资产，不假定未来媒体补齐事实。最终包另核对 converter 文本及 references；每镜链接须自身 header 声明，不能借同组其他成员合法化，裸名词不机械匹配。转换器除共同风格提取、引用绑定和结构 cue 重基外保留内部文字，成功不等于语义验收。部分生成组选镜报告完整成员及额外镜头，不静默扩授权。
 
-摄影选择应服务观众此刻要看懂或感受到的内容。检查景别、机位、运动、焦点与光线是否引导注意，空间调度、视线和动作轴线是否可读；有意越轴可重新建立方位。推轨改变摄影机位置，变焦改变焦距，不能混用效果。声音、内心声、停顿和画面反应共同支撑人物体验；保留剧本声音内容并说明声源与时机，不禁旁白、不加独白配额。
+摄影选择按 [摄影知识](../storyboarder-storyboard/camera-language.md) 服务观众此刻要理解或感受到的内容，判断调度/覆盖与焦距、距离、焦点能否保住必要证据和注意顺序，不另套镜头清单。声音、内心声、停顿和画面反应共同支撑体验。用户原始集目标已确认的 ±10% 是 owner 可主动分配的预算，不以偏离旧计划本身判错；核对当前 canonical script/storyboard 同步、真实整集边界和精确要求，基准不滚动。
 
 逐摄影 shot 按正整数秒、叙事与真实表演承载、用户单镜限制、场景/整集预算及固定镜头数验收。Provider 最短时长和 70% 效率目标不约束摄影 shot；模型未定本身不阻塞摄影时长审核。设计完成后 Creator 核实模型最大时长 M，以 `ceil(0.7*M)..M` 为生成任务语义装组目标，并对整个任务核对实际 provider 边界。场景容差不扩大用户整集严格边界，系列沿用初始共同预算。
 
 `speech-rate.sh` 实际接收 `"起秒-止秒:slow|normal|fast:台词"` 的逐段参数，输出 OK/OVER 与速率，不解析 storyboard 文件，OVER 也不以非零退出表示。保留真实台词与时间段并读取输出，结合表演、呼吸与反应空间判断。`scene-duration.sh` 只累加“目标时长”，不能用它代替 shot“时长”的整集合计。
 
-短镜按表达价值判断，不因短于生成任务目标或 provider 最短时长判失败。Creator 装组保留连续 shots 的原时长、对白和切点，统一参考时钟与声音衔接；不改写为长镜或延长场景/整集。具体碎切问题说明收益与损失交 Storyboarder，无法合理装组交负责人协调，不自动改固定镜头数、模型或预算。
+短镜按表达价值判断，不因短于生成任务目标或 provider 最短时长判失败。Creator 装组保留当前 canonical 时长、对白和切点，统一参考时钟与声音衔接；装组本身不延时。具体碎切问题先说明观众理解的损失，再给可选修法交 Storyboarder，无法合理装组交负责人在原始用户预算内协调重设计，不自动改固定镜头数、模型或用户基准。
 
 ### 当前指令与表演的证据
 

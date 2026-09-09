@@ -29,13 +29,13 @@ Commands 原样传 `$ARGUMENTS`，不拆位置参数。入口整体理解目标�
 
 ## 当前制作契约
 
-见 [shot-inputs](../skills/_meta/rules/shot-inputs.md)：摄影 shot 保留七字段/正整数秒，不受 provider 最短/70% 目标约束。Creator 设计后将连续 shots 装组，按核实模型最大 M 以 `ceil(0.7*M)..M` 为语义目标而非机械下限；保留时长、对白、切点，不延长场景/整集。`task-inputs/taskNN.json` 恰为 `{shots,references}`，文件名给稳定 task_id，每任务至少一个全组本地 MP4，条目仅 local PNG/MP4，静态段可用静态 clip。身份图首次使用求并集在前；BOX 控制相机/布局/整体轨迹，sources 不上传。
+见 [shot-inputs](../skills/_meta/rules/shot-inputs.md)：摄影 shot 保留七字段/正整数秒，不受 provider 最短/70% 目标约束。Creator 设计后装组连续 shots，以核实模型最大 M 的 `ceil(0.7*M)..M` 为语义目标而非机械下限，保留当前 canonical 时长/对白/切点。需重设计交 Director 协调 owner 主动使用用户原始集目标已确认的 ±10% 创作预算，同步源及受影响下游，范围内不逐次求许可，基准不滚动，精确要求优先。`task-inputs/taskNN.json` 恰为 `{shots,references}`，文件名给稳定 task_id，每任务至少一个全组本地 MP4，条目仅 local PNG/MP4，静态段可用静态 clip。身份图首次使用求并集在前；BOX 控制相机/布局/整体轨迹，sources 不上传。
 
 相同单行视频风格字段在任务级输出一次，仅从成员移除此字段；差异交 owner，其他字段/对白/prose/空格/续行保留。只重基行首结构 bracket cues，内联经过时间明确仍属具名 shot 本地时间；每镜链接须自身 header 声明。Creator 统一参考时钟、内部切点/声音桥。Converter 返回 task_id/shots/timeline/prompt/duration/references/assetCards/sources/inputPath，时间派生，无可编辑 offset/duration 或装组索引。
 
 tasks.json 数组按 task_id 唯一，保存 shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 四元组/媒体指纹不变。Grants 为 `{decision,episode,task_id,shots,constraints}` 加真实可选次数；manifest/record/grant 成员一致才 reserve，漂移、错误身份或部分选组零调用、不改次数。
 
-Creator 可按需直接操作 Blender/2D/FFmpeg，源码与媒体在故事项目 references/，不引入固定场景 DSL 或生产链。基础卡可选本地 PNG/sources，见 [卡片契约](../skills/_meta/rules/local-reference.md)。
+Creator 在 local-reference 内可用粗 BOX 相机/调度及可选假音频估时试排，以问题决定精度，不增加手/rig、TTS 或表演验收。源码与媒体在故事项目 references/，内部标注/假音频默认不上传，不引入固定 DSL 或新门禁。基础卡可选本地 PNG/sources，见 [卡片契约](../skills/_meta/rules/local-reference.md) 与 [工具示例](../skills/creator-local-reference/tools.md)。
 
 检查入口为 `scripts/check-shot-inputs.mjs EP [SHOT...]`，配合 review-evidence check。五类 evidence 保留 script/storyboard/asset-prompt/asset-visual/shot-input；最终就绪不含 asset-prompt，新生图另须它。整集源 1..N 且每镜分配一次，任务按首成员排序；局部允许源缺号、目标存在且选完整组。全局检查组重叠/缺失源成员，局部不要求未选媒体或全片计划。未分配/部分组报告完整成员及额外镜头，不静默扩授权。接口不相容交工程。
 

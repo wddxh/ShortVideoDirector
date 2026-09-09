@@ -36,7 +36,7 @@
 
 最终视频输入遵循 [shot-inputs](shot-inputs.md)：Creator 设计后装组连续摄影 shots，保留时长、对白和切点；`task-inputs/taskNN.json` 恰为 `{shots,references}`，每生成任务至少一个全组 MP4。Header 身份图按首次使用求并集在前，本地媒体在后；各镜链接须自身 header 声明，sources 不上传。BOX 表达相机/布局/整体轨迹，静态段可用 clip，GIF 不支持。独立 shot-input 以 task manifest 为 target，审核最终集成/delta、任务时钟、内部切点/声音桥和必要边界，无冲突复用 storyboard 判断。以下“参考图”也包括声明的 video refs。
 
-需要可控视觉依据时，Creator 可按知识选择直接 2D/2.5D、Blender 静帧或动画工具，任意脚本与可编辑输入留在故事项目 references/；不强制建模、模板或固定几何 DSL。具体方法见 creator-local-reference，卡片可选声明见 [本地参考契约](local-reference.md)。讲清参考控制什么、哪些只是占位、最终画面如何使用；本地预览不是付费成片，也不改其他 owner 的事实。
+需要可控视觉依据时，简单平面图示/静态面板默认用 2D + FFmpeg；涉及纵深、透视、空间遮挡或运镜的预演优先用 `bpy` 制作原生 Blender 场景，将可编辑 `.blend`、实际脚本与输入留在故事项目 `references/`。按问题和已核实的无头/设备能力优先选择适用的 Workbench/Eevee，必要时用 Cycles；不因使用 Blender 就假定有 GPU 或更快。编码、抽帧和混音默认交 FFmpeg，不默认自建 NumPy/Pillow 三角形渲染器或深度缓冲，也不在 FFmpeg 可用时绕用 Blender VSE。保留有具体依据的 2.5D 等替代方案；原生工具缺失先诊断，不静默堆叠复杂替代实现。这些是工具选择默认值，不要求平面任务使用 Blender，也不引入模板、固定几何 DSL 或新门禁。具体方法见 [creator-local-reference](../../creator-local-reference/SKILL.md)，卡片可选声明见 [本地参考契约](local-reference.md)。讲清参考控制什么、哪些只是占位、最终画面如何使用；本地预览不是付费成片，也不改其他 owner 的事实。
 
 基础 prompt 绑定实际参考及本地 narrative 的控制意图；资产图在前，本地 images 按声明顺序追加，sources 不上传。Prompt review 须看已制成本地 PNG/源码，不要求未来输出 PNG。本地自检不替代独立审核。
 

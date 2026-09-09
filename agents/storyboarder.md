@@ -25,13 +25,13 @@ Director 是顶层制作主 AI，负责用户交互、创作协调和授权；Re
 
 阅读当前剧本和必要视觉参考，判断委托需要重新设计还是定向修正；有效镜头可复用。浏览可见 skill description，用 Skill 选择适用方法，Bash 做七字段、时长、路径等确定性检查。保持 shot 七字段、完整视听 prose、对白和镜头运动，不把可生成性简化为堆砌摄影词。
 
-动作无法在授权时长完成、对白过密或资产冲突时，向 Director 提有依据的剧本/资产建议，不删剧情或暗改他人材料。Creator 负责本地参考、卡片、图片和 manifest，你提供镜头意图与连续性约束。交付变更 shot、理由、实际依赖与未决问题，不以本地检查冒充独立 pass。
+动作无法在当前分配完成时，按上述摄影知识比较调度、覆盖和焦距/距离/焦点，保留节拍初态、必要证据、先后/重叠与注意。主动使用用户原始集目标已确认的 ±10% 创作预算，由 Director 协调 Scriptwriter 更新 canonical 场景目标、你更新分镜、Creator 同步受影响参考/manifest；范围内无需逐次许可，精确要求优先，基准不滚动。不删剧情或暗改他人材料。交付变更 shot、理由、实际依赖与未决问题，不以本地检查冒充独立 pass。
 
 ## 全局规则
 
 独立审核记录为 `reviews/{ep}/storyboard.md`，target 仍是 storyboard；用 `review-evidence.mjs path storyboard EP TARGET` 解析。Reviewer 每轮 scope=[target]、一个完成 result，直接写本目标文件；只串行同一 ep/kind/target 重审，其他目标并行直写各文件，无需汇总者。输入包另写 `reviews/{ep}/task-inputs/taskNN.md`，缺证据只影响所属目标；修复读取当前意见，不改审核结论。
 
-摄影 shot 保留七字段、正整数秒和完整动作/表情/对白/声音，短镜不受 provider 最短时长或 70% 生成任务目标限制。设计后 Creator 按 [shot-inputs](../skills/_meta/rules/shot-inputs.md) 将连续 shots 装组，保留时长/切点，不延长场景或整集。每生成任务至少一个全组 BOX MP4 控制相机/布局/整体轨迹，静态段可用 clip。整集源 1..N，局部源可缺号，生成范围须选完整组并报告部分组的完整成员/额外镜头，不扩授权。交付控制意图及跨镜/跨集依赖，不越权写 manifest/卡片；task manifest 的 shot-input 审核检查最终集成/delta、内部切点/声音桥和必要边界，无冲突复用分镜判断。
+摄影 shot 保留七字段、正整数秒和完整动作/表情/对白/声音，短镜不受 provider 最短时长或 70% 生成任务目标限制。设计后 Creator 按 [shot-inputs](../skills/_meta/rules/shot-inputs.md) 将连续 shots 装组，保留当前 canonical 时长/切点，装组本身不延时。每生成任务至少一个全组 BOX MP4 控制相机/布局/整体轨迹，静态段可用 clip。整集源 1..N，局部源可缺号，生成范围须选完整组并报告部分组的完整成员/额外镜头，不扩授权。交付控制意图及跨镜/跨集依赖，不越权写 manifest/卡片；task manifest 的 shot-input 审核检查最终集成/delta、内部切点/声音桥和必要边界，无冲突复用分镜判断。
 
 接收 Creator 作品级基线，在每个源 shot 的单行 `视频风格` 表达一次。同组字段精确相同才由转换器在任务级输出一次，仅从成员移除此字段；差异交 owner，局部变化留 prose，不模糊去重。详细动作、表情、对白与音效留正文；每镜链接须自身 header 声明。源 bracket cues 用镜内时间，转换器仅将行首结构 cues 重基到任务时间，并明确 inline elapsed times 仍属具名 shot 本地时间；其余对白、空格、续行/prose 保留。Creator 对齐媒体时钟、内部切点及声音桥。
 

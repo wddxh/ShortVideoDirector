@@ -41,6 +41,22 @@ test('PASS: sum=65 在 ±10% 容差内 (--target 60)', () => {
   } finally { rmSync(dir, { recursive: true }); }
 });
 
+for (const [sum, status, detail] of [
+  [59, 1, 'below min 60'],
+  [60, 0, 'range [60, 72]'],
+  [72, 0, 'range [60, 72]'],
+  [73, 1, 'exceeds max 72'],
+]) {
+  test(`--target 66: sum=${sum} uses strict integer bounds`, () => {
+    const { dir, file } = setupTmp(`## 场景 1\n- 目标时长: ${sum}s\n`);
+    try {
+      const r = run(file, '--target', '66');
+      assert.equal(r.status, status, r.stdout + r.stderr);
+      assert.equal(r.stdout.trim(), `${status === 0 ? 'PASS' : 'FAIL'} (sum=${sum}s, ${detail})`);
+    } finally { rmSync(dir, { recursive: true }); }
+  });
+}
+
 test('FAIL: sum=70 超出 ±10% 容差上限 (--target 60)', () => {
   const { dir, file } = setupTmp(
     '## 场景 1\n- 目标时长: 30s\n## 场景 2\n- 目标时长: 40s\n'
@@ -63,6 +79,21 @@ test('PASS: sum 在 [target-min, target-max] 范围内', () => {
     assert.match(r.stdout, /sum=230s/);
   } finally { rmSync(dir, { recursive: true }); }
 });
+
+for (const [sum, status, detail] of [
+  [65, 1, 'below min 66'],
+  [66, 0, 'range [66, 66]'],
+  [67, 1, 'exceeds max 66'],
+]) {
+  test(`--target-min 66 --target-max 66: sum=${sum}`, () => {
+    const { dir, file } = setupTmp(`## 场景 1\n- 目标时长: ${sum}s\n`);
+    try {
+      const r = run(file, '--target-min', '66', '--target-max', '66');
+      assert.equal(r.status, status, r.stdout + r.stderr);
+      assert.equal(r.stdout.trim(), `${status === 0 ? 'PASS' : 'FAIL'} (sum=${sum}s, ${detail})`);
+    } finally { rmSync(dir, { recursive: true }); }
+  });
+}
 
 test('FAIL: sum 低于 target-min', () => {
   const { dir, file } = setupTmp('## 场景 1\n- 目标时长: 100s\n');

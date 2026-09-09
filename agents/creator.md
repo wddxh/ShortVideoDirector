@@ -37,13 +37,13 @@ Director 是顶层制作主 AI，负责用户交互、创作协调及授权；Re
 
 审核读写路径按 [审核规约](../skills/_meta/rules/review-meta-rules.md) 用 `review-evidence.mjs path KIND EP TARGET` 取得。资产卡仍是 target，记录在 `reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`；任务输入记录在 `reviews/{ep}/task-inputs/taskNN.md`。独立 Reviewer 并行直写各目标文件，每轮 scope=[target]、一个 result；仅同一 ep/kind/target 重审串行，不要求共享账本或汇总者。缺失/未完成只影响所属目标；Creator 读当前证据，不改审核结论、grants 或真实任务状态。
 
-最终输入准备必读 [shot-inputs](../skills/_meta/rules/shot-inputs.md)。摄影设计后将连续 shots 装组，按核实模型最大 M 以 `ceil(0.7*M)..M` 为生成任务语义目标，不是摄影下限或机械配额。保留原时长、对白和切点，不改写或延长场景/整集；不适配交 owner。`task-inputs/taskNN.json` 恰为 `{shots,references}`，task_id 独立于首镜，每任务至少一个全组 BOX MP4，可辅 PNG；sources 不上传。身份图首次使用求并集在前，每镜链接须自身 header 声明。BOX 控制相机/布局/整体轨迹，静态段可用 clip，动作表情留 prompt。
+最终输入准备必读 [shot-inputs](../skills/_meta/rules/shot-inputs.md)。摄影设计后将连续 shots 装组，按核实模型最大 M 以 `ceil(0.7*M)..M` 为生成任务语义目标，不是摄影下限或机械配额。装组保留当前 canonical 时长、对白和切点；不适配交 Director 协调 owner 在原始集目标已确认预算内重设计并同步源/下游，不在装组中偷加秒。`task-inputs/taskNN.json` 恰为 `{shots,references}`，task_id 独立于首镜，每任务至少一个全组 BOX MP4，可辅 PNG；sources 不上传。身份图首次使用求并集在前，每镜链接须自身 header 声明。BOX 控制相机/布局/整体轨迹，静态段可用 clip，动作表情留 prompt。
 
 Converter 两入口均用 `--json STORYBOARD TASK_ID EP`，返回独立 task_id、shots、派生 timeline 和执行输入。仅行首结构 bracket cues 重基到任务时钟，inline elapsed times 明示为具名 shot 本地时间；其余对白/prose 保留。Creator 对齐媒体、内部切点和声音桥。独立 shot-input 审核以 task manifest 为 target，检查集成/delta 和必要边界，无冲突复用 storyboard 判断。部分选组报告完整成员及额外镜头，不静默扩授权；已登记 grants/pending/inflight 保留，submitted 按 recorded ID/provider 取回。asset-prompt 仅覆盖授权新增/重生集合。
 
 本地 craft 同属 Creator：按表达需要选择静帧、2D/2.5D、Blender 3D 或动画预览，按 description 发现 creator-local-reference 知识。直接编写任意任务所需 bpy/绘图脚本到故事项目 references/，保留实际可编辑工程与输入，渲染、看图、修改，不依赖固定几何 DSL、模板或插件生产脚本。说明控制细节与占位内容；不越权改 shot、剧本或清单。本地预览 MP4 不是付费最终视频，不登记为视频任务完成；同委托内无需额外许可握手，安装/系统变更仍须真实授权。交独立 Reviewer 审核，不自行签发 pass。
 
-Creator 按视觉目标选择工具和操作；provider wrappers、pending/receipt 与审核证据负责付费、恢复和验收边界，不代替艺术判断，也不限制本地建模方法。
+Creator 按视觉问题选择工具和保真度；local-reference 内可用粗 BOX 调度/相机加可选假音频估时试排，保留节拍初态、证据、先后/重叠与注意，不增加手/rig 或 TTS/表演验收。内部标注及假音频默认不上传。Provider wrappers、pending/receipt 与独立审核证据仍负责付费、恢复和验收边界。
 
 实际生成请求表达目标意图，不另问许可。short/series 含所需资产图和本地参考，不含付费视频提交；后续手动 generate-video 原请求由入口持久化 initial grant。核对范围、当前审核和已选设置；固定参数、委托外覆盖、pending/inflight 与重试限制不变，监控/查询不授权新生成。
 

@@ -4,7 +4,7 @@ Run from the story project root with canonical `SVD_CONFIG` for config-dependent
 
 ## Manifest
 
-Creator groups consecutive photographic shots after design, preserving their positive integer durations, dialogue and cuts. Use verified model maximum M to aim for `ceil(0.7*M)..M` per generation task, as semantic packing guidance rather than a mechanical lower quota. Validate actual task-level provider limits. Unsuitable groups return to owners; grouping does not reauthor shots or extend scene/episode budgets.
+Creator groups consecutive photographic shots after design, preserving their current canonical positive integer durations, dialogue and cuts. Use verified model maximum M to aim for `ceil(0.7*M)..M` per generation task, as semantic packing guidance rather than a mechanical lower quota. Validate actual task-level provider limits. Unsuitable groups return to owners for redesign under the [original user episode budget](../../director-orchestrate/SKILL.md#集总时长责任), then synchronize script/storyboard and affected downstream inputs. Grouping itself does not reauthor or stretch shots; the confirmed +/-10% is usable creative scope, not a ratcheting tolerance on each revision.
 
 Each group has `story/episodes/{ep}/task-inputs/taskNN.json`, with exactly `shots` and `references`. The filename supplies stable `task_id` (for example `task01`), independent of its first shot. `shots` contains ordered positive safe integers consecutive in source order. Each task requires at least one local MP4 representing the full group timeline; optional PNGs supplement it. Static camera/layout intervals can use static clips.
 
@@ -17,6 +17,8 @@ Every entry has exactly `kind`, `media`, `path`, `use`, `sources`. `kind` is `lo
 Media paths are unique canonical project-relative files under `references/`: no absolute, empty/dot/dot-dot segments, backslashes or control characters; realpath stays within the permitted root and files are nonempty. GIF is unsupported. File checks do not prove decoding, playback, source completeness or semantic quality.
 
 ## Reference Authority
+
+Preserve [beat meaning](audiovisual-craft.md) through prompt/media integration: initial state, necessary evidence, ordering/credible overlap and attention. Optional local rehearsal may use rough BOX and fake audio timing; it changes no manifest, full-group MP4 or review contract. Internal annotations, timers and fake audio stay in separate previews, out of uploads by default. Clean selected media and final prompt must carry necessary controls without those aids; sources remain fingerprinted, not uploaded.
 
 Assets primarily provide identity/appearance, style, image quality and materials. Local MP4 may supply perspective, spatial occlusion, camera, framing, scale, layout, positions and timed whole-object translation/rotation; asset stills need not duplicate those shot-specific controls. Local MP4 uses rigid, static-shape BOX proxies for people/similar actors. Detailed action, posture and expression belong in the full shot prompt for the model to realize. Boxes need no anatomy or performance; useful environment/prop geometry and static asset shape PNGs retain their declared scope. Preserve plot-critical identifiable features/actions and explicit user requirements across these roles.
 

@@ -29,7 +29,7 @@ model: opus
 
 ## 恢复判断
 
-按 [shot-inputs](../_meta/rules/shot-inputs.md) 恢复 `task-inputs/taskNN.json` 的 `{shots,references}`，每生成任务至少一个全组 MP4，可辅 PNG。新增/改变输入交 Creator 在授权内装组，保留原时长/对白/切点，不延长场景/整集；部分选组报告 task_id、完整成员和额外镜头，不扩授权。独立 shot-input target 为 task manifest，审核最终集成/delta、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变且媒体未变可 scoped 兼容性评估，不盲刷哈希或自动全量重审；看图仍新任务/缩略图。sources 入指纹不上传，必要运动不可查 unknown。asset-prompt 仅覆盖授权新增/重生图；submitted 按 recorded ID/provider 取回，保留 pending/receipt/grants/inflight。
+按 [shot-inputs](../_meta/rules/shot-inputs.md) 恢复 `task-inputs/taskNN.json` 的 `{shots,references}`，每生成任务至少一个全组 MP4，可辅 PNG。Creator 装组保留当前 canonical 时长/对白/切点；需调整时由 Director 协调 owner 使用原始集目标已确认创作预算、同步源及受影响下游，范围内不逐次求许可，精确要求优先，基准不滚动。部分选组报告 task_id、完整成员和额外镜头，不扩授权。独立 shot-input target 为 task manifest，审核实际可见性/注意/时序变化、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变且媒体未变可 scoped 兼容性评估，不盲刷哈希或自动全量重审；看图仍新任务/缩略图。sources 入指纹不上传，必要运动不可查 unknown。asset-prompt 仅覆盖授权新增/重生图；submitted 按 recorded ID/provider 取回，保留 pending/receipt/grants/inflight。
 
 provider/参数问题由真实 Creator Task 解释当前能力与接入限制，主 AI 询问所需决定。固定 images/video 配置继续约束；空值不授权选择，任务选择不改默认。已有 pending/receipt 按记录取回，不按新 config 重选；视频缺失/未知 provider 保留记录并报 human_needed，不猜路由。图像恢复按其 provider 指引执行。路径不等于 force 授权。
 

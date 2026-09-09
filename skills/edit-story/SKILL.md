@@ -11,7 +11,7 @@ model: opus
 
 主 AI 在当前上下文用 Skill 加载 `director-orchestrate`，作为生产 Director 直接诊断修改、协调专家、处理用户决策并对交付负责。独立验收委托全新 Reviewer。
 
-按 [shot-inputs](../_meta/rules/shot-inputs.md) 评估 `task-inputs/taskNN.json` 的 `{shots,references}`、媒体、sources 与证据，每生成任务至少一个全组 MP4。摄影修改范围与生成组成员分开：部分选组报告 task_id、完整成员及额外镜头，不静默扩大创作或付费授权。Creator 装组保留原时长/对白/切点，不延长场景/整集。Reviewer 以 task manifest 为 target 审核最终集成/delta、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变而媒体未变可独立 scoped 兼容性评估，不自动全量重审或盲刷哈希；看图仍新任务/缩略图。改输入不刷新登记视频或 grants；submitted 按 recorded ID/provider 取回。
+按 [shot-inputs](../_meta/rules/shot-inputs.md) 评估 `task-inputs/taskNN.json` 的 `{shots,references}`、媒体、sources 与证据，每生成任务至少一个全组 MP4。摄影修改范围与生成组成员分开：部分选组报告 task_id、完整成员及额外镜头，不静默扩大创作或付费授权。Creator 装组保留当前 canonical 时长/对白/切点；需调整时由 Director 协调 owner 主动使用原始集目标已确认预算、更新源及受影响下游，范围内不逐次求许可，精确要求优先，基准不滚动。Reviewer 以 task manifest 为 target 审核实际可见性/注意/时序变化、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变而媒体未变可独立 scoped 兼容性评估，不自动全量重审或盲刷哈希；看图仍新任务/缩略图。改输入不刷新登记视频或 grants；submitted 按 recorded ID/provider 取回。
 
 实际修改/重生请求本身建立其目标操作意图，所需图片生成不另问通用授权；Director 依据请求和当前材料确定受影响范围。纯诊断不生成，未涵盖的覆盖或受保护任务仍阻塞；本入口不提交视频，后续由用户手动 generate-video 请求建立首次视频提交。
 

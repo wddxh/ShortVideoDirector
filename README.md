@@ -57,7 +57,7 @@ outline/novel/arc 按用途采用。用户要求预审时，在 canonical config
 
 ## 生成任务输入
 
-摄影 shot 保留七字段和正整数秒，按叙事/剪辑设计，不受 provider 最短时长或 70% 目标约束。Creator 在设计后将连续 shots 装组，核实模型最大时长 M，以 `ceil(0.7*M)..M` 为任务语义目标而非机械下限，并校验实际 provider 边界。保留原时长、对白和切点；无法合理装组交负责人，不改写或延长场景/整集。
+摄影 shot 保留七字段和正整数秒，按叙事/剪辑设计，不受 provider 最短时长或 70% 目标约束。Creator 在设计后将连续 shots 装组，核实模型最大时长 M，以 `ceil(0.7*M)..M` 为任务语义目标而非机械下限，并校验实际 provider 边界。装组保留当前 canonical 时长、对白和切点；需重设计时由 Director 协调 owner 主动使用用户原始集目标已确认的 ±10% 创作预算、同步 script/storyboard 与受影响下游，无需范围内逐次许可。原始基准不随修订合计滚动，精确要求/严格范围优先。
 
 每个生成任务有 `story/episodes/{ep}/task-inputs/taskNN.json`，文件名给稳定 task_id，独立于首成员：
 
@@ -67,7 +67,7 @@ outline/novel/arc 按用途采用。用户要求预审时，在 canonical config
 
 顶层恰为 shots/references，成员为按源顺序连续的正安全整数；条目仅 local PNG/MP4，每任务至少一个全组时间线 MP4，可辅以 PNG。静态段可用静态 clip。资产图提供身份，BOX 控制相机/取景/尺度/位置/整体轨迹；动作、姿态、表情与声音保留 prompt。Creator 对齐任务参考时钟、内部切点及声音桥，use 说明控制权限和占位边界。
 
-Sources 是真实可编辑工程/脚本及所需输入，只作编辑/审核，不上传；路径限定项目 references/。Creator 按需直接使用 Blender/2D/FFmpeg，不建立固定几何 DSL。基础/衍生资产卡可选本地 PNG 参考，见 [卡片契约](skills/_meta/rules/local-reference.md) 和 [工具知识](skills/creator-local-reference/tools.md)。
+Sources 是真实可编辑工程/脚本及所需输入，只作编辑/审核，不上传；路径限定项目 references/。Creator 按需使用 Blender/2D/FFmpeg，以粗 BOX 相机/调度加可选假音频估时预演具体问题，不建固定 DSL、不扩成手/rig 或 TTS/表演验收。内部标注与假音频默认不上传，最终全组参考契约不变。基础/衍生资产卡可选本地 PNG 参考，见 [卡片契约](skills/_meta/rules/local-reference.md) 和含音频 PLAN 示例的 [工具知识](skills/creator-local-reference/tools.md)。
 
 Converter `--json` 返回 `{task_id,shots,timeline:[{shot,start,end}],prompt,duration,references,assetCards,sources,inputPath}`。时间从原镜派生，无可编辑 offset/duration 或第二份装组索引。Header 身份图按成员首次使用求并集，再接 manifest 媒体；每镜链接须在自身 header 声明。相同单行 `视频风格` 原字段在任务级输出一次，仅从成员移除此字段，不一致交 owner；其他字段、对白、空格、续行和 prose 保留。只将行首结构 bracket cue 重基到任务时间，内联经过时间明确仍属具名 shot 本地时间。见 [精确契约](skills/_meta/rules/shot-inputs.md)。
 
