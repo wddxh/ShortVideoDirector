@@ -8,8 +8,7 @@
 | --- | --- |
 | Director（顶层制作主 AI） | 本地加载 director-orchestrate，诊断委托、直接协调创作与用户决策，对材料整体连贯性负责 |
 | Reviewer（独立子代理） | 在全新上下文验收材料，只写受托记录及指定临时 state/payload/预览 |
-| Writer | 小说/散文叙事、人物动机与声音 |
-| Scriptwriter | 可拍剧本、改编和本集资产清单 |
+| Scriptwriter | 原创/改编可拍剧本、人物动机与语言、本集资产清单 |
 | Storyboarder | 七字段 shot、摄影、动作意图与时长 |
 | Creator | 作品美术、资产身份图、本地参考与 manifest、provider 能力和授权执行 |
 
@@ -49,7 +48,7 @@ short/series 请求包含所需新增资产图和本地参考，intake/当前审
 
 用户关键选择尽量前置；Director 自编计划直接呈现并保留完整答复，不做自我 relay。专家给齐完整问题计划、标签、背景与条件分支，主 AI 沿题界完整展示当前题后原生单选，相关原始答复和全部条件批量回原专家任务。已定/继承/明确委托项不重问。范围内修复和独立重审无需逐轮批准；仅缺权限、关键冲突或用户检查点升级。细则见 [决策转交](skills/_meta/rules/user-decision-relay.md)。
 
-outline/novel/arc 按用途采用。用户要求预审时，在 canonical config 的 `制作前确认 epNN` 保存材料范围、真实 approval 与指纹；缺失、未批准或变化则先停正式制作。独立质量验收不替代用户批准。缺 script 资产清单请 Scriptwriter 接纳已有剧本补齐，不重做故事。
+outline/arc 按用途采用。用户要求预审时，在 canonical config 的 `制作前确认 epNN` 保存材料范围、真实 approval 与指纹；未知类型、缺失、未批准或变化则先停正式制作，不静默过滤或自动批准。独立质量验收不替代用户批准。用户小说、章节和节选按实际路径与采用范围交 Scriptwriter 改编，源文保持原样。缺 script 资产清单请 Scriptwriter 接纳已有剧本补齐，不重做故事。
 
 ## 项目文件
 
@@ -67,7 +66,11 @@ outline/novel/arc 按用途采用。用户要求预审时，在 canonical config
 
 顶层恰为 shots/references，成员为按源顺序连续的正安全整数；条目仅 local PNG/MP4，每任务至少一个全组时间线 MP4，可辅以 PNG。静态段可用静态 clip。资产图提供身份，BOX 控制相机/取景/尺度/位置/整体轨迹；动作、姿态、表情与声音保留 prompt。Creator 对齐任务参考时钟、内部切点及声音桥，use 说明控制权限和占位边界。
 
-Sources 是真实可编辑工程/脚本及所需输入，只作编辑/审核，不上传；路径限定项目 references/。Creator 按需使用 Blender/2D/FFmpeg，以粗 BOX 相机/调度加可选假音频估时预演具体问题，不建固定 DSL、不扩成手/rig 或 TTS/表演验收。内部标注与假音频默认不上传，最终全组参考契约不变。基础/衍生资产卡可选本地 PNG 参考，见 [卡片契约](skills/_meta/rules/local-reference.md) 和含音频 PLAN 示例的 [工具知识](skills/creator-local-reference/tools.md)。
+Sources 是真实可编辑工程/脚本及所需输入，只作编辑/审核，不上传；路径限定项目 references/。Creator 按需使用 Blender/2D/FFmpeg，以粗 BOX 相机/调度加可选假音频估时预演。持有、支撑或动作否则不可读/悬浮时，在本地授权内补最小手/前臂、相关肢体或接触代理，不限身体出画；默认不做完整 rig、精细手指、脸部动画或 TTS/表演验收。缺手指不是失败，缺必要支撑与动作冲突则需修正，悬浮/透明屏幕按意图判断。内部标注与假音频默认不上传，不建固定 DSL。基础/衍生卡可选本地 PNG，见 [卡片契约](skills/_meta/rules/local-reference.md) 与 [工具知识](skills/creator-local-reference/tools.md)。
+
+粗参考仍需详细 shot prose：谁做什么、必要身体/头部/道具朝向与姿态、左右、归属、握持/接触及初中末变化，按动作需要细化，不设全字段/细节配额。use 声明代理控制而非最终风格；最终 prompt 解释肢体代理的最终解剖、姿态、握向与动作实现。
+
+独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性；相似连续镜头适合时同组。不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
 
 Converter `--json` 返回 `{task_id,shots,timeline:[{shot,start,end}],prompt,duration,references,assetCards,sources,inputPath}`。时间从原镜派生，无可编辑 offset/duration 或第二份装组索引。Header 身份图按成员首次使用求并集，再接 manifest 媒体；每镜链接须在自身 header 声明。相同单行 `视频风格` 原字段在任务级输出一次，仅从成员移除此字段，不一致交 owner；其他字段、对白、空格、续行和 prose 保留。只将行首结构 bracket cue 重基到任务时间，内联经过时间明确仍属具名 shot 本地时间。见 [精确契约](skills/_meta/rules/shot-inputs.md)。
 

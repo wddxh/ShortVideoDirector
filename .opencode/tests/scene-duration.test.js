@@ -30,6 +30,26 @@ test('PASS: 三场景 sum 落在范围内 (--target 60)', () => {
   } finally { rmSync(dir, { recursive: true }); }
 });
 
+test('one scene can grow without deductions while original bounds stay fixed', () => {
+  const unchanged = '## 场景 2\n- 目标时长: 20s\n## 场景 3\n- 目标时长: 25s\n';
+  const { dir, file } = setupTmp('');
+  try {
+    for (const [first, sum, status] of [[15, 60, 0], [20, 65, 0], [21, 66, 0], [22, 67, 1]]) {
+      writeFileSync(file, `## 场景 1\n- 目标时长: ${first}s\n${unchanged}`);
+      const result = run(file, '--target', '60');
+      assert.equal(result.status, status, result.stdout + result.stderr);
+      assert.equal(result.stdout.trim(), status === 0
+        ? `PASS (sum=${sum}s, range [54, 66])`
+        : `FAIL (sum=${sum}s, exceeds max 66)`);
+      const explicit = run(file, '--target-min', '60', '--target-max', '65');
+      assert.equal(explicit.status, sum <= 65 ? 0 : 1, explicit.stdout + explicit.stderr);
+      assert.equal(explicit.stdout.trim(), sum <= 65
+        ? `PASS (sum=${sum}s, range [60, 65])`
+        : `FAIL (sum=${sum}s, exceeds max 65)`);
+    }
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
 test('PASS: sum=65 在 ±10% 容差内 (--target 60)', () => {
   const { dir, file } = setupTmp(
     '## 场景 1\n- 目标时长: 30s\n## 场景 2\n- 目标时长: 35s\n'

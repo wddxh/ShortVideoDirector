@@ -30,7 +30,7 @@ model: sonnet
 ### 上下文准备
 
 - 读 `config.md`
-- 读委托材料及 mode 指引中有关的连续性依据；arc、outline、novel 均不作为候选创作的无条件前置
+- 读委托材料及 mode 指引中有关的连续性依据；arc、outline 均不作为候选创作的无条件前置
 
 ### 探索候选
 

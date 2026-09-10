@@ -59,7 +59,7 @@ function parseSimpleYaml(text) {
  *   - Drops `model: inherit` (OC defaults to inheriting from parent)
  *   - Explicitly enables skill discovery; task follows the source role allowlist
  *   - Keeps explicit `model: <name>` values
- *   - Sets `mode: 'subagent'` (all 5 ShortVideoDirector agents are subagents)
+ *   - Sets `mode: 'subagent'` (all 4 ShortVideoDirector agents are subagents)
  *   - Passes through `description` verbatim
  */
 export function convertAgentFrontmatter(cc) {
@@ -94,7 +94,7 @@ const BASE_PERMISSION = {
 
 // Per-agent bash config: which scripts/commands to allow.
 //
-// All 5 agents get permission.bash = 'allow' AND external_directory = 'allow'
+// All 4 agents get permission.bash = 'allow' AND external_directory = 'allow'
 // (no ask dialogs, no tool-disabled surprises). Background:
 //
 // OC derives the effective `tools.<name>` dict from `permission`. If
@@ -105,12 +105,11 @@ const BASE_PERMISSION = {
 // run dreamina CLI / scripts.
 //
 // Per-command bash restriction is incompatible with the desired UX (zero
-// popups, full agent functionality). Blanket 'allow' for all 5 agents keeps
+// popups, full agent functionality). Blanket 'allow' for all 4 agents keeps
 // bash usable. Security boundary lives in SKILL.md prompts (LLM is told what
 // commands to run; the LLM is the gatekeeper, not OC permission system).
 const AGENT_BASH_CONFIG = {
   reviewer: { externalDir: 'allow' },
-  writer: { externalDir: 'allow' },
   scriptwriter: { externalDir: 'allow' },
   storyboarder: { externalDir: 'allow' },
   creator: { externalDir: 'allow' },
@@ -119,13 +118,13 @@ const AGENT_BASH_CONFIG = {
 /**
  * Build OC permission object for a given agent.
  *
- * All 5 agents use blanket allow for bash + external_directory. WHICH
+ * All 4 agents use blanket allow for bash + external_directory. WHICH
  * commands actually run is gated by SKILL.md prompts (LLM-side restriction),
  * not OC permission. This trades fine-grained per-command security for zero
  * permission popups and guaranteed tool availability (OC won't disable
  * bash/external_directory tools when permission is blanket-allow).
  *
- * @param agentName - one of reviewer, writer, scriptwriter, storyboarder, creator
+ * @param agentName - one of reviewer, scriptwriter, storyboarder, creator
  * @param allScripts - unused; kept for API compat with prior signature
  */
 export function buildPermissionForAgent(agentName, _allScripts = []) {

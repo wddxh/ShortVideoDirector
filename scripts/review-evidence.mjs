@@ -167,8 +167,7 @@ function preparatoryStatus(episode, config) {
     headings.find((h) => h.index > heading.index)?.index ?? text.length).trim();
   try {
     const record = JSON.parse(/^```json\s*\n([\s\S]*?)\n```$/.exec(body)?.[1]);
-    const allowed = { outline: `story/episodes/${episode}/outline.md`,
-      novel: `story/episodes/${episode}/novel.md`, arc: 'story/arc.md' };
+    const allowed = { outline: `story/episodes/${episode}/outline.md`, arc: 'story/arc.md' };
     if (record.episode !== episode || !Array.isArray(record.required) ||
         !record.required.length || !record.required.every((name) => Object.hasOwn(allowed, name))) return 'unknown';
     const required = record.required.map((name) => allowed[name]);

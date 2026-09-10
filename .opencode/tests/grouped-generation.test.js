@@ -99,6 +99,30 @@ test('three photographic shots retain duration, prose and cuts in one derived ta
   assert.deepEqual(JSON.parse(f.convert().stdout), r);
 });
 
+test('lengthening one canonical shot grows the group and downstream offsets without compensation', t => {
+  const f = groupedVideo(t);
+  const records = readFileSync(join(f.root, f.tasks), 'utf8');
+  const blocks = [...f.blocks];
+  blocks[1] = blocks[1].replace('- 时长：4s', '- 时长：6s')
+    .replace('[1s-4s]', '[1s-6s]');
+  f.write(f.board, blocks.join('\n\n'));
+  const result = f.convert();
+  assert.equal(result.status, 0, result.stderr);
+  const revised = JSON.parse(result.stdout);
+  assert.equal(revised.duration, f.resolved.duration + 2);
+  assert.deepEqual(revised.timeline, [{ shot: 1, start: 0, end: 3 },
+    { shot: 2, start: 3, end: 9 }, { shot: 3, start: 9, end: 14 }]);
+  assert.deepEqual(revised.timeline.map(({ start, end }) => end - start), [3, 6, 5]);
+  assert.equal(revised.prompt, f.resolved.prompt
+    .replace('Task interval for shot 2: 3s-7s', 'Task interval for shot 2: 3s-9s')
+    .replace('Task interval for shot 3: 7s-12s', 'Task interval for shot 3: 9s-14s')
+    .replace('- 时长：4s', '- 时长：6s').replace('[4s-7s]', '[4s-9s]')
+    .replace('[7s-9.5s]', '[9s-11.5s]').replace('[8s-12s]', '[10s-14s]'));
+  assert.deepEqual(revised.shots, f.resolved.shots);
+  assert.deepEqual(revised.references, f.resolved.references);
+  assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), records);
+});
+
 test('task APIs select whole groups, report partial scope and preserve stable identity', t => {
   const f = groupedVideo(t), cwd = process.cwd();
   process.chdir(f.root);

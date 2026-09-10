@@ -1,5 +1,5 @@
 // Some assertions in this file are coupled to specific source skills such as
-// `director-arc`, `auto-video`, and `writer-novel/rules.md`. See
+// `director-arc`, `auto-video`, and `creator-create-assets/rules.md`. See
 // `.opencode/README.md` § 维护契约 for the sync checklist.
 import { describe, test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -32,7 +32,7 @@ describe('parseSkillFile', () => {
 
 describe('rewriteFrontmatter', () => {
   test('source role capabilities preserve descriptions and association without fork', async () => {
-    const roles = new Set(['reviewer', 'creator', 'writer', 'scriptwriter', 'storyboarder']);
+    const roles = new Set(['reviewer', 'creator', 'scriptwriter', 'storyboarder']);
     let checked = 0;
     for (const entry of await readdir(path.join(PROJECT_ROOT, 'skills'))) {
       if (![...roles].some(role => entry.startsWith(`${role}-`))) continue;
@@ -83,7 +83,7 @@ describe('rewriteSkillCalls', () => {
     'director-orchestrate': { agent: null, fork: false },
     'reviewer-review-script': { agent: 'reviewer', fork: false },
     'creator-provider-dreamina': { agent: 'creator', fork: false },
-    'writer-novel': { agent: 'writer', fork: true },
+    'scriptwriter-script': { agent: 'scriptwriter', fork: false },
     'series-video': { agent: null, fork: false },
   };
 
@@ -94,9 +94,9 @@ describe('rewriteSkillCalls', () => {
   });
 
   test('local load preserves the natural-language commission', () => {
-    const input = '使用 Skill tool 调用 `writer-novel` skill，参考 ep01/notes.md，只诊断动机。';
+    const input = '使用 Skill tool 调用 `scriptwriter-script` skill，参考 ep01/notes.md，只诊断动机。';
     const out = rewriteSkillCalls(input, skillMeta);
-    assert.equal(out, '调用 `skill({ name: "writer-novel" })`，参考 ep01/notes.md，只诊断动机。');
+    assert.equal(out, '调用 `skill({ name: "scriptwriter-script" })`，参考 ep01/notes.md，只诊断动机。');
   });
 
   test('orchestration and review metadata only load knowledge, not tasks', () => {
@@ -216,7 +216,7 @@ describe('transformAllSkills (integration)', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test('retired scheduler and route guides are absent from source and cache', async () => {
+  test('retired skills and route guides are absent from source and cache', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     for (const root of [path.join(PROJECT_ROOT, 'skills'), tmpDir]) {
       for (const relative of [

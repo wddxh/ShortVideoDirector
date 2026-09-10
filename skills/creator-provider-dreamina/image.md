@@ -59,6 +59,14 @@ For assets supply reviewed `## 图像生成提示` and ordered refs; the wrapper
 
 Asset wrapper/runner accept `--retry-missing-id` / `{retryMissingId:true}` only for owner-checked asset targets under the bounded exception. It grants no force and changes no arguments/settings/refs. Honor stricter user counts; pure retrieval commissions grant no extra paid call.
 
+## Image Reference Bindings
+
+Dreamina's current interface convention, empirically confirmed by the user, uses exact prompt tokens `{图片1}`, `{图片2}`, etc., with ASCII braces and 1-based numbers. This is not `@图片1` syntax. CLI help describes arguments but does not specify reference-token parsing; this convention is not attributed to public documentation.
+
+Before prompt review, Creator resolves the final ordered `job.images` and writes the corresponding bindings into the card's `## 图像生成提示`. Each actual image has its token and concrete purpose: identity/appearance, base state, shape/layout control or declared placeholder intent. Number across the entire array: required identity/base images first, then local PNGs in their existing declaration order. For `[identity.png, local-shape.png]`, `{图片1}` supplies identity and `{图片2}` supplies shape control; the first local PNG is not automatically image 1. With no references, use no reference tokens.
+
+Filenames, paths, “随附图”, “第一张本地图” and local-only ordinals do not substitute for these bindings. Keep the full target description and each reference's intended role. Submit the reviewed prompt unchanged with that same ordered array; runner/wrapper pass it through, without guessing, appending tokens or rewriting at submission. Missing/wrong bindings return to the prompt owner for correction and current independent review under the existing rules.
+
 ## Ready-Job Batches
 
 For optional `## 本地制作参考`, follow [the shared contract](../_meta/rules/local-reference.md). Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/local-reference.mjs" parse|ready CARD` with one action. Basic refs keep required asset images first, then every declared local PNG once in declaration order as the exact suffix. The reviewed basic prompt must bind those actual inputs and include the narrative's control/placeholder intent; the wrapper does not append it. Sources are actual editable projects/scripts/inputs, not uploaded images. The runner/wrapper validate local readiness/order; same-entity mapping remains Creator's responsibility.
@@ -82,6 +90,8 @@ One fresh Creator generation context handles one coherent, authorized, current-p
 Identical jobs deduplicate by resolved output; conflicting requests for one output fail preflight. Pending on any target or reference blocks the entire submitted batch before payment, reporting recorded IDs. Missing external refs, cycles, claims and unresolved receipts block rather than use an old PNG. `--force` applies to every supplied job: split different force authority into separate invocations, keeping only explicitly authorized replacement targets in a force invocation. Preserve all refs and targets' scope; never add unapproved prerequisites merely to regenerate them. Split invocations retain the stop/recovery boundary below.
 
 The first observed failure/pending stops new admissions, not already active jobs. Drain all active work and preserve every success, pending ID, raw failure and unstarted target; do not abort siblings or launch another batch to bypass the stop. Diagnose/recover before authorized continuation. The scheduler neither retries nor imposes a quality-attempt cap; repair/review decisions remain with the responsible roles.
+
+This bounded runner/child return is not completion of the parent production commission. The parent coordinates same-ID/recorded-provider retrieval with bounded polling and fresh independent review of actual successes. Once the stop cause and required dependencies are resolved and current gates pass, a fresh Creator generation task may run the authorized unstarted remainder. Do not bypass unresolved pending with a new batch, duplicate known-ID submissions or turn continuation into unlimited retries. A retrieval-only child still returns without generating; any review or remainder belongs to the parent's existing production scope, not new authority from retrieval.
 
 Pending `upsert`/`remove` use `image-pending-state.mjs` with a short read-modify-write mutex and atomic rename. Do not manually rewrite pending.json. Each output has a `.png.claim` directory: conflicts fail rather than queue a duplicate submit; claims never auto-expire. Interrupted owners, stale claims/locks and prepared/unknown receipts need manual reconciliation of owner/ID/output before retry, not age-based deletion. Reference state is rechecked at submission.
 

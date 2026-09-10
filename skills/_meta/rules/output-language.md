@@ -19,7 +19,7 @@
 
 ## 适用范围
 
-- ✅ Narrative 文本（novel / script / outline / arc）
+- ✅ Narrative 产出（script / outline / arc）；输入小说的原文引用按保留要求处理
 - ✅ Review 意见（所有 `*-review-*` skill 的输出）
 - ✅ 新 Asset id / 文件名；既有身份与引用保持稳定
 - ✅ Prompt 字段（含 character/location/item/building / storyboard shot prose）

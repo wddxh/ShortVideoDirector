@@ -51,7 +51,7 @@ scope 为 images/video；字段为 provider/model/ratio/resolution。缺失、�
 # - 每集分镜数: 用户固定值或明确委托 Storyboarder 按叙事决定
 # - 每集时长目标: 用户确认的单值或允许范围（注明单位；正式制作前填写，无默认值）
 # - 单镜头时长范围: 用户限制或明确委托按叙事在集时长边界内分配正整数秒
-- 上下文集数: 1              # continue mode时Director读取前N集novel.md
+- 上下文集数: 1              # 续集选择相关前集剧本与来源材料的参考范围
 - 默认模式: default           # default / full-auto
 
 第一集开始时由用户确定原始集总时长，全部集共用，不按本轮或前集实际时长滚动继承。已有明确配置复用，缺失先问，模板不是决定。单值初次设置说明并确认 ±10% 创作预算及秒数边界；owner 可主动用于揭示、倾听与反应，不只是完稿容错。精确值按相等上下界，更严格限制优先，显式范围不放宽。本段保留原始目标与确认边界，不用调整后的合计覆盖基准。范围内由 Director 协调 owner 更新 canonical script/storyboard 和受影响参考/manifest，无需逐次许可；既有任务与授权记录仍受保护。
@@ -60,7 +60,7 @@ scope 为 images/video；字段为 provider/model/ratio/resolution。缺失、�
 
 ## 制作前确认记录（按需）
 
-outline、novel、arc 是按需要选择的规划材料；缺少它们不阻止常规制作。
+outline、arc 是按需要选择的规划材料；缺少它们不阻止常规制作。用户小说、章节和节选按实际路径与采用范围作为 Scriptwriter 改编输入。
 仅当用户要求先看材料时，由用户交互上下文在本配置中增加独立的
 `## 制作前确认 epNN` 段，段内只放一个 fenced JSON（语言标记 `json`）：
 
@@ -68,8 +68,9 @@ outline、novel、arc 是按需要选择的规划材料；缺少它们不阻止�
 {"episode":"ep01","required":["outline"],"approval":null}
 ```
 
-`required` 只允许 outline、novel、arc，分别指本集 outline.md、novel.md 和
-story/arc.md。缺失、空白或尚未批准的指定材料阻止正式制作。
+`required` 只允许 outline、arc，分别指本集 outline.md 和 story/arc.md。
+required 中的未知类型阻塞正式制作，不静默过滤或自动批准。详见 [制作前确认](../director-orchestrate/SKILL.md#来源与制作前确认)。
+缺失、空白或尚未批准的指定材料阻止正式制作。
 实际确认后，用户交互上下文将 approval 写为
 `{"decision":"保留用户实际确认内容","inputs":[...]}`；inputs 使用
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 返回的 path/sha256 对。

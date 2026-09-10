@@ -53,7 +53,7 @@ short 准备写入前核对整集；历史缺少 ratio/resolution 时阻止新�
 
 单次请求上下文仅为最终 prompt 与实际 typed references，遵循共享 visual-prompt-craft-common/video 和必读 [shot-inputs](../_meta/rules/shot-inputs.md)。准备时核对转换结果，不以读过剧本补齐模型缺口；创作缺口交 Director/Storyboarder，入口忠实保存。
 
-Creator 在摄影设计后将连续 shots 装组，保留时长、对白及切点。核实模型最大时长 M，以 `ceil(0.7*M)..M` 为语义装组目标而非机械下限；实际 provider 时长边界用于任务。无法合理装组交负责人，不延长 shot、场景或整集，不由入口改写。
+Creator 在摄影设计后将连续 shots 装组，保留时长、对白及切点。核实模型最大时长 M，以 `ceil(0.7*M)..M` 为语义装组目标而非机械下限；实际 provider 时长边界（含硬上限）用于任务。装组/提交操作中不延长 shot、场景或整集；无法合理装组交 Director 协调 owner，按原始确认集预算修订 canonical script/storyboard、同步受影响下游并取得当前相关审核后返回准备。该修订可在原始边界内净增，不扩大边界或绕过真实 grants、输入一致性及受保护记录。
 
 转换器将各成员完全相同的单行 `视频风格` 原字段在任务级输出一次，仅从成员移除该字段；不一致交 owner。其余字段、对白、空格、续行及 prose 保留并绑定声明引用。只将行首结构方括号 cue 按派生 offset 重基；校验镜内范围，允许合理重叠。prompt 明示方括号为任务时间、内联经过时间为具名 shot 本地时间。Creator 统一媒体参考时钟、内部切点和声音衔接。
 

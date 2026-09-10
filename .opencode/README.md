@@ -1,6 +1,6 @@
 # ShortVideoDirector OpenCode 适配
 
-插件从 `agents/*.md` 动态加载五个子代理，从 `skills/*/SKILL.md` 发现技能并转换到 `~/.cache/short-video-director/<hash>/`。制作主 AI 就是 Director，本地加载 director-orchestrate 并直接协调创作；Reviewer 在全新上下文独立验收。Skill 是知识，不是任务调度或隔离。工程主 AI 委托工程代理研究、实现与测试。
+插件从 `agents/*.md` 动态加载四个子代理，从 `skills/*/SKILL.md` 发现技能并转换到 `~/.cache/short-video-director/<hash>/`。制作主 AI 就是 Director，本地加载 director-orchestrate 并直接协调创作；Reviewer 在全新上下文独立验收。Skill 是知识，不是任务调度或隔离。工程主 AI 委托工程代理研究、实现与测试。
 
 ## 安装与加载
 
@@ -21,7 +21,7 @@ opencode agent list
 opencode debug skill
 ```
 
-应发现 creator/reviewer/scriptwriter/storyboarder/writer、内部 director-orchestrate、creator-local-reference 和 reviewer-review-shot-inputs，以及七个入口 series-video、short-video、edit-story、repair-story、generate-video、check-video、auto-video。十个 reviewer-review-* 技能由独立 Reviewer 使用；director-* 规划知识由制作主 AI 本地使用。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
+应发现 creator/reviewer/scriptwriter/storyboarder 四个专家、内部 director-orchestrate、creator-local-reference 和 reviewer-review-shot-inputs，以及七个入口 series-video、short-video、edit-story、repair-story、generate-video、check-video、auto-video。九个 reviewer-review-* 技能由独立 Reviewer 使用；director-* 规划知识由制作主 AI 本地使用。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
 
 Commands 原样传 `$ARGUMENTS`，不拆位置参数。入口整体理解目标、路径和范围；歧义不默认 latest/all。配置查看只读，缺失不初始化。
 
@@ -35,7 +35,11 @@ Commands 原样传 `$ARGUMENTS`，不拆位置参数。入口整体理解目标�
 
 tasks.json 数组按 task_id 唯一，保存 shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 四元组/媒体指纹不变。Grants 为 `{decision,episode,task_id,shots,constraints}` 加真实可选次数；manifest/record/grant 成员一致才 reserve，漂移、错误身份或部分选组零调用、不改次数。
 
-Creator 在 local-reference 内可用粗 BOX 相机/调度及可选假音频估时试排，以问题决定精度，不增加手/rig、TTS 或表演验收。源码与媒体在故事项目 references/，内部标注/假音频默认不上传，不引入固定 DSL 或新门禁。基础卡可选本地 PNG/sources，见 [卡片契约](../skills/_meta/rules/local-reference.md) 与 [工具示例](../skills/creator-local-reference/tools.md)。
+Creator 在 local-reference 内用粗 BOX 相机/调度及可选假音频估时试排。持有、支撑或动作否则不可读/悬浮时，在本地授权内补最小手/前臂、相关肢体或接触代理，不限身体出画；默认不做完整 rig、精细手指、脸部动画或 TTS/表演验收。缺手指不是失败，缺必要支撑与动作冲突则需修正；悬浮/透明屏幕按意图判断。源码与媒体在故事项目 references/，内部标注/假音频默认不上传，不引入固定 DSL 或新门禁。基础卡可选本地 PNG/sources，见 [卡片契约](../skills/_meta/rules/local-reference.md) 与 [工具示例](../skills/creator-local-reference/tools.md)。
+
+粗参考需完整 shot prose：谁做什么、必要身体/头部/道具朝向与姿态、左右、归属、握持/接触及初中末变化，按动作选择细节，不设全字段配额。use 声明代理控制而非最终风格；最终 prompt 解释实际肢体代理的解剖、姿态、握向与动作。
+
+独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性；相似连续镜头可同组。不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
 
 检查入口为 `scripts/check-shot-inputs.mjs EP [SHOT...]`，配合 review-evidence check。五类 evidence 保留 script/storyboard/asset-prompt/asset-visual/shot-input；最终就绪不含 asset-prompt，新生图另须它。整集源 1..N 且每镜分配一次，任务按首成员排序；局部允许源缺号、目标存在且选完整组。全局检查组重叠/缺失源成员，局部不要求未选媒体或全片计划。未分配/部分组报告完整成员及额外镜头，不静默扩授权。接口不相容交工程。
 

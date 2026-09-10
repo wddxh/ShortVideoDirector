@@ -57,7 +57,7 @@ Dreamina 的 text2image/image2image 使用 `--poll=0`，先持久化 receipt 与
 
 卡片有 `## 本地制作参考` 时必读 [共享契约](../_meta/rules/local-reference.md)，从项目根运行 `local-reference.mjs parse|ready CARD`（脚本位于 `${CLAUDE_PLUGIN_ROOT}/scripts/`）。本地 PNG 和实际可编辑工程/脚本/输入须先就绪并进入当前 prompt 独立审核；该检查不要求普通未来生成 PNG 先存在。缺声明文件不可删引用降成 text2image。
 
-基础 job.images 保留全部同实体/基础资产图，再按声明顺序追加本地 images 各一次，作为精确后缀。已审核完整 prompt 绑定实际参考及 narrative 的控制意图/占位边界；wrapper 不自动拼接。Sources 不上传。Runner/wrapper 检查本地声明及真实文件，不替代语义判断。
+基础 job.images 保留全部同实体/基础资产图，再按声明顺序追加本地 images 各一次，作为精确后缀。Creator 在 prompt review 前按选定 provider 的引用语法，将最终有序 images 中每份实际输入及其用途绑定到完整 prompt，包含 narrative 的控制意图/占位边界；具体语法读取该 provider 的图像契约。提交原样使用已审核 prompt 和对应顺序，runner/wrapper 仅透传，不在提交时猜测、补写或重编号。绑定缺失或错误交 prompt owner 修订并独立复审。Sources 不上传。Runner/wrapper 检查本地声明及真实文件，不替代语义判断。
 
 需要重新制作参考时，Creator 按 local craft 知识和原委托直接编辑 references/、渲染/看图/修订，再由 Director 协调受影响审核，不让 provider runner 变成本地生产脚本。当前 provider wrappers/evidence 是付费执行安全桥梁，不是艺术调度器；本 skill 的 manifest-only 编辑范围不扩张到其他 owner 文件或擅自改审核。
 
@@ -72,6 +72,8 @@ Dreamina 批量用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-images-dreamina
 单一 runner 管理本批并发，不同时另开 runner 或用 shell 后台并行 raw provider/单图 wrapper 绕过调度。重复相同 output 去重，冲突请求拒绝；命中 target/ref pending 的批次整体阻塞。output claim 内复查 pending/receipt 与非 force completed skip，不凭旧 PNG 推定已完成。force 作用于整次 invocation，按不同 force 授权拆分调用，force 批只传明确替换目标；缺少授权的前置不得借入批覆盖，拆批仍遵守下述停止与恢复边界。
 
 调度发现首次失败/pending 即停止新启动并等待 active 全部结束；保留所有成功、IDs、原始错误与未启动输出，不另开批绕过停止。pending 状态只经 mutex helper 更新；claim 冲突不排队、不自动过期，stale claim/lock 或未知 receipt 先人工核实恢复。调度器不盲重试，也不设置质量轮次上限，后续诊断/修复/复审仍由责任角色决定。具体 CLI/API 输出及整批部分成功恢复见 [图像接口](../creator-provider-dreamina/image.md)。
+
+此停止只结束本次 runner 的启动/排空操作，子任务返回不代表 Director 的制作委托完成。返回后由父协调者继续原授权范围：按 recorded ID/provider 有界查询/下载 pending，安排实际成功图的全新独立 visual review；停止原因及必要依赖恢复、当前门禁满足后，再由全新 Creator 生成任务承接未启动余项。仍未解决时保留阻塞，不换批绕过 pending、不重提已有 ID，也不以持续委托为由无限重试。纯取回子任务仍只取回并返回；其父制作委托另行协调审核与余项，不把取回范围扩成新生成授权。
 
 ## 基础图生产门禁
 

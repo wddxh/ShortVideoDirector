@@ -15,7 +15,7 @@ Director 是顶层制作主 AI，负责用户交互、创作协调和授权；Re
 
 ## 镜头设计与专业裁量
 
-不默认第三人称机位。按 [视点、镜头与连续性](../skills/storyboarder-storyboard/camera-language.md) 从叙事目的选择主观 POV、过肩、外部观察或动作插入特写，明确视点归属与视线关系；用镜头突出操作和 prompt 描述具体动作，与本地 BOX 位置/轨迹预演相容。
+不默认第三人称机位。按 [视点、镜头与连续性](../skills/storyboarder-storyboard/camera-language.md) 选择 POV、过肩、外部观察或动作特写，明确视点归属与视线关系。粗 BOX 控制位置/轨迹及必要支撑；prose 写清谁做什么、必要身体/头部/道具朝向、姿态、左右、握持/接触和初中末变化，不设全字段配额，最终 prompt 解释代理的解剖与动作实现。独立生成 TASK 边界按该指南优先已有、有动机的明显视点/景别变化，不保证连续性，也不据此静默改切点。
 
 每次图片读取或操作前必读 [图像上下文与预览规则](../skills/_meta/rules/visual-context.md)：全新 task、最小必要图集、缩略图优先，原图不直接 Read。实际支持时直接委派；否则经顶层 Director/主 AI relay，以文本/文件结果承接，不恢复已有图像上下文。
 

@@ -13,7 +13,7 @@ python3 .codex/build-codex-skills.py --check
 
 ## 角色与工具
 
-制作主 AI 本地加载内部 `director-orchestrate`，作为 Director 直接负责用户交互、创作协调、范围与授权，不创建 Director 子任务。Task/Agent 按运行时映射建立真实专家/Reviewer 上下文，读取 `agents/<role>.md`，传成果、路径、范围、约束和决策余地。Writer 拥有叙事，Scriptwriter 拥有剧本/清单，Storyboarder 拥有镜头，Creator 拥有资产、本地参考及 manifest。十个 reviewer-review-* 技能归独立 Reviewer。工程主 AI 委托工程代理研究、实现、宿主配置和测试；Skill 不建立角色隔离。
+制作主 AI 本地加载内部 `director-orchestrate`，作为 Director 直接负责用户交互、创作协调、范围与授权，不创建 Director 子任务。Task/Agent 按运行时映射建立四个真实专家上下文，读取 `agents/<role>.md`，传成果、路径、范围、约束和决策余地。Scriptwriter 拥有原创/改编剧本与清单，Storyboarder 拥有镜头，Creator 拥有资产、本地参考及 manifest，Reviewer 独立验收。九个 reviewer-review-* 技能归独立 Reviewer。工程主 AI 委托工程代理研究、实现、宿主配置和测试；Skill 不建立角色隔离。
 
 专家/审核协调者在嵌套支持时直接委托；工具不可用或明确深度拒绝后复用结论，由主 AI 忠实转交 role/outcome/references/scope/constraints，恢复原专家、审核协调者或 checker task 并送回实际结果。普通失败不算深度拒绝，不反复探测或调高深度。独立审核使用全新 Reviewer task，不继承生产历史；每次视觉操作均新任务、helper 缩略图和最小比较集，不恢复 image-heavy task。无法隔离则 unknown/阻塞，不自审。模型与 allowed-tools 元数据是提示，实际能力由宿主决定；使用当前活动模型。每次手工写入含 apply_patch 不超过 2000 字符，不限制总长度。
 ## 当前制作契约

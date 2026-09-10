@@ -178,14 +178,33 @@ test('preparatory approval binds episode and current nonempty planning inputs', 
   f.evidence(); assert.equal(run(f).status, 0);
 });
 
+test('unknown preparatory kinds block even alongside an approved supported plan', t => {
+  const f = videoProject(t), outline = `${ep}/outline.md`;
+  f.write(outline, 'Plan');
+  const fingerprint = f.cli('review-evidence.mjs', ['fingerprint', outline]);
+  assert.equal(fingerprint.status, 0, fingerprint.stderr);
+  const approval = { decision: 'Approved', inputs: JSON.parse(fingerprint.stdout) };
+  for (const required of [['unsupported'], ['outline', 'unsupported']]) {
+    const record = { episode: 'ep01', required, approval };
+    f.write('config.md', '- mode: short\n## 制作前确认 ep01\n```json\n' +
+      JSON.stringify(record) + '\n```\n');
+    f.evidence();
+    const result = run(f);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stdout, /^preparatory-review:unknown$/m);
+    for (const kind of ['script', 'storyboard', 'asset-visual', 'shot-input']) {
+      assert.ok(result.stdout.includes(`${kind}-review:ok`), kind);
+    }
+  }
+});
+
 test('inline mode comments and unrequested optional plans are accepted', t => {
   const f = videoProject(t);
   f.write('config.md', '- mode: series # series project\n');
-  f.write(`${ep}/outline.md`, 'unfinished'); f.write(`${ep}/novel.md`, 'short'); f.evidence();
+  f.write(`${ep}/outline.md`, 'unfinished'); f.evidence();
   const result = run(f);
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /^mode:series$/m);
-  assert.doesNotMatch(result.stdout, /^novel:/m);
 });
 
 test('numbering and exactly one positive duration remain mandatory', t => {

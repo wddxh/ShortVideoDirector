@@ -195,7 +195,7 @@ test('canonical review paths preserve episode, category and full Unicode hierarc
 
 test('path rejects aliases, wrong episodes, kinds and noncanonical targets', async () => fixture(api => {
   for (const [kind, target, episode] of [
-    ['asset-prompt', a, undefined], ['asset-prompt', a, 'ep1'], ['novel', a, 'ep01'],
+    ['asset-prompt', a, undefined], ['asset-prompt', a, 'ep1'], ['unsupported', a, 'ep01'],
     ['script', 'story/episodes/ep02/script.md', 'ep01'], ['storyboard', a, 'ep01'],
     ['shot-input', 'story/episodes/ep02/task-inputs/task01.json', 'ep01'],
     ['shot-input', 'story/episodes/ep01/task-inputs/task1.json', 'ep01'],

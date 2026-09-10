@@ -15,7 +15,7 @@ model: inherit
 
 五种 runtime 审核默认在阅读前以显式 SVD_CONFIG 执行 `review-round.mjs start KIND EP TARGET STATE [EXTRA_INPUT...]`，新参考首次读取前 `add-input STATE PATH...`。STATE 绑定配置/首次哈希；Reviewer 写 `{commentary,result:{status,blockers,...}}` payload 后 `finish STATE PAYLOAD.json`，由 helper 注入 target/inputs、复核并验证轮次，不手填哈希。每个 ep/kind/target 独占 canonical 文件；相干小批纯文本逐 target 落盘，独立就绪视觉目标默认并发全新 Reviewer，仅同一目标重审串行。
 
-用 `review-evidence.mjs path KIND EP TARGET` 解析：`reviews/{ep}/script.md`、`storyboard.md`，`reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`，`reviews/{ep}/task-inputs/taskNN.md`。资产 target 仍为卡片。可选规划只写 prose 到 `reviews/{ep}/outline.md`、`novel.md`、`reviews/story/arc.md`。Plural 协调范围、覆盖与计数，不建共享账本或必需汇总者；缺失/失败/未完成/不可解析只使所属目标 unknown，不改其他目标结论。实际依赖、缺参考、宿主资源或用户约束可支持有界分批/串行，在 handoff 简述原因。
+用 `review-evidence.mjs path KIND EP TARGET` 解析：`reviews/{ep}/script.md`、`storyboard.md`，`reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`，`reviews/{ep}/task-inputs/taskNN.md`。资产 target 仍为卡片。可选规划只写 prose 到 `reviews/{ep}/outline.md`、`reviews/story/arc.md`。Plural 协调范围、覆盖与计数，不建共享账本或必需汇总者；缺失/失败/未完成/不可解析只使所属目标 unknown，不改其他目标结论。实际依赖、缺参考、宿主资源或用户约束可支持有界分批/串行，在 handoff 简述原因。
 
 每次视觉操作必读 [视觉上下文规则](../skills/_meta/rules/visual-context.md)，另开全新任务、先 helper 缩略图、使用最小必要比较集；后续操作不恢复 image-heavy task。
 

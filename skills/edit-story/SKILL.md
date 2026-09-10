@@ -31,7 +31,7 @@ model: opus
 
 ## 制作前批准
 
-保留 config_path 的 `## 制作前确认 epNN` 记录。用户新增先看材料要求时，仅列 outline/novel/arc，在该文件该段写 `{"episode":"ep01","required":["outline"],"approval":null}`，段内只放一个 fenced JSON（语言标记 json，ep 换为目标集）。对应本集 outline.md、novel.md 和 `story/arc.md`。无请求不新建记录；准备材料可修订，但未批准前不做正式制作。
+保留 config_path 的 `## 制作前确认 epNN` 记录。用户新增规划预审要求时，仅列 outline/arc，在该文件该段写 `{"episode":"ep01","required":["outline"],"approval":null}`，段内只放一个 fenced JSON（语言标记 json，ep 换为目标集）。对应本集 outline.md 和 `story/arc.md`。未知类型按 [制作前确认](../director-orchestrate/SKILL.md#来源与制作前确认) 报告并阻塞，不过滤或自动批准。无请求不新建记录；准备材料可修订，但未批准前不做正式制作。
 
 主 AI 用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 获取指定材料身份，向用户展示并明确询问批准；答复后复核同一输入，再将 approval 写为 `{"decision":"用户实际确认内容","inputs":[实际 path/sha256 对]}`。缺失、空白、待批或变动均阻塞；本次修改使已批准材料变化时重新请用户确认，范围确认或质量 pass 不能替代材料批准。
 
@@ -55,4 +55,4 @@ Director 与专家从 descriptions 自选方法。专家/审核协调者在嵌�
 
 Director 先核对原请求、配置、材料和已有 grants；修改意图与权限充分时直接协调执行，不再问“开始吗”。范围内专业选择、修复及独立重审持续进行，进度仅陈述。只有用户要求先看方案、缺必要权限或无法内部解决的关键冲突才准备决策包。主 AI 读全计划，沿作者题界完整展示当前题所有选项、理由、风险与不确定性后原生单题询问。自编计划答复本地保留，专家计划的原始答复及全部条件批量回原发起任务；只暂停受影响工作，不扩大范围或违反限制。
 
-按有效授权，主 AI 作为 Director 协调各专业 owner 与独立 Reviewer，依据实际影响而非固定节点表选择工作。script 是资产清单来源；缺清单委托 Scriptwriter 采用现有剧本补齐，不把 outline 清单合并回去或重写故事。outline/novel/arc 按用途选择，不因缺失自动创建。
+按有效授权，主 AI 作为 Director 协调各专业 owner 与独立 Reviewer，依据实际影响而非固定节点表选择工作。script 是资产清单来源；缺清单委托 Scriptwriter 采用现有剧本补齐，不把 outline 清单合并回去或重写故事。outline/arc 按用途选择，不因缺失自动创建。用户小说、章节和节选按实际路径与采用范围作为 Scriptwriter 改编依据；修改落在受托剧本，源文保持原样。

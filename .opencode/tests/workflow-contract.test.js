@@ -32,16 +32,15 @@ test('storyboard schema retains seven ordered fields and basic asset paths', () 
   for (const type of ['characters', 'locations', 'items', 'buildings']) assert.ok(schema.includes(`](assets/${type}/`));
 });
 
-test('content fixers retain owner metadata and deprecated config stays absent', () => {
-  for (const [name, agent] of [['writer-fix-novel', 'writer'],
-    ['storyboarder-fix-storyboard', 'storyboarder'], ['scriptwriter-fix-script', 'scriptwriter']]) {
+test('content fixers retain owner metadata', () => {
+  for (const [name, agent] of [['storyboarder-fix-storyboard', 'storyboarder'],
+    ['scriptwriter-fix-script', 'scriptwriter']]) {
     const fm = frontmatter(read(`skills/${name}/SKILL.md`));
     assert.equal(fm.name, name);
     assert.equal(fm.agent, agent);
     assert.equal(fm['user-invocable'], 'false');
     assert.equal(fm.context, undefined);
   }
-  assert.doesNotMatch(read('README.md'), /^\| 每集小说字数 \|/m);
 });
 
 test('single reviewer examples supply judgment payloads without helper-owned fingerprints', () => {
@@ -79,7 +78,7 @@ test('reviewers retain Bash and Task skills have Task-enabled owners', () => {
   }
 });
 
-test('all seven public entry IDs survive production retirement', () => {
+test('all seven public entries retain local orchestration metadata', () => {
   const entries = readdirSync('skills').filter(n => existsSync(`skills/${n}/SKILL.md`))
     .map(n => frontmatter(read(`skills/${n}/SKILL.md`)))
     .filter(fm => fm['user-invocable'] === 'true').map(fm => fm.name).sort();
@@ -99,10 +98,10 @@ test('planning stays local and acceptance belongs to registered reviewer', () =>
   assert.ok(names.includes('director-orchestrate'));
   assert.equal(existsSync('agents/director.md'), false);
   assert.deepEqual(readdirSync('agents').filter(n => n.endsWith('.md')).sort(),
-    ['creator.md', 'reviewer.md', 'scriptwriter.md', 'storyboarder.md', 'writer.md']);
+    ['creator.md', 'reviewer.md', 'scriptwriter.md', 'storyboarder.md']);
   const reviews = names.filter(n => n.startsWith('reviewer-review-'));
   assert.deepEqual(reviews.sort(), ['arc', 'asset-prompt-single', 'asset-prompts',
-    'asset-visual-single', 'assets-visual', 'novel', 'outline', 'script',
+    'asset-visual-single', 'assets-visual', 'outline', 'script',
     'shot-inputs', 'storyboard'].map(n => `reviewer-review-${n}`));
   assert.equal(names.some(n => n.startsWith('director-review-')), false);
   for (const name of names.filter(n => n.startsWith('director-')).concat(reviews)) {

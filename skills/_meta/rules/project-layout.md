@@ -7,7 +7,8 @@ Paths below are relative to the story project root, not the plugin checkout. Cho
 | Path | Purpose |
 | --- | --- |
 | `story/episodes/epNN/script.md`, `storyboard.md` | Canonical episode production text. |
-| `story/episodes/epNN/outline.md`, `novel.md` | Optional adopted episode planning/literary material. |
+| `story/episodes/epNN/outline.md` | Optional adopted episode planning. |
+| Supplied novels, chapters or excerpts at their actual paths | Scriptwriter adaptation inputs with an explicit adopted scope. |
 | `story/episodes/epNN/task-inputs/taskNN.json` | Canonical generation task manifest. |
 | `story/episodes/epNN/videos/` | Final video outputs at tool-defined paths. |
 | `assets/<category>/<name>.md` | Shared cards; retain characters/items/locations/buildings categories. |
@@ -39,12 +40,14 @@ New review records use these paths relative to the project root:
 | `reviews/epNN/assets/<category>/<name>.asset-prompt.md` | `assets/<category>/<name>.md`, authorized prompt review. |
 | `reviews/epNN/assets/<category>/<name>.asset-visual.md` | `assets/<category>/<name>.md`, corresponding image review. |
 | `reviews/epNN/task-inputs/taskNN.md` | One generation task input package. |
-| `reviews/epNN/outline.md`, `reviews/epNN/novel.md` | Optional adopted materials. |
+| `reviews/epNN/outline.md` | Optional adopted outline. |
 | `reviews/story/arc.md` | Optional arc planning. |
 
 Resolve the five runtime paths with `review-evidence.mjs path KIND EP TARGET`. Fresh independent Reviewers write distinct target files in parallel; serialize only the same ep/kind/target. Each completed round has scope=[target] and one result. Batches coordinate coverage and counts without a shared ledger or mandatory aggregation task. Planning reviews remain prose only. Missing or incomplete evidence affects its owning target. Follow [review-meta-rules](review-meta-rules.md) for unchanged evidence kinds, schemas, hashes and authorization boundaries.
 
 ## Navigation And Preservation
+
+Keep supplied source material at its actual path. Adaptation writes the screenplay and preserves the source.
 
 An optional `story/README.md` links to the actual current story and adopted amendments, episode materials, design baseline and relevant decisions/reviews. It is navigation, not a duplicate acceptance, grants or status ledger. Maintain links when an authorized change changes the current source; do not copy all source content into the index.
 

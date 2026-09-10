@@ -55,17 +55,17 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 ## 制作前确认
 
-用户要求先看 outline、novel 或 arc 时，主 AI 在实际配置的 `## 制作前确认 epNN` 段保存一个 JSON 块（替换 ep 为本集）：
+用户要求先看 outline 或 arc 时，主 AI 在实际配置的 `## 制作前确认 epNN` 段保存一个 JSON 块（替换 ep 为本集）：
 
 ```json
 {"episode":"ep01","required":["outline"],"approval":null}
 ```
 
-仅记录用户要求的材料；无请求不新建记录，已有记录不可静默清除。对应路径是本集 outline.md、novel.md 和 `story/arc.md`。Director 先交这些材料，不进入正式制作。主 AI 用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 取得身份，呈现材料并明确询问批准；确认后复核身份未变，将 approval 写为 `{"decision":"用户实际确认内容","inputs":[实际 path/sha256 对]}`。缺失、空白、未批准或变化均阻塞正式制作；变化后重新请用户确认，不沿用旧批准。质量审核不能代替批准。
+required 仅列用户要求的 outline/arc，对应本集 outline.md 和 `story/arc.md`；无请求不新建记录，已有记录不可静默清除。未知类型按 [制作前确认](../director-orchestrate/SKILL.md#来源与制作前确认) 报告并阻塞，不过滤或自动批准。Director 先交材料，不进入正式制作。主 AI 用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 取得身份，呈现材料并明确询问批准；确认后复核身份未变，将 approval 写为 `{"decision":"用户实际确认内容","inputs":[实际 path/sha256 对]}`。缺失、空白、未批准或变化均阻塞正式制作；变化后重新请用户确认，不沿用旧批准。质量审核不能代替批准。
 
 ## 成果委托与转交
 
-主 AI 直接统筹本集 mode/ep，保留成果、config/材料路径、用户原意、已知需求与明确委托、制作前确认、授权范围、集时长与限制、决策余地及升级条件。按成果委托专家，交付相容剧本、分镜、基础资产卡/图、生成 task manifest/完整 shots 与媒体、独立证据、必要跨镜/跨集连续性判断和未决项；生成 task_id 与代理任务 ID 分开。缺 script 清单请 Scriptwriter 接纳剧本补齐；arc/outline/novel 按需采用。
+主 AI 直接统筹本集 mode/ep，保留成果、config/材料路径、用户原意、已知需求与明确委托、制作前确认、授权范围、集时长与限制、决策余地及升级条件。按成果委托专家，交付相容剧本、分镜、基础资产卡/图、生成 task manifest/完整 shots 与媒体、独立证据、必要跨镜/跨集连续性判断和未决项；生成 task_id 与代理任务 ID 分开。缺 script 清单请 Scriptwriter 接纳剧本补齐；arc/outline 按需采用。用户小说、章节和节选按实际路径交 Scriptwriter 改编，保留采用范围，源文保持原样。
 
 Director 与专家按 descriptions 自选知识，委托说明成果而非技能链。专家/审核协调者可嵌套时直接委派；工具不可用或明确深度拒绝后复用已知限制，普通失败不算。主 AI 忠实转交角色、成果、路径、范围与约束，并恢复原专家、审核协调者或 checker 任务传回实际结果，不调高深度。审核用全新 Reviewer 上下文，不继承制作历史；后续视觉操作仍新 task。必要角色或隔离不可用则阻塞。
 
@@ -73,7 +73,7 @@ Director 与专家按 descriptions 自选知识，委托说明成果而非技能
 
 ## 交付与失败
 
-Director 报告当前范围与证据；整集用 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" "{ep}"` 及同配置 `review-evidence.mjs check "{ep}"` 核验。非零报告未就绪或运行阻塞。缺媒体、审核未决或资源不足保持部分交付；重试次数不产生通过。先检查落盘材料和任务，避免重复提交；取消即停止。
+Director 报告当前范围与证据；整集用 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" "{ep}"` 及同配置 `review-evidence.mjs check "{ep}"` 核验。非零报告未就绪或运行阻塞。缺媒体、审核未决或资源不足保持部分交付；重试次数不产生通过。部分交付/进度不结束原授权委托：仍有可执行、可恢复或待返回工作时，按 Director 的等待/恢复契约继续，补齐本集资产、本地参考、装组与独立审核，不再问“继续吗”，也不自动进入下一集。正常终点是本集制作材料完整且当前审核就绪、尚未付费视频提交，不是资产图像已提交。真实决策/权限缺口、不可恢复错误或必要工具不可用仅暂停受影响工作并说明阻塞；先检查落盘材料和任务，避免重复提交；取消即停止。
 
 材料就绪不授权付费视频。用户另用 `/generate-video {ep}` 提交，`/check-video {ep}` 或 `/auto-video {ep}` 跟踪。成片质量由用户判断，不自动审片或合成。所有生成内容遵循 config 语言与角色版权规避规则。
 
