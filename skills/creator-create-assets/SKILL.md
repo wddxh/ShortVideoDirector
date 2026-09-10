@@ -11,7 +11,7 @@ model: sonnet
 
 ### 文件读取
 - 委托本集的 `story/episodes/{ep}/script.md` — 必须读取（series / short 的资产事实源）
-- 已有 novel、outline 或设定材料 — 仅在需要补充视觉细节时读取，不是制作前提，也不能覆盖剧本事实
+- 已有 outline 或设定材料 — 仅在需要补充视觉细节时读取，不是制作前提，也不能覆盖剧本事实
 - 实际配置（`SVD_CONFIG` 或 `config.md`）— 读取风格、语言、固定图像设置与参数选择授权
 - `assets/**/*.md` — 使用 Glob 列出所有已有文件，选择性读取（风格一致性 + 查重）
 - `${CLAUDE_PLUGIN_ROOT}/skills/creator-create-assets/rules.md` — 输出 schema 与资产设计参考；字段契约有效，设计方法按问题取用

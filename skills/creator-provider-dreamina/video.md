@@ -16,11 +16,40 @@ SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/video-gen-dreamin
 
 Exactly seven positional arguments follow `--references-json`; references is one JSON array of `{media,path}`. Forward ordered PNG/MP4, dreamina to reserve and actual resolution; sources do not upload. Read [shot inputs](../_meta/rules/shot-inputs.md). Retrieve submitted tasks by recorded ID/provider. Use the guarded wrapper with approved inputs/settings.
 
-Creator groups consecutive photographic shots after design, preserving durations, dialogue and cuts. With verified model maximum M, aim for `ceil(0.7*M)..M` per task as semantic packing guidance, not a lower quota. Provider limits apply to task duration, not photographic-shot minimums. Unsuitable groups return to owners without extending runtime or scene/episode budgets.
+Creator groups consecutive photographic shots after design, preserving durations, dialogue and cuts. With verified model maximum M, aim for `ceil(0.7*M)..M` per task as semantic packing guidance, not a lower quota. Provider limits, including the hard maximum, apply to tasks, not photographic-shot minimums. Do not extend shot/scene/episode runtime during assembly or submission. Unsuitable groups return through Director to owners, who may revise canonical script/storyboard within the original confirmed episode budget, including net growth, then synchronize affected downstream inputs and obtain current relevant reviews before returning to preparation. This does not expand the original bound, actual grants or protected-record permissions.
 
-The model sees the final prompt and uploads. Task manifests are `{shots,references}` under `task-inputs/taskNN.json`; header identity union follows first-use order before local media, with separate slots. Each member must declare its own explicit links. Emit the exact identical single-line `视频风格` once at task level, removing only that field from member blocks; differing fields block for owner reconciliation. Preserve all other prose, dialogue, spaces and continuation lines. Only leading bracket cues rebase to task time; inline elapsed times explicitly remain local to named shots. Creator aligns group MP4, internal cuts and sound bridges to this reference clock. Sources do not upload; shot-input review checks final integration/deltas and necessary boundaries using actual dependencies.
+The model sees the final prompt and uploads. Draft manifests are exactly `{shots,references}`; final manifests are exactly `{shots,references,prompt}` under `task-inputs/taskNN.json`. After reference video/group mapping, Creator reads canonical sources, Dreamina's material tool output below and actual references, then writes complete semantic task-time prose in `manifest.prompt` before review. Preserve narrative/action, exact dialogue wording, cuts, duration and audio; explain actual BOX/color/body/limb proxies as final identity/anatomy/action. Remove internal task/shot IDs, source headings, paths and reviewer metadata. Missing source facts return to owners. Sources do not upload. Self-check actual final `--json STORYBOARD TASK_ID EP`, then obtain fresh shot-input review of fidelity, completeness and integration. Drafts cannot pass final review/readiness.
 
-The shot ends at the next ATX heading, standalone `---`, line-start HTML comment or EOF. Authors keep scene budgets and production notes outside those boundaries; converter preserves text inside. Semantic gaps return to the owner, not a provider-side rewrite. Converter equality blocks changed inputs; preparation belongs to the entry, with submitted/done/inflight protected.
+The source shot ends at the next ATX heading, standalone `---`, line-start HTML comment or EOF. Authors keep scene budgets and production notes outside those boundaries; materials preserve internal text and headers, extract common style and rebase leading cues. Creator interprets local time in the final task clock without changing facts or dialogue. Final `--json` requires a nonblank string and returns manifest.prompt exactly. Entry preparation stores that string in tasks.json; gate/reserve compare final-manifest prompt/duration/references, not source-generated text. Submitted/done/inflight and submission snapshots stay protected.
+
+## Dreamina Authoring Materials
+
+Run the provider-owned read-only tool from the story project root:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/storyboard-materials-dreamina.mjs" STORYBOARD TASK_ID EP
+```
+
+Exactly three positional arguments, with no mode flags. EP matches the canonical storyboard path; TASK_ID comes from the manifest filename. The module exports `resolveDreaminaMaterials`. Draft and final manifests both resolve to a JSON authoring pack, never a generated or accepted final prompt:
+
+```text
+{task_id,shots,timeline:[{shot,start,end}],duration,references,assetCards,sources,inputPath,
+ materials:{style,shotBlocks:[{shot,block}],referenceSlots}}
+```
+
+The pack has no `prompt`. Common fields describe resolved membership, derived time, ordered uploads and source dependencies. Dreamina owns `materials` and its syntax: identity slots are `{media,path,slot,name,markdown}`; local slots are `{media,path,slot,use}`. `slot` is the actual Dreamina token. Bound source links use `[name:{图片N}]` (or the corresponding media token); for example `[阿明](assets/characters/阿明.md)` becomes `[阿明:{图片1}]`. `materials.style` retains the full single-line `- 视频风格：...` field, with its declared links bound before extraction. These internal source forms assist Creator's semantic authoring, not automatic final-prompt concatenation. This authoring pack is not a universal provider adapter or a new manifest schema.
+
+Any shared assembler supplies token-free internal source/reference data only. Dreamina's resolver owns reference counting, source-link binding and cue rebasing for its materials. A future provider implements its own material tool and documents its own pack/syntax without a registry, framework or shared manifest-schema change.
+
+## Video Reference Bindings
+
+Dreamina's current interface convention, empirically confirmed by the user, uses exact `{图片1}` / `{视频1}` tokens with ASCII braces, not `@图片1` / `@视频1`. CLI help does not specify token parsing; this is a user-confirmed interface contract, not a claim about public documentation.
+
+Dreamina's material tool assigns `{图片N}` / `{视频N}` from ordered resolved `references`, with independent 1-based counters for images and videos. Header identity images remain first in first-use order, followed by local media in manifest order. Local PNGs continue the image counter; MP4s use the video counter. Thus `[identity PNG, local MP4, local PNG]` binds `{图片1}`, `{视频1}`, `{图片2}` respectively, not a shared media index or local-only numbering. Each binding carries its actual identity or declared control/use; filenames and vague attachment descriptions do not replace tokens.
+
+Materials expose the actual ordered slots and bound source links. Creator uses them to author these Dreamina tokens in manifest.prompt, including identity and declared local controls; this is not a claim of provider-neutral syntax support. Review the complete final prompt and bindings before preparation. Final converter output passes the manifest string unchanged; no slot guesses, renumbering or submission-time additions. Corrections belong to Creator's final prompt or the relevant source owner and current review. The target manifest fingerprint binds final text; preserve runner/wrapper passthrough.
+
+Dreamina materials extract the identical parsed single-line `视频风格` into `materials.style`, removing only that field from members; differing baselines return to owners. `shotBlocks` retain source headers, all other fields, exact dialogue, spaces, continuation lines and prose. Bind each source link only through its own shot header declarations. Rebase only leading structural bracket cues such as `[0s-2.5s]` by the derived shot start, validating `0 <= start < end <= shot duration` and allowing legitimate overlap. Inline numbers, duration phrases and speech remain unchanged; Creator interprets their shot-local meaning in final task-time prose.
 
 ## Series And Episode Profiles
 

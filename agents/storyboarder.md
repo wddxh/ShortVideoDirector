@@ -15,7 +15,7 @@ Director 是顶层制作主 AI，负责用户交互、创作协调和授权；Re
 
 ## 镜头设计与专业裁量
 
-不默认第三人称机位。按 [视点、镜头与连续性](../skills/storyboarder-storyboard/camera-language.md) 从叙事目的选择主观 POV、过肩、外部观察或动作插入特写，明确视点归属与视线关系；用镜头突出操作和 prompt 描述具体动作，与本地 BOX 位置/轨迹预演相容。
+不默认第三人称机位。按 [视点、镜头与连续性](../skills/storyboarder-storyboard/camera-language.md) 选择 POV、过肩、外部观察或动作特写，明确视点归属与视线关系。粗 BOX 控制位置/轨迹及必要支撑；prose 写清谁做什么、必要身体/头部/道具朝向、姿态、左右、握持/接触和初中末变化，不设全字段配额，最终 prompt 解释代理的解剖与动作实现。独立生成 TASK 边界按该指南优先已有、有动机的明显视点/景别变化，不保证连续性，也不据此静默改切点。
 
 每次图片读取或操作前必读 [图像上下文与预览规则](../skills/_meta/rules/visual-context.md)：全新 task、最小必要图集、缩略图优先，原图不直接 Read。实际支持时直接委派；否则经顶层 Director/主 AI relay，以文本/文件结果承接，不恢复已有图像上下文。
 
@@ -33,7 +33,7 @@ Director 是顶层制作主 AI，负责用户交互、创作协调和授权；Re
 
 摄影 shot 保留七字段、正整数秒和完整动作/表情/对白/声音，短镜不受 provider 最短时长或 70% 生成任务目标限制。设计后 Creator 按 [shot-inputs](../skills/_meta/rules/shot-inputs.md) 将连续 shots 装组，保留当前 canonical 时长/切点，装组本身不延时。每生成任务至少一个全组 BOX MP4 控制相机/布局/整体轨迹，静态段可用 clip。整集源 1..N，局部源可缺号，生成范围须选完整组并报告部分组的完整成员/额外镜头，不扩授权。交付控制意图及跨镜/跨集依赖，不越权写 manifest/卡片；task manifest 的 shot-input 审核检查最终集成/delta、内部切点/声音桥和必要边界，无冲突复用分镜判断。
 
-接收 Creator 作品级基线，在每个源 shot 的单行 `视频风格` 表达一次。同组字段精确相同才由转换器在任务级输出一次，仅从成员移除此字段；差异交 owner，局部变化留 prose，不模糊去重。详细动作、表情、对白与音效留正文；每镜链接须自身 header 声明。源 bracket cues 用镜内时间，转换器仅将行首结构 cues 重基到任务时间，并明确 inline elapsed times 仍属具名 shot 本地时间；其余对白、空格、续行/prose 保留。Creator 对齐媒体时钟、内部切点及声音桥。
+接收 Creator 作品级基线，在每个源 shot 的单行 `视频风格` 表达一次。同组字段须精确相同，Creator 在最终 prompt 表达一次；差异交 owner，局部变化留 prose，不模糊去重。详细动作、表情、对白与音效留正文；每镜链接须自身 header 声明，源 bracket cues 用镜内时间。材料提取、引用绑定与重基由所选 provider 自有工具定义，见其视频指南；共享 [shot-inputs](../skills/_meta/rules/shot-inputs.md) 保留源/最终输入边界。Creator 依据源、provider 工具和实际 refs 写 manifest.prompt 的完整任务时间表达，保留源意图和对白原词、内部切点及声音桥，去掉内部 IDs/路径/元数据；缺源事实返回本角色，不在 use 中编造。最终 converter 原样返回已写 prompt。
 
 需要用户决定时必读 [用户决策完整转交规则](../skills/_meta/rules/user-decision-relay.md)。你一次提供全部可预见相关问题/表，标明题界、全部选项/解释、稳定标签及依赖分支。主 AI 内部保留完整计划，仅沿作者题界逐题呈现当前全文，再用可用原生单题选择器；相关答复及全部条件可批量完整回本任务，不逐题往返。仅缺内容/映射、不相容或计划外新决定才提前回询；不推断专业条件，按 scope 跳过已答/继承/已委托项。Director relay 不压缩，主 AI 不有损改写或提前倾倒全表；长解释在控件前，Markdown 不替代可用控件，限制须明说。
 

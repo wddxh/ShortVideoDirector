@@ -55,27 +55,47 @@ test('单场景 ok: actual 在 [lower, upper]', () => {
     assert.match(r.stdout, /^summary:.*status=ok$/m);
     assert.match(r.stdout, /scene_count=1/);
     assert.match(r.stdout, /scenes_ok=1/);
+    const withConfig = run(dir, 'ep01', join(dir, 'unused-config.json'));
+    assert.equal(withConfig.status, 0, withConfig.stderr);
+    assert.equal(withConfig.stdout, r.stdout);
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test('单场景 fail (低): actual < lower', () => {
+test('exact density bounds are inclusive and the upper bound rounds down', () => {
+  const dir = setupEp(null);
+  try {
+    for (const [actual, status] of [[23, 'warn'], [24, 'ok'], [31, 'ok'], [32, 'warn']]) {
+      // The scene heading and duration line contribute eight counted units.
+      writeFileSync(join(dir, 'story/episodes/ep01/script.md'),
+        `## 场景 1: A\n- 目标时长: 3s\n${'中'.repeat(actual - 8)}\n`);
+      const r = run(dir, 'ep01');
+      assert.equal(r.status, 0, r.stderr);
+      assert.equal(r.stdout,
+        `scene:1:title=A:duration=3:actual=${actual}:expected_lower=24:expected_upper=31:status=${status}\n` +
+        `summary:total_actual=${actual}:total_expected_lower=24:total_expected_upper=31:scene_count=1:scenes_warn=${status === 'warn' ? 1 : 0}:scenes_ok=${status === 'ok' ? 1 : 0}:scenes_missing=0:status=${status}\n`);
+    }
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('single-scene warn: actual < lower', () => {
   const script = `## 场景 1: 短\n- 目标时长: 20s\n${'中'.repeat(50)}\n`;
   const dir = setupEp(script);
   try {
     const r = run(dir, 'ep01');
-    assert.match(r.stdout, /^scene:1:.*expected_lower=160.*status=fail$/m);
-    assert.match(r.stdout, /^summary:.*status=fail$/m);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /^scene:1:.*expected_lower=160.*status=warn$/m);
+    assert.match(r.stdout, /^summary:.*status=warn$/m);
   } finally { rmSync(dir, { recursive: true }); }
 });
-// PART1_END
 
-test('单场景 fail (高): actual > upper', () => {
+test('single-scene warn: actual > upper', () => {
   const script = `## 场景 1: 过多\n- 目标时长: 10s\n${'中'.repeat(200)}\n`;
   const dir = setupEp(script);
   try {
     const r = run(dir, 'ep01');
-    assert.match(r.stdout, /^scene:1:.*expected_upper=104.*status=fail$/m);
-    assert.match(r.stdout, /^summary:.*status=fail$/m);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /^scene:1:.*expected_upper=104.*status=warn$/m);
+    assert.match(r.stdout, /^summary:.*status=warn$/m);
   } finally { rmSync(dir, { recursive: true }); }
 });
 
@@ -83,7 +103,32 @@ test('missing:script when script.md absent', () => {
   const dir = setupEp(null);
   try {
     const r = run(dir, 'ep01');
+    assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /^status:missing:script$/m);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('missing scene headings exit 0; missing episode argument exits 1', () => {
+  const dir = setupEp('# ep01\n## Notes\nNo scenes.\n');
+  try {
+    const missing = run(dir, 'ep01');
+    assert.equal(missing.status, 0, missing.stderr);
+    assert.equal(missing.stdout, 'status:missing:scenes\n');
+    const usage = run(dir);
+    assert.equal(usage.status, 1);
+    assert.equal(usage.stdout, '');
+    assert.notEqual(usage.stderr, '');
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('full-scene count includes headings, metadata, action, dialogue and sound', () => {
+  const dir = setupEp(`# ep01\nIgnored preamble\n## 场景 1: A\n- 目标时长: 3s\n- Location: room\n### Action\n中中\n**B**: hello world\n- Sound: knock\n## Appendix\nIgnored appendix\n`);
+  try {
+    const r = run(dir, 'ep01');
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout,
+      'scene:1:title=A:duration=3:actual=18:expected_lower=24:expected_upper=31:status=warn\n' +
+      'summary:total_actual=18:total_expected_lower=24:total_expected_upper=31:scene_count=1:scenes_warn=1:scenes_ok=0:scenes_missing=0:status=warn\n');
   } finally { rmSync(dir, { recursive: true }); }
 });
 
@@ -104,14 +149,38 @@ test('installed budget script uses its sibling helper, not project cwd', () => {
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test('多场景 summary: 2 ok + 1 fail → status=fail', () => {
+test('missing duration stays separate from measured warnings and takes summary precedence', () => {
+  const missing = `## 场景 3: C\n${'中'.repeat(100)}\n`;
+  const dir = setupEp(missing);
+  try {
+    const missingRecord = 'scene:3:title=C:duration=0:actual=0:expected_lower=0:expected_upper=0:status=missing:duration\n';
+    const onlyMissing = run(dir, 'ep01');
+    assert.equal(onlyMissing.status, 0, onlyMissing.stderr);
+    assert.equal(onlyMissing.stdout, missingRecord +
+      'summary:total_actual=0:total_expected_lower=0:total_expected_upper=0:scene_count=1:scenes_warn=0:scenes_ok=0:scenes_missing=1:status=missing\n');
+    writeFileSync(join(dir, 'story/episodes/ep01/script.md'),
+      `## 场景 1: A\n- 目标时长: 3s\n${'中'.repeat(16)}\n` +
+      `## 场景 2: B\n- 目标时长: 3s\n${'中'.repeat(24)}\n` + missing);
+    const mixed = run(dir, 'ep01');
+    assert.equal(mixed.status, 0, mixed.stderr);
+    assert.equal(mixed.stdout,
+      'scene:1:title=A:duration=3:actual=24:expected_lower=24:expected_upper=31:status=ok\n' +
+      'scene:2:title=B:duration=3:actual=32:expected_lower=24:expected_upper=31:status=warn\n' +
+      missingRecord +
+      'summary:total_actual=56:total_expected_lower=48:total_expected_upper=62:scene_count=3:scenes_warn=1:scenes_ok=1:scenes_missing=1:status=missing\n');
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('multi-scene summary: 2 ok + 1 warn gives status=warn', () => {
   const script = `## 场景 1: A\n- 目标时长: 10s\n${'中'.repeat(90)}\n\n## 场景 2: B\n- 目标时长: 20s\n${'中'.repeat(180)}\n\n## 场景 3: C\n- 目标时长: 30s\n${'中'.repeat(100)}\n`;
   const dir = setupEp(script);
   try {
     const r = run(dir, 'ep01');
+    assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /scene_count=3/);
     assert.match(r.stdout, /scenes_ok=2/);
-    assert.match(r.stdout, /scenes_fail=1/);
-    assert.match(r.stdout, /^summary:.*status=fail$/m);
+    assert.match(r.stdout, /scenes_warn=1/);
+    assert.match(r.stdout, /scenes_missing=0/);
+    assert.match(r.stdout, /^summary:.*status=warn$/m);
   } finally { rmSync(dir, { recursive: true }); }
 });

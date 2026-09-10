@@ -33,7 +33,7 @@ model: opus
 
 1. Read `story/arc.md` 取现有阶段规划
 2. Read 实际配置，用 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh" "总集数" "${SVD_CONFIG:-config.md}"` 取整数 N
-3. 读委托指定意见；涉及跨集事实时读相关剧本、已有摘要或小说片段
+3. 读委托指定意见；涉及跨集事实时读相关剧本或已有摘要
 
 ### Phase 2: 确认当前修订依据
 
@@ -52,7 +52,7 @@ model: opus
 
 若本次任务涉及完整规划交付或预算/格式 findings，按以下方式补足缺失字段；局部修改发现范围外缺口则报告，不擅自扩展为全文迁移：
 
-1. 对受影响节点按 director-arc/rules.md 从实际配置计算预算，写入 header (epXX-YY, 节点预算 ~Zs)；arc-budget.sh 仅可用于实际默认配置，不支持配置参数或 SVD_CONFIG
+1. 对受影响节点按 director-arc/rules.md，以节点集数 × 用户原始确认的实际单集上限计算预算，写入 header (epXX-YY, 节点预算 ~Zs)。arc-budget.sh 不给单值加已确认容差，仅配置绑定正确且结果等于上述预算时采用；其余按 rules.md 直接计算
 2. 把核心事件 prose 段拆为 bullet 列表
 3. 为每 bullet 加 `(~Ns, 必需|可选)` 标记（LLM 重新决策估时与必需/可选分类）
 4. 校验 sum ≤ 预算；超预算按实际叙事取舍，不改确认集数、不用压低估时或改标可选伪造合格。系列保留初始共同目标，不随前集实际时长漂移

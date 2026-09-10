@@ -11,6 +11,51 @@ const profileCLI = (f) => f.cli('video-task-inputs.mjs', ['profile', f.tasks]);
 const captureSeries = (f, profile = seriesProfile) => f.cli('video-task-inputs.mjs',
   ['capture', f.tasks, 'task01', ...['provider', 'model', 'ratio', 'resolution'].map((key) => profile[key])]);
 
+test('capture uses the exact authored manifest prompt and leaves records and grants untouched', (t) => {
+  const f = videoProject(t);
+  const input = 'story/episodes/ep01/task-inputs/task01.json';
+  const manifest = JSON.parse(readFileSync(join(f.root, input), 'utf8'));
+  const prompt = '  Creator final {图片1} {视频1}\r\n"Stay." $5 \\ literal\n\tHold.  \n\n';
+  f.write(input, JSON.stringify({ ...manifest, prompt }));
+  const grant = { decision: 'Submit unchanged', episode: 'ep01', task_id: 'task01', shots: [1], constraints: [] };
+  f.task.initial_authorization = grant;
+  f.task.retry_authorization = { ...grant, max_attempts: 2, attempts: 1 };
+  f.task.submission = seriesProfile;
+  for (const value of [prompt, prompt.trim(), prompt + '\n']) {
+    f.task.prompt = value; f.save();
+    const before = readFileSync(join(f.root, f.tasks), 'utf8');
+    const result = captureSeries(f);
+    assert.equal(result.status, value === prompt ? 0 : 1, result.stderr);
+    if (value !== prompt) assert.match(result.stderr, /Current task inputs differ/);
+    else {
+      const { references, ...settings } = JSON.parse(result.stdout);
+      assert.deepEqual(settings, seriesProfile);
+      assert.deepEqual(references.map(({ media, path }) => ({ media, path })), f.task.references);
+    }
+    assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+    assert.equal(existsSync(join(f.root, `${f.tasks}.submit-lock`)), false);
+  }
+});
+
+test('capture rejects changed, missing or blank manifest prompts without refreshing preparation', (t) => {
+  const f = videoProject(t);
+  const input = 'story/episodes/ep01/task-inputs/task01.json';
+  const manifest = JSON.parse(readFileSync(join(f.root, input), 'utf8'));
+  f.task.submission = JSON.parse(captureSeries(f).stdout);
+  f.task.initial_authorization = { decision: 'Submit once', episode: 'ep01', task_id: 'task01', shots: [1], constraints: [] };
+  f.task.retry_authorization = { ...f.task.initial_authorization, max_attempts: 2, attempts: 1 };
+  f.save();
+  const before = readFileSync(join(f.root, f.tasks), 'utf8');
+  for (const prompt of [manifest.prompt + '\nRevised final.', undefined, '', ' \t\r\n']) {
+    f.write(input, JSON.stringify({ ...manifest, prompt }));
+    const result = captureSeries(f);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, prompt?.trim() ? /Current task inputs differ/ : /nonblank prompt string/);
+    assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+    assert.equal(existsSync(join(f.root, `${f.tasks}.submit-lock`)), false);
+  }
+});
+
 test('series inherits any existing snapshot including its own, never content or grants', (t) => {
   const f = videoProject(t);
   f.write('config.md', '- mode: series\n');
@@ -240,10 +285,14 @@ test('capture and verify store settings and ordered image hashes without writing
 test('missing metadata blocks retry and capture cannot refresh failed/submitted/done', (t) => {
   const f = videoProject(t);
   assert.equal(f.cli('video-task-inputs.mjs', ['verify', f.tasks, 'task01']).status, 1);
-  for (const status of ['failed', 'submitted', 'done']) {
-    f.task.status = status;
+  for (const state of [{ status: 'failed' }, { status: 'submitted' }, { status: 'done' },
+    { status: 'pending', submit_id: 'protected-id' },
+    { status: 'pending', submit_id: '', inflight: { token: 'protected-intent', kind: 'initial' } }]) {
+    Object.assign(f.task, state);
     f.save();
+    const before = readFileSync(join(f.root, f.tasks), 'utf8');
     assert.equal(f.cli('video-task-inputs.mjs', ['capture', f.tasks, 'task01', 'dreamina', 'model', '16:9', '1080p']).status, 1);
+    assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
   }
 });
 

@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Compute script.md per-scene word count vs expected budget derived from per-scene 目标时长.
+# Diagnose full-scene word-count density against per-scene 目标时长, not artistic quality.
 # Usage: bash scripts/script-budget.sh <ep> [config_path]
+# Reads story/episodes/<ep>/script.md from project cwd; optional config_path is ignored.
 # Output:
-#   scene:N:title=...:duration=Ds:actual=X:expected_lower=L:expected_upper=U:status=ok/fail/missing:duration
-#   summary:total_actual=...:total_expected_lower=...:total_expected_upper=...:scene_count=...:scenes_fail=...:scenes_ok=...:status=ok/fail
-# Exit code: always 0 (consumer parses status to decide)
+#   scene:N:title=...:duration=D:actual=X:expected_lower=L:expected_upper=U:status=ok/warn
+#   scene:N:title=...:duration=0:actual=0:expected_lower=0:expected_upper=0:status=missing:duration
+#   summary:total_actual=...:total_expected_lower=...:total_expected_upper=...:scene_count=...:scenes_warn=...:scenes_ok=...:scenes_missing=...:status=missing/warn/ok
+#   status:missing:script or status:missing:scenes when input is unavailable.
+# Exit code: 0 for all diagnostics, including missing input; 1 for missing episode argument.
 
 set -u
 SCRIPT_DIR=$(dirname -- "${BASH_SOURCE[0]}")
@@ -50,8 +53,9 @@ TOTAL_ACTUAL=0
 TOTAL_LOWER=0
 TOTAL_UPPER=0
 SCENE_COUNT=0
-SCENES_FAIL=0
+SCENES_WARN=0
 SCENES_OK=0
+SCENES_MISSING=0
 
 for f in "$TMPDIR_RUN"/scene-*.md; do
   [ -f "$f" ] || continue
@@ -63,7 +67,7 @@ for f in "$TMPDIR_RUN"/scene-*.md; do
     | grep -oE '[0-9]+[[:space:]]*(s|秒)' | grep -oE '[0-9]+' | head -1)
   if [ -z "$DURATION" ]; then
     echo "scene:${N}:title=${TITLE}:duration=0:actual=0:expected_lower=0:expected_upper=0:status=missing:duration"
-    SCENES_FAIL=$((SCENES_FAIL + 1))
+    SCENES_MISSING=$((SCENES_MISSING + 1))
     continue
   fi
   ACTUAL=$(bash "$SCRIPT_DIR/word-count.sh" "$f" 2>/dev/null)
@@ -74,8 +78,8 @@ for f in "$TMPDIR_RUN"/scene-*.md; do
     STATUS="ok"
     SCENES_OK=$((SCENES_OK + 1))
   else
-    STATUS="fail"
-    SCENES_FAIL=$((SCENES_FAIL + 1))
+    STATUS="warn"
+    SCENES_WARN=$((SCENES_WARN + 1))
   fi
   TOTAL_ACTUAL=$((TOTAL_ACTUAL + ACTUAL))
   TOTAL_LOWER=$((TOTAL_LOWER + LOWER))
@@ -83,10 +87,12 @@ for f in "$TMPDIR_RUN"/scene-*.md; do
   echo "scene:${N}:title=${TITLE}:duration=${DURATION}:actual=${ACTUAL}:expected_lower=${LOWER}:expected_upper=${UPPER}:status=${STATUS}"
 done
 
-if [ "$SCENES_FAIL" -eq 0 ]; then
-  SUMMARY_STATUS="ok"
+if [ "$SCENES_MISSING" -gt 0 ]; then
+  SUMMARY_STATUS="missing"
+elif [ "$SCENES_WARN" -gt 0 ]; then
+  SUMMARY_STATUS="warn"
 else
-  SUMMARY_STATUS="fail"
+  SUMMARY_STATUS="ok"
 fi
 
-echo "summary:total_actual=${TOTAL_ACTUAL}:total_expected_lower=${TOTAL_LOWER}:total_expected_upper=${TOTAL_UPPER}:scene_count=${SCENE_COUNT}:scenes_fail=${SCENES_FAIL}:scenes_ok=${SCENES_OK}:status=${SUMMARY_STATUS}"
+echo "summary:total_actual=${TOTAL_ACTUAL}:total_expected_lower=${TOTAL_LOWER}:total_expected_upper=${TOTAL_UPPER}:scene_count=${SCENE_COUNT}:scenes_warn=${SCENES_WARN}:scenes_ok=${SCENES_OK}:scenes_missing=${SCENES_MISSING}:status=${SUMMARY_STATUS}"

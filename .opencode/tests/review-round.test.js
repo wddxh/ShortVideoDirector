@@ -6,7 +6,7 @@ import { spawnSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { pathToFileURL } from 'node:url';
 import { startRound, addInput, finishRound } from '../../scripts/review-round.mjs';
-import { checkTarget, readRounds, requiredInputs } from '../../scripts/review-evidence.mjs';
+import { checkTarget, fingerprintInputs, readRounds, requiredInputs } from '../../scripts/review-evidence.mjs';
 
 const cli = path.resolve('scripts/review-round.mjs');
 const ep = 'story/episodes/ep01', card = 'assets/items/a.md';
@@ -16,7 +16,7 @@ const write = (file, text) => {
   fs.writeFileSync(file, text);
 };
 const board = n => `### shot ${n}\n- \u89c6\u9891\u98ce\u683c\uff1aRealistic\n- \u65f6\u957f\uff1a5s\n- \u5f15\u7528\u8d44\u4ea7\uff1a[a](${card})\n**\u753b\u9762\u4e0e\u58f0\u97f3\u63cf\u8ff0\uff1a**\nAction\n`;
-const manifest = shots => JSON.stringify({ shots, references: [{ kind: 'local', media: 'video',
+const manifest = shots => JSON.stringify({ shots, prompt: 'Final camera move; hold on the subject.\n', references: [{ kind: 'local', media: 'video',
   path: 'references/motion.mp4', use: 'Camera', sources: ['references/scene.blend'] }] });
 
 async function fixture(run) {
@@ -65,6 +65,40 @@ for (const [kind, target] of [['script', `${ep}/script.md`], ['storyboard', `${e
     assert.deepEqual([...result.paths].sort(), requiredInputs(kind, target, 'custom.md').sort());
   }));
 }
+
+test('prompt-only edit during a shot-input round preserves its first hash and publishes unknown', () => fixture(f => {
+  startRound('shot-input', 'ep01', task, f.state);
+  const first = JSON.parse(fs.readFileSync(f.state)).inputs;
+  assert.deepEqual(first.find(input => input.path === task), fingerprintInputs([task])[0]);
+  const changed = JSON.parse(fs.readFileSync(task));
+  changed.prompt = 'Revised final camera move.\n';
+  write(task, JSON.stringify(changed));
+  addInput(f.state, [task]);
+  const result = f.finish();
+  assert.equal(result.status, 'unknown');
+  assert.ok(result.evidence_issues.includes(`Input changed: ${task}`));
+  const record = readRounds(fs.readFileSync(result.path, 'utf8'), 'shot-input').at(-1).results[0];
+  assert.deepEqual(record.inputs, first);
+  assert.equal(checkTarget('shot-input', task, 'ep01', 'custom.md').status, 'unknown');
+}));
+
+test('starting from a draft cannot retroactively pass after the final prompt is added', () => fixture(f => {
+  const draft = JSON.parse(fs.readFileSync(task));
+  delete draft.prompt;
+  write(task, JSON.stringify(draft));
+  const started = startRound('shot-input', 'ep01', task, f.state);
+  const first = JSON.parse(fs.readFileSync(f.state)).inputs;
+  assert.ok(started.evidence_issues.length);
+  assert.deepEqual(first.find(input => input.path === task), fingerprintInputs([task])[0]);
+  write(task, JSON.stringify({ ...draft, prompt: 'Final camera move.\n' }));
+  addInput(f.state, [task]);
+  const result = f.finish();
+  assert.equal(result.status, 'unknown');
+  for (const issue of started.evidence_issues) assert.ok(result.evidence_issues.includes(issue));
+  const record = readRounds(fs.readFileSync(result.path, 'utf8'), 'shot-input').at(-1).results[0];
+  assert.deepEqual(record.inputs.find(input => input.path === task), first.find(input => input.path === task));
+  assert.equal(checkTarget('shot-input', task, 'ep01', 'custom.md').status, 'unknown');
+}));
 
 test('extras preserve first snapshots, changes and failed captures survive restoration', () => fixture(f => {
   write('references/extra.md', 'first');
@@ -428,6 +462,31 @@ test('publication renames a complete validated file; failed rename preserves ope
   assert.deepEqual(fs.readFileSync(start.path), opened);
   assert.deepEqual(fs.readdirSync(path.dirname(start.path)), ['a.asset-prompt.md']);
   assert.equal(f.finish().status, 'pass');
+}));
+
+test('beforeRead captures the selected final prompt before manifest discovery can change it', () => fixture(f => {
+  const first = fingerprintInputs([task])[0];
+  const changed = JSON.parse(fs.readFileSync(task));
+  changed.prompt = 'Changed after snapshot, before substantive manifest read.\n';
+  const read = fs.readFileSync;
+  let mutated = false;
+  fs.readFileSync = function(file, encoding, ...args) {
+    if (path.resolve(file) === path.resolve(task) && encoding === undefined && !mutated) {
+      const bytes = read.call(this, file, encoding, ...args);
+      fs.writeFileSync(task, JSON.stringify(changed));
+      mutated = true;
+      return bytes;
+    }
+    return read.call(this, file, encoding, ...args);
+  };
+  try { startRound('shot-input', 'ep01', task, f.state); }
+  finally { fs.readFileSync = read; }
+  assert.ok(mutated);
+  const result = f.finish();
+  assert.equal(result.status, 'unknown');
+  assert.ok(result.evidence_issues.includes(`Input changed: ${task}`));
+  const record = readRounds(fs.readFileSync(result.path, 'utf8'), 'shot-input').at(-1).results[0];
+  assert.deepEqual(record.inputs.find(input => input.path === task), first);
 }));
 
 test('snapshot stays first even if a discovery read changes a referenced card', () => fixture(f => {

@@ -13,14 +13,16 @@ python3 .codex/build-codex-skills.py --check
 
 ## 角色与工具
 
-制作主 AI 本地加载内部 `director-orchestrate`，作为 Director 直接负责用户交互、创作协调、范围与授权，不创建 Director 子任务。Task/Agent 按运行时映射建立真实专家/Reviewer 上下文，读取 `agents/<role>.md`，传成果、路径、范围、约束和决策余地。Writer 拥有叙事，Scriptwriter 拥有剧本/清单，Storyboarder 拥有镜头，Creator 拥有资产、本地参考及 manifest。十个 reviewer-review-* 技能归独立 Reviewer。工程主 AI 委托工程代理研究、实现、宿主配置和测试；Skill 不建立角色隔离。
+制作主 AI 本地加载内部 `director-orchestrate`，作为 Director 直接负责用户交互、创作协调、范围与授权，不创建 Director 子任务。Task/Agent 按运行时映射建立四个真实专家上下文，读取 `agents/<role>.md`，传成果、路径、范围、约束和决策余地。Scriptwriter 拥有原创/改编剧本与清单，Storyboarder 拥有镜头，Creator 拥有资产、本地参考及 manifest，Reviewer 独立验收。九个 reviewer-review-* 技能归独立 Reviewer。工程主 AI 委托工程代理研究、实现、宿主配置和测试；Skill 不建立角色隔离。
 
 专家/审核协调者在嵌套支持时直接委托；工具不可用或明确深度拒绝后复用结论，由主 AI 忠实转交 role/outcome/references/scope/constraints，恢复原专家、审核协调者或 checker task 并送回实际结果。普通失败不算深度拒绝，不反复探测或调高深度。独立审核使用全新 Reviewer task，不继承生产历史；每次视觉操作均新任务、helper 缩略图和最小比较集，不恢复 image-heavy task。无法隔离则 unknown/阻塞，不自审。模型与 allowed-tools 元数据是提示，实际能力由宿主决定；使用当前活动模型。每次手工写入含 apply_patch 不超过 2000 字符，不限制总长度。
 ## 当前制作契约
 
-摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标约束。Creator 设计后将连续 shots 装组，按核实模型最大 M 以 `ceil(0.7*M)..M` 为语义目标而非机械下限；保留时长、对白和切点，不延长场景/整集。`story/episodes/{ep}/task-inputs/taskNN.json` 使用 [输入契约](../skills/_meta/rules/shot-inputs.md)：恰为 `{shots,references}`，文件名给稳定 task_id，每任务至少一个全组 MP4。资产图首次使用求并集在前，BOX 控制相机/布局/整体轨迹，静态段可用静态 clip；sources 不上传。
+摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标约束。Creator 设计后将连续 shots 装组，按核实模型最大 M 以 `ceil(0.7*M)..M` 为语义目标而非机械下限；保留时长、对白和切点，不延长场景/整集。`story/episodes/{ep}/task-inputs/taskNN.json` 使用 [输入契约](../skills/_meta/rules/shot-inputs.md)：草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，prompt 为 Creator 编写的非空白字符串。文件名给稳定 task_id，每任务至少一个全组 MP4。资产图首次使用求并集在前，BOX 控制相机/布局/整体轨迹，静态段可用静态 clip；sources 不上传。
 
-相同单行视频风格原字段在任务级一次，仅从成员移除此字段；差异交 owner，其余对白/prose/字段/空格/续行保留。仅行首结构 bracket cues 重基，内联经过时间明确属具名 shot 本地时间；各镜链接须自身 header 声明。Creator 统一媒体时钟、内部切点及声音桥。Resolver 返回 task_id/shots/timeline/prompt/duration/references/assetCards/sources/inputPath；时间派生，无可编辑 offset/duration 或装组索引。
+所选 provider 自有材料工具支持草稿准备，具体命令、pack、token 计数/绑定与重基规则见该 provider 文档，Dreamina 见 [video.md](../skills/creator-provider-dreamina/video.md#dreamina-authoring-materials)。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现工具，无需 registry/framework/manifest schema 变更。各镜链接须自身 header 声明。Creator 在视频参考/装组映射确定后、审核前据 canonical 源、provider 工具输出及实际 refs 写完整语义任务时间 prompt，保留叙事/动作、对白原词、切点、时长/声音及实际引用/身体肢体代理映射，去掉内部 IDs/路径/元数据；缺源事实交 owner。
+
+最终 `--json` 返回 task_id/shots/timeline/prompt/duration/references/assetCards/sources/inputPath，prompt 原样来自 manifest。Creator 自查实际输出后交 fresh shot-input Reviewer 审忠实度、完整性、集成及边界；target 指纹绑定 prompt，草稿不通过最终审核/就绪。tasks.json 原样存 prompt，gate/reserve 比较最终 manifest 而非源拼接文字，提交不重写。时间派生，无可编辑 offset/duration、装组副索引或最终提示文件。
 
 结构诊断使用 `scripts/check-shot-inputs.mjs EP [SHOT...]`，完整就绪使用 review-evidence check；五类 evidence 为 script/storyboard/asset-prompt/asset-visual/shot-input。最终就绪要求 script/storyboard/asset-visual/shot-input，新生图另须 asset-prompt。各目标 Reviewer 并行写 `reviews/epNN/` 下各自的 canonical 文件，仅同一 ep/kind/target 写入串行；范围协调统计各文件结果，不另写共享账本或汇总验收。
 
@@ -32,7 +34,7 @@ short/series 包含必要资产图与本地参考，并停在付费视频提交�
 
 tasks.json 保持数组，task_id 唯一并保存 shots/prompt/duration/references，输出 videos/taskNN.mp4；grant 为 `{decision,episode,task_id,shots,constraints}` 加真实可选次数。Reserve 前 manifest/record/grant 成员一致，错误身份、漂移或部分选组零调用、不改次数。视频 wrapper 为 `--references-json PROMPT OUTPUT REFERENCES_JSON DURATION RATIO MODEL RESOLUTION`，flag 后七参数；capture 保留 `{provider,model,ratio,resolution,references:[{media,path,sha256}]}`。模型能力用当前 help 核实。
 
-Converter 两入口均用 `storyboard-to-prompt.sh/.mjs --json STORYBOARD TASK_ID EP`；显式 EP 与 storyboard 路径一致，生成 task_id 独立于首镜和宿主代理任务 ID。
+通用 converter 两入口使用 `storyboard-to-prompt.sh/.mjs --json STORYBOARD TASK_ID EP`，要求非空白字符串 manifest.prompt，原样返回而不生成或改写文本。显式 EP 与 storyboard 路径一致，生成 task_id 独立于首镜和宿主代理任务 ID。
 
 ## 审核轮次
 

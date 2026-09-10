@@ -11,7 +11,7 @@ model: opus
 
 主 AI 在当前上下文用 Skill 加载 `director-orchestrate`，作为生产 Director 直接诊断修改、协调专家、处理用户决策并对交付负责。独立验收委托全新 Reviewer。
 
-按 [shot-inputs](../_meta/rules/shot-inputs.md) 评估 `task-inputs/taskNN.json` 的 `{shots,references}`、媒体、sources 与证据，每生成任务至少一个全组 MP4。摄影修改范围与生成组成员分开：部分选组报告 task_id、完整成员及额外镜头，不静默扩大创作或付费授权。Creator 装组保留当前 canonical 时长/对白/切点；需调整时由 Director 协调 owner 主动使用原始集目标已确认预算、更新源及受影响下游，范围内不逐次求许可，精确要求优先，基准不滚动。Reviewer 以 task manifest 为 target 审核实际可见性/注意/时序变化、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变而媒体未变可独立 scoped 兼容性评估，不自动全量重审或盲刷哈希；看图仍新任务/缩略图。改输入不刷新登记视频或 grants；submitted 按 recorded ID/provider 取回。
+按 [shot-inputs](../_meta/rules/shot-inputs.md) 评估 `task-inputs/taskNN.json` 的最终 `{shots,references,prompt}`、媒体、sources 与证据；草稿 `{shots,references}` 仅供 materials、不就绪。Creator 据当前材料更新语义 prompt 并自查最终 `--json`，每任务至少一个全组 MP4。摄影修改范围与生成组成员分开：部分选组报告 task_id、完整成员/额外镜头，不扩创作或付费授权。装组保留当前 canonical 时长/对白/切点；重设计交 Director/owner 在原始确认预算内更新源及下游，范围内不逐次求许可，精确要求优先，基准不滚动。fresh Reviewer 以最终 manifest 为 target，指纹绑定 prompt，核对源忠实度、完整性、可见性/注意/时序变化、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变而媒体未变可独立 scoped 兼容性评估，不自动全量重审或盲刷哈希；看图仍新任务/缩略图。改输入不刷新登记视频或 grants；submitted 按 recorded ID/provider 取回。
 
 实际修改/重生请求本身建立其目标操作意图，所需图片生成不另问通用授权；Director 依据请求和当前材料确定受影响范围。纯诊断不生成，未涵盖的覆盖或受保护任务仍阻塞；本入口不提交视频，后续由用户手动 generate-video 请求建立首次视频提交。
 
@@ -31,7 +31,7 @@ model: opus
 
 ## 制作前批准
 
-保留 config_path 的 `## 制作前确认 epNN` 记录。用户新增先看材料要求时，仅列 outline/novel/arc，在该文件该段写 `{"episode":"ep01","required":["outline"],"approval":null}`，段内只放一个 fenced JSON（语言标记 json，ep 换为目标集）。对应本集 outline.md、novel.md 和 `story/arc.md`。无请求不新建记录；准备材料可修订，但未批准前不做正式制作。
+保留 config_path 的 `## 制作前确认 epNN` 记录。用户新增规划预审要求时，仅列 outline/arc，在该文件该段写 `{"episode":"ep01","required":["outline"],"approval":null}`，段内只放一个 fenced JSON（语言标记 json，ep 换为目标集）。对应本集 outline.md 和 `story/arc.md`。未知类型按 [制作前确认](../director-orchestrate/SKILL.md#来源与制作前确认) 报告并阻塞，不过滤或自动批准。无请求不新建记录；准备材料可修订，但未批准前不做正式制作。
 
 主 AI 用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 获取指定材料身份，向用户展示并明确询问批准；答复后复核同一输入，再将 approval 写为 `{"decision":"用户实际确认内容","inputs":[实际 path/sha256 对]}`。缺失、空白、待批或变动均阻塞；本次修改使已批准材料变化时重新请用户确认，范围确认或质量 pass 不能替代材料批准。
 
@@ -55,4 +55,4 @@ Director 与专家从 descriptions 自选方法。专家/审核协调者在嵌�
 
 Director 先核对原请求、配置、材料和已有 grants；修改意图与权限充分时直接协调执行，不再问“开始吗”。范围内专业选择、修复及独立重审持续进行，进度仅陈述。只有用户要求先看方案、缺必要权限或无法内部解决的关键冲突才准备决策包。主 AI 读全计划，沿作者题界完整展示当前题所有选项、理由、风险与不确定性后原生单题询问。自编计划答复本地保留，专家计划的原始答复及全部条件批量回原发起任务；只暂停受影响工作，不扩大范围或违反限制。
 
-按有效授权，主 AI 作为 Director 协调各专业 owner 与独立 Reviewer，依据实际影响而非固定节点表选择工作。script 是资产清单来源；缺清单委托 Scriptwriter 采用现有剧本补齐，不把 outline 清单合并回去或重写故事。outline/novel/arc 按用途选择，不因缺失自动创建。
+按有效授权，主 AI 作为 Director 协调各专业 owner 与独立 Reviewer，依据实际影响而非固定节点表选择工作。script 是资产清单来源；缺清单委托 Scriptwriter 采用现有剧本补齐，不把 outline 清单合并回去或重写故事。outline/arc 按用途选择，不因缺失自动创建。用户小说、章节和节选按实际路径与采用范围作为 Scriptwriter 改编依据；修改落在受托剧本，源文保持原样。

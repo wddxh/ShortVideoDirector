@@ -6,6 +6,11 @@ import { join } from 'node:path';
 import { videoProject } from './fixtures/video-project.js';
 
 const script = join(process.cwd(), 'scripts/video-gen-dreamina.sh');
+const input = 'story/episodes/ep01/task-inputs/task01.json';
+function writePrompt(f, prompt) {
+  const manifest = JSON.parse(readFileSync(join(f.root, input), 'utf8'));
+  f.write(input, JSON.stringify({ ...manifest, prompt }));
+}
 function fixture(t, references = 1, shots = 1) {
   const f = videoProject(t, references, shots);
   f.task.submission = JSON.parse(f.cli('video-task-inputs.mjs',
@@ -184,7 +189,22 @@ test('gate blocks missing/stale review evidence and changed PNG before provider'
   blocked();
 });
 
-for (const change of ['dialogue', 'duration', 'images']) test(`renewed reviews cannot authorize stale converter ${change}`, (t) => {
+test('source dialogue changes require fresh evidence even when the authored prompt is unchanged', (t) => {
+  const f = fixture(t);
+  const board = 'story/episodes/ep01/storyboard.md';
+  f.write(board, readFileSync(join(f.root, board), 'utf8').replace('Action', 'She says "Stay."'));
+  const resolved = f.cli('storyboard-to-prompt.mjs', ['--json', board, 'task01', 'ep01']);
+  assert.equal(resolved.status, 0, resolved.stderr);
+  assert.equal(JSON.parse(resolved.stdout).prompt, f.task.prompt);
+  const before = readFileSync(join(f.root, f.tasks), 'utf8');
+  const result = f.run();
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Current scoped material review required/);
+  assert.equal(existsSync(f.calls), false);
+  assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+});
+
+for (const change of ['duration', 'images']) test(`renewed reviews cannot authorize stale task ${change}`, (t) => {
   const f = fixture(t);
   f.task.status = 'failed';
   f.task.retry_authorization = { decision: 'Retry twice unchanged', episode: 'ep01', task_id: 'task01', shots: [1],
@@ -193,7 +213,6 @@ for (const change of ['dialogue', 'duration', 'images']) test(`renewed reviews c
   const before = readFileSync(join(f.root, f.tasks), 'utf8');
   const board = 'story/episodes/ep01/storyboard.md';
   let text = readFileSync(join(f.root, board), 'utf8');
-  if (change === 'dialogue') text = text.replace('Action', 'She says "the NEW dialogue".');
   if (change === 'duration') text = text.replace('10s', '11s');
   if (change === 'images') text = text.replace('[lamp](assets/items/lamp.md)', 'none');
   f.write(board, text);
@@ -207,43 +226,74 @@ for (const change of ['dialogue', 'duration', 'images']) test(`renewed reviews c
   assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
 });
 
-test('current converter passes the gate and forwards the entire bound shot without neighboring metadata', (t) => {
+test('Creator authored final prompt is forwarded verbatim to the mocked provider', (t) => {
   const f = fixture(t);
   const board = 'story/episodes/ep01/storyboard.md';
-  const block = ['### shot 1', '- 镜头类型：近景', '- 镜头运动：固定', '- 视频风格：写实',
-    '- 时长：10s', '- 出场人物：无', '- 引用资产：[lamp](assets/items/lamp.md)', '- 转场：淡黑',
-    '- 自定义：保持灯光  ', '', '**画面与声音描述：**',
-    '[0s-10s] [lamp](assets/items/lamp.md) lights the room.  ',
-    '\tVoice: "Stay." Music fades.  '].join('\n');
-  f.write(board, `# SOURCE_METADATA\n${block}\n\n## Next scene\nNEXT_BUDGET\n<!-- FOOTER -->\n`);
-  const converted = f.cli('storyboard-to-prompt.mjs', [board, 'task01', 'ep01']);
+  const authored = '  Creator final: {图片1} identity; {视频1} motion.\r\n' +
+    '[0s-10s] 灯亮起。 "Stay."  $5 \'hold\' `frame` \\ literal\n\tKeep this spacing.  \n\n';
+  writePrompt(f, authored);
+  const converted = f.cli('storyboard-to-prompt.mjs', ['--json', board, 'task01', 'ep01']);
   assert.equal(converted.status, 0, converted.stderr);
-  f.task.prompt = JSON.parse(converted.stdout).prompt;
-  assert.equal(f.task.prompt.slice(f.task.prompt.indexOf('### shot 1')),
-    block.replace('- 视频风格：写实\n', '').replaceAll('[lamp](assets/items/lamp.md)', '[lamp:{图片1}]'));
+  assert.equal(JSON.parse(converted.stdout).prompt, authored);
+  f.task.prompt = authored;
   f.save(); f.evidence();
   const result = f.run();
   assert.equal(result.status, 0, result.stderr);
-  assert.ok(readFileSync(f.calls, 'utf8').split('\0').includes(`--prompt=${f.task.prompt}`));
+  const args = readFileSync(f.calls, 'utf8').split('\0').slice(0, -1);
+  assert.deepEqual(args, ['multimodal2video', ...f.task.references.flatMap(r => [`--${r.media}`, r.path]),
+    `--prompt=${authored}`, '--duration=10', '--ratio=16:9', '--video_resolution=1080p',
+    '--model_version=stored-model']);
 });
 
-for (const format of ['unbound', 'field-selected']) test(`stale ${format} prompts block without refreshing tasks`, (t) => {
+for (const drift of ['manifest', 'task', 'argument']) test(`${drift} prompt drift blocks pending and failed submissions without mutation`, (t) => {
   const f = fixture(t);
-  const board = readFileSync(join(f.root, 'story/episodes/ep01/storyboard.md'), 'utf8');
-  f.task.prompt = f.task.prompt.split('\n\n')[0] + '\n\n' + (format === 'unbound'
-    ? board.trimEnd() : board.slice(board.indexOf('**画面与声音描述：**')).trimEnd());
+  const revised = f.task.prompt + '\nCreator revision.  ';
+  if (drift === 'manifest') {
+    writePrompt(f, revised);
+    f.evidence(); // Fresh review cannot refresh the prepared task's prompt snapshot.
+    assert.equal(f.cli('review-evidence.mjs', ['check', 'ep01', '1']).status, 0);
+  }
+  if (drift === 'task') f.task.prompt = revised;
   f.task.retry_authorization = { decision: 'Retry unchanged', episode: 'ep01', task_id: 'task01', shots: [1],
     constraints: [], max_attempts: 2, attempts: 0 };
-  for (const status of ['pending', 'failed', 'submitted', 'done']) {
+  for (const status of ['pending', 'failed']) {
     f.task.status = status;
-    f.task.submit_id = ['submitted', 'done'].includes(status) ? 'historical-id' : '';
     f.save();
     const before = readFileSync(join(f.root, f.tasks), 'utf8');
-    const result = f.run();
+    const args = f.args();
+    if (drift === 'argument') args[0] = revised;
+    for (const action of ['gate', 'reserve']) {
+      const result = f.cli('video-task-inputs.mjs',
+        [action, '--references-json', ...args.slice(0, 6), 'dreamina', args[6]]);
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(result.stderr, drift === 'argument' ? /Arguments do not match/ : /authorized preparation/);
+      assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+    }
+    const result = f.run(args);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /authorized preparation|protected/i);
+    assert.match(result.stderr, drift === 'argument' ? /Arguments do not match/ : /authorized preparation/);
     assert.equal(existsSync(f.calls), false);
     assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+    assert.equal(existsSync(join(f.root, `${f.tasks}.submit-lock`)), false);
+  }
+});
+
+test('missing or blank final manifest prompt blocks payment without consuming grants', (t) => {
+  const f = fixture(t);
+  f.task.retry_authorization = { decision: 'Retry unchanged', episode: 'ep01', task_id: 'task01', shots: [1],
+    constraints: [], max_attempts: 2, attempts: 1 };
+  for (const prompt of [undefined, '', ' \t\r\n']) {
+    writePrompt(f, prompt);
+    for (const status of ['pending', 'failed']) {
+      f.task.status = status; f.save();
+      const before = readFileSync(join(f.root, f.tasks), 'utf8');
+      const result = f.run();
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /nonblank prompt string/);
+      assert.equal(existsSync(f.calls), false);
+      assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+      assert.equal(existsSync(join(f.root, `${f.tasks}.submit-lock`)), false);
+    }
   }
 });
 
@@ -275,17 +325,21 @@ for (const withRetry of [false, true]) test(`batch resumes untouched pending as 
 
 test('gate rejects unregistered outputs, protected tasks and mismatched arguments', (t) => {
   const f = fixture(t);
+  const before = readFileSync(join(f.root, f.tasks), 'utf8');
   for (const [index, value] of [[0, 'other prompt'], [1, f.output.replace('task01', 'task02')],
     [1, './' + f.output], [1, f.output.replace('task01', 'task1')],
     [2, JSON.stringify([...f.task.references].reverse())], [3, '11'], [4, '9:16'], [5, 'new-model']]) {
     const args = f.args(); args[index] = value;
     assert.equal(f.run(args).status, 1);
     assert.equal(existsSync(f.calls), false);
+    assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
   }
-  for (const status of ['submitted', 'done']) {
-    f.task.status = status; f.save();
+  for (const status of ['pending', 'submitted', 'done']) {
+    f.task.status = status; f.task.submit_id = 'historical-id'; f.save();
+    const protectedRecord = readFileSync(join(f.root, f.tasks), 'utf8');
     assert.equal(f.run().status, 1);
     assert.equal(existsSync(f.calls), false);
+    assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), protectedRecord);
   }
   f.task.status = 'failed'; delete f.task.submission; f.save();
   assert.equal(f.run([f.task.prompt, f.output, JSON.stringify(f.task.references), '10', '16:9', 'stored-model', '1080p']).status, 1);
@@ -294,10 +348,8 @@ test('gate rejects unregistered outputs, protected tasks and mismatched argument
 
 test('retry after unrelated config change forwards stored settings and ordered images unchanged', (t) => {
   const f = fixture(t, 10);
-  const board = 'story/episodes/ep01/storyboard.md';
-  f.write(board, readFileSync(join(f.root, board), 'utf8').replace('Action',
-    'first line says "go"  \n\tsecond line costs $5'));
-  f.task.prompt = JSON.parse(f.cli('storyboard-to-prompt.mjs', [board, 'task01', 'ep01']).stdout).prompt;
+  f.task.prompt = 'Creator final: first line says "go"  \n\tsecond line costs $5\n\n';
+  writePrompt(f, f.task.prompt);
   f.task.status = 'failed';
   f.task.retry_authorization = { decision: 'Retry ep01 shot 1 unchanged on temporary failure',
     episode: 'ep01', task_id: 'task01', shots: [1], constraints: [] };
@@ -317,7 +369,7 @@ test('retry after unrelated config change forwards stored settings and ordered i
   assert.equal(failed.stdout, 'FAIL provider rejected "input"\n');
 });
 
-test('typed converter prompt does not normalize whitespace', (t) => {
+test('final prompt equality does not normalize whitespace', (t) => {
   const f = fixture(t);
   for (const suffix of [' ', '\n', '\n\n']) {
     const original = f.task.prompt;

@@ -13,7 +13,7 @@ model: sonnet
 ### 文件读取
 - 实际配置 `SVD_CONFIG`（未设时 `config.md`）；本文与 rules.md 的 config.md 均指此路径
 - 已有 `story/arc.md`、`story/outline.md` — 读取与委托有关的部分，避免重建足够的规划
-- 相关已确认剧本及必要的 novel 片段 — 核对既成事件、角色状态与未回收伏笔；`上下文集数` 作为参考范围，不全读历史小说
+- 相关已确认剧本 — 核对既成事件、角色状态与未回收伏笔；`上下文集数` 作为参考范围，按需选读
 - `${CLAUDE_PLUGIN_ROOT}/skills/director-arc/rules.md` — 必须读取并严格遵循（输出 schema、节点集数标注约定、常见误区）
 - `${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/output-language.md` — 必须读取（语言一致性）
 

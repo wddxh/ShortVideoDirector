@@ -11,7 +11,7 @@ model: opus
 
 check/auto 本身不是新视频生成请求，只取回已登记任务或延续有效 initial/retry grants。generate-video 已将用户实际生成请求登记为 initial grant 时，首次续交不再询问生成许可；缺 grant 不从“使用本系统”或监控意图补造。交互中用户另行要求新生成则交 generate-video 入口，按该实际请求登记，不另设批准握手；重试仍按真实 retry grant，不推断无限次数。
 
-付费续交/重试使用当前 typed references，每生成任务至少一个全组本地 MP4，`task-inputs/taskNN.json` 顶层恰为 shots/references，条目仅 local PNG/MP4。按已登记 ID/provider 查询下载 submitted 任务；缺可核实 ID 则 human_needed，保留记录和媒体等待核实。
+付费续交/重试使用当前 typed references，每任务至少一个全组本地 MP4，最终 `task-inputs/taskNN.json` 顶层恰为 shots/references/prompt，prompt 为 Creator 编写并审核的非空白字符串，条目仅 local PNG/MP4。草稿 shots/references 仅供 materials，不就绪；tasks.json 中 prompt 与最终 manifest 原文一致，gate/reserve 核对该原文及 duration/references，不在提交时重写。按已登记 ID/provider 查询下载 submitted 任务；缺可核实 ID 则 human_needed，保留记录和媒体等待核实。
 
 先复用当前配置、材料和真实 grants，许可内的首次续交、原输入重试和取回不逐次求批准，不重问已定 provider、限制或重试范围。新阻塞先交责任角色在原权限内诊断，内部 review/fix 不自动触发用户确认；仅缺必要权限、关键冲突或用户指定检查点才问，进度只陈述。无人值守仍不得新授权或发起创作修复，不能用减少打断绕过 human_needed/inflight 边界。
 

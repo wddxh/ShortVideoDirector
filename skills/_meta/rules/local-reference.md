@@ -12,7 +12,7 @@ layout.png 控制门窗邻接、通道宽度和本视角遮挡；灰色盒体表
 
 示例不是必需目录或场景模板。JSON 仅有 `images`、`sources` 两个字段；两者均为非空、各自唯一且有序的路径数组。路径从故事项目根起，必须是 `references/` 下 canonical 相对路径：使用 `/`，无绝对路径、空段、`.`、`..`、反斜杠、逗号或控制字符。`images` 仅用小写 `.png` 后缀；实际须可读为 PNG。`sources` 列实际用于制作/修改的工程、脚本及所需纹理、字体、导入素材等输入，不是只留一份说明或不完整启动脚本。
 
-可保留 `.blend`、SVG/分层文件、任意 `bpy` 等源码；所需外部资源须打包进工程或放在 `references/` 并列明。PNG 是卡片模型输入；源码是编辑/审核依据，不上传。MP4 不能填入本卡 images，但可按 [shot-inputs.md](shot-inputs.md) 作为生成 task manifest 的 video reference，每任务至少一个全组 MP4；不是付费成片或完成记录。卡片声明与 `{shots,references}` 任务协议分开，不互相自动上传。
+可保留 `.blend`、SVG/分层文件、任意 `bpy` 等源码；所需外部资源须打包进工程或放在 `references/` 并列明。PNG 是卡片模型输入；源码是编辑/审核依据，不上传。MP4 不能填入本卡 images，但可按 [shot-inputs.md](shot-inputs.md) 作为生成 task manifest 的 video reference，每任务至少一个全组 MP4；不是付费成片或完成记录。卡片声明与草稿 `{shots,references}` / 最终 `{shots,references,prompt}` 任务协议分开，不互相自动上传。
 
 自然语言说明每张图对当前资产生成实际控制的布局/形体/相机/状态及占位权限。基础资产图主要提供身份/外观、风格、画质与材质，不必把后续镜头的透视、遮挡、相机、布局和整体运动都声明为静帧硬约束；这些可由任务参考视频承担，明确要求及剧情关键结构仍保留。该段作为 `narrative` 保留，不在 JSON 新增 narrative 字段，也不重复风格基线或动作剧情。没有语义说明可能造成占位误用；parser 允许空 narrative 不代表质量合格。无需 sidecar、资产 ID 或新 hash registry。
 

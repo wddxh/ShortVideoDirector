@@ -19,7 +19,11 @@ If the commission supplies config_path, validate that exact path with `review-ev
 
 - [capabilities.md](capabilities.md): live discovery, configuration and scoped resolution.
 - [image.md](image.md): image execution, dependencies and pending recovery.
-- [video.md](video.md): persisted video submission and retrieval contracts.
-- [shot-inputs.md](../_meta/rules/shot-inputs.md): grouped `{shots,references}` task manifests, full-group MP4, task clock and input/cut/boundary review, capture and typed wrapper. Sources do not upload; GIF is unsupported. Retrieve by recorded ID/provider. This is tool knowledge, not a production pipeline.
+- [video.md](video.md): Dreamina authoring materials, reference syntax, persisted video submission and retrieval contracts.
+- [shot-inputs.md](../_meta/rules/shot-inputs.md): draft `{shots,references}` materials and final `{shots,references,prompt}` manifests with Creator-authored semantic prompt, full-group MP4, task clock, fidelity/completeness/integration review, capture and typed wrapper. Final `--json` passes prompt unchanged; drafts are not ready. Sources do not upload; GIF is unsupported. Retrieve by recorded ID/provider. This is tool knowledge, not a production pipeline.
+
+For Dreamina video authoring, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/storyboard-materials-dreamina.mjs" STORYBOARD TASK_ID EP` (three positional arguments, no mode flags; module export `resolveDreaminaMaterials`). It accepts draft/final manifests and returns JSON `{task_id,shots,timeline,duration,references,assetCards,sources,inputPath,materials}` without `prompt`. Dreamina's `materials` is `{style,shotBlocks:[{shot,block}],referenceSlots}`; identity slots are `{media,path,slot,name,markdown}`, local slots `{media,path,slot,use}`. Dreamina owns `{图片N}` / `{视频N}`, separate 1-based media counters, source binding and leading-cue rebasing; exact behavior is in [video.md](video.md#dreamina-authoring-materials).
+
+Creator uses sources, this pack and actual refs to write semantic `manifest.prompt` before independent review. Generic `storyboard-to-prompt.sh/.mjs --json STORYBOARD TASK_ID EP` returns the exact manifest string without generation or rewriting. Shared assembly data is token-free and internal; each future provider owns its material tool, without a universal adapter, registry or manifest-schema change.
 
 Read only the relevant guidance. Retrieval does not require fresh generation capability discovery. New paid or destructive operations require current capabilities, actual authorization and current scoped production evidence.

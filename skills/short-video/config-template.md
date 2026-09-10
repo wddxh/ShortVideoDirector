@@ -54,7 +54,7 @@ scope 为 images/video；字段为 provider/model/ratio/resolution。缺失、�
 
 ## 制作前确认记录（按需）
 
-outline、novel、arc 是按需要选择的规划材料；缺少它们不阻止常规制作。
+outline、arc 是按需要选择的规划材料；缺少它们不阻止常规制作。用户小说、章节和节选按实际路径与采用范围作为 Scriptwriter 改编输入。
 仅当用户要求先看材料时，由用户交互上下文在本配置中增加独立的
 `## 制作前确认 epNN` 段，段内只放一个 fenced JSON（语言标记 `json`）：
 
@@ -62,11 +62,12 @@ outline、novel、arc 是按需要选择的规划材料；缺少它们不阻止�
 {"episode":"ep01","required":["outline"],"approval":null}
 ```
 
-`required` 只允许 outline、novel、arc，分别指本集 outline.md、novel.md 和
-story/arc.md。缺失、空白或尚未批准的指定材料阻止正式制作。
+`required` 只允许 outline、arc，分别指本集 outline.md 和 story/arc.md。
+required 中的未知类型阻塞正式制作，不静默过滤或自动批准。详见 [制作前确认](../director-orchestrate/SKILL.md#来源与制作前确认)。
+缺失、空白或尚未批准的指定材料阻止正式制作。
 实际确认后，用户交互上下文将 approval 写为
 `{"decision":"保留用户实际确认内容","inputs":[...]}`；inputs 使用
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 返回的 path/sha256 对。
 确认前后核对相同输入；材料变化后需重新确认。审核通过不能代替用户确认。
 无请求时保留本说明即可，勿创建 episode-specific 记录。
-图像提供方 none 仅禁新图片提交；必需图仍须存在且审核有效。`task-inputs/taskNN.json` 恰为 `{shots,references}`，每生成任务至少一个全组 MP4，静态段可用 clip，sources 不上传。独立 shot-input 审核 task manifest 的集成、内部切点/声音桥及必要边界；部分选组报告完整成员/额外镜头，不扩授权。None 不豁免材料。
+图像提供方 none 仅禁新图片提交；必需图仍须存在且审核有效。`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，含 Creator 编写的非空白最终 prompt；草稿不就绪。每生成任务至少一个全组 MP4，静态段可用 clip，sources 不上传。独立 shot-input 审核最终 prompt 源忠实度、完整性、集成、内部切点/声音桥及必要边界；部分选组报告完整成员/额外镜头，不扩授权。None 不豁免材料。

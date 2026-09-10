@@ -48,7 +48,7 @@ model: sonnet
 
 1. 对授权内受影响场景按真实表演、对白与动作估时，写纯文本 `- 目标时长: Ns`，紧贴 `### 场景 N: <标题>` 之下；已有加粗字段保留秒数、去除该行标记以匹配解析器，不为格式修正重估剧情
 2. 按下方 Phase 4 读取实际配置并选择已确认边界，实跑 scene-duration.sh；与 director-outline/SKILL.md Phase 4.5 及剧本使用同一预算
-3. FAIL 可参考 rules.md `## 时长规划原则` 在授权内取舍并复查，不把方法优先级当固定步骤；无法满足则报告冲突，不为 PASS 自动扩大修改范围或集目标
+3. FAIL 先区分低于下限、超过上限与字段缺失/解析失败；先修计算依据，再按 rules.md `## 时长规划原则` 处理实际预算问题，不一律删减。旧分配不足时可在原始确认区间内净增并更新场景目标，不默认其他场景补偿；无法满足则报告冲突，不为 PASS 自动扩大修改范围或集边界
 
 缺少时长不能声明预算通过；需要扩大范围时交 Director 协调。
 
@@ -77,4 +77,4 @@ DURATION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh" "每集时长目�
 - asset 引用: 所有 character/location 必须在 assets/ 已注册或在 `## 本集新增资产` 段（director-outline 阶段产物）列出. 修订时 asset id 严格遵循 director-outline/rules.md 「asset id 规则」（= 资产名, 禁止英文 prefix / kebab, 语言遵循 config.md「语言」设置）.
 - 节奏角色互斥: 一场景只能挂一个节奏角色
 - outline 仅维护规划期 `## 本集新增资产`，不得写回最终制作清单。Scriptwriter 在 script 中按真实场景更新库存。
-- 报告主要事件、角色、信息传达及钩子变化对现有 novel / script / storyboard 的具体影响；由 Director 协调对应 owner 判断兼容性和复审范围，不自动宣布全部下游失效或重跑。
+- 报告主要事件、角色、信息传达及钩子变化对现有 script / storyboard 的具体影响；由 Director 协调对应 owner 判断兼容性和复审范围，不自动宣布全部下游失效或重跑。采用小说素材时另报与来源的冲突，不反向修订源小说。

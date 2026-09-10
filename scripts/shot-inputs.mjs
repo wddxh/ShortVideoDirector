@@ -59,9 +59,9 @@ export function readTaskPlan(storyboard, episode) {
       const task_id = file.slice(0, -5), inputPath = taskInputPath(episode, task_id);
       readyPath(inputPath, `${directory}/`);
       const manifest = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
-      if (!manifest || Object.keys(manifest).length !== 2 ||
+      if (!manifest || Object.keys(manifest).some(key => !['shots', 'references', 'prompt'].includes(key)) ||
           !Array.isArray(manifest.shots) || !manifest.shots.length || !Array.isArray(manifest.references)) {
-        throw new Error(`${task_id}: task input requires only shots and references`);
+        throw new Error(`${task_id}: task input requires shots and references, with optional prompt`);
       }
       return { task_id, ...manifest, inputPath };
     });
@@ -101,15 +101,19 @@ export function selectTaskGroups(plan, selected = []) {
   return groups;
 }
 
-export function resolveTaskInputs(storyboard, task_id, episode, beforeRead = () => {}) {
+export function assembleTask(storyboard, task_id, episode, beforeRead = () => {}) {
+  const observed = new Set();
+  const observe = file => {
+    if (observed.has(file)) return;
+    observed.add(file);
+    beforeRead(file);
+  };
   const inputPath = taskInputPath(episode, task_id);
-  beforeRead(storyboard);
-  beforeRead(inputPath);
+  observe(storyboard);
+  observe(inputPath);
   const manifest = readTaskPlan(storyboard, episode).groups.find(g => g.task_id === task_id);
   if (!manifest) throw new Error(`Missing task manifest: ${inputPath}`);
   const members = manifest.shots.map(shot => ({ shot, ...readStoryboardShot(storyboard, shot) }));
-  const baseline = members[0].style;
-  if (members.some(m => m.style !== baseline)) throw new Error('Different video-style baselines; owner reconciliation required');
   let duration = 0;
   const timeline = members.map(m => {
     const start = duration;
@@ -119,67 +123,52 @@ export function resolveTaskInputs(storyboard, task_id, episode, beforeRead = () 
   });
   const headerRefs = members.flatMap(m => m.headerRefs);
   const references = [], assetCards = [], sources = [];
-  const slots = new Map(), bindings = [];
-  const counts = { image: 0, video: 0 };
+  const identities = new Set(), localPaths = new Set(), referenceDetails = [];
   const add = (media, file) => {
-    beforeRead(file);
+    observe(file);
     references.push({ media, path: file });
-    return `{${media === 'image' ? '\u56fe\u7247' : '\u89c6\u9891'}${++counts[media]}}`;
   };
   for (const { name, markdown } of headerRefs) {
-    if (slots.has(markdown)) continue;
-    beforeRead(markdown);
+    if (identities.has(markdown)) continue;
+    observe(markdown);
     readyPath(markdown, 'assets/');
     assetCards.push(markdown);
-    const slot = add('image', markdown.replace('assets/', 'assets/images/').replace(/\.md$/, '.png'));
-    slots.set(markdown, slot);
-    bindings.push(`[${name}:${slot}] identity reference`);
+    const file = markdown.replace('assets/', 'assets/images/').replace(/\.md$/, '.png');
+    add('image', file);
+    identities.add(markdown);
+    referenceDetails.push({ media: 'image', path: file, name, markdown });
   }
   for (const ref of manifest.references) {
     const keys = ['kind', 'media', 'path', 'use', 'sources'];
     if (!ref || Object.keys(ref).some(k => !keys.includes(k)) ||
         typeof ref.use !== 'string' || !ref.use.trim()) throw new Error('Invalid reference declaration/use');
     if (ref.kind === 'local') {
-      if (slots.has(ref.path)) throw new Error('Duplicate local reference');
+      if (localPaths.has(ref.path)) throw new Error('Duplicate local reference');
       if (/\.gif$/i.test(ref.path)) throw new Error('GIF unsupported: temporal semantics require MP4');
-      beforeRead(ref.path);
+      observe(ref.path);
       readyPath(ref.path, 'references/');
       if (!Array.isArray(ref.sources) || !ref.sources.length) throw new Error('Local sources required');
       for (const source of ref.sources) {
-        beforeRead(source);
+        observe(source);
         sources.push(readyPath(source, 'references/'));
       }
-      const slot = add(ref.media, ref.path);
-      slots.set(ref.path, slot);
-      bindings.push(`[LOCAL_REFERENCE:${slot}] ${ref.use}`);
+      add(ref.media, ref.path);
+      localPaths.add(ref.path);
+      referenceDetails.push({ media: ref.media, path: ref.path, use: ref.use });
     } else throw new Error('Unsupported reference kind');
   }
   validateReferences(references);
-  let boundBaseline;
-  const blocks = members.map((member, i) => {
-    const ownRefs = new Set(member.headerRefs.map(r => r.markdown));
-    // Bind the full member before extracting style so its links retain member scope.
-    const block = member.block.replace(/\[([^\]]+)\]\(((?:assets|references)\/[^)]+)\)/gu, (_, name, file) => {
-        if (!ownRefs.has(file)) throw new Error(`Undeclared shot reference: shot ${member.shot}: ${file}`);
-        return `[${name}:${slots.get(file)}]`;
-      }).replace(/^(- 视频风格：[^\n]+)\n/mu, (_, style) => {
-        boundBaseline ??= style;
-        return '';
-      }).replace(/^([ \t]*)\[(-?\d+(?:\.\d+)?)s-(-?\d+(?:\.\d+)?)s\]/gm,
-        (_, indent, from, to) => {
-          const start = Number(from), end = Number(to);
-          if (!(0 <= start && start < end && end <= member.duration)) {
-            throw new Error(`Invalid temporal cue in shot ${member.shot}: ${from}s-${to}s`);
-          }
-          return `${indent}[${start + timeline[i].start}s-${end + timeline[i].start}s]`;
-        });
-    return `Task interval for shot ${member.shot}: ${timeline[i].start}s-${timeline[i].end}s\n${block}`;
-  });
-  const prompt = [boundBaseline, ...bindings, '',
-    'Leading bracketed cues use task time. Inline elapsed times remain local to the named shot.',
-    ...blocks].join('\n');
-  return { task_id, shots: manifest.shots, timeline, prompt, duration,
+  const common = { task_id, shots: manifest.shots, timeline, duration,
     references, assetCards, sources: [...new Set(sources)], inputPath };
+  return { common, manifest, members, referenceDetails };
+}
+
+export function resolveTaskInputs(storyboard, task_id, episode, beforeRead = () => {}) {
+  const { common, manifest } = assembleTask(storyboard, task_id, episode, beforeRead);
+  if (typeof manifest.prompt !== 'string' || !manifest.prompt.trim()) {
+    throw new Error(`${task_id}: final task input requires a nonblank prompt string`);
+  }
+  return { ...common, prompt: manifest.prompt };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

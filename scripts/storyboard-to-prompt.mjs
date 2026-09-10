@@ -4,7 +4,7 @@ import { resolveTaskInputs } from './shot-inputs.mjs';
 try {
   const args = process.argv.slice(2);
   if (args[0] === '--json') args.shift();
-  if (args.length !== 3 || args[0].startsWith('--')) {
+  if (args.length !== 3 || args.some(arg => arg.startsWith('--'))) {
     throw new Error('Usage: storyboard-to-prompt.mjs [--json] STORYBOARD TASK_ID EP');
   }
   console.log(JSON.stringify(resolveTaskInputs(args[0], args[1], args[2])));

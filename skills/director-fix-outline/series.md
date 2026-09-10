@@ -3,7 +3,7 @@
 ## 额外上下文读取
 - `story/outline.md` — 项目维护该摘要时读取相关条目；仅授权包含时同步，不强制新建
 - `story/arc.md` — 若存在则读 (识别本集在 arc 中的位置 / 职责)
-- 必要时读相关前集 script 的场景、角色状态和伏笔；outline / novel 仅作需要的补充依据
+- 必要时读相关前集 script 的场景、角色状态和伏笔；outline 仅作需要的补充依据
 
 ## Phase 3: Series 专属修正点
 

@@ -61,7 +61,7 @@ Helper 机械强制的最小输入集（全部使用真实整文件 SHA-256）�
 
 基础卡同实体参考是 reviewer/Creator 的语义与映射责任，不是新 parser：`asset-prompt` 必须读取并记录必要直接参考卡，不要求未来 PNG；`asset-visual` 还读取并记录这些直接参考 PNG。单项始终只有一个 TARGET，参考仅作 inputs，允许跨类别，不递归参考链或历史，不扩 scope。共享标志物、几何、材质、状态与视角关系由 reviewer 判断。当前 helper 不推断同实体或强制该声明的输入完整性；它会检测已记录参考哈希变化，但漏记参考仍可能机械通过，不能用 helper 的 pass 代替此核对。
 
-遗漏最小输入、依赖读取/解析失败或指纹过时均为 unknown。按实际依赖检查，不递归遍历所有资产，也不要求 outline/novel/arc；必要连续性参考由 reviewer 选择并记录。整份 storyboard 的身份变化需要兼容性评估，不代表自动重生全量。
+遗漏最小输入、依赖读取/解析失败或指纹过时均为 unknown。按实际依赖检查，不递归遍历所有资产，也不要求 outline/arc；必要连续性参考由 reviewer 选择并记录。整份 storyboard 的身份变化需要兼容性评估，不代表自动重生全量。
 
 视觉审核若有对应 `.generation.json`，在读取前 add-input，再核对输出身份/设置；receipt 的 output_sha256 是 PNG 摘要，review.inputs 还须保留 receipt 文件自身的 sha256。当前 helper 不把 receipt 列为必需输入；用户提供/历史图片缺 receipt 不自动失败，不补造生成历史。Receipt 不含参考图列表，不证明原始参考输入、视觉质量或独立审核已完成；当前 refhash 仅绑定本轮比较依据，不追认生成时输入。
 
@@ -87,13 +87,13 @@ exit 1 表示阻塞。SHOT 使用十进制编号，如 `1 3`；省略时覆盖�
 真实当前修改意见为 needs_revision。`SVD_CONFIG` 可指定配置路径，默认 config.md。
 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" EP [SHOT...]` 检查结构：整集编号 1..N 且每镜恰分配一次，任务按首成员排序；局部源允许缺号、递增唯一、目标存在且选完整组。全局校验声明组重叠/缺失源成员；局部不要求未选媒体或完整全片计划。未分配目标/部分组报告具体缺口；接口错误交主 AI/general 工程。
 
-每任务 manifest 顶层恰为 shots/references，至少一个全组时间线本地 MP4；task_id 取文件名，offset/duration 从原镜派生。最终就绪要求 script/storyboard/asset-visual/shot-input，授权新增/重生图片另须 asset-prompt。整集覆盖 script 全资产 visual，选镜取各成员 header 资产并核对清单归属。submitted 按已登记 ID/provider 取回，保护真实状态与 grants。机械检查不替代独立语义判断。
+每任务最终 manifest 顶层恰为 shots/references/prompt，prompt 为 Creator 编写的非空白字符串，既有 target 指纹绑定其全文；shots/references 草稿只供 materials，不能通过最终审核/就绪。每任务至少一个全组时间线本地 MP4；task_id 取文件名，offset/duration 从原镜派生。fresh shot-input Reviewer 对最终 `--json` 原文核对源忠实度、完整性和集成，不假设提交时重写。最终就绪要求 script/storyboard/asset-visual/shot-input，授权新增/重生图片另须 asset-prompt。整集覆盖 script 全资产 visual，选镜取各成员 header 资产并核对清单归属。submitted 按已登记 ID/provider 取回，保护真实状态与 grants。机械检查不替代独立语义判断。
 
 asset-visual 的整集范围来自 `episode-assets.mjs "story/episodes/{ep}/script.md" all`，含新增和本集复用资产。asset-prompt 只覆盖实际授权新增/重生集合，不从 all inventory 推定目标，复用资产仅作必要 inputs。显式 scope 只审核指定目标，范围外未决记录保留；集合内核对当前证据，处理缺失、过时或未通过项。
 
-Arc/outline/novel 是可选规划审核，不属于上述五种 kind，也不替代用户制作前确认。仅审被委托且已存在的材料，缺少未请求的规划文件不阻塞生产审核。结尾按用户意图判断，可闭合、开放或续集悬念；评价因果、情绪落点和承诺兑现，不机械强制闭环或钩子。所有 review 保留各自专业语义判断与可执行定位，不审核生成视频质量。
+Arc/outline 是可选规划审核，不属于上述五种 kind，也不替代用户制作前确认。仅审被委托且已存在的材料，缺少未请求的规划文件不阻塞生产审核。结尾按用户意图判断，可闭合、开放或续集悬念；评价因果、情绪落点和承诺兑现，不机械强制闭环或钩子。所有 review 保留各自专业语义判断与可执行定位，不审核生成视频质量。
 
-可选规划记录只写 Markdown 意见与轮次：`reviews/{ep}/outline.md`、`reviews/{ep}/novel.md`、`reviews/story/arc.md`。不使用 review-round helper，不写五种 runtime evidence 的 JSON，也不扩充 kind。
+可选规划记录只写 Markdown 意见与轮次：`reviews/{ep}/outline.md`、`reviews/story/arc.md`。不使用 review-round helper，不写五种 runtime evidence 的 JSON，也不扩充 kind。改编剧本按需引用用户提供的小说、章节或节选的实际路径与采用范围。制作前确认按 [Director 规则](../../director-orchestrate/SKILL.md#来源与制作前确认) 执行，质量审核不代替用户批准。
 
 ## 4 条核心规则
 
@@ -107,7 +107,7 @@ Arc/outline/novel 是可选规划审核，不属于上述五种 kind，也不替
 
 例如，影响关键设计的“道具表面纹理与卡片不一致”是有效诊断；生成方向可写“深灰金属表面分布细密随机短刻痕，边缘呈柔和反射”。评估具体表达及画面效果，不用通用禁词表代替专业判断；细小纹理差异只有造成实质影响才阻塞。
 
-文学稿可以直接展开心理；剧本/分镜检查观众能否通过动作、声音、对白或其他已约定载体感知。不能把静态图像提示技巧扩成小说旁白或内心独白禁令。
+改编来源可以直接展开心理；剧本/分镜检查观众能否通过动作、声音、对白或其他已约定载体感知。不能把静态图像提示技巧扩成旁白或内心独白禁令。
 
 ### 规则 3：专业建议不等于执行命令
 
@@ -127,7 +127,7 @@ Arc/outline/novel 是可选规划审核，不属于上述五种 kind，也不替
 
 #### 数值与姿态的可用性判断
 
-以下人体姿态/接触标准仅用于当前材料承担的身份、动作或明确要求，不把后续 shot 的姿态/接触证明提前压给基础资产图，也不套到本地视频盒体。按 [通用视觉表达](visual-prompt-craft-common.md)，本地 VIDEO 默认仅用刚性、固定形状 BOX 表示人物及类似行动主体；可整体平移/旋转，不变形、不表演，只有明确不同委托才改变范围。盒体只审取景、尺度、位置/布局、整体轨迹与相机控制，无手、无姿态或无解剖遮挡/接触/换握证明不是失败，也不能据此要求补肢体动画。
+以下人体姿态/接触标准按当前媒体职责使用，不把后续 shot 的证明提前压给基础资产图。按 [通用视觉表达](visual-prompt-craft-common.md)，本地 VIDEO 默认是可整体平移/旋转的刚性 BOX，并在持有、支撑或动作否则不可读/呈非预期悬浮时提供最小手/前臂、相关肢体或接触代理；身体出画尤其要查，画内必要支撑同样适用。最小支撑属于本地授权，默认不做完整 rig 或脸部动画。缺精细手指不是失败；缺必要支撑而与动作冲突不能豁免。按意图判断悬浮、透明屏幕和遮挡，不要求完整表演或逐指换握证明。
 
 具体动作、姿势和表情由 shot prose 与模型负责；另审文字是否清楚、景别/角度是否支持最终动作可读，操作特写仍与盒体相容。环境/道具可保留镜头/布局所需几何；静态资产形状参考按其声明形状审核。详细外观遵循统一作品基线和实际资产。缺已声明媒体、必要输入不可读、指纹漂移或声明的必要轨迹无法评估仍为 unknown，独立审核与既有门禁不变。
 
@@ -148,9 +148,13 @@ Arc/outline/novel 是可选规划审核，不属于上述五种 kind，也不替
 
 ### 具体目标与连续性
 
+粗参考不能替代完整 shot prose：按动作需要核对谁做什么、身体/头部/道具朝向与姿态、左右、归属、握持/接触及必要初中末变化；不做全字段或细节配额门禁。`use` 声明代理控制而非最终风格，最终 prompt 须解释实际肢体代理的解剖、姿态、握向与动作实现。
+
+独立生成 TASK 边界优先选择已有、有动机且机位/视点/景别不同的切点，只减少近似生成不一致的显眼程度，不保证连续性；相似连续镜头可适当同组。不以每切一任务、角度阈值或有意重复构图判失败。保留连续成员、时长、provider 最大值和 grants，重设计交 Director/owner 在原始预算内同步源与下游，不借建议静默重组或改切点。
+
 修正意见连接实际观察、制作影响与目标状态。材质意见可说明反射或纹理尺度如何影响已确认设计，再给出适用的表面表达；表演意见可说明观众需要感知的转折，再建议动作、声音或剧本已选择的内心独白。示例用于解释方向，最终表达由对应作者完成。
 
-例如：“两端 shot prompt 的道具持有手不一致，会造成动作跳变；建议核实已确定终态并明确当前起始关系。”观察、影响与方向可验证，不替作者定稿。BOX MP4 不负责表现手部；另核对其位置、轨迹和轴线。纯构图偏好另列建议，不放入 blockers。
+例如：“两端 shot prompt 的道具持有手不一致，会造成动作跳变；建议核实已确定终态并明确当前起始关系。”观察、影响与方向可验证，不替作者定稿。BOX MP4 核对位置、轨迹、轴线及必要支撑与动作的相容性，精细手部由 prompt/模型实现。纯构图偏好另列建议，不放入 blockers。
 
 ## 与其他共享规则的关系
 
@@ -163,7 +167,7 @@ Arc/outline/novel 是可选规划审核，不属于上述五种 kind，也不替
 
 | Review skill | 引用本文件 | 引用 visual-prompt-craft-* |
 |---|---|---|
-| reviewer-review-novel / -script / -outline / -arc | ✅ | ❌ |
+| reviewer-review-script / -outline / -arc | ✅ | ❌ |
 | reviewer-review-storyboard | ✅ | ✅（视听表达与可生成性）|
 | reviewer-review-shot-inputs | ✅ | ✅（最终输入包语义与必要时序，不审成片） |
 | reviewer-review-asset-visual-single / reviewer-review-assets-visual | ✅ | ❌ |

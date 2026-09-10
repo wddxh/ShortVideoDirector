@@ -32,10 +32,10 @@ test('readiness rejects GIF, type mismatch, noncanonical paths and symlink escap
   for (const refs of [[local('image', 'animated.gif')], [local('image', 'motion.mp4')],
     [local('image', '../outside.png')], [local('image', './layout, draft.png')],
     [{ ...mixed[0], sources: [] }], [mixed[0], mixed[0]]]) {
-    f.write(input, JSON.stringify({ shots: [1], references: refs }));
+    f.write(input, JSON.stringify({ shots: [1], references: refs, prompt: f.task.prompt }));
     assert.equal(f.convert().status, 1);
   }
-  f.write(input, JSON.stringify({ shots: [1], references: mixed }));
+  f.write(input, JSON.stringify({ shots: [1], references: mixed, prompt: f.task.prompt }));
   for (const file of [input, 'assets/items/lamp.md', f.image, mixed[0].path, 'references/scene.blend']) {
     const old = readFileSync(join(f.root, file));
     rmSync(join(f.root, file)); symlinkSync(join(scripts, 'shot-inputs.mjs'), join(f.root, file));
@@ -46,13 +46,13 @@ test('readiness rejects GIF, type mismatch, noncanonical paths and symlink escap
   }
 });
 
-test('full shot whitespace survives without identity images while MP4 remains mandatory', t => {
+test('final resolution supports local media without identity images', t => {
   const f = fixture(t);
   const block = '### shot 1\n- 视频风格：写实\n- 时长：10s\n- 引用资产：无\n- 自定义：keep  \n\n' +
     '**画面与声音描述：**\n[0s-10s] Sound and motion.  \n\tDialogue: "Stay."  ';
   f.write(board, `# Metadata\n${block}\n\n## Next scene\nExcluded\n`);
   const resolved = JSON.parse(f.convert().stdout);
-  assert.equal(resolved.prompt.slice(resolved.prompt.indexOf('### shot 1')), block.replace('- 视频风格：写实\n', ''));
+  assert.equal(resolved.prompt, f.task.prompt);
   assert.deepEqual(resolved.references, mixed.map(({ media, path }) => ({ media, path })));
 });
 
@@ -64,7 +64,7 @@ test('source, media and manifest drift block before retry counter changes', t =>
   const before = readFileSync(join(f.root, f.tasks), 'utf8');
   for (const file of ['references/scene.blend', mixed[0].path, mixed[1].path, input]) {
     const old = readFileSync(join(f.root, file));
-    f.write(file, file === input ? JSON.stringify({ shots: [1], references: [...mixed].reverse() }) : 'changed');
+    f.write(file, file === input ? JSON.stringify({ shots: [1], references: [...mixed].reverse(), prompt: f.task.prompt }) : 'changed');
     assert.equal(f.run().status, 1);
     assert.equal(existsSync(f.calls), false);
     assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
@@ -115,7 +115,7 @@ test('resolver requires local MP4 manifest and rejects invalid declarations', t 
   const f = fixture(t);
   for (const references of [[], [mixed[1]], 'a.png,b.png',
     [mixed[0], { ...mixed[1], kind: 'unknown' }]]) {
-    f.write(input, JSON.stringify({ shots: [1], references }));
+    f.write(input, JSON.stringify({ shots: [1], references, prompt: f.task.prompt }));
     assert.equal(f.convert().status, 1);
     assert.equal(f.run().status, 1);
     assert.equal(existsSync(f.calls), false);
@@ -132,7 +132,8 @@ test('resolver requires local MP4 manifest and rejects invalid declarations', t 
 function fixture(t, shots = 1) {
   const f = videoProject(t, 1, shots);
   for (const ref of mixed) f.write(ref.path, ref.media);
-  f.write(input, JSON.stringify({ shots: [1], references: mixed }));
+  f.write(input, JSON.stringify({ shots: [1], references: mixed,
+    prompt: '  Use [lamp:{图片1}] for identity.\r\nUse {视频1} for motion, {图片2} for layout, and {视频2} for camera.  \n' }));
   const convert = () => f.cli('storyboard-to-prompt.mjs', ['--json', board, 'task01', 'ep01']);
   const { prompt, duration, references } = JSON.parse(convert().stdout);
   Object.assign(f.task, { prompt, duration, references });
@@ -162,8 +163,6 @@ test('mixed MP4/PNG forwarding preserves all provider flags and snapshot order',
     ...f.task.references.flatMap(r => [`--${r.media}`, r.path]), `--prompt=${f.task.prompt}`,
     '--duration=10', '--ratio=16:9', '--video_resolution=1080p', '--model_version=model']);
   assert.match(f.task.prompt, /lamp:\{图片1\}/);
-  assert.match(f.task.prompt, /LOCAL_REFERENCE:\{图片2\}/);
-  assert.match(f.task.prompt, /LOCAL_REFERENCE:\{视频2\}/);
   assert.deepEqual(Object.keys(JSON.parse(f.convert().stdout)).sort(),
     ['assetCards', 'duration', 'inputPath', 'prompt', 'references', 'shots', 'sources', 'task_id', 'timeline']);
   assert.deepEqual(Object.keys(f.task.submission).sort(),

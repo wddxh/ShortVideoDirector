@@ -8,6 +8,9 @@ export function groupedVideo(t) {
   const input = `${ep}/task-inputs/task01.json`;
   const manifest = JSON.parse(readFileSync(join(f.root, input)));
   manifest.shots = [1, 2, 3];
+  manifest.prompt = '写实。The lamp {图片1} stays fixed; follow the camera in {视频1}.\n' +
+    '[0s-3s] Establish the lamp. [3s-7s] Cut closer as the voice continues.\n' +
+    '[7s-12s] Cut to the reflection and hold. Voice: "Wait."  \n';
   const blocks = [3, 4, 5].map((duration, i) => `### shot ${i + 1}
 - 镜头类型：中景
 - 镜头运动：固定
@@ -25,10 +28,11 @@ Voice: "Wait 2.5s, then [0s-1s]; 3 seconds, $5."
   f.write(board, blocks.join('\n\n'));
   f.write(input, JSON.stringify(manifest));
   const convert = () => f.cli('storyboard-to-prompt.mjs', [board, 'task01', 'ep01']);
+  const material = () => f.cli('storyboard-materials-dreamina.mjs', [board, 'task01', 'ep01']);
   const resolved = JSON.parse(convert().stdout);
   Object.assign(f.task, { shots: resolved.shots, prompt: resolved.prompt, duration: resolved.duration,
     references: resolved.references });
   f.save();
   f.evidence();
-  return { ...f, board, input, manifest, blocks, convert, resolved };
+  return { ...f, board, input, manifest, blocks, convert, material, resolved };
 }

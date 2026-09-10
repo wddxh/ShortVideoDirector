@@ -283,7 +283,6 @@ story/episodes/{ep}/.review-storyboard-sheet-prompts.md
 
 ```text
 outline
-→ novel（series）
 → script
 → 基础资产卡
 → 基础资产图片

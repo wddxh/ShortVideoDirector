@@ -1,12 +1,60 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
+import fs, { readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { groupedVideo } from './fixtures/grouped-video.js';
-import { readTaskPlan, selectTaskGroups, taskInputPath, resolveTaskInputs } from '../../scripts/shot-inputs.mjs';
+import { readTaskPlan, selectTaskGroups, taskInputPath, assembleTask, resolveTaskInputs } from '../../scripts/shot-inputs.mjs';
+import { resolveDreaminaMaterials } from '../../scripts/storyboard-materials-dreamina.mjs';
 
 const scripts = join(process.cwd(), 'scripts');
+
+test('each resolver snapshots selected manifest before access and parses it once', t => {
+  const f = groupedVideo(t), cwd = process.cwd();
+  const read = fs.readFileSync, realpath = fs.realpathSync;
+  process.chdir(f.root);
+  try {
+    for (const resolve of [assembleTask, resolveTaskInputs, resolveDreaminaMaterials]) {
+      f.write(f.input, JSON.stringify(f.manifest));
+      const hashes = new Map();
+      const hash = file => createHash('sha256').update(read(file)).digest('hex');
+      let reads = 0;
+      t.mock.method(fs, 'realpathSync', file => {
+        if (file === f.input) assert.ok(hashes.has(file), 'callback precedes path access');
+        return realpath(file);
+      });
+      t.mock.method(fs, 'readFileSync', (...args) => {
+        if (args[0] === f.input) {
+          assert.ok(hashes.has(f.input), 'callback precedes manifest read');
+          reads++;
+        }
+        return read(...args);
+      });
+      const result = resolve(f.board, 'task01', 'ep01', file => {
+        assert.equal(hashes.has(file), false, `callback runs once for ${file}`);
+        hashes.set(file, hash(file));
+        if (file === 'assets/items/lamp.md') {
+          f.write(f.input, JSON.stringify({ ...f.manifest, prompt: 'Changed after first read' }));
+        }
+      });
+      assert.equal(reads, 1);
+      assert.notEqual(hashes.get(f.input), hash(f.input));
+      if (resolve === resolveTaskInputs) assert.equal(result.prompt, f.manifest.prompt);
+      else if (resolve === resolveDreaminaMaterials) assert.ok(result.materials);
+      else {
+        assert.deepEqual(Object.keys(result).sort(), ['common', 'manifest', 'members', 'referenceDetails']);
+        assert.deepEqual(result.referenceDetails, [
+          { media: 'image', path: f.image, name: 'lamp', markdown: 'assets/items/lamp.md' },
+          { media: 'video', path: f.video, use: f.manifest.references[0].use },
+        ]);
+        assert.equal(result.manifest.prompt, f.manifest.prompt);
+      }
+      t.mock.restoreAll();
+    }
+  } finally { t.mock.restoreAll(); process.chdir(cwd); }
+});
+
 function submissionFixture(t) {
   const f = groupedVideo(t);
   const grant = { decision: 'Submit this group', episode: 'ep01', task_id: 'task01', shots: [1, 2, 3], constraints: [] };
@@ -84,19 +132,31 @@ test('three photographic shots retain duration, prose and cuts in one derived ta
   assert.equal(r.duration, 12);
   assert.deepEqual(r.timeline, [{ shot: 1, start: 0, end: 3 },
     { shot: 2, start: 3, end: 7 }, { shot: 3, start: 7, end: 12 }]);
-  assert.equal(r.prompt.split('- 视频风格：写实').length - 1, 1);
-  const rebased = [[0, 2.5, 1, 3], [3, 5.5, 4, 7], [7, 9.5, 8, 12]];
-  for (const [i, block] of f.blocks.entries()) {
-    const [a, b, c, d] = rebased[i];
-    const expected = block.replace('- 视频风格：写实\n', '')
-      .replaceAll('[lamp](assets/items/lamp.md)', '[lamp:{图片1}]')
-      .replace('[0s-2.5s]', `[${a}s-${b}s]`).replace(`[1s-${[3,4,5][i]}s]`, `[${c}s-${d}s]`);
-    assert.ok(r.prompt.includes(expected));
-  }
+  assert.equal(r.prompt, f.manifest.prompt);
   assert.deepEqual(r.references, [{ media: 'image', path: f.image }, { media: 'video', path: f.video }]);
   assert.deepEqual(r.sources, ['references/scene.blend']);
   f.write(f.board, f.blocks.join('\n\n').replaceAll('\n', '\r\n'));
   assert.deepEqual(JSON.parse(f.convert().stdout), r);
+});
+
+test('lengthening one canonical shot grows the group and downstream offsets without compensation', t => {
+  const f = groupedVideo(t);
+  const records = readFileSync(join(f.root, f.tasks), 'utf8');
+  const blocks = [...f.blocks];
+  blocks[1] = blocks[1].replace('- 时长：4s', '- 时长：6s')
+    .replace('[1s-4s]', '[1s-6s]');
+  f.write(f.board, blocks.join('\n\n'));
+  const result = f.convert();
+  assert.equal(result.status, 0, result.stderr);
+  const revised = JSON.parse(result.stdout);
+  assert.equal(revised.duration, f.resolved.duration + 2);
+  assert.deepEqual(revised.timeline, [{ shot: 1, start: 0, end: 3 },
+    { shot: 2, start: 3, end: 9 }, { shot: 3, start: 9, end: 14 }]);
+  assert.deepEqual(revised.timeline.map(({ start, end }) => end - start), [3, 6, 5]);
+  assert.equal(revised.prompt, f.resolved.prompt);
+  assert.deepEqual(revised.shots, f.resolved.shots);
+  assert.deepEqual(revised.references, f.resolved.references);
+  assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), records);
 });
 
 test('task APIs select whole groups, report partial scope and preserve stable identity', t => {
@@ -115,80 +175,6 @@ test('task APIs select whole groups, report partial scope and preserve stable id
   } finally { process.chdir(cwd); }
 });
 
-test('assembly rejects differing baselines, out-of-range cues and cross-member undeclared links', t => {
-  const f = groupedVideo(t);
-  for (const changed of [f.blocks[1].replace('视频风格：写实', '视频风格：动画'),
-    f.blocks[1].replace('[0s-2.5s]', '[-1s-2.5s]'),
-    f.blocks[1].replace('[0s-2.5s]', '[0s-5s]'),
-    f.blocks[1].replace('[0s-2.5s]', '[2s-2s]'),
-    f.blocks[1].replace('- 引用资产：[lamp](assets/items/lamp.md)', '- 引用资产：无') +
-      '\n[lamp](assets/items/lamp.md) stays.']) {
-    f.write(f.board, [f.blocks[0], changed, f.blocks[2]].join('\n\n'));
-    assert.equal(f.convert().status, 1);
-  }
-});
-
-test('shared style links bind once without changing member dialogue or other prompt content', t => {
-  const f = submissionFixture(t);
-  f.write(f.board, f.blocks.map(block => block.replace('视频风格：写实',
-    '视频风格：写实 [lamp](assets/items/lamp.md)')).join('\n\n'));
-  const result = f.convert();
-  assert.equal(result.status, 0, result.stderr);
-  const resolved = JSON.parse(result.stdout);
-  assert.equal(resolved.prompt, f.resolved.prompt.replace('- 视频风格：写实',
-    '- 视频风格：写实 [lamp:{图片1}]'));
-  assert.deepEqual(resolved.references, f.resolved.references);
-  f.task.prompt = resolved.prompt; f.save(); f.evidence();
-  assert.equal(f.run().status, 0);
-  assert.ok(readFileSync(f.calls, 'utf8').split('\0').includes(`--prompt=${resolved.prompt}`));
-});
-
-test('style references require every member declaration and existing assets before payment', t => {
-  const f = submissionFixture(t);
-  const styled = f.blocks.map(block => block.replace('视频风格：写实',
-    '视频风格：写实 [lamp](assets/items/lamp.md)'));
-  const missingMember = styled.map((block, i) => i === 1
-    ? block.replace('- 引用资产：[lamp](assets/items/lamp.md)', '- 引用资产：无') : block);
-  const missingAsset = styled.map(block => block.replace(
-    '视频风格：写实 [lamp](assets/items/lamp.md)', '视频风格：写实 [missing](assets/items/missing.md)'));
-  for (const blocks of [missingMember, missingAsset,
-    missingAsset.map(block => block.replace('- 引用资产：', '- 引用资产：[missing](assets/items/missing.md) '))]) {
-    f.write(f.board, blocks.join('\n\n'));
-    const converted = f.convert();
-    assert.equal(converted.status, 1);
-    assert.match(converted.stderr, /Undeclared shot reference|ENOENT/);
-    for (const status of ['pending', 'failed']) {
-      f.task.status = status;
-      f.task.retry_authorization = { ...f.grant, max_attempts: 1, attempts: 0 }; f.save();
-      const before = readFileSync(join(f.root, f.tasks), 'utf8');
-      const result = f.run();
-      assert.equal(result.status, 1);
-      assert.match(result.stderr, /Undeclared shot reference|ENOENT/);
-      assert.equal(existsSync(f.calls), false);
-      assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
-    }
-  }
-});
-
-test('asset union follows member header first use before ordered local media', t => {
-  const f = groupedVideo(t);
-  const card = 'assets/items/key.md', image = 'assets/images/items/key.png';
-  f.write(card, 'card'); f.write(image, 'PNG');
-  const blocks = [...f.blocks];
-  blocks[1] = blocks[1].replace('- 引用资产：[lamp](assets/items/lamp.md)',
-    `- 引用资产：[key](${card}) [lamp](assets/items/lamp.md)`);
-  blocks[2] += `\n[key](${card}) in prose but absent from own header.`;
-  f.write(f.board, blocks.join('\n\n'));
-  assert.match(f.convert().stderr, /Undeclared shot reference: shot 3/);
-  blocks[2] = blocks[2].replace('- 引用资产：[lamp](assets/items/lamp.md)',
-    `- 引用资产：[lamp](assets/items/lamp.md) [key](${card})`);
-  f.write(f.board, blocks.join('\n\n'));
-  const r = JSON.parse(f.convert().stdout);
-  assert.deepEqual(r.assetCards, ['assets/items/lamp.md', card]);
-  assert.deepEqual(r.references.map(ref => ref.path), [f.image, image, f.video]);
-  assert.equal(r.prompt.split('[key:{图片2}] identity reference').length - 1, 1);
-});
-
 test('scoped snippets allow gaps and unassigned/unrendered neighbors, not invalid global declarations', t => {
   const f = groupedVideo(t);
   f.write(f.board, f.blocks.map((b, i) => b.replace(`shot ${i + 1}`, `shot ${[3, 15, 20][i]}`)).join('\n\n'));
@@ -202,6 +188,12 @@ test('scoped snippets allow gaps and unassigned/unrendered neighbors, not invali
   assert.equal(check('14').status, 1);
   f.write(other, JSON.stringify({ shots: [3], references: [{ kind: 'local', path: 'references/missing.mp4' }] }));
   assert.equal(check('15', '20').status, 0);
+  assert.equal(JSON.parse(f.convert().stdout).prompt, f.manifest.prompt);
+  for (const prompt of ['', null, 123]) {
+    f.write(other, JSON.stringify({ shots: [3], references: [], prompt }));
+    assert.equal(check('15', '20').status, 0);
+    assert.equal(JSON.parse(f.convert().stdout).prompt, f.manifest.prompt);
+  }
   for (const shots of [[3, 20], [9], [20, 15]]) {
     f.write(other, JSON.stringify({ shots, references: [] }));
     assert.equal(check('15', '20').status, 1);

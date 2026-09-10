@@ -29,11 +29,11 @@ model: opus
 
 ## 恢复判断
 
-按 [shot-inputs](../_meta/rules/shot-inputs.md) 恢复 `task-inputs/taskNN.json` 的 `{shots,references}`，每生成任务至少一个全组 MP4，可辅 PNG。Creator 装组保留当前 canonical 时长/对白/切点；需调整时由 Director 协调 owner 使用原始集目标已确认创作预算、同步源及受影响下游，范围内不逐次求许可，精确要求优先，基准不滚动。部分选组报告 task_id、完整成员和额外镜头，不扩授权。独立 shot-input target 为 task manifest，审核实际可见性/注意/时序变化、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变且媒体未变可 scoped 兼容性评估，不盲刷哈希或自动全量重审；看图仍新任务/缩略图。sources 入指纹不上传，必要运动不可查 unknown。asset-prompt 仅覆盖授权新增/重生图；submitted 按 recorded ID/provider 取回，保留 pending/receipt/grants/inflight。
+按 [shot-inputs](../_meta/rules/shot-inputs.md) 恢复 `task-inputs/taskNN.json`：草稿 `{shots,references}` 仅供 materials，最终须 `{shots,references,prompt}`，Creator 据当前材料写非空白语义 prompt 并自查最终 `--json`。每任务至少一个全组 MP4，可辅 PNG。装组保留 canonical 时长/对白/切点；重设计交 Director/owner 在原始确认预算内同步源/下游，范围内不逐次求许可，精确要求优先，基准不滚动。部分选组报告 task_id、完整成员/额外镜头，不扩授权。fresh shot-input Reviewer 的最终 manifest target 指纹绑定 prompt，核对源忠实度、完整性、可见性/注意/时序、内部切点/声音桥及边界，无冲突复用 storyboard 判断；草稿不通过最终审核/就绪。源码/记账变且媒体未变可 scoped 兼容性评估，不盲刷哈希或自动全量重审；看图仍新任务/缩略图。sources 入指纹不上传，必要运动不可查 unknown。asset-prompt 仅覆盖授权新增/重生图；submitted 按 recorded ID/provider 取回，保留 pending/receipt/grants/inflight。
 
 provider/参数问题由真实 Creator Task 解释当前能力与接入限制，主 AI 询问所需决定。固定 images/video 配置继续约束；空值不授权选择，任务选择不改默认。已有 pending/receipt 按记录取回，不按新 config 重选；视频缺失/未知 provider 保留记录并报 human_needed，不猜路由。图像恢复按其 provider 指引执行。路径不等于 force 授权。
 
-缺 outline/novel/arc 不阻止恢复已有剧本、分镜或资产；仅在有用或用户要求时规划。资产清单以 script 为准，可用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all` 核对新旧资产。缺清单委托 Scriptwriter 采用现有剧本并补齐，不重生故事、不回退 outline。
+缺 outline/arc 不阻止恢复已有剧本、分镜或资产；仅在有用或用户要求时规划。用户小说、章节和节选按实际路径与采用范围作为 Scriptwriter 改编输入，源文保持原样。资产清单以 script 为准，可用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/episode-assets.mjs" "story/episodes/{ep}/script.md" all` 核对新旧资产。缺清单委托 Scriptwriter 采用现有剧本并补齐，不重生故事、不回退 outline。
 
 依据受影响材料和证据选工作；哈希变化先评估兼容性，不全部重生。仅缺 review 时审核现有媒体，不只看本次成功项。按实际成功集合、必要依赖和未决范围协调重审，保留编号与引用一致性，不自动清理归档或把已删除卡当作生成目标。
 
@@ -41,7 +41,7 @@ provider/参数问题由真实 Creator Task 解释当前能力与接入限制，
 
 ## 制作前批准
 
-保留 config_path 的 `## 制作前确认 epNN`。用户要求先看 outline/novel/arc 时，由主 AI 仅在该文件写本集记录，例如 `{"episode":"ep01","required":["outline"],"approval":null}`，段内只放一个 fenced JSON（语言标记 json，ep 换为目标集）。对应本集 outline.md、novel.md 和 story/arc.md。无请求不新建；已有要求不因恢复删除。指定材料缺失、空白、未批准或已变化时，只恢复准备材料，不推进正式制作；不阻断已提交任务取回。
+保留 config_path 的 `## 制作前确认 epNN`。用户要求先看 outline/arc 时，由主 AI 仅在该文件写本集记录，例如 `{"episode":"ep01","required":["outline"],"approval":null}`，段内只放一个 fenced JSON（语言标记 json，ep 换为目标集）。对应本集 outline.md 和 story/arc.md。无请求不新建；已有要求不因恢复删除。未知类型按 [制作前确认](../director-orchestrate/SKILL.md#来源与制作前确认) 报告并阻塞，不过滤或自动批准。指定材料缺失、空白、未批准或已变化时，不推进正式制作；不阻断已提交任务取回。
 
 主 AI 用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" fingerprint PATH...` 记录材料身份，展示后明确询问用户批准；答复后复核身份未变，写 approval=`{"decision":"用户实际确认内容","inputs":[实际 path/sha256 对]}`。变动需重新确认，恢复范围确认和独立质量通过都不能替代此批准。
 

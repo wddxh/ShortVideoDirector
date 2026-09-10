@@ -22,6 +22,42 @@ test('scoped checker resolves selected manifests and rejects invalid selections'
   }
 });
 
+test('prompt-only edits block readiness until shot-input evidence is renewed', t => {
+  const f = videoProject(t);
+  assert.equal(run(f).status, 0);
+  const manifest = JSON.parse(read(f, input));
+  f.write(input, JSON.stringify({ ...manifest, prompt: 'Revised final prompt; bridge sound across the cut.\n' }));
+  const structural = f.cli('check-shot-inputs.mjs', ['ep01', '1']);
+  assert.equal(structural.status, 0, structural.stderr + structural.stdout);
+  const result = run(f);
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^shot-input-review:unknown$/m);
+  for (const kind of ['script', 'storyboard', 'asset-visual']) {
+    assert.match(result.stdout, new RegExp(`^${kind}-review:ok$`, 'm'));
+  }
+  f.evidence();
+  assert.equal(run(f).status, 0);
+});
+
+test('selected draft and blank prompt fail readiness even with matching manifest evidence', t => {
+  const f = videoProject(t);
+  const manifest = JSON.parse(read(f, input));
+  for (const prompt of [undefined, '', ' \n\t ']) {
+    f.write(input, JSON.stringify({ ...manifest, prompt }));
+    const fingerprint = f.cli('review-evidence.mjs', ['fingerprint', input]);
+    assert.equal(fingerprint.status, 0, fingerprint.stderr);
+    const hash = JSON.parse(fingerprint.stdout)[0];
+    edit(f, f.reviews['shot-input'][0], r => {
+      r.results[0].inputs = r.results[0].inputs.map(i => i.path === input ? hash : i);
+    });
+    for (const result of [f.cli('check-shot-inputs.mjs', ['ep01', '1']),
+      f.cli('review-evidence.mjs', ['check', 'ep01', '1']), run(f)]) {
+      assert.equal(result.status, 1, result.stdout + result.stderr);
+      assert.match(result.stdout + result.stderr, /prompt/i);
+    }
+  }
+});
+
 test('scoped shot 15 accepts gaps but rejects duplicate or decreasing provided headings', t => {
   const f = videoProject(t);
   const board = `${ep}/storyboard.md`, target = input.replace('task01', 'task15');
@@ -112,17 +148,28 @@ test('neighbor review extra input hashes stale only the dependent shot', t => {
   assert.equal(check(3).status, 0);
 });
 
-test('unrelated task manifests and media do not become whole-plan review dependencies', t => {
+test('unselected drafts and missing media stay scoped but global membership remains mandatory', t => {
   const f = videoProject(t, 1, 2);
   const other = input.replace('task01', 'task02');
   const required = JSON.parse(f.cli('review-evidence.mjs', ['required', 'shot-input', input]).stdout);
   assert.ok(!required.includes(other));
   const manifest = JSON.parse(read(f, other));
+  delete manifest.prompt;
   manifest.references[0].path = 'references/neighbor.mp4';
   f.write(other, JSON.stringify(manifest));
   const result = f.cli('review-evidence.mjs', ['check', 'ep01', '1']);
   assert.equal(result.status, 0, result.stderr + result.stdout);
+  assert.equal(f.cli('check-shot-inputs.mjs', ['ep01', '1']).status, 0);
   assert.equal(f.cli('review-evidence.mjs', ['check', 'ep01', '2']).status, 1);
+  assert.equal(run(f).status, 1);
+  for (const shots of [[1], [3]]) {
+    f.write(other, JSON.stringify({ ...manifest, shots }));
+    for (const name of ['check-shot-inputs.mjs', 'review-evidence.mjs']) {
+      const args = name === 'review-evidence.mjs' ? ['check', 'ep01', '1'] : ['ep01', '1'];
+      const invalid = f.cli(name, args);
+      assert.equal(invalid.status, 1, invalid.stdout + invalid.stderr);
+    }
+  }
 });
 
 test('base inventory completeness and provider-independent image checks stay scoped', t => {
@@ -178,14 +225,33 @@ test('preparatory approval binds episode and current nonempty planning inputs', 
   f.evidence(); assert.equal(run(f).status, 0);
 });
 
+test('unknown preparatory kinds block even alongside an approved supported plan', t => {
+  const f = videoProject(t), outline = `${ep}/outline.md`;
+  f.write(outline, 'Plan');
+  const fingerprint = f.cli('review-evidence.mjs', ['fingerprint', outline]);
+  assert.equal(fingerprint.status, 0, fingerprint.stderr);
+  const approval = { decision: 'Approved', inputs: JSON.parse(fingerprint.stdout) };
+  for (const required of [['unsupported'], ['outline', 'unsupported']]) {
+    const record = { episode: 'ep01', required, approval };
+    f.write('config.md', '- mode: short\n## 制作前确认 ep01\n```json\n' +
+      JSON.stringify(record) + '\n```\n');
+    f.evidence();
+    const result = run(f);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stdout, /^preparatory-review:unknown$/m);
+    for (const kind of ['script', 'storyboard', 'asset-visual', 'shot-input']) {
+      assert.ok(result.stdout.includes(`${kind}-review:ok`), kind);
+    }
+  }
+});
+
 test('inline mode comments and unrequested optional plans are accepted', t => {
   const f = videoProject(t);
   f.write('config.md', '- mode: series # series project\n');
-  f.write(`${ep}/outline.md`, 'unfinished'); f.write(`${ep}/novel.md`, 'short'); f.evidence();
+  f.write(`${ep}/outline.md`, 'unfinished'); f.evidence();
   const result = run(f);
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /^mode:series$/m);
-  assert.doesNotMatch(result.stdout, /^novel:/m);
 });
 
 test('numbering and exactly one positive duration remain mandatory', t => {

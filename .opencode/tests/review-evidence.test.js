@@ -37,6 +37,41 @@ const evidence = (api, target, records, kind = 'asset-prompt', episode = 'ep01')
 const check = (api, targets = [a], kind = 'asset-prompt', config = 'config.md') =>
   api.checkCoverage(kind, targets, 'ep01', config);
 
+function shotInputFixture() {
+  const ep = 'story/episodes/ep01', target = `${ep}/task-inputs/task01.json`;
+  write(`${ep}/script.md`, '## 场景 1\nAction\n');
+  write(`${ep}/storyboard.md`, `### shot 1\n- 视频风格：写实\n- 时长：5s\n- 引用资产：[a](${a})\n**画面与声音描述：**\nAction\n`);
+  write('references/motion.mp4', 'MP4');
+  write('references/scene.blend', 'scene');
+  const manifest = { shots: [1], references: [{ kind: 'local', media: 'video',
+    path: 'references/motion.mp4', use: 'Camera', sources: ['references/scene.blend'] }],
+  prompt: '  Final prompt: hold the camera.\nKeep the pause.  \n' };
+  write(target, JSON.stringify(manifest));
+  return { ep, target, manifest };
+}
+
+test('prompt-only edits invalidate shot-input pass through the existing manifest fingerprint', async () => fixture(api => {
+  const { target, manifest } = shotInputFixture();
+  const paths = api.requiredInputs('shot-input', target, 'config.md');
+  assert.ok(paths.includes(target));
+  evidence(api, target, [{ kind: 'shot-input', scope: [target], results: [pass(api, target, paths)] }], 'shot-input');
+  assert.equal(check(api, [target], 'shot-input').status, 'pass');
+  write(target, JSON.stringify({ ...manifest, prompt: manifest.prompt + 'New sound bridge.\n' }));
+  assert.equal(check(api, [target], 'shot-input').status, 'unknown');
+}));
+
+test('current fingerprints cannot establish final evidence for a draft or blank prompt', async () => fixture(api => {
+  const { target, manifest } = shotInputFixture();
+  const paths = api.requiredInputs('shot-input', target, 'config.md');
+  for (const prompt of [undefined, '', ' \n\t ']) {
+    write(target, JSON.stringify({ ...manifest, prompt }));
+    evidence(api, target, [{ kind: 'shot-input', scope: [target],
+      results: [pass(api, target, paths)] }], 'shot-input');
+    assert.throws(() => api.requiredInputs('shot-input', target, 'config.md'), /prompt/i);
+    assert.equal(check(api, [target], 'shot-input').status, 'unknown');
+  }
+}));
+
 test('local PNG and source evidence is mandatory and stales only dependent asset scopes', async () => fixture(api => {
   const local = { images: ['references/shot/layout.png'], sources: ['references/shot/scene.py'] };
   const section = '\n## 本地制作参考\n```json\n' + JSON.stringify(local) + '\n```\n';
@@ -195,7 +230,7 @@ test('canonical review paths preserve episode, category and full Unicode hierarc
 
 test('path rejects aliases, wrong episodes, kinds and noncanonical targets', async () => fixture(api => {
   for (const [kind, target, episode] of [
-    ['asset-prompt', a, undefined], ['asset-prompt', a, 'ep1'], ['novel', a, 'ep01'],
+    ['asset-prompt', a, undefined], ['asset-prompt', a, 'ep1'], ['unsupported', a, 'ep01'],
     ['script', 'story/episodes/ep02/script.md', 'ep01'], ['storyboard', a, 'ep01'],
     ['shot-input', 'story/episodes/ep02/task-inputs/task01.json', 'ep01'],
     ['shot-input', 'story/episodes/ep01/task-inputs/task1.json', 'ep01'],

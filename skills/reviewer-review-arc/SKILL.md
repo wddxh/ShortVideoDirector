@@ -34,7 +34,7 @@ model: opus
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-event-sum.sh story/arc.md
 ```
 
-此脚本校验事件格式与节点预算，FAIL 引用实际输出；执行/读取失败为 unknown。WARN（可选事件占比 >40%）只是取舍提示，不自动产生修改要求。另核对节点预算 = 节点集数 × 用户确认单集上限，系列沿用初始共同目标，不以前集实际时长重设；不放宽严格边界。配置缺失/冲突待澄清，不编造预算。
+此脚本校验事件格式与 header 节点预算，FAIL 引用实际输出；执行/读取失败为 unknown。WARN（可选事件占比 >40%）只是取舍提示，不自动产生修改要求。另按 director-arc/rules.md 核对节点预算 = 节点集数 × 用户原始确认的实际单集上限（含已确认容差，精确目标/严格限制优先，显式范围不扩大）。arc-budget.sh 不给单值加容差，仅配置绑定正确且结果等于上述预算时采用；header 偏低先指出预算计算问题，不据此要求删事件。系列基准不随本轮或前集实际时长重设；配置缺失/冲突待澄清，不编造预算。
 
 ### 工作思路（按 rules.md §5 6 类失败模式 + schema 校验逐项过）
 
@@ -74,7 +74,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/arc-event-sum.sh story/arc.md
 
 ### 常见误区
 
-- **与 narrative review 混淆** — 跑去评价"剧情精彩不精彩 / 角色台词好不好"。arc review 只看**框架**，剧情质量是 outline / novel review 的职责
+- **与 narrative review 混淆** — 跑去评价"剧情精彩不精彩 / 角色台词好不好"。arc review 只看**框架**，场景与对白的具体实现由 outline / script review 评估
 - **漏检 schema 标注** — 只看叙事不查 `(epXX-YY)` 合规与集数总和，导致后续 director-outline 定位 epXX 节点失败
 - **挑刺到不可能通过** — 每个节点都能想出"更精彩的转折"，反复挑剔 → arc fix 被打补丁直到崩塌；只列愿意为之耗一轮 fix 的框架级问题
 - **逐句改写式意见** — 写"这句话可以改成..."；意见说清问题方向（"节点 2 集数过长导致高潮被压缩"），不替 director 写最终文字

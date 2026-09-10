@@ -53,15 +53,15 @@ short 准备写入前核对整集；历史缺少 ratio/resolution 时阻止新�
 
 单次请求上下文仅为最终 prompt 与实际 typed references，遵循共享 visual-prompt-craft-common/video 和必读 [shot-inputs](../_meta/rules/shot-inputs.md)。准备时核对转换结果，不以读过剧本补齐模型缺口；创作缺口交 Director/Storyboarder，入口忠实保存。
 
-Creator 在摄影设计后将连续 shots 装组，保留时长、对白及切点。核实模型最大时长 M，以 `ceil(0.7*M)..M` 为语义装组目标而非机械下限；实际 provider 时长边界用于任务。无法合理装组交负责人，不延长 shot、场景或整集，不由入口改写。
+Creator 在摄影设计后将连续 shots 装组，保留时长、对白及切点。核实模型最大时长 M，以 `ceil(0.7*M)..M` 为语义装组目标而非机械下限；实际 provider 时长边界（含硬上限）用于任务。装组/提交操作中不延长 shot、场景或整集；无法合理装组交 Director 协调 owner，按原始确认集预算修订 canonical script/storyboard、同步受影响下游并取得当前相关审核后返回准备。该修订可在原始边界内净增，不扩大边界或绕过真实 grants、输入一致性及受保护记录。
 
-转换器将各成员完全相同的单行 `视频风格` 原字段在任务级输出一次，仅从成员移除该字段；不一致交 owner。其余字段、对白、空格、续行及 prose 保留并绑定声明引用。只将行首结构方括号 cue 按派生 offset 重基；校验镜内范围，允许合理重叠。prompt 明示方括号为任务时间、内联经过时间为具名 shot 本地时间。Creator 统一媒体参考时钟、内部切点和声音衔接。
+Materials 将各成员完全相同的单行 `视频风格` 提取一次，仅从成员移除该字段；不一致交 owner。内部源标题、其余字段、对白、空格、续行及 prose 保留并绑定声明引用；仅行首结构 cue 按派生 offset 重基，校验镜内范围且允许合理重叠。Creator 据材料写最终任务时间 prose、统一媒体参考时钟/内部切点/声音衔接；不把内部源标题、shot/task IDs、路径或审核元数据带给模型，保留叙事/动作与对白原词。
 
-准备使用 `task-inputs/taskNN.json` 的 `{shots,references}`，task_id 来自文件名且独立于首镜；converter 返回 `{task_id,shots,timeline:[{shot,start,end}],prompt,duration,references,assetCards,sources,inputPath}`。不维护第二份装组索引或可编辑 offset/duration。Header 身份图按首次使用求并集后接本地 PNG/MP4，每任务至少一个全组时间线 MP4；静态段可用静态 clip。每镜显式链接须在自身 header 声明，不能借其他成员合法化；sources 不上传。
+准备使用已审最终 `task-inputs/taskNN.json` 的 `{shots,references,prompt}`，prompt 为 Creator 在审核前据源、所选 provider 的材料工具及实际 refs 编写的非空白语义字符串；`{shots,references}` 草稿仅供该 provider 材料准备，不通过最终审核/就绪。工具/pack/引用语法见所选 provider 文档，Dreamina 见 [video.md](../creator-provider-dreamina/video.md#dreamina-authoring-materials)。task_id 来自文件名且独立于首镜；通用 converter 两入口使用 `--json STORYBOARD TASK_ID EP`，返回 `{task_id,shots,timeline:[{shot,start,end}],prompt,duration,references,assetCards,sources,inputPath}`，prompt 原样来自 manifest，不生成或重写。不维护第二份装组索引或可编辑 offset/duration。Header 身份图按首次使用求并集后接本地 PNG/MP4，每任务至少一个全组时间线 MP4；静态段可用静态 clip。每镜链接须自身 header 声明，sources 不上传。
 
-结构边界仍为 shot heading 后的下一个 ATX heading、独立 `---`、行首 HTML comment 或 EOF。作者将下一场景/预算及尾部制作说明放在边界外；除共同风格提取、引用绑定和结构 cue 重基外，转换器保留内部文字，不作语义过滤，隐含依赖与混入备注由作者/reviewer 判断。
+源结构边界仍为 shot heading 后的下一个 ATX heading、独立 `---`、行首 HTML comment 或 EOF。作者将下一场景/预算及制作说明放在边界外；所选 provider 材料工具负责自身引用绑定和时间表达，供 Creator/Reviewer 对照源核对。缺源事实交 owner，不编造 use；最终 `--json` 仅原样返回 manifest.prompt，不拼接源文字。
 
-付费 gate 比较 converter 的 prompt/references/duration，要求 typed references 与本地 MP4。输入差异阻止提交，恢复/重试不静默刷新；submitted 按已登记 ID/provider 取回，submitted/done/inflight 保护不变。
+Creator 在参考视频/装组映射完成后写最终 prompt，自查实际 `--json` 后由 fresh shot-input Reviewer 验收源忠实度、完整性和集成；manifest target 指纹绑定 prompt。准备把原文存入 tasks.json，保留 submission 快照。付费 gate/reserve 比较最终 manifest 的 prompt/references/duration，不比较源拼接文字或在提交时追加/重写。要求 typed references 与本地 MP4；漂移阻止提交，恢复/重试不静默刷新。submitted 按已登记 ID/provider 取回，submitted/done/inflight 保护不变。
 
 以下准备依赖只适用于获准的新/重新准备任务。任何 tasks 写入前完成目标与授权核对、只读 profile 预检，并把结果与实际 config 路径委托 Creator；source=tasks 时只验证继承设置的能力，不重新选择。能力诊断先于 capture 和付费，不是写完任务后再选。已有 prepared/pending 续交或 failed 原输入重试只验证持久设置，不重新 resolve/capture。实际配置用 SVD_CONFIG 或 config.md；提供方 none 阻止新提交，不阻止查询。
 

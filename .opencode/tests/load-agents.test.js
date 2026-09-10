@@ -1,6 +1,6 @@
 // Some assertions in this file are coupled to the source `agents/` directory
-// (5 agents hardcoded: creator/reviewer/scriptwriter/storyboarder/writer) and
-// to `AGENT_BASH_CONFIG` in `.opencode/lib/load-agents.js` (5-agent permission
+// (4 agents hardcoded: creator/reviewer/scriptwriter/storyboarder) and
+// to `AGENT_BASH_CONFIG` in `.opencode/lib/load-agents.js` (4-agent permission
 // matrix). If you add/remove/rename agents, expect failures — see
 // `.opencode/README.md` § 维护契约 for the sync checklist.
 import { describe, test } from 'node:test';
@@ -79,9 +79,9 @@ describe('convertAgentFrontmatter', () => {
     assert.equal(out.tools.bash, true);
   });
 
-  test('all 5 agents end up with tools.bash = true', async () => {
+  test('all 4 agents end up with tools.bash = true', async () => {
     const agents = await loadAllAgents(path.resolve(__dirname, '../..'));
-    for (const a of ['reviewer', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+    for (const a of ['reviewer', 'scriptwriter', 'storyboarder', 'creator']) {
       assert.equal(agents[a].tools?.bash, true, `${a} should have tools.bash = true`);
     }
   });
@@ -113,13 +113,13 @@ describe('buildPermissionForAgent', () => {
                    'latest-episode.sh', 'check-episode.sh', 'storyboard-to-prompt.sh',
                    'video-check-dreamina.sh'];
 
-  test('all 5 agents have bash: allow (blanket)', () => {
+  test('all 4 agents have bash: allow (blanket)', () => {
     // Regression: previously non-creator agents had bash: {'*': 'deny'} which
     // caused OC to derive tools.bash = false, blocking creator from running
     // dreamina CLI even with explicit allow rules in the object.
     // Fix: blanket 'allow' string for all agents. Security boundary lives in
     // SKILL.md prompts (LLM-side restriction), not OC permission.
-    for (const a of ['reviewer', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+    for (const a of ['reviewer', 'scriptwriter', 'storyboarder', 'creator']) {
       const p = buildPermissionForAgent(a, SCRIPTS);
       assert.equal(p.bash, 'allow', `${a}.bash`);
       assert.equal(p.task, ['reviewer', 'creator'].includes(a) ? 'allow' : 'deny', `${a}.task`);
@@ -127,12 +127,12 @@ describe('buildPermissionForAgent', () => {
     }
   });
 
-  test('all 5 agents have external_directory: allow (zero-popup UX)', () => {
+  test('all 4 agents have external_directory: allow (zero-popup UX)', () => {
     // Rationale: OC's permission evaluator uses findLast (last-match-wins).
     // Any object-based external_directory rule with even a single deny would
     // either block legitimate cache reads or trigger ask dialogs on other
     // external paths. Blanket allow is the only way to keep zero popups.
-    for (const a of ['reviewer', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+    for (const a of ['reviewer', 'scriptwriter', 'storyboarder', 'creator']) {
       const p = buildPermissionForAgent(a, SCRIPTS);
       assert.equal(p.external_directory, 'allow', `${a} should be 'allow'`);
     }
@@ -146,7 +146,7 @@ describe('buildPermissionForAgent', () => {
   });
 
   test('all agents inherit BASE_PERMISSION defaults', () => {
-    for (const agent of ['reviewer', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+    for (const agent of ['reviewer', 'scriptwriter', 'storyboarder', 'creator']) {
       const p = buildPermissionForAgent(agent, SCRIPTS);
       assert.equal(p.read, 'allow', `${agent}.read`);
       assert.equal(p.edit, 'allow', `${agent}.edit`);
@@ -199,10 +199,10 @@ describe('loadAllAgents (integration)', () => {
       assert.equal(def.tools.task, tools.includes('Task'));
     }
   });
-  test('loads all 5 agents from real project', async () => {
+  test('loads all 4 agents from real project', async () => {
     const agents = await loadAllAgents(PROJECT_ROOT);
     assert.deepStrictEqual(Object.keys(agents).sort(), [
-      'creator', 'reviewer', 'scriptwriter', 'storyboarder', 'writer',
+      'creator', 'reviewer', 'scriptwriter', 'storyboarder',
     ]);
   });
 
@@ -237,7 +237,7 @@ describe('loadAllAgents (integration)', () => {
 
   test('agent prompt includes 写入纪律 section', async () => {
     const agents = await loadAllAgents(PROJECT_ROOT);
-    for (const a of ['reviewer', 'writer', 'scriptwriter', 'storyboarder', 'creator']) {
+    for (const a of ['reviewer', 'scriptwriter', 'storyboarder', 'creator']) {
       assert.ok(agents[a].prompt.includes('写入纪律'), `${a} missing 写入纪律`);
       assert.ok(agents[a].prompt.includes('JSON 增量模式'), `${a} missing JSON 增量模式`);
       assert.ok(agents[a].prompt.includes('oldString'), `${a} missing oldString reference`);

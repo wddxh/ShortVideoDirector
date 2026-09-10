@@ -9,7 +9,7 @@ model: opus
 
 ## 范围与许可
 
-付费续交/重试使用 typed references，每任务至少一个全组本地 MP4，`task-inputs/taskNN.json` 为 `{shots,references}`，条目仅 local PNG/MP4。记录/授权以 task_id 和完整 shots 绑定，输出 `videos/taskNN.mp4`。成员必须匹配当前 manifest/record/grant，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 则 human_needed，保留状态。首次与周期 checker 均携带该契约、真实 grants 和 inflight 边界。
+付费续交/重试使用 typed references，每任务至少一个全组本地 MP4，最终 `task-inputs/taskNN.json` 为 `{shots,references,prompt}`，条目仅 local PNG/MP4。Creator 的非空白 prompt 已经独立 shot-input 审核且 target 指纹绑定；草稿仅供 materials、不就绪。tasks.json 原样存 prompt，gate/reserve 比较最终 manifest 的 prompt/duration/references，提交不重写。记录/授权以 task_id 和完整 shots 绑定，输出 `videos/taskNN.mp4`。成员匹配 manifest/record/grant，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 则 human_needed，保留状态。首次与周期 checker 均携带该契约、真实 grants 和 inflight 边界。
 
 本入口调用表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。缺首次 grant 的新生成交用户后续手动 generate-video；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
 
@@ -37,7 +37,7 @@ model: opus
 
 > 检查已解析目标 {目标} 的登记视频任务，取回输出并报告进度、阻塞和是否仍需监控；无人值守，按持久 grant 处理，保留原输入和 intent。按 descriptions 选择知识。末行 JSON 为 target、pending、done、submitted、failed、all_complete、human_needed；按生成任务计数，不明用 unknown，human_needed 每 ep/task_id 一条 `{ep,task_id,shots,reason}`，保留完整成员；异常附 error/recoverable。纯取回由 checker 执行；新提交/重试委托真实 Creator。嵌套不可用返回 role/outcome/references/scope/constraints 给主 AI 转交。
 >
-> 配置上下文：{canonical config_path 或 UNRESOLVED}。继续传给 Creator；UNRESOLVED 只取回并报 human_needed，空值是传输错误，不选默认。配置操作显式验证绑定路径，相关命令共用 SVD_CONFIG；纯取回不验证生成配置。任务保留 task_id/shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 保留四元组和有序媒体指纹，grant 为 {decision,episode,task_id,shots,constraints} 加真实可选次数。每任务须全组 MP4，manifest/record/grant 成员一致才 reserve，漂移或部分选组零调用、不改次数。遵守 inflight，submitted 缺 ID 人工核实。
+> 配置上下文：{canonical config_path 或 UNRESOLVED}。继续传给 Creator；UNRESOLVED 只取回并报 human_needed，空值是传输错误，不选默认。配置操作显式验证绑定路径，相关命令共用 SVD_CONFIG；纯取回不验证生成配置。任务保留 task_id/shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 保留四元组和有序媒体指纹，grant 为 {decision,episode,task_id,shots,constraints} 加真实可选次数。最终 manifest 恰为 {shots,references,prompt}，Creator 的非空白 prompt 经独立 shot-input 审核并由 target 指纹绑定；草稿仅供 materials、不就绪。tasks.json 原样保存 prompt，gate/reserve 比较最终 manifest 的 prompt/duration/references，提交不重写。每任务须全组 MP4，manifest/record/grant 成员一致才 reserve，漂移或部分选组零调用、不改次数。遵守 inflight，submitted 缺 ID 人工核实。
 
 收到 relay 时，主 AI 派发 sibling Creator，传原请求与实际 grants，等待后恢复同一 checker task_id 并传回结果。不能用新 checker 替代；无角色上下文则让 checker 报 human_needed。普通任务失败不等于深度拒绝；记住确认过的能力，不自动调高深度。
 

@@ -9,7 +9,7 @@ model: opus
 
 ## 范围与职责
 
-付费续交/重试使用 typed references，每生成任务至少一个全组本地 MP4，`task-inputs/taskNN.json` 为 `{shots,references}`，条目仅 local PNG/MP4。任务和 grant 绑定 task_id/完整 shots，输出 videos/taskNN.mp4；manifest/record/grant 成员一致才 reserve，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 则 human_needed，保留状态。首次与周期 checker 均携带该契约、真实 grants 和 inflight 边界。
+付费续交/重试使用 typed references，每任务至少一个全组本地 MP4，最终 `task-inputs/taskNN.json` 为 `{shots,references,prompt}`，条目仅 local PNG/MP4。Creator 的非空白 prompt 已经 fresh shot-input 审核，target 指纹绑定其全文；草稿 `{shots,references}` 仅供 materials，不就绪。tasks.json 原样存 prompt，gate/reserve 比较最终 manifest 的 prompt/duration/references，提交不重写。任务和 grant 绑定 task_id/完整 shots，输出 videos/taskNN.mp4；manifest/record/grant 成员一致才 reserve，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 则 human_needed，保留状态。首次与周期 checker 均携带该契约、真实 grants 和 inflight 边界。
 
 本入口调用表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。缺首次 grant 的新生成交用户后续手动 generate-video；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
 
@@ -150,7 +150,7 @@ opencode --port 4096 -s YOUR_SESSION_ID
      ```
       检查已解析目标 {目标} 的登记视频任务，取回完成输出并报告进度、阻塞和是否仍需监控。无人值守，按持久 grants 处理，自行从 descriptions 选择适用知识。
        配置上下文：{canonical config_path 或 UNRESOLVED}。此显式值继续传给 Creator；UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认配置。配置操作用绑定路径显式运行 config-path 核验，相关命令共用 SVD_CONFIG；纯取回不验证生成配置。
-        任务保留 task_id/shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]。每任务输入须含全组本地 MP4；grant 为 {decision,episode,task_id,shots,constraints} 加真实可选次数，manifest/record/grant 成员一致，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 或 inflight 未决则 human_needed，保留状态。
+        任务保留 task_id/shots/prompt/duration/references，输出 videos/taskNN.mp4；submission 为 provider/model/ratio/resolution 加 references:[{media,path,sha256}]。最终 manifest 恰为 {shots,references,prompt}，Creator 非空白 prompt 经 fresh shot-input 审核、target 指纹绑定；草稿仅供 materials，不就绪。tasks.json 原样保存 prompt，gate/reserve 比较最终 manifest 的 prompt/duration/references，提交不重写。每任务输入须含全组本地 MP4；grant 为 {decision,episode,task_id,shots,constraints} 加真实可选次数，manifest/record/grant 成员一致，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 或 inflight 未决则 human_needed，保留状态。
        返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；按生成任务计数，不明用 unknown。human_needed 每 ep/task_id 一条 {ep,task_id,shots,reason}，含完整成员；部分选镜报告完整组/额外成员，不静默扩大，monitor 仍 epNN/all。异常附 error/recoverable。
        查询按 recorded provider；新提交/重试委托真实 Creator，不加载 skill 冒充角色。
        按已选模型/参数执行真实授权，不加费用/余额预检、不为省钱降级；用户实际限制仍绑定，缺创作需求仅报 human_needed，不编候选/提示，仅暂停受影响工作。

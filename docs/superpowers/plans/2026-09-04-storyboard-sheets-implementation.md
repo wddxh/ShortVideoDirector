@@ -476,7 +476,7 @@ Rewrite converter to stable protocol. Generate-video enumerates exact `### shot 
 
 Checker calls detector, then compares ordered unique shots `S`, canonical cards `M`, and PNGs `P`: enabled `S=M=P`, none `S=M`. Report missing, duplicate, out-of-order, noncanonical, metadata mismatch, and orphans. Resolve helpers via `SCRIPT_DIR`.
 
-Edit rebuilds changed/direct-reference sheets, then reviews dependents outside the dirty batch. Repair order is outline → novel/script → base card/image → storyboard/review → card/prompt review → PNG/visual review.
+Edit rebuilds changed/direct-reference sheets, then reviews dependents outside the dirty batch. Repair order is outline → script → base card/image → storyboard/review → card/prompt review → PNG/visual review.
 
 When image model is `none`, edit and repair still create/review sheet cards, treat `storyboard-sheet-images:skipped` as successful, skip sheet PNG generation, visual review, and impact review, and report each skipped stage with the configuration reason.
 

@@ -15,9 +15,11 @@ model: inherit
 
 五种 runtime 审核默认在阅读前以显式 SVD_CONFIG 执行 `review-round.mjs start KIND EP TARGET STATE [EXTRA_INPUT...]`，新参考首次读取前 `add-input STATE PATH...`。STATE 绑定配置/首次哈希；Reviewer 写 `{commentary,result:{status,blockers,...}}` payload 后 `finish STATE PAYLOAD.json`，由 helper 注入 target/inputs、复核并验证轮次，不手填哈希。每个 ep/kind/target 独占 canonical 文件；相干小批纯文本逐 target 落盘，独立就绪视觉目标默认并发全新 Reviewer，仅同一目标重审串行。
 
-用 `review-evidence.mjs path KIND EP TARGET` 解析：`reviews/{ep}/script.md`、`storyboard.md`，`reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`，`reviews/{ep}/task-inputs/taskNN.md`。资产 target 仍为卡片。可选规划只写 prose 到 `reviews/{ep}/outline.md`、`novel.md`、`reviews/story/arc.md`。Plural 协调范围、覆盖与计数，不建共享账本或必需汇总者；缺失/失败/未完成/不可解析只使所属目标 unknown，不改其他目标结论。实际依赖、缺参考、宿主资源或用户约束可支持有界分批/串行，在 handoff 简述原因。
+用 `review-evidence.mjs path KIND EP TARGET` 解析：`reviews/{ep}/script.md`、`storyboard.md`，`reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`，`reviews/{ep}/task-inputs/taskNN.md`。资产 target 仍为卡片。可选规划只写 prose 到 `reviews/{ep}/outline.md`、`reviews/story/arc.md`。Plural 协调范围、覆盖与计数，不建共享账本或必需汇总者；缺失/失败/未完成/不可解析只使所属目标 unknown，不改其他目标结论。实际依赖、缺参考、宿主资源或用户约束可支持有界分批/串行，在 handoff 简述原因。
 
 每次视觉操作必读 [视觉上下文规则](../skills/_meta/rules/visual-context.md)，另开全新任务、先 helper 缩略图、使用最小必要比较集；后续操作不恢复 image-heavy task。
+
+shot-input 验收 Creator 写入的最终 `{shots,references,prompt}` manifest，核对实际 `--json` 原样返回的 prompt 与源分镜、所选 provider 材料工具输出、实际参考媒体之间的忠实度、完整性、任务时间和集成。工具/pack/引用语法见该 provider 文档（Dreamina：[video.md](../skills/creator-provider-dreamina/video.md#dreamina-authoring-materials)），不设通用 token 编号规则。内部源标题/IDs/路径/审核元数据不进最终 prompt，正常 wide shot 等摄影词可用；检查实际引用和身体/肢体代理映射，不以关键词扫描替代语义判断。target 指纹绑定 prompt，`{shots,references}` 草稿可取 provider 材料但不能通过最终审核/就绪。缺源事实交 owner，不代写或假设提交时补齐；沿用五种 kind，不增加 gate。
 
 Task 实际支持时直接委托独立审核任务。工具不可用或明确嵌套/深度拒绝后，返回 role/outcome/references/scope/constraints 请主 AI/Director 派全新 sibling Reviewer；目标 owner 完成各自文件。局部 delegate 所需参考由 owner 在委托读取前 start/add-input 采集，delegate 返回实际观察、所读路径和限制；新参考先采集再交 fresh task 读取，不以后采快照追认，不建 import registry。复用已知深度限制，普通失败不视为深度限制，不调高宿主深度。后续视觉任务仍全新；无法提供必要角色上下文则阻塞。
 

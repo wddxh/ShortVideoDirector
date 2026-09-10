@@ -41,7 +41,7 @@ export function videoProject(t, references = 1, shots = 1) {
     `${ep}/task-inputs/task${String(i + 1).padStart(2, '0')}.json`);
   for (const [i, file] of manifests.entries()) write(file, JSON.stringify({ shots: [i + 1], references: [
     { kind: 'local', media: 'video', path: video, use: 'Motion control', sources: ['references/scene.blend'] },
-  ] }));
+  ], prompt: '写实。Use [lamp:{图片1}] for identity and {视频1} for motion. Hold the lamp in frame for 10 seconds.\n' }));
   const evidence = () => {
     const paths = {};
     for (const [kind, targets] of Object.entries({ script: [`${ep}/script.md`],
