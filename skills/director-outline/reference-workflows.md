@@ -40,7 +40,7 @@ An envelope's holding state conflicts between two shot prompts. Compare script i
 
 Stabilizing related shot changes can avoid repeated comparisons of temporary states; this is advice, not a batch gate or fixed order. Independent authorized work can proceed. The reviewer selects necessary adjacent, nonadjacent and cross-episode pairs from the story, compares prompt/MP4 and fingerprints actual dependencies. Numbering never justifies recursive re-rendering. Missing necessary inputs remain unknown; explain preservation reasons and return scope conflicts to Director.
 
-Independent Reviewers assess current materials in fresh contexts and write each target's canonical review file directly. Ready independent visual targets run in parallel; only rechecks of the same ep/kind/target serialize. Scope coordination returns actual file coverage and counts without another LLM aggregation stage. Actual-success sets describe updated outputs, not all outstanding review targets. Neither the example nor a path authorizes force, paid replacement or resubmitting protected video jobs.
+Independent Reviewers assess current materials in fresh contexts and write each target's canonical review file directly. Distinct nonconflicting ready visual targets run in parallel. Same ep/kind/target rechecks serialize for output ownership; read/write and input dependencies also require ordering. Scope coordination returns actual file coverage and counts without another LLM aggregation stage. Actual-success sets describe updated outputs, not all outstanding review targets. Neither the example nor a path authorizes force, paid replacement or resubmitting protected video jobs.
 
 ## Interrupted Production
 

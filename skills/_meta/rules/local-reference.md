@@ -35,7 +35,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/local-reference.mjs" ready "{CARD}"
 
 ## 独立审核
 
-资产卡仍是 target；两类审核分别写 `reviews/{ep}/assets/{category}/{name}.asset-prompt.md` 和 `.asset-visual.md`，由 `review-evidence.mjs path KIND EP TARGET` 解析。每文件每轮 scope=[target]、恰好一个完成 result；独立就绪目标可并行直写，仅同一 ep/kind/target 重审串行。局部查看原始 findings 回指定独立目标 owner，必要后续图片操作仍新 task；缺证据只影响所属目标。
+资产卡仍是 target；两类审核分别写 `reviews/{ep}/assets/{category}/{name}.asset-prompt.md` 和 `.asset-visual.md`，由 `review-evidence.mjs path KIND EP TARGET` 解析。每文件每轮 scope=[target]、恰好一个完成 result；无读写/输入依赖冲突的独立就绪目标可并行直写，同一 ep/kind/target 重审串行是输出所有权规则，其他读写/输入依赖仍须排序。局部查看原始 findings 回指定独立目标 owner，必要后续图片操作仍新 task；缺证据只影响所属目标。
 
 声明的本地 PNG/源码是已经制成的参考。asset-prompt 须实际看这些 PNG、读取源码并按需检查可编辑工程/输入，核对控制目标、占位边界和最终请求绑定；不要求未来生成目标 PNG 先存在。asset-visual 比较本地参考和目标图在声明职责内的实际影响，另按规则读取必要直接参考。不影响剧情、身份、实际画质或用户明确要求的细节差异应通过，不因微小拓扑/遮挡差异一概打回。基础图门禁不要求未来参考视频，也不把未看视频当作证据；最终 shot-input 核对实际输入集成。非必要细节不可见不单独记 unknown，声明文件与必要证据要求仍按下段执行。
 

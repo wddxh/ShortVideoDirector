@@ -45,7 +45,7 @@ New review records use these paths relative to the project root:
 | `reviews/epNN/outline.md` | Optional adopted outline. |
 | `reviews/story/arc.md` | Optional arc planning. |
 
-Resolve the five runtime paths with `review-evidence.mjs path KIND EP TARGET`. Fresh independent Reviewers write distinct target files in parallel; serialize only the same ep/kind/target. Each completed round has scope=[target] and one result. Batches coordinate coverage and counts without a shared ledger or mandatory aggregation task. Planning reviews remain prose only. Missing or incomplete evidence affects its owning target. Follow [review-meta-rules](review-meta-rules.md) for unchanged evidence kinds, schemas, hashes and authorization boundaries.
+Resolve the five runtime paths with `review-evidence.mjs path KIND EP TARGET`. Fresh independent Reviewers write distinct nonconflicting ready targets in parallel. Same ep/kind/target serialization protects output ownership; read/write and input dependencies also require ordering. Each completed round has scope=[target] and one result. Batches coordinate coverage and counts without a shared ledger or mandatory aggregation task. Planning reviews remain prose only. Missing or incomplete evidence affects its owning target. Follow [review-meta-rules](review-meta-rules.md) for unchanged evidence kinds, schemas, hashes and authorization boundaries.
 
 ## Navigation And Preservation
 

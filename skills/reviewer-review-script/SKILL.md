@@ -101,7 +101,7 @@ model: opus
 
 ### 审核记录
 
-start 返回 `reviews/{ep}/script.md` 与轮号。Reviewer 在指定临时 PAYLOAD.json 写 commentary 和 result，再运行 `review-round.mjs finish STATE PAYLOAD.json`；helper 复核输入、注入 target/inputs 并验证记录。仅同一 ep/kind/target 重审串行，无需二次汇总或正常完成后的全文 Read 自检。
+start 返回 `reviews/{ep}/script.md` 与轮号。Reviewer 在指定临时 PAYLOAD.json 写 commentary 和 result，再运行 `review-round.mjs finish STATE PAYLOAD.json`；helper 复核输入、注入 target/inputs 并验证记录。同一 ep/kind/target 重审串行是输出所有权规则，读写/输入依赖仍须排序，无冲突就绪目标可并行；无需二次汇总或正常完成后的全文 Read 自检。
 
 **意见格式**（写入 payload.commentary）：
 

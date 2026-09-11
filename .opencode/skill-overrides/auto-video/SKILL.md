@@ -29,7 +29,7 @@ model: opus
 
 ## 使用示例
 
-需要审核证据时用 `review-evidence.mjs path KIND EP TARGET` 解析各目标 canonical 文件，按共享 review-meta-rules 检查当前轮。Reviewer 并行直写各自文件，每轮 scope=[target]、一个完成 result，仅同一 ep/kind/target 重审串行；plural 只协调范围和计数，不要求共享账本或汇总者。缺失/未完成/不可解析只影响所属目标；纯取回不新增审核门禁，grants/inflight/真实状态保持原契约。
+需要审核证据时用 `review-evidence.mjs path KIND EP TARGET` 解析各目标 canonical 文件，按共享 review-meta-rules 检查当前轮。无读写/输入依赖冲突的就绪目标由 Reviewer 并行直写各自文件，每轮 scope=[target]、一个完成 result；同一 ep/kind/target 重审串行是输出所有权规则，其他读写/输入依赖仍须排序。plural 只协调范围和计数，不要求共享账本或汇总者。缺失/未完成/不可解析只影响所属目标；纯取回不新增审核门禁，grants/inflight/真实状态保持原契约。
 
 ```
 /auto-video ep01              # 监控 ep01，默认每 20 分钟检查

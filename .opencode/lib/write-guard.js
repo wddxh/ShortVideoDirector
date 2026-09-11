@@ -36,28 +36,22 @@ export function findLargeStrings(args, threshold = MAX_STRING_ARG_LEN) {
 }
 
 const ADVICE_WRITE = `For Write/apply_patch:
-1. First call with content ≤${MAX_STRING_ARG_LEN} chars
-2. Then Edit append for each subsequent chunk:
-   - oldString = last 30-50 chars of prior chunk (must be unique in file)
-   - newString = those chars + next chunk (≤${MAX_STRING_ARG_LEN})
+First call with content ≤${MAX_STRING_ARG_LEN} chars; keep every tool string within this limit, including patches/commands/scripts.
+Short in-place edits are fine. For JSON arrays/objects, edit complete values/entries; each operation must leave a complete valid document. Never split a long quoted value across edits in a published manifest.
+For indivisible long values, coordinate readers/writers and destination/temp paths first. Assemble off-target in bounded steps within authorized paths; the temp document must share the destination filesystem. A small local script can join temporary plaintext chunks and JSON-serialize them (do not guess escaping). Parse the complete temp document and validate its required shape before atomic replacement; on failure keep the destination intact. Build scripts in bounded steps too; no huge heredoc/script payload bypass.`;
 
-For JSON arrays:
-- Write '[\\n  <entry1>\\n]' first (single entry, small)
-- Edit oldString='\\n]' newString=',\\n  <entryN>\\n]' for each subsequent entry`;
-
-const ADVICE_EDIT = `For Edit: split into multiple Edit calls.
-Each subsequent Edit's oldString = last 30-50 chars of previous newString.
-Same JSON incremental pattern as Write applies.`;
+const ADVICE_EDIT = `For Edit: split into multiple Edit calls only at complete-value boundaries; use a unique oldString anchor.
+${ADVICE_WRITE}`;
 
 const ADVICE_TASK = `For task: don't pass large data via prompt parameter.
-1. Write the data to a file first (using incremental Write+Edit if >${MAX_STRING_ARG_LEN})
-2. Pass only the file path in task prompt
-3. Subagent reads via Read tool`;
+Pass the existing file path in task prompt for the subagent to Read. If data needs a new file, use an authorized path and bounded writes:
+${ADVICE_WRITE}`;
 
-const ADVICE_BASH = `For bash: store the command in a script file and invoke it.
-Or split into multiple shorter commands.`;
+const ADVICE_BASH = `For bash: store the command in a script file at an authorized path using bounded writes, then invoke its path. Or use shorter commands; no huge heredoc/script payload bypass.
+${ADVICE_WRITE}`;
 
-const ADVICE_GENERIC = `Split the long string into multiple smaller operations (each ≤${MAX_STRING_ARG_LEN} chars).`;
+const ADVICE_GENERIC = `Split the long string into bounded operations, or pass an existing file path when supported.
+${ADVICE_WRITE}`;
 
 function getAdvice(tool) {
   switch (tool) {

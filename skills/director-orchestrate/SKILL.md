@@ -36,9 +36,13 @@ Creator 也拥有按需本地制作参考：可编辑 2D/2.5D、Blender 场景�
 
 ## 来源与制作前确认
 
+交接时区分用户明确要求、叙事成立所必需的事实，以及 owner 自选、可替换的实现方案，并保留可追溯的原话或材料位置与理由。“可以”不升级为“必须”；自行选择不用配乐不能转述为用户禁止配乐。当前材料中的实现仍须一致消费，但其存在不等于用户锁定。争议先回查来源与实际叙事作用，再由对应 owner 在授权内重设计并同步材料；Reviewer 独立核对争议约束，不因上游转述就认定为硬要求。
+
 交接剧本时说明原始预算、保留事实/原句和可开发范围，区分事件链与观众理解链。Scriptwriter 负责必要身份、关系、处境、欲望、利害、规则及关键行动/结果/反应；原创可在范围内发展缺失支撑，采用/修复需守住既有事实，实质冲突由 Director 协调。Storyboarder 负责取景、视点、切点与阅读窗口，Creator 将必要事实、关键文字和时序保留到参考及最终 authored prompt；不让下游创作证据补洞。
 
 统看全篇时间、因果与情绪承接，必要桥接可放现有场景而非必加一场。单集支撑自身当前体验并可开放结尾；系列首集建立必要起点，续集依实际连续/单元/选集形式保留已知信息与行动后果，不普遍强制集尾悬念。这些是已有材料的创作交接与判断，不新增规划文件或验收阶段。
+
+下游制作前协调 owner 核对相关人物/道具状态链：折叠或展开、归属与持有、位置、可用状态，以及行动带来的后果，包含实际依赖的非相邻场景。已知路程、空间尺度或通行几何影响行动时，尽早核对当前时长与路线是否可信；冲突回剧本或摄影设计解决，不靠“迅速”“轻松”等形容词掩盖。保留有意义的省略与跳时，不要求逐步展示或固定动作秒数。
 
 用户提供的小说、章节或节选按实际路径作为输入，向 Scriptwriter 传采用范围和保留要求，直接改编为剧本。改编成果接受当前剧本审核，源文保持原样。
 
@@ -68,15 +72,27 @@ short/series 制作启动时，Director 尽早统一协调 Creator 一次，在�
 
 ## 独立审核与交付
 
+**就绪即派发**：明确协调 scope 与依赖后，默认立即派发全部当前已授权、范围有界、依赖就绪且彼此独立的可执行任务，不等某个困难修复、审核或整批结束才推进无关工作。Director 负责全局协调；专家在明确收到的 scope、依赖状态与 child 许可内遵循同一原则，不推定全局可见性。收到有意义的实际完成结果或 scope/依赖变化时，重新判断就绪集合并及时派发新就绪项，沿用现有任务句柄与 handoff，不轮询代理、不 sleep 等待、不重复派发。实际资源及 provider 并发限制、当前门禁、pending/失败批次停止条件、protected jobs/grants 和下述同文件/子树读写占用仍约束就绪；不以拆批或另开 runner 绕过。分批/串行依据实际限制，不设任意配额，也不无条件追求最大并行；不新增账本、调度器或许可握手。
+
+Director 每次派发前用现有任务句柄、委托上下文和实际结果核对 active tasks 的读取依赖与写入路径，包括共享 script.md、storyboard.md；在现有自然语言 handoff 中明确有界可读依赖及其 stable/待完成状态、等待对象与就绪条件、允许写入的精确路径/targets、允许的 child 委托范围和升级条件。子任务不继承 Director 全局上下文，也不假定能看到全局任务账本。专家按交接管理本地顺序，派 child 时完整转交相关精确 scope、依赖及当前状态，不携带整段生产历史。调用方不能建立这些边界时，只读定位并报告缺口，不假定全局稳定或开始依赖它的制作。
+
+同文件写入必须串行，即使修改不同章节。写入会改变 active reader 所依赖的内容/语义或使其证据失效时，等实际读取工作完成；无实际依赖冲突的读写可并行，整文件指纹证据仍要求该文件稳定。相关输入正在修改时，等 owner 实际交回稳定材料再派 Reviewer；不同审核输出不证明输入安全。未知/新增依赖、共享写入冲突、新写入路径、扩 scope 或触及升级条件，先沿原 handoff 回 Director 协调，再执行受影响工作。依赖变化由 Director 集中重排并转交新边界/状态，不自动取消已派任务；独立授权工作继续。
+
+在现有上下文中区分未派发、运行中、实际完成、错误与就绪：拟定委托不等于已派发，工具返回 running/后台通知不等于任务实际完成，实际完成也不等于验收就绪。Director 持续保留整棵受托子树的读写占用，直到父任务及真实后代工作全部完成；期间不得自行写入或派发冲突 writer。父任务有限返回或错误而后代仍运行时，也不释放占用。只有真实任务已启动且仍待实际结果才报告等待，并对应实际句柄；收到结果后按 relay 恢复原请求任务，后续视觉操作仍用 fresh task。依赖阻塞时说明尚未派发及具体依赖，不虚称后台运行。不新增调度账本、schema、调度器、锁或状态轮询；排队、恢复和范围内修订不变成重复许可。
+
 输入包遵循 [shot-inputs](../_meta/rules/shot-inputs.md)：`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`。Creator 在视频参考/装组映射确定后据 materials 写完整语义 prompt，自查实际最终 `--json` 后交 fresh Reviewer。task_id 独立于首镜，每任务至少一个全组 MP4，可辅 PNG；资产图供身份，BOX 控制相机/布局/整体轨迹，静态段可用 clip，sources 不上传。独立 shot-input 以最终 manifest 为 target，指纹绑定 prompt，审核源忠实度、完整性、集成/delta、任务时钟、内部切点/声音桥及必要相邻/非相邻/跨集边界；无冲突复用 storyboard 判断。草稿不通过最终审核/就绪。实际依赖入 inputs，不附全计划哈希，缺证据 unknown。源码/记账变而媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审；每次视觉操作仍新任务与 helper 缩略图。
 
 每次图片读取或操作均遵循 [图像上下文与预览规则](../_meta/rules/visual-context.md)：全新 task、最小必要图集、先缩略图，原图不直接 Read；协调上下文只接收文本/文件结果，不恢复 image-heavy task。一个全新 Creator 生成上下文可将相干、已授权、当前 prompt 门禁通过且就绪的多个 jobs 作为一次有限操作交单一 runner，默认并发 5；不逐图片调用拆任务，也不同时启动多个 runner。生成只回文本状态、IDs/路径，查看另派新任务；执行边界见 [依赖与并发](../creator-generate-images/SKILL.md#依赖与并发)。
 
 生产主 AI 与 Reviewer 使用不同上下文。通过 Task 的 reviewer 角色委托全新审核任务，提供当前材料、要求与必要参考，不继承制作对话或只传有利总结。每个视觉目标交隔离任务，跨图判断使用最小必要比较集；局部检查 findings 回指定独立目标 owner。Director 同时评估材料整体叙事、视觉和情感连贯性，但不签发独立 pass。
 
+任务视频集成的 shot-input 委托纯文本独立 owner：先 start 再读最终 prompt/timeline/manifest/必要源文本，任何看图前规划相干窗口、关键切点、接触/阅读阶段和必要外部配对。owner 不加载图片、帧、contact sheet 或图像附件；所有实际查看交 fresh Reviewer 小型 helper 缩略图集。单资产视觉叶子仍可在全新有限上下文中直接看图、写自身审核。scope 明确唯一 owner 的 canonical/STATE/payload 写入与各视觉 helper 的临时预览范围；helper 不写同目标记录、不另开轮次、不发 target pass。
+
+owner 阅读前采集 delegate 实际 inputs，新依赖先回未读路径经你协调和 owner 采集再交 fresh task。视觉 helper 只回文本事实、时间/帧、路径/指纹、预览映射和限制，区分所见与源码推断。owner 独立判断全文集成、跨窗口关系及覆盖，缺口另派有界新任务，不汇总局部通过充当整体通过；必要证据缺失 unknown、明确冲突 needs_revision，采样不证明完整运动。深度失败沿用已知限制，派 sibling 后按真实句柄恢复原纯文本 owner 传回事实，绝不恢复视觉 helper。依赖、真实后代与子树占用按上述规则保持至实际完成，有限返回不是审核或制作完成。
+
 每个 ep/kind/target 独占 canonical review 文件，由受托独立 Reviewer 直接续写。相干小批纯文本提示可由一个 Reviewer 逐 target 判断、分别写各文件；多个独立视觉目标就绪时默认并发直写各自文件。每轮 scope=[target]、恰好一个完成 result、真实 inputs 与唯一 footer。Plural skills 协调范围和计数，不另设共享账本或 LLM 汇总；缺失、失败、未完成或不可解析只影响所属目标，成功子集不能使请求全范围 pass，范围外记录保留。
 
-你只串行安排同一 ep/kind/target 重审，Reviewer 用 review-round start 分配轮号；生成和无依赖就绪目标的视觉审核均可重叠。实际依赖、缺必要参考、宿主资源或用户约束才支持有界分批/串行，在 handoff 简述原因，不设固定任务数或模型配额。生产者不签发或改写 pass。资产提示审核只覆盖授权新增/重生集合，复用库存只作必要参考。
+同一 ep/kind/target 重审串行，Reviewer 用 review-round start 分配轮号；派发同时遵守上述文件读写依赖，生成和无依赖就绪目标的视觉审核均可重叠。实际依赖、缺必要参考、宿主资源或用户约束才支持有界分批/串行，在 handoff 简述原因，不设固定任务数或模型配额。生产者不签发或改写 pass。资产提示审核只覆盖授权新增/重生集合，复用库存只作必要参考。
 
 用 `review-evidence.mjs path KIND EP TARGET` 确定委托路径：`reviews/{ep}/script.md`、`storyboard.md`，`reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`，以及 `reviews/{ep}/task-inputs/taskNN.md`。资产 target 仍是卡片，shot-input target 仍是 task manifest，runtime 保留五种 kind。可选规划只写 prose 到 `reviews/{ep}/outline.md` 或 `reviews/story/arc.md`。
 
@@ -84,7 +100,7 @@ Reviewer 只写受托 canonical review 记录及指定 `/tmp/opencode/<task>` �
 
 局部视觉 delegate 的必要参考由独立目标 owner 在委托读取前 start/add-input 采集，delegate 回实际观察、所读路径和限制；新参考先采集再交 fresh task，不以后采快照追认，不另设 import registry。finish 保留采集/发现错误、漂移记 unknown，缺显式 status 的 payload 无效。exit 0 仅表示写入；path/round/status/input_count/evidence_issues 和必要意见足以回传，正常完成不要求立即重复指纹、check-target 或全文 Read。下游门禁仍查当前证据。Director 按真实 findings 协调修复，不自签 pass；无独立上下文则阻塞。
 
-专家和审核协调者在 Task/嵌套实际支持时直接委托。工具不可用或明确深度拒绝后复用会话能力结论，不反复尝试；普通任务失败不等于嵌套不可用。收到 role/outcome/references/scope/constraints 时，主 AI 忠实派 sibling 目标角色，将实际文件路径/result 送回原请求方；局部检查 findings 回指定独立目标 owner，不由主 AI 代判。后续视觉操作仍新建任务，不恢复 image-heavy context。不自动更改宿主配置或深度；必要角色不可用则阻塞。
+专家和审核协调者在 Task/嵌套实际支持、Director 已明确允许的 child 范围内，按上述交接确认依赖稳定且本地无冲突即可直接委托，无需额外逐 child 握手、重问用户或新建 Director task。实际 child 句柄、精确读写 scope、依赖及运行/实际完成/阻塞状态沿现有 handoff 回传；后代未完成时父委托保持未完成，Director 按上述子树占用继续协调。工具不可用或明确深度拒绝后复用会话能力结论，不反复尝试；普通任务失败不等于嵌套不可用。收到 role/outcome/references/scope/constraints 时，主 AI 保留依赖状态与边界，忠实派 sibling 目标角色，将实际文件路径/result 送回原请求方；局部检查 findings 回指定独立目标 owner，不由主 AI 代判。后续视觉操作仍新建任务，不恢复 image-heavy context。不自动更改宿主配置或深度；必要角色不可用则阻塞。
 
 交付剧本、分镜、基础资产卡/图、生成 task manifest/完整 shots 与媒体，报告范围、证据及未决项。使用 check-shot-inputs.mjs 和 script/storyboard/asset-visual/shot-input evidence；asset-prompt 仅覆盖授权新增/重生集合。整集源 1..N 且每镜分配一次；局部允许源缺号、目标存在且选完整组。部分组报告完整成员/额外镜头，不静默扩授权；局部不要求未选媒体或全片计划。缺输入、权限或证据保持部分交付。submitted 按 recorded ID/provider 取回，保护状态/grants/inflight。成片质量由用户判断，不自动审片、剪辑或合成。
 

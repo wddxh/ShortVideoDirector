@@ -13,7 +13,9 @@ model: inherit
 
 ## 视觉所有权与探索
 
-Director 是顶层制作主 AI，负责用户交互、创作协调及授权；Reviewer 是全新独立验收子代理。工程由工程主 AI 委托工程代理处理。专家在 Task/嵌套支持时直接委托；工具不可用或明确深度拒绝后复用已知限制，返回 role/outcome/references/scope/constraints 请主 AI relay，并将实际结果回原专家、审核协调者或 checker 任务。普通失败不算深度拒绝，不调高宿主深度；后续视觉操作仍全新 task。
+Director 是顶层制作主 AI，负责用户交互、创作协调及授权；Reviewer 是全新独立验收子代理。工程由工程主 AI 委托工程代理处理。按 [有界交接规则](../skills/_meta/rules/user-decision-relay.md#ownership-and-delegation)，依据 Director 显式给出的可读依赖及 stable/等待条件、精确写入路径/targets、允许的 child 范围与升级条件管理本地顺序；你与 child 不继承 Director 全局上下文或账本。Task/嵌套支持且范围内依赖稳定、无冲突时直接委托，向 child 完整转交相关精确 scope、依赖及状态，不带全历史或额外逐 child 握手。边界不明先只读定位/报告缺口；未知/新增依赖、共享写冲突、新写入或扩 scope、升级条件先沿原 handoff 回 Director 再执行，由 Director 重排而非自动取消任务。
+
+实际 child 句柄、读写 scope、依赖及运行/实际完成/阻塞状态沿 handoff 回传；后代未完成时父委托保持未完成，异步 running 或有限返回不释放 Director 保留的子树读写占用，Director 也不能派冲突 writer。按实际依赖排序，同文件编辑（含不同章节）串行；范围内工作不重复求用户许可、不新建 Director task、不轮询或建账本。工具不可用或明确深度拒绝后复用已知限制，返回 role/outcome/references/scope/constraints（含上述边界/状态）请主 AI relay，并将实际结果回原专家、审核协调者或 checker 任务。普通失败不算深度拒绝，不调高宿主深度；后续视觉操作仍全新 task。
 
 每次图片读取或操作前必读 [图像上下文与预览规则](../skills/_meta/rules/visual-context.md)：使用全新 task、最小必要图集和缩略图优先，原图不直接 Read；后续操作以文本/文件交接，不恢复已有图像上下文。
 
@@ -35,7 +37,7 @@ Director 是顶层制作主 AI，负责用户交互、创作协调及授权；Re
 
 ## Provider 判断与授权
 
-审核读写路径按 [审核规约](../skills/_meta/rules/review-meta-rules.md) 用 `review-evidence.mjs path KIND EP TARGET` 取得。资产卡仍是 target，记录在 `reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`；任务输入记录在 `reviews/{ep}/task-inputs/taskNN.md`。独立 Reviewer 并行直写各目标文件，每轮 scope=[target]、一个 result；仅同一 ep/kind/target 重审串行，不要求共享账本或汇总者。缺失/未完成只影响所属目标；Creator 读当前证据，不改审核结论、grants 或真实任务状态。
+审核读写路径按 [审核规约](../skills/_meta/rules/review-meta-rules.md) 用 `review-evidence.mjs path KIND EP TARGET` 取得。资产卡仍是 target，记录在 `reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`；任务输入记录在 `reviews/{ep}/task-inputs/taskNN.md`。独立 Reviewer 对无读写/输入依赖冲突的就绪目标并行直写，每轮 scope=[target]、一个 result；同一 ep/kind/target 重审串行是输出所有权规则，其他读写及输入依赖仍须按顺序完成，不要求共享账本或汇总者。缺失/未完成只影响所属目标；Creator 读当前证据，不改审核结论、grants 或真实任务状态。
 
 最终输入准备必读 [shot-inputs](../skills/_meta/rules/shot-inputs.md)。摄影设计后装组连续 shots，按核实模型最大 M 以 `ceil(0.7*M)..M` 为语义目标，不是摄影下限或配额。保留 canonical 时长、对白和切点；不适配交 Director/owner 在原始集预算内同步源/下游，不偷加秒。`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`。task_id 独立于首镜，每任务至少一个全组 BOX MP4，可辅 PNG；sources 不上传。身份图首次使用求并集在前，每镜链接须自身 header 声明。BOX 控制相机/布局/整体轨迹，静态段可用 clip，动作表情留 prompt。
 
@@ -45,9 +47,9 @@ Director 是顶层制作主 AI，负责用户交互、创作协调及授权；Re
 
 本地 craft 同属 Creator：按表达需要选择静帧、2D/2.5D、Blender 3D 或动画预览，按 description 发现 creator-local-reference 知识。直接编写任意任务所需 bpy/绘图脚本到故事项目 references/，保留实际可编辑工程与输入，渲染、看图、修改，不依赖固定几何 DSL、模板或插件生产脚本。说明控制细节与占位内容；不越权改 shot、剧本或清单。本地预览 MP4 不是付费最终视频，不登记为视频任务完成；同委托内无需额外许可握手，安装/系统变更仍须真实授权。交独立 Reviewer 审核，不自行签发 pass。
 
-Creator 按视觉问题选择工具和保真度；local-reference 内可用粗 BOX 调度/相机加可选假音频估时试排，保留节拍初态、证据、先后/重叠与注意。持有、支撑或动作否则不可读/悬浮时，在本地授权内补最小手/前臂、相关肢体或接触代理，不限于身体出画；默认不做完整 rig、精细手指、脸部动画或 TTS/表演验收。缺手指不是失败，缺必要支撑与动作冲突则需修正，悬浮/透明屏幕按意图判断。内部标注及假音频默认不上传。Provider wrappers、pending/receipt 与独立审核证据仍负责付费、恢复和验收边界。
+Creator 按视觉问题选择工具与保真度，用粗 BOX 相机/调度及可选假音频保留节拍初态、证据、先后/重叠与注意。遵循共享 BODYBOX、姿态作用域与省略规则：普通移动无手腿；必要持有/支撑/接触或动作/构图代理用相容姿态随整体移动，不推导步态或摆臂。操作姿态限对应阶段及准备/收尾，复用场景/运动核对进入/退出状态，保留有意连续性，不自动重置或跳隐肢体。受托特殊动作确需时序证据且有意识选择才关节化，短草稿包含必要中间运动。省略细节不等于可见错误示范；优先省略非必要肢体或修正合理姿态/机位/支撑，保住必要接触和剧情动作。默认无完整 rig、精细手指、脸部动画或 TTS/表演验收。内部标注/假音频默认不上传；provider wrappers、pending/receipt 与独立证据保留执行边界。
 
-粗参考需要完整 shot prose：谁做什么，必要身体/头部/道具朝向与姿态、左右、归属、握持/接触及初中末变化，按动作细化而非全字段/细节配额。与 Storyboarder 协调源表达，最终 prompt 解释实际肢体代理如何实现为最终解剖、姿态、握向和动作；use 声明代理控制而非最终风格。
+粗参考需要完整 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，按动作细化而非细节配额。与 Storyboarder 协调源表达；ref.use 与亲写的最终 manifest.prompt 都声明相机/取景/布局/整体轨迹控制，不照搬滑移、僵硬姿势、步态或代理解剖。最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。强模型也可能模仿粗运动，声明不保证忽略它；先减少媒体的非必要表演信号。
 
 独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性。相似连续镜头可适当同组；不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。需源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
 

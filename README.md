@@ -61,14 +61,14 @@ outline/arc 按用途采用。用户要求预审时，在 canonical config 的 `
 每个生成任务有 `story/episodes/{ep}/task-inputs/taskNN.json`，文件名给稳定 task_id，独立于首成员。以下是仅供材料准备的草稿：
 
 ```json
-{"shots":[1,2],"references":[{"kind":"local","media":"video","path":"references/task01/motion.mp4","use":"Control camera, layout and whole-box trajectories on the task timeline, including the internal cut","sources":["references/task01/scene.blend"]}]}
+{"shots":[1,2],"references":[{"kind":"local","media":"video","path":"references/task01/motion.mp4","use":"Control camera, framing, layout and overall trajectories on the task timeline, including the internal cut; proxy sliding, stiff pose, gait and anatomy are placeholders, not final performance","sources":["references/task01/scene.blend"]}]}
 ```
 
 草稿顶层恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，prompt 为 Creator 写入的非空白字符串；草稿不通过最终审核/就绪。成员为按源顺序连续的正安全整数；条目仅 local PNG/MP4，每任务至少一个全组时间线 MP4，可辅以 PNG。静态段可用静态 clip。资产图提供身份，BOX 控制相机/取景/尺度/位置/整体轨迹；动作、姿态、表情与声音保留 prompt。Creator 对齐任务参考时钟、内部切点及声音桥，use 说明控制权限和占位边界。
 
-Sources 是真实可编辑工程/脚本及所需输入，只作编辑/审核，不上传；路径限定项目 references/。Creator 按需使用 Blender/2D/FFmpeg，以粗 BOX 相机/调度加可选假音频估时预演。持有、支撑或动作否则不可读/悬浮时，在本地授权内补最小手/前臂、相关肢体或接触代理，不限身体出画；默认不做完整 rig、精细手指、脸部动画或 TTS/表演验收。缺手指不是失败，缺必要支撑与动作冲突则需修正，悬浮/透明屏幕按意图判断。内部标注与假音频默认不上传，不建固定 DSL。基础/衍生卡可选本地 PNG，见 [卡片契约](skills/_meta/rules/local-reference.md) 与 [工具知识](skills/creator-local-reference/tools.md)。
+Sources 是真实可编辑工程/脚本及所需输入，只作编辑/审核，不上传；路径限定项目 references/。Creator 按需使用 Blender/2D/FFmpeg 与可选假音频预演。普通移动只用无手腿 BODYBOX；仅既定持有/支撑/接触或具体必要动作/构图证据使用最小代理，保留身体出画时防止手持物悬浮的手/前臂。普通行进中必要肢体相对身体稳定，整套平移/转向，不推导步态、腿部循环或摆臂；受托特殊动作确需时序证据且 Creator 明确选择才关节化。缺解剖不自动补动画，缺必要支撑的实际冲突仍须修正；悬浮/透明屏幕按意图判断。默认无完整 rig、精细手指、脸部动画或 TTS/表演验收。内部标注/假音频默认不上传，不建 DSL。基础/衍生卡可选 PNG，见 [卡片契约](skills/_meta/rules/local-reference.md) 与 [工具知识](skills/creator-local-reference/tools.md)。
 
-粗参考仍需详细 shot prose：谁做什么、必要身体/头部/道具朝向与姿态、左右、归属、握持/接触及初中末变化，按动作需要细化，不设全字段/细节配额。use 声明代理控制而非最终风格；最终 prompt 解释肢体代理的最终解剖、姿态、握向与动作实现。
+粗参考仍需详细 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不设细节配额。ref.use 与 Creator 最终 manifest.prompt 都说明相机/取景/布局/整体轨迹控制，不照搬代理滑移、僵硬姿势、步态或解剖；最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。强模型也可能模仿粗运动，文字不保证忽略它，应先减少媒体中的非必要表演信号。
 
 独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性；相似连续镜头适合时同组。不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
 
@@ -91,7 +91,7 @@ SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.m
 
 每次视觉操作（渲染、查看、修订、审核、采样/crop）使用全新 task、helper 缩略图和最小必要图集/配对。只 Read review-image.py 返回 preview，原媒体用于上传与指纹。必要 crop 另开任务，披露 MP4 查看方法、采样时刻与覆盖限制。原图不直接 Read；首尾静帧不证明完整轨迹。见 [visual-context](skills/_meta/rules/visual-context.md)。审核者只写受托 canonical 记录及指定临时 state/payload/预览；生产 Director 不聚合写 pass，无独立上下文则阻塞。
 
-审核集中在 `reviews/epNN/`，每个 target/kind 有独立文件。多个视觉 Reviewer 并行判断并直接写各自文件；相干纯文本批次也逐 target 分别落盘。仅同一 ep/kind/target 的写入需串行，范围协调只统计覆盖与结果，不另建合并账本或汇总任务。asset-prompt 只覆盖授权新增/重生集合；图片操作仍逐次新任务、缩略图优先。
+审核集中在 `reviews/epNN/`，每个 target/kind 有独立文件。无读写/输入依赖冲突的就绪视觉目标并行审核并直接写各自文件；相干纯文本批次也逐 target 分别落盘。同一 ep/kind/target 写入串行是输出所有权规则，其他读写/输入依赖仍须排序；范围协调只统计覆盖与结果，不另建合并账本或汇总任务。asset-prompt 只覆盖授权新增/重生集合；图片操作仍逐次新任务、缩略图优先。
 
 五种 runtime review 默认用 [review-round](skills/_meta/rules/review-meta-rules.md)。指定 `/tmp/opencode/<task>` 目录先存在，STATE 与 PAYLOAD.json 为其中不同绝对路径；在故事项目根执行：
 

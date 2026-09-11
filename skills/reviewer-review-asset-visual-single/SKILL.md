@@ -30,7 +30,7 @@ model: opus
 
 在独立新 Reviewer context 按共享规则管理阅读前证据，finish 复核全部输入。每次图片操作新 task、缩略图优先；后续查看不恢复 image-heavy task。本任务已是受托的新视觉上下文时直接执行，不再派任务证明隔离。
 
-start 返回 `reviews/{ep}/assets/{category}/{name}.asset-visual.md` 和轮号。与其他就绪独立目标默认并行，只串行同一 ep/kind/target 重审，无需汇总者。局部 delegate 的参考由 owner 在委托读取前 start/add-input 采集，返回实际观察、所读路径和限制；不以委托后的快照追认。Reviewer 在指定临时 PAYLOAD.json 撰写如下形状，运行 `review-round.mjs finish STATE PAYLOAD.json`；helper 注入 target/inputs 并验证 evidence/footer，不手填哈希。
+start 返回 `reviews/{ep}/assets/{category}/{name}.asset-visual.md` 和轮号。无读写/输入依赖冲突的独立就绪目标默认并行；同一 ep/kind/target 重审串行是输出所有权规则，其他读写/输入依赖仍须排序，无需汇总者。局部 delegate 的参考由 owner 在委托读取前 start/add-input 采集，返回实际观察、所读路径和限制；不以委托后的快照追认。Reviewer 在指定临时 PAYLOAD.json 撰写如下形状，运行 `review-round.mjs finish STATE PAYLOAD.json`；helper 注入 target/inputs 并验证 evidence/footer，不手填哈希。
 
 ```json
 {"commentary":"实际观察、影响与查看限制","result":{"status":"needs_revision","blockers":["具体偏差"],"asset_path":"assets/characters/张三.md","image_path":"assets/images/characters/张三.png","issue":"具体偏差","prompt_direction":"修复方向"}}

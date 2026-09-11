@@ -10,13 +10,19 @@
 
 独立审核与重审是内部自动质量门禁，不自动产生用户批准步骤。生产 Director 在原授权内协调修复并重新送独立审核，不能以用户同意替代 pass，也不逐轮请用户批准。新问题先依据当前配置、材料、grants 和专业判断处理；仅用户指定检查点、缺必要权限或无法内部解决的关键冲突才按 user-decision-relay 交回完整决策包，只暂停受影响工作。
 
-先确认本次是独立、新建的 Reviewer context，而非顶层生产 Director、Creator 或修复者的历史会话。支持嵌套时委托方直接创建独立 reviewer task；工具不可用或明确深度拒绝后复用已知限制，向主 AI 请求 role/outcome/references/scope/constraints relay。主 AI 创建全新 Reviewer，将实际结果送回原请求专家、审核协调者或 checker 任务，而非替换原 owner；普通失败不视为深度拒绝。后续视觉操作仍新 task，不恢复 image-heavy context。加载 skill 不产生隔离，隔离不可用返回 unknown，不自审或采信生产者的通过总结。
+先确认本次是独立、新建的 Reviewer context，而非顶层生产 Director、Creator 或修复者的历史会话。派发遵循 [有界交接与子树占用](user-decision-relay.md#ownership-and-delegation)：Director 显式给出可读依赖及 stable/等待条件、精确写入路径/targets、child 许可与升级条件；委托方只管理本地顺序，完整转交相关 scope/依赖/状态，不假定 child 继承全局上下文或账本。范围内依赖稳定、无冲突且支持嵌套时直接创建独立 reviewer task，不额外逐 child 握手。边界不明只读定位/报告；未知/新增依赖、共享写冲突、新写入或扩 scope、升级条件先回 Director 再执行。真实后代完成前父委托未完成，异步 running/有限返回不释放 Director 子树占用；依赖变化由 Director 重排，不自动取消或重问用户许可。
+
+工具不可用或明确深度拒绝后复用已知限制，向主 AI 请求 role/outcome/references/scope/constraints relay，保留上述边界/状态。主 AI 创建全新 Reviewer，将实际结果送回原请求专家、审核协调者或 checker 任务，而非替换原 owner，不新建 Director task；普通失败不视为深度拒绝。后续视觉操作仍新 task，不恢复 image-heavy context。加载 skill 不产生隔离，隔离不可用返回 unknown，不自审或采信生产者的通过总结。不新增调度账本或轮询。
 
 委托说明审核 outcome、当前材料与参考路径、scope、约束、结果形状和升级条件；不指定加载某个命名 skill 或固定方法链。Reviewer 按职责发现并选用知识，委托方提供完整相关材料而非只给有利总结。多目标范围内至少两个独立视觉目标就绪时，默认并发全新 Reviewer 任务，每项一个 target 与最小必要参考。实际依赖、缺必要参考、宿主资源或用户约束可支持有界分批/串行，在现有 handoff 简述原因；不设固定任务数或模型配额，独立性与完整覆盖不变。
 
-每个 ep/kind/target 拥有唯一 canonical review 文件，受托独立 Reviewer 通过 helper 完成轮次。小批量、语义相干的纯文本提示可由一个独立任务逐 target 判断并分别写各自文件；独立视觉目标默认并发全新 Reviewer，各写各自文件。只串行安排同一 ep/kind/target 的重审与写入，start 计算最大轮号并续轮；不同目标无共享账本或必需 LLM 汇总者。每次图片操作仍用全新 task、缩略图和最小图集。Reviewer 只写受托 canonical 记录及指定临时目录内 helper STATE、payload 和必要预览，不改生产材料或调度修复。生产者不能编造 pass；轮数、时间或预算耗尽保留失败/unknown。
+每个 ep/kind/target 拥有唯一 canonical review 文件，受托独立 Reviewer 通过 helper 完成轮次。小批量、语义相干的纯文本提示可由一个独立任务逐 target 判断并分别写各自文件；无读写/输入依赖冲突的就绪视觉目标默认并发全新 Reviewer，各写各自文件。同一 ep/kind/target 的重审与写入串行是输出所有权规则，start 计算最大轮号并续轮；其他读写及输入依赖仍须排序。同文件编辑（含不同章节）串行；写入影响 active reader 的实际依赖或证据时等其实际完成，无冲突读写可并行，整文件指纹证据仍需文件稳定。相关输入有 active writer 时，等 owner 交回稳定材料再派审核，不能靠 finish 检出漂移代替派发前检查，不同输出不证明输入安全。不同目标无共享账本或必需 LLM 汇总者。每次图片操作仍用全新 task、缩略图和最小图集。Reviewer 只写受托 canonical 记录及指定临时目录内 helper STATE、payload 和必要预览，不改生产材料或调度修复。生产者不能编造 pass；轮数、时间或预算耗尽保留失败/unknown。
 
-五种 runtime review 默认用 `review-round.mjs` 管理轮次和证据；Reviewer 负责独立语义判断及 Markdown 意见。先核实 `/tmp/opencode`，创建指定 `/tmp/opencode/<task>` 目录，再选择其中尚不存在的绝对 STATE 路径和独立 PAYLOAD.json 路径。命令在故事项目根运行，材料路径使用 canonical 项目相对路径，逐个引用。
+任务视频集成的 shot-input 由纯文本独立 owner 总审：start 在读取最终 prompt/timeline/manifest/源文本之前，读全必要文字后、任何看图之前规划相干视觉窗口、关键切点、接触/阅读阶段及必要外部配对。owner 从不加载图片、帧、contact sheet 或接收图像附件；实际查看交 fresh Reviewer 小型最小必要 helper 缩略图集。单资产视觉叶子仍可查看其有限比较集并写自己的记录，不强制转为此结构。
+
+该 owner 独占同一 ep/kind/target 的 start/finish 与 canonical 记录。视觉 helper 不写该记录、不开竞争轮次、不改 owner STATE，只在指定临时范围制作预览并返回文本事实、时间/帧、原路径/指纹、预览映射及限制，区分所见与源码推断，不给 target pass。owner 先采集 helper 实际 inputs；新依赖先回未读路径，经 Director 协调和 owner 采集再交 fresh task。owner 独立评估全文集成、跨窗口连续性与覆盖，必要缺口另派有界新任务，不机械合并局部通过。必要证据缺失 unknown，明确冲突 needs_revision，采样不证明完整运动。详见 [总审与视觉交接](../../reviewer-review-shot-inputs/SKILL.md#text-owner-and-bounded-visual-handoffs)。
+
+五种 runtime review 默认用 `review-round.mjs` 管理轮次和证据；目标 owner 负责独立语义判断及 Markdown 意见，局部视觉 helper 沿用 owner 已采集的证据，不自行 start。先核实 `/tmp/opencode`，创建指定 `/tmp/opencode/<task>` 目录，再选择其中尚不存在的绝对 STATE 路径和独立 PAYLOAD.json 路径。命令在故事项目根运行，材料路径使用 canonical 项目相对路径，逐个引用。
 
 ```bash
 SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-round.mjs" start KIND EP TARGET STATE [EXTRA_INPUT...]
@@ -28,10 +34,17 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/review-round.mjs" finish STATE PAYLOAD.json
 
 每个新语义参考在首次读取前用 add-input 登记，包括直接参考卡/PNG、receipt、连续性材料和实际源码。helper 发现的是机械最小集，不代替 Reviewer 选择必要参考。inputs 保存原材料整文件 `{path,sha256}`，预览不替换原图/MP4。
 
+多目标共用语义参考时，在首次读取前为每个消费目标分别 start/add-input；一个 STATE 的采集不覆盖其他 STATE。用现有委托/作者计划说明目标及其所需参考，已知路径作为各自 start extras 前置传入，不新增范围账本。后发现的消费目标须先采集，再重新读取核对，不能追认先前阅读。
+
+extras/add-input 只接收 helper 支持的有效项目相对原材料路径。`/tmp` 诊断报告与委托反馈可提示检查问题，但不是可登记的项目证据，也不替代媒体观察。必要观察由独立 delegate 返回实际源路径、预览依据与限制，源文件须在其读取前由消费目标采集；不能把报告复制进项目冒充证明或媒体。需要重新判断时，采集有效原材料并安排 fresh 独立检查。
+
+不要仅为证明“已就绪”把易变 pending/status 文件或审核文件加入语义 inputs；就绪由现有门禁核对。实际依赖某份审核的语义判断、范围依据或其他必要内容时仍须阅读前采集，安排依赖完成并稳定后审核；不能为避免漂移删除必要依赖。真实源漂移保留首次哈希并记 unknown，后续按 scoped 独立兼容性规则评估。
+
 Reviewer 在指定临时 PAYLOAD.json 撰写 `{"commentary":"Markdown 意见","result":{"status":"pass","blockers":[]}}`，可在 result 加 issue、reason、prompt_direction、visual_inspection 等专业字段。status 必须显式为 `pass|needs_revision|unknown`，blockers 必须为字符串数组，pass 时为空；缺 status 是无效 payload，不推断通过。target、inputs、kind、scope、轮次和哈希由 helper 注入，不手写 evidence JSON 或哈希；commentary 不含保留轮次标题/标记/footer。
 
 finish 重新发现依赖、核对全部原始快照并验证完成记录，写入 Markdown 意见、唯一 result 和 footer。采集/依赖发现错误保留，后续恢复不清除；输入漂移保留首次哈希，证据问题使最终 status 为 unknown 并加入 blockers。操作错误保留未完成轮，诊断后处理，不补造 pass。外部插件规则报告实际来源，不冒充项目输入。
 finish 的 exit 0 仅表示记录已写入，不表示 pass。返回实际 path、round、status、input_count、evidence_issues 和必要意见/限制即可；正常完成无需立即再 fingerprint、check-target/checkTarget 或全文 Read 自检。错误或诊断时按需检查；下游生成/交付门禁仍检查当时的当前证据。
+最终机器 result 与 finish 摘要是状态依据；证据降级时保留的原 commentary 可能仍表达原先判断，应结合最终状态提示阅读，不据此报 pass。STATE 是采集过程状态，不能用其中旧值覆盖 finish 的实际 status/evidence_issues。
 
 helper 的目标级短锁只覆盖单次读写，锁中记录 owner PID。进程异常退出可能留下锁；遇到锁冲突先核实 owner 是否仍在执行，再由协调方处理已中断的锁和对应轮次。文件年龄不代表 owner 已停止，保留现有证据与 STATE，避免重复写入或覆盖其他审核。
 目标 owner 返回实际完成摘要。局部检查 delegate 只返回实际观察、所读路径、预览依据和限制，owner 据此独立完成语义结论；空响应、缺项、不可判定为该目标 unknown。无效 payload 交负责 Reviewer 修正，不补造结论，后续视觉操作仍新 task。
@@ -117,6 +130,8 @@ Arc/outline 是可选规划审核，不属于上述五种 kind，也不替代用
 
 实质损害确认意图、人物可信度、观众理解或制作可行性的问题可以阻塞，不限于解析器错误。改进建议说明收益与代价，不作为个人审美门禁。字数密度、节奏比例和示例数量是诊断参考，不自动转为艺术失败；真实 schema、授权和用户严格时长仍是边界。
 
+区分用户实际要求、已确认创作决定、作者自行选择的实现细节与 Reviewer 建议。材料或约束相互矛盾时，先采集并查阅相关用户决定、配置或源材料，定位约束来源和实际冲突；不能把自选姿态、构图或审美偏好升级为用户硬要求，也不盲目采用更严一项。必要权威依据缺失时说明缺口；已确定的真实要求与源冲突仍须报告。
+
 图像验收按声明的媒体职责判断制作可用性：基础资产图主要传达身份/外观、风格、画质与材质；参考视频可承担透视、遮挡、相机、布局及整体运动，具体动作/表情由 shot prompt 表达。独立 reviewer 实际看图、必要参考齐全、证据当前且本图职责内无实质问题时应 pass，不要求资产静帧精确复刻后续镜头。细节差异不影响剧情、身份识别、实际画质或用户明确要求时应通过；静态形状参考与 BOX 各按声明控制范围核对。
 
 阻塞须连接实际观察、违反的要求与具体制作影响：错身份、关键特征/道具缺失、实质风格/材质/画质失败、破坏剧情关键动作或必要连续性、违背用户明确要求仍须修正。解剖、拓扑或空间异常不按类别自动阻塞，须说明它如何损害本图用途、主体可信度或关键剧情；无关微小结构不作为精修门禁。基础图门禁不要求未来参考视频先存在，也不声称未提供/未查看的视频已证明或修复任何问题；最终 shot-input 审核实际 prompt/media 的职责分配及真实冲突。未看目标图、缺本阶段必要证据或证据漂移为 unknown；非必要细节被遮挡/看不清不单独构成 unknown，必要要求无法核实才说明缺口。
@@ -127,7 +142,9 @@ Arc/outline 是可选规划审核，不属于上述五种 kind，也不替代用
 
 #### 数值与姿态的可用性判断
 
-以下人体姿态/接触标准按当前媒体职责使用，不把后续 shot 的证明提前压给基础资产图。按 [通用视觉表达](visual-prompt-craft-common.md)，本地 VIDEO 默认是可整体平移/旋转的刚性 BOX，并在持有、支撑或动作否则不可读/呈非预期悬浮时提供最小手/前臂、相关肢体或接触代理；身体出画尤其要查，画内必要支撑同样适用。最小支撑属于本地授权，默认不做完整 rig 或脸部动画。缺精细手指不是失败；缺必要支撑而与动作冲突不能豁免。按意图判断悬浮、透明屏幕和遮挡，不要求完整表演或逐指换握证明。
+以下标准按当前媒体职责使用，不把后续 shot 的证明提前压给基础资产图。按 [通用视觉表达的 BODYBOX、姿态作用域与省略规则](visual-prompt-craft-common.md#粗模控制与外观依据分离)，普通移动无手腿；必要支撑例外保留相容姿态随整体移动，不推导步态或摆臂。操作姿态只服务对应阶段及必要准备/收尾；核对复用场景/运动的进入、退出状态及有意连续性，不自动重置或让可见肢体跳隐。特殊动作的必要中间运动须有视觉证据，技术碰撞检查仅辅助。
+
+省略解剖细节、最小代理块状风格本身不失败；已经显示的姿态按实际示范判断。无意的显著外展架肘休息态、反向肢体、明显穿身或无支撑握持若误导动作，属于可用性阻塞，不是审美偏好，也不能用粗参考免责。正常肩部连接和合理遮挡/投影重叠不要求零相交，不增完整解剖精度门禁。修法优先省略非必要肢体或调整合理姿态/机位/支撑，保住必要接触和剧情动作；明确未解冲突为 needs_revision，必要证据不足为 unknown，不以 pass 加“prompt 写自然”结案。悬浮、透明屏幕和遮挡仍按意图判断。
 
 具体动作、姿势和表情由 shot prose 与模型负责；另审文字是否清楚、景别/角度是否支持最终动作可读，操作特写仍与盒体相容。环境/道具可保留镜头/布局所需几何；静态资产形状参考按其声明形状审核。详细外观遵循统一作品基线和实际资产。缺已声明媒体、必要输入不可读、指纹漂移或声明的必要轨迹无法评估仍为 unknown，独立审核与既有门禁不变。
 
@@ -148,7 +165,7 @@ Arc/outline 是可选规划审核，不属于上述五种 kind，也不替代用
 
 ### 具体目标与连续性
 
-粗参考不能替代完整 shot prose：按动作需要核对谁做什么、身体/头部/道具朝向与姿态、左右、归属、握持/接触及必要初中末变化；不做全字段或细节配额门禁。`use` 声明代理控制而非最终风格，最终 prompt 须解释实际肢体代理的解剖、姿态、握向与动作实现。
+粗参考不能替代完整 shot prose：按动作核对谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不做细节配额。ref.use 与最终 manifest.prompt 都须说明相机/取景/布局/整体轨迹控制，不照搬滑移、僵硬姿势、步态或代理解剖；最终 prose 按源动作表达自然行走的姿态、重心与迈步，不自动加手势。核对必要代理归属/握向，并评估媒体中的多余表演信号；强模型仍可能模仿粗运动，文字声明不是保证。
 
 独立生成 TASK 边界优先选择已有、有动机且机位/视点/景别不同的切点，只减少近似生成不一致的显眼程度，不保证连续性；相似连续镜头可适当同组。不以每切一任务、角度阈值或有意重复构图判失败。保留连续成员、时长、provider 最大值和 grants，重设计交 Director/owner 在原始预算内同步源与下游，不借建议静默重组或改切点。
 

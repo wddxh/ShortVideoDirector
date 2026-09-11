@@ -51,6 +51,20 @@ Materials expose the actual ordered slots and bound source links. Creator uses t
 
 Dreamina materials extract the identical parsed single-line `视频风格` into `materials.style`, removing only that field from members; differing baselines return to owners. `shotBlocks` retain source headers, all other fields, exact dialogue, spaces, continuation lines and prose. Bind each source link only through its own shot header declarations. Rebase only leading structural bracket cues such as `[0s-2.5s]` by the derived shot start, validating `0 <= start < end <= shot duration` and allowing legitimate overlap. Inline numbers, duration phrases and speech remain unchanged; Creator interprets their shot-local meaning in final task-time prose.
 
+### Inline Use In Task-Time Prose
+
+Apply the full [global mappings and inline use rules](../_meta/rules/visual-prompt-craft-common.md#全局映射与实际使用处的引用) with `{图片N}` / `{视频N}` in task-time prose, following [source performance integration](../_meta/rules/audiovisual-craft.md#从触发到人物反应) and [reference/proxy authority](../_meta/rules/visual-prompt-craft-common.md#粗模控制与外观依据分离).
+
+Illustrative excerpt only: assume actual image slots 1/2 are 阿岚/小舟 and video slot 1 shows their cyan/orange BODYBOX proxies with the stated staging and a cut at task second 3. The canonical source already contains the quoted line and response; use actual source times, words and references in production:
+
+```text
+阿岚的身份外观用{图片1}，小舟用{图片2}；{视频1}中青色代理对应阿岚、橙色代理对应小舟，仅控制相机、布局、整体轨迹及时序，人物表演按下文。
+[0s-3s] 按{视频1}此段固定双人中景，阿岚在画面左侧、小舟在右侧。阿岚{图片1}对小舟{图片2}说：“我答应你。”小舟听到“答应”后，注意留在阿岚身上，原先等待确认的态度转为欣喜，笑出来。
+[3s-5s] 按{视频1}在3秒切到小舟的中近景并保持该段前移轨迹。小舟{图片2}带着刚获回应的欣喜向画外左侧的阿岚{图片1}靠近；小舟迈步时重心随步伐前移，笑意延续，依照文字表演而非复制盒体滑移。
+```
+
+The example demonstrates binding at actual use and through a cut, not required smiling, approach, face coverage or added contact. Source owners determine facts and camera design; absent support returns to them rather than being supplied by the example.
+
 ## Series And Episode Profiles
 
 Capture returns `{provider,model,ratio,resolution,references:[{media,path,sha256}]}` as submission. Verify checks ordered media identity; gate/reserve compare current prompt/duration/references and script/storyboard/asset-visual/shot-input evidence. Final readiness excludes asset-prompt; authorized new/regenerated images separately require it. Retry preserves these fields; submitted/done records remain protected.

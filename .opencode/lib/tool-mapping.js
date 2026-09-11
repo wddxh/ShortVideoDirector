@@ -26,8 +26,8 @@ Creator 在视频参考/装组映射确定后读 materials 和 provider 语法�
 tasks.json 保持数组，task_id 唯一并保存 shots/prompt/duration/typed references，输出 videos/taskNN.mp4；submission 保留四元组与有序媒体指纹。Grants 为 {decision,episode,task_id,shots,constraints} 加真实可选次数；reserve 前当前 manifest 成员等于 record/grant，错误身份、成员/输入漂移或部分选组零调用、不改次数。取回按 recorded ID/provider，保留 grants/inflight/submitted/done/真实状态。统计按生成任务，human_needed 为 {ep,task_id,shots,reason}，每 ep/task_id 一条完整成员；monitor 仍 epNN/all。
 就绪用 check-shot-inputs.mjs 及 script/storyboard/asset-visual/shot-input；新生图另审 asset-prompt。整集源 1..N 且每镜分配一次，任务按首成员排序；局部允许源缺号、目标存在且选完整组。全局查组重叠/缺失源成员，局部不要求未选媒体或完整全片计划。未分配请求/部分组报告完整成员与额外镜头，不静默扩授权。
 shot-input target 为 task-inputs/taskNN.json，保留五种 kind；审核最终集成/delta、任务时钟、内部切点/声音桥及必要外部边界，无具体冲突复用 storyboard 判断。按故事选相邻/非相邻/跨集配对，比较位置、轨迹、状态、轴线和身份，实际依赖入 inputs，不附全计划哈希。源码/记账变而媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审。每次视觉操作仍新 task、缩略图与最小配对；缺必要证据 unknown。主 AI/general 负责工程与测试。
-摄影按 camera-language 设计调度、覆盖和焦距/距离/焦点，script→shots→reference 保留节拍初态、必要证据、先后/重叠及注意，不按动作数或固定秒数。Creator 用低成本 BOX 与可选假音频估时预演；持有、支撑或动作否则不可读/悬浮时，在本地授权内补最小手/前臂、相关肢体或接触代理，不限身体出画。默认不做完整 rig、精细手指、脸部动画或 TTS/内容/表演验收。缺手指不是失败，缺必要支撑与动作冲突则需修正；悬浮/透明屏幕按意图判断。内部标注/假音频默认不上传，全组参考契约不变。shot-input 先报实际可见性、注意与时序冲突，再给可选修法；独立证据、fresh task 与缩略图规则不变，不加 ledger/schema/gate。
-粗参考需要详细 shot prose：谁做什么、必要身体/头部/道具朝向与姿态、画面/解剖左右、归属、握持/接触及初中末变化，按动作选择细节，不设全字段/细节配额。use 声明代理控制而非最终风格；最终 prompt 解释实际肢体代理的最终解剖、姿态、握向与动作。
+摄影按 camera-language 设计调度、覆盖与光学，script→shots→reference 保留节拍初态、证据、先后/重叠与注意，不按动作数或固定秒数。Creator 用低成本 BOX 与可选假音频预演，遵循 skills/_meta/rules/visual-prompt-craft-common.md 的 BODYBOX、姿态作用域与省略规则：普通移动无手腿，必要支撑/接触/动作代理用相容姿态随整体移动，不推导步态、腿部循环或摆臂。操作姿态限对应阶段及准备/收尾，复用场景/运动核对进入/退出和有意连续性，不自动重置或跳隐肢体。受托特殊动作确需时序证据且 Creator 明确选择才关节化，短草稿含必要中间运动，碰撞检查仅辅助视觉判断。省略细节/块状风格不失败，可见错误姿态误导动作则须修正；优先省略非必要肢体或修正合理姿态/机位/支撑，保住必要接触/剧情动作。未解明确冲突 needs_revision，必要证据不足 unknown；正常肩部连接/遮挡不套零相交或完整解剖门禁。默认无完整 rig、精细手指、脸部动画或 TTS/表演验收。内部标注/假音频默认不上传，全组契约不变。shot-input 先报实际冲突再给可选修法；独立证据、fresh task、缩略图及既有 gates 不变。
+粗参考需详细 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不设细节配额。ref.use 与 Creator 亲写的实际最终 manifest.prompt 都说明相机/取景/布局/整体轨迹控制，不照搬滑移、僵硬姿势、步态或代理解剖；最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。否定措辞不能抵消错误媒体，先省略或修正误导信号，不以 pass 加“prompt 写自然”结案。
 独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性；相似连续镜头适合时同组。不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
 通用 storyboard-to-prompt 的 .sh/.mjs 均显式传 --json STORYBOARD TASK_ID EP，仅原样返回最终 manifest.prompt，不生成或改写文本。EP 与 canonical storyboard 路径一致；生成 task_id 来自 manifest 文件名，不按首镜推导或与代理任务 ID 混用。最终 --json 要求非空白字符串 prompt；草稿不能通过最终审核/就绪，既有 shot-input target 指纹绑定 manifest.prompt。generate-video 把最终原文存入 tasks.json，保留 submission 快照；gate/reserve 比较最终 manifest 的 prompt/duration/references，不比较源拼接文字，不增加 kind/gate/最终提示文件/账本或迁移。
 首次及周期 checker payload 均显式传 canonical config_path 或 UNRESOLVED，并沿 Creator relay 保留。UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选默认；配置操作显式验证绑定路径并共用 SVD_CONFIG。
@@ -38,13 +38,18 @@ shot-input target 为 task-inputs/taskNN.json，保留五种 kind；审核最终
 
 插件子代理仅 reviewer、scriptwriter、storyboarder、creator。委托通过 task 的 subagent_type 选择目标角色，prompt 说明预期成果、参考路径、范围、约束、决策余地及升级条件，不规定 skill 链。专家浏览 description，按需加载知识；Skill 与 agent 元数据只在当前上下文提供知识或关联，不派发任务、不改变角色、不建立审核隔离。生产规划与主入口不设 agent/fork，reviewer-review-* 关联 reviewer。
 
-嵌套 task 可用时直接委托并等待结果。工具可见不代表深度允许；在会话中记住已确认的嵌套能力。只有明确的深度/嵌套拒绝或工具不可用才判为不能嵌套，普通任务失败应按原任务处理，不能混淆。确认不能嵌套后不要每次重试，也不自动更改宿主配置或深度。
+派发（含嵌套/relay）沿现有自然语言 handoff：Director 集中核对 active 依赖，明确有界可读依赖及 stable/等待对象和就绪条件、精确允许写入路径/targets、child 委托许可与升级条件。子任务不继承 Director 全局上下文或账本；专家管理本地顺序，向 child 完整转交相关精确 scope、依赖及当前状态，不带全历史。调用方无法建立边界时，只读定位并报告缺口，不假定全局稳定或开始依赖它的制作。未知/新增依赖、共享写冲突、新写入或扩 scope、升级条件先沿 handoff 回 Director 再派发/执行；依赖变化由 Director 集中重排并转交新边界/状态，不自动取消任务。
+同文件编辑（含不同章节）串行；写入改变 active reader 依赖的内容/语义或使证据失效时，等实际读取工作完成，无实际依赖冲突的读写可并行。整文件指纹证据仍需文件稳定，相关输入有 writer 时等稳定交回再审核。Director 保留整棵受托子树读写占用，直至父任务及真实后代工作全部完成，期间不自行写入或派冲突 writer；异步 running、父任务有限返回或错误不释放未完成工作。实际 child 句柄、精确 scope、依赖及运行/实际完成/阻塞状态沿 handoff 回传；已允许、稳定且独立的 child 无需额外逐 child 握手、重复用户许可或新 Director task。无需新增 registry/schema/调度器/锁文件或轮询；depth relay 保留相同边界/状态。
+
+嵌套 task 可用且满足上述范围/依赖时直接委托并等待结果。工具可见不代表深度允许；在会话中记住已确认的嵌套能力。只有明确的深度/嵌套拒绝或工具不可用才判为不能嵌套，普通任务失败应按原任务处理，不能混淆。确认不能嵌套后不要每次重试，也不自动更改宿主配置或深度。
 
 Task 异步返回后台通知/等待指示时，先做无依赖工作，再按宿主协议让出回合、接收原任务结果并继续原授权委托；等待进度或子任务有限返回不是最终验收/父委托完成。不轮询代理状态、不用 sleep 等代理、不重复启动同一任务。Provider 按 recorded ID 查询/下载仍遵守原有有界轮询契约，区别于代理等待。宿主确实不能自动唤醒/续接时报告未完成范围与需外部再次触发的实际限制，不承诺自主循环、不重问继续许可，不新增 daemon/timer/账本。
 
 不能嵌套时，实际请求角色返回目标 role、outcome、references、scope、constraints；顶层主 AI/Director 忠实派发 sibling 目标角色，等待后用宿主 task_id 恢复原请求任务并传回实际结果，不寻找或新建不存在的 Director 任务。后续请求沿用本会话能力结论；跨所有者建议由主 Director 协调。若主 AI 也无法提供所需角色上下文，报告阻塞，不在当前上下文冒充专家任务。每次视觉操作仍新建任务，不恢复 image-heavy task；必要的后续视觉工作另建 fresh task，实际结果仍返回原请求方。
 
-审核必须新建独立 reviewer task，使用 reviewer-review-* 知识，传当前材料、要求和必要参考，不带生产者历史。每个 ep/kind/target 的 Reviewer 直接写自己的 canonical 文件；相干小批纯文本可单任务逐 target 判断、分别落盘，独立就绪视觉目标默认并行直写各文件。仅同一 ep/kind/target 重审串行；每轮 scope=[target]、一个完成 result、真实 inputs 和唯一 footer。Plural 协调范围、覆盖与计数，不设共享账本或必需 LLM 汇总者。局部检查 delegate 可回原始 findings 给指定独立目标 owner；每次视觉操作仍新任务、helper 缩略图及最小图集。缺失/不可解析/未完成仅影响所属目标；主 Director/生产者不自签 pass，无隔离则阻塞。
+审核必须新建独立 reviewer task，使用 reviewer-review-* 知识，传当前材料、要求和必要参考，不带生产者历史。每个 ep/kind/target 的 Reviewer 直接写自己的 canonical 文件；相干小批纯文本可逐 target 判断、分别落盘，无读写/输入依赖冲突的就绪视觉目标默认并行。同一 ep/kind/target 重审串行是输出所有权规则，其他读写/输入依赖仍须排序，不同审核输出不证明输入安全。每轮 scope=[target]、一个完成 result、真实 inputs 和唯一 footer。Plural 协调范围、覆盖与计数，不设共享账本或必需 LLM 汇总者。局部检查 delegate 回原始 findings 给指定独立目标 owner；每次视觉操作仍新任务、helper 缩略图及最小图集。缺失/不可解析/未完成仅影响所属目标；主 Director/生产者不自签 pass，无隔离则阻塞。
+shot-input 任务视频集成由纯文本独立 owner 总审：先 start 再读最终 prompt/timeline/manifest/必要源文本，看图前规划相干视觉窗口、关键切点、接触/阅读阶段和必要外部配对。owner 从不加载图片、帧、contact sheet 或图像附件；实际查看全交 fresh Reviewer 小型最小必要 helper 缩略图集。单资产视觉叶子仍可直接完成有限查看及自身记录，不强制分层。唯一 ep/kind/target 轮次由 owner start/finish；视觉 helper 不写同目标记录、不另开竞争轮次、不改 owner STATE，只写指定临时预览/文本反馈。
+owner 在 helper 读取前采集实际 inputs，新依赖先回未读路径，经 Director 协调和 owner add-input 再交 fresh task。helper 只回文本事实、时间/帧、原路径/指纹、采样与预览映射及限制，区分所见与源码推断，不给 target pass、不附图。owner 独立核对全文集成、跨窗口关系和覆盖，必要缺口另派有界新任务，不机械合并局部通过；必要证据仍缺 unknown、明确冲突 needs_revision，采样不证明完整运动。嵌套可用直接委托，确认不可用则沿用限制，由 Director 派 sibling 并按真实句柄恢复原纯文本 owner 传回事实，绝不恢复视觉 helper。实际 scope/依赖/后代和子树占用保持至完成；有限委托返回不是审核或制作完成。不新增账本、schema、帧配额、gate 或完整 rig。
 用 review-evidence.mjs path KIND EP TARGET 返回 canonical 路径：reviews/epNN/script.md、storyboard.md；reviews/epNN/assets/<category>/<name>.asset-prompt.md / .asset-visual.md（target 仍为资产卡）；reviews/epNN/task-inputs/taskNN.md（target 为 task manifest）。保留五种 runtime kind。可选规划仅 Markdown：reviews/epNN/outline.md，reviews/story/arc.md，不使用 runtime helper。
 五种 runtime 审核默认用 review-round.mjs：指定 /tmp/opencode/<task> 目录先存在，读取制作材料前显式 SVD_CONFIG="{config_path}" 执行 start KIND EP TARGET STATE [EXTRA_INPUT...]；新语义参考首次读取前 add-input STATE PATH...。STATE/payload 为指定临时目录内不同绝对路径，STATE 绑定配置和首次哈希，不在工作区复制账本。Reviewer 只写受托 canonical 记录及该目录内 helper state、payload、必要预览。独立撰写 {commentary,result:{status,blockers,...}} 后 finish STATE PAYLOAD.json，helper 注入 target/inputs、复核并验证记录，不手写哈希 JSON。采集/发现错误保留，漂移保留首次哈希且 finish 记 unknown；缺显式 status 的 payload 无效。exit 0 仅表示记录写入，实际 path/round/status/input_count/evidence_issues 和必要意见足以回传，正常完成不要求立即再 fingerprint、check-target/checkTarget 或全文 Read；错误/诊断按需查，下游 gates 不变。
 局部视觉 delegate 所需参考由独立目标 owner 在委托读取前 start/add-input 采集，delegate 返回实际观察、所读路径、预览依据和限制；新参考先回 owner 采集再交 fresh task 读取，不以后采快照追认，不需 import registry。逐 target 并行、独立语义判断、每次全新视觉上下文及 helper 缩略图保持不变。`;
@@ -55,9 +60,9 @@ ${ROLE_HANDOFF_GUIDANCE}
 
 ### 分段策略
 
-每次 Write/Edit 内容不得超过 2000 字符，所有格式同样适用。切勿单次 Write 提交完整长内容；按自然段、逐镜头、逐 JSON 条目或 YAML 顶层 key 增量写入，单元过长仍需拆分。
+每次 Write/Edit 内容不得超过 2000 字符，所有格式同样适用。按自然段、逐镜头、完整 JSON 条目或 YAML 顶层 key 增量写入；普通短编辑可原位进行。JSON 每次操作后值和整个文档都须完整有效，不在已发布 manifest 的引号内分次拼接不可分割的长字符串。
 
-文本 Edit 的 oldString 使用上一段末尾唯一片段。JSON 数组先写有效骨架和首条，再以结束括号片段为 anchor 追加；对象嵌数组同理。保留结构完整性，不让主 AI 预先决定创作篇幅。
+文本 Edit 的 oldString 使用上一段末尾唯一片段。JSON 数组先写有效骨架和完整首条，再以唯一结束括号片段追加完整条目；对象嵌数组同理。长值或条目超限时，事先协调读写方、目标/临时路径及发布时机，在授权路径内离开目标分步组装；待发布临时文档须与目标同文件系统。可分步写临时纯文本块，由本地小脚本按序组装并用 JSON 序列化器编码，不猜转义；完整临时文档须通过语法解析及所需结构校验，再原子替换目标，失败保留原目标。patch、命令和脚本内容同受工具字符串长度限制，脚本也分步写入，不用巨大 heredoc/脚本载荷绕过限制。不让主 AI 预先决定创作篇幅。
 
 ### 长度原则
 

@@ -214,8 +214,12 @@ export function finishRound(statePath, payloadPath) {
       result.blockers = [...new Set([...result.blockers, ...state.evidence_issues])];
     }
     const record = { kind: state.kind, scope: [state.target], results: [result] };
+    const notice = result.status !== payload.result.status
+      ? `### Final status (helper)\nEffective status: ${result.status}. Submitted status: ${payload.result.status}. ` +
+        'Evidence issues override the submitted status; see blockers below.\n\n'
+      : '';
     const completed = `${state.prefix_length ? '\n\n' : ''}${heading(state.round)}` +
-      `${payload.commentary ? `${payload.commentary}\n\n` : ''}${block(record)}<!-- /round-${state.round} -->\n`;
+      `${notice}${payload.commentary ? `${payload.commentary}\n\n` : ''}${block(record)}<!-- /round-${state.round} -->\n`;
     const parsed = readRounds(completed, state.kind);
     if (parsed.length !== 1 || !parsed[0].complete ||
         JSON.stringify(parsed[0].results) !== JSON.stringify(record.results)) throw new Error('Invalid completed round');

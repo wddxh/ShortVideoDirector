@@ -37,9 +37,9 @@ Creator 在视频参考/装组映射确定后据材料及 provider 语法写完�
 
 tasks.json 数组按 task_id 唯一，保存 shots/prompt/duration/references，prompt 为最终 manifest 原文，输出 videos/taskNN.mp4；submission 四元组/媒体指纹不变。Grants 为 `{decision,episode,task_id,shots,constraints}` 加真实可选次数；gate/reserve 比较最终 manifest 的 prompt/duration/references，不比较源拼接文字。manifest/record/grant 成员一致才 reserve，漂移、错误身份或部分选组零调用、不改次数。既有 shot-input target 指纹绑定最终 prompt，草稿不通过最终审核/就绪，不加 kind/gate/最终提示文件/账本或迁移。
 
-Creator 在 local-reference 内用粗 BOX 相机/调度及可选假音频估时试排。持有、支撑或动作否则不可读/悬浮时，在本地授权内补最小手/前臂、相关肢体或接触代理，不限身体出画；默认不做完整 rig、精细手指、脸部动画或 TTS/表演验收。缺手指不是失败，缺必要支撑与动作冲突则需修正；悬浮/透明屏幕按意图判断。源码与媒体在故事项目 references/，内部标注/假音频默认不上传，不引入固定 DSL 或新门禁。基础卡可选本地 PNG/sources，见 [卡片契约](../skills/_meta/rules/local-reference.md) 与 [工具示例](../skills/creator-local-reference/tools.md)。
+Creator 用粗 BOX 相机/调度及可选假音频预演。普通移动只用无手腿 BODYBOX；仅既定持有/支撑/接触或具体必要动作/构图证据用最小代理，保留身体出画时防止手持物悬浮的手/前臂。普通行进中必要肢体相对身体稳定，整套平移/转向，不推导步态、腿部循环或摆臂；受托特殊动作确需时序证据且 Creator 明确选择才关节化。缺解剖不自动补动画，缺必要支撑的实际冲突仍须修正；悬浮/透明屏幕按意图判断。默认无完整 rig、精细手指、脸部动画或 TTS/表演验收。源码/媒体在故事项目 references/，内部标注/假音频默认不上传，不加 DSL 或门禁。基础卡可选 PNG/sources，见 [卡片契约](../skills/_meta/rules/local-reference.md) 与 [工具示例](../skills/creator-local-reference/tools.md)。
 
-粗参考需完整 shot prose：谁做什么、必要身体/头部/道具朝向与姿态、左右、归属、握持/接触及初中末变化，按动作选择细节，不设全字段配额。use 声明代理控制而非最终风格；最终 prompt 解释实际肢体代理的解剖、姿态、握向与动作。
+粗参考需完整 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不设细节配额。ref.use 与 Creator 最终 manifest.prompt 都说明相机/取景/布局/整体轨迹控制，不照搬代理滑移、僵硬姿势、步态或解剖；最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。强模型也可能模仿粗运动，文字不保证忽略它，应先减少媒体中的非必要表演信号。
 
 独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性；相似连续镜头可同组。不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
 
@@ -64,7 +64,7 @@ short/series 含资产图与本地参考，停在付费视频提交前；后续�
 
 `${CLAUDE_PLUGIN_ROOT}/skills/` 转为 cache 路径，其他插件路径指向安装根；shell.env 提供根变量。故事 config/assets/references/story 仍相对故事项目。Cache 输入含源 skills/agents/scripts、OC overrides/lib 与版本；重启才加载更新，不改现有会话。
 
-每次视觉操作按 [visual-context](../skills/_meta/rules/visual-context.md) 使用新 task、helper 缩略图与必要 crop，只 Read 返回 preview，原图用于 provider/指纹。独立 Reviewer 并行写各自 canonical target 文件；同一 ep/kind/target 重审串行。相干纯文本批次逐目标分别落盘，范围协调依据实际完成摘要或既有记录统计结果，不另设共享账本或汇总验收。审核者只写受托 canonical 记录及指定临时 state/payload/预览，生产者不编造 pass。规划按需采用；工具 allow 不等于付费/覆盖许可。
+每次视觉操作按 [visual-context](../skills/_meta/rules/visual-context.md) 使用新 task、helper 缩略图与必要 crop，只 Read 返回 preview，原图用于 provider/指纹。无读写/输入依赖冲突的就绪目标由独立 Reviewer 并行写各自 canonical 文件；同一 ep/kind/target 重审串行是输出所有权规则，其他读写/输入依赖仍须排序。相干纯文本批次逐目标分别落盘，范围协调依据实际完成摘要或既有记录统计结果，不另设共享账本或汇总验收。审核者只写受托 canonical 记录及指定临时 state/payload/预览，生产者不编造 pass。规划按需采用；工具 allow 不等于付费/覆盖许可。
 
 Director 可直接编写完整剧情候选与计划，逐题展示并保留真实答复，无自我 relay。专家决策包保留全部标签、背景、选项与条件，完整展示当前题后原生 question 单选，完整原答复批量回原专家任务。专家/审核协调者可嵌套时直接委派；工具不可用或明确深度拒绝后复用结论，主 AI 忠实 relay 并恢复原专家、审核协调者或 checker，传回实际结果。普通失败不算深度拒绝，不自审或改深度；后续视觉操作仍新 task。
 

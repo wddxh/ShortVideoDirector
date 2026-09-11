@@ -58,7 +58,13 @@ export function readTaskPlan(storyboard, episode) {
     .filter(file => file.endsWith('.json')).map(file => {
       const task_id = file.slice(0, -5), inputPath = taskInputPath(episode, task_id);
       readyPath(inputPath, `${directory}/`);
-      const manifest = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+      const text = fs.readFileSync(inputPath, 'utf8');
+      let manifest;
+      try { manifest = JSON.parse(text); }
+      catch (error) {
+        const location = error.message.match(/ at position \d+(?: \(line \d+ column \d+\))?$/)?.[0] ?? '';
+        throw new Error(`Invalid JSON in ${inputPath}${location}`);
+      }
       if (!manifest || Object.keys(manifest).some(key => !['shots', 'references', 'prompt'].includes(key)) ||
           !Array.isArray(manifest.shots) || !manifest.shots.length || !Array.isArray(manifest.references)) {
         throw new Error(`${task_id}: task input requires shots and references, with optional prompt`);

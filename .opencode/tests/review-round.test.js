@@ -61,6 +61,7 @@ for (const [kind, target] of [['script', `${ep}/script.md`], ['storyboard', `${e
     t.diagnostic(`helper-only temp timing: start=${elapsed.toFixed(3)}ms finish=${finishMs.toFixed(3)}ms inputs=${result.input_count}`);
     assert.equal(result.status, 'pass');
     assert.equal(checkTarget(kind, target, 'ep01', 'custom.md').status, 'pass');
+    assert.ok(!fs.readFileSync(result.path, 'utf8').includes('### Final status (helper)'));
     assert.equal(JSON.stringify(result).includes('sha256'), false);
     assert.deepEqual([...result.paths].sort(), requiredInputs(kind, target, 'custom.md').sort());
   }));
@@ -74,10 +75,20 @@ test('prompt-only edit during a shot-input round preserves its first hash and pu
   changed.prompt = 'Revised final camera move.\n';
   write(task, JSON.stringify(changed));
   addInput(f.state, [task]);
-  const result = f.finish();
+  const commentary = '## Assessment\nStatus: pass\n\nFraming and sound continuity pass.  \nKeep this judgment verbatim.';
+  const result = f.finish({ status: 'pass', blockers: [], reason: 'Continuity verified' }, commentary);
   assert.equal(result.status, 'unknown');
   assert.ok(result.evidence_issues.includes(`Input changed: ${task}`));
-  const record = readRounds(fs.readFileSync(result.path, 'utf8'), 'shot-input').at(-1).results[0];
+  const text = fs.readFileSync(result.path, 'utf8');
+  assert.ok(text.startsWith('## 第 1 轮\n### Final status (helper)\n' +
+    'Effective status: unknown. Submitted status: pass. '));
+  assert.ok(text.includes(`\n\n${commentary}\n\n<!-- svd-review-evidence -->`));
+  const rounds = readRounds(text, 'shot-input');
+  assert.equal(rounds.length, 1);
+  assert.equal(rounds[0].complete, true);
+  const record = rounds[0].results[0];
+  assert.equal(record.status, 'unknown');
+  assert.equal(record.reason, 'Continuity verified');
   assert.deepEqual(record.inputs, first);
   assert.equal(checkTarget('shot-input', task, 'ep01', 'custom.md').status, 'unknown');
 }));
@@ -364,6 +375,26 @@ test('unselected task declarations and media are not evidence dependencies', () 
   write(other, JSON.stringify({ shots: [2], references: [] }));
   assert.equal(f.finish().status, 'pass');
   assert.equal(checkTarget('shot-input', task, 'ep01', 'custom.md').status, 'pass');
+}));
+
+test('malformed unselected manifest records its exact path in discovery issues without expanding evidence', () => fixture(f => {
+  write(`${ep}/storyboard.md`, board(1) + '\n' + board(2));
+  const other = `${ep}/task-inputs/task02.json`;
+  const malformed = '{"prompt":SECRET_PROMPT_SENTINEL}';
+  write(other, malformed);
+  const issue = `Dependency discovery failed: Invalid JSON in ${other}`;
+  const start = startRound('shot-input', 'ep01', task, f.state);
+  assert.deepEqual(start.evidence_issues, [issue]);
+  assert.deepEqual(start.paths, [task, 'custom.md', `${ep}/script.md`, `${ep}/storyboard.md`]);
+  const result = f.finish();
+  assert.equal(result.status, 'unknown');
+  assert.deepEqual(result.evidence_issues, [issue]);
+  const text = fs.readFileSync(result.path, 'utf8');
+  assert.doesNotMatch(text, /SECRET|prompt/);
+  const record = readRounds(text, 'shot-input').at(-1).results[0];
+  assert.equal(record.status, 'unknown');
+  assert.deepEqual(record.blockers, [issue]);
+  assert.deepEqual(record.inputs.map(input => input.path), start.paths);
 }));
 
 test('discovery failure retains captured media and allows unknown publication', () => fixture(f => {

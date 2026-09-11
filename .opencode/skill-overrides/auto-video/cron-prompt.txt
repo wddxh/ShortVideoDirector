@@ -5,7 +5,7 @@
 配置上下文：{{CONFIG}}。UNRESOLVED 明确表示未解析，空值表示传输错误；两者只允许取回并报告 human_needed，禁止选择默认配置或进入新提交。已绑定路径需要配置操作时用 review-evidence.mjs config-path 显式验证该路径，不读取其他环境默认；外部配置不支持，相关副作用前报告。纯取回不验证生成配置。checker 和 Creator relay 保留 canonical config_path；所有相关 Bash 显式 SVD_CONFIG，videoProfile/evidence/fingerprint/配置写入共用该文件，不静默回退。
 
 用 task 新建 general checker，保留 task_id，委托检查此目标登记视频任务、取回完成输出并报告进度、阻塞和是否仍需监控；自行从 descriptions 选择适用知识。
-提交证据按 review-evidence.mjs path KIND EP TARGET 解析各目标 canonical 文件。Reviewer 并行直写各文件，每轮 scope=[target]、一个完成 result，仅同一 ep/kind/target 重审串行；plural 只协调覆盖与计数，无共享账本或必需汇总者。缺失/未完成/不可解析仅影响所属目标，不阻塞整个 kind，也不为纯取回新增门禁。
+提交证据按 review-evidence.mjs path KIND EP TARGET 解析各目标 canonical 文件。无读写/输入依赖冲突的就绪目标由 Reviewer 并行直写各文件，每轮 scope=[target]、一个完成 result；同一 ep/kind/target 重审串行是输出所有权规则，其他读写/输入依赖仍须排序。plural 只协调覆盖与计数，无共享账本或必需汇总者。缺失/未完成/不可解析仅影响所属目标，不阻塞整个 kind，也不为纯取回新增门禁。
 返回末行 JSON：target、pending、done、submitted、failed、all_complete、human_needed；按生成任务计数，不明用 unknown。human_needed 每 ep/task_id 一条 {ep,task_id,shots,reason}，包含完整成员；异常附 error/recoverable。监控仍 epNN/all；部分选镜报告完整组及额外成员，不静默扩范围。
 查询使用任务 recorded provider；缺失或未知 provider 报 human_needed，保留记录，不猜提供方。
 新提交/重试由真实 Creator task 负责，不能用 checker 加载 provider skill 代替角色。

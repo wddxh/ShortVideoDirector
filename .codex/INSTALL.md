@@ -24,7 +24,7 @@ python3 .codex/build-codex-skills.py --check
 
 最终 `--json` 返回 task_id/shots/timeline/prompt/duration/references/assetCards/sources/inputPath，prompt 原样来自 manifest。Creator 自查实际输出后交 fresh shot-input Reviewer 审忠实度、完整性、集成及边界；target 指纹绑定 prompt，草稿不通过最终审核/就绪。tasks.json 原样存 prompt，gate/reserve 比较最终 manifest 而非源拼接文字，提交不重写。时间派生，无可编辑 offset/duration、装组副索引或最终提示文件。
 
-结构诊断使用 `scripts/check-shot-inputs.mjs EP [SHOT...]`，完整就绪使用 review-evidence check；五类 evidence 为 script/storyboard/asset-prompt/asset-visual/shot-input。最终就绪要求 script/storyboard/asset-visual/shot-input，新生图另须 asset-prompt。各目标 Reviewer 并行写 `reviews/epNN/` 下各自的 canonical 文件，仅同一 ep/kind/target 写入串行；范围协调统计各文件结果，不另写共享账本或汇总验收。
+结构诊断使用 `scripts/check-shot-inputs.mjs EP [SHOT...]`，完整就绪使用 review-evidence check；五类 evidence 为 script/storyboard/asset-prompt/asset-visual/shot-input。最终就绪要求 script/storyboard/asset-visual/shot-input，新生图另须 asset-prompt。无读写/输入依赖冲突的就绪目标并行审核，写 `reviews/epNN/` 下各自的 canonical 文件；同一 ep/kind/target 写入串行是输出所有权规则，其他读写/输入依赖仍须排序。范围协调统计各文件结果，不另写共享账本或汇总验收。
 
 独立 shot-input target 为 task manifest，审核最终集成/delta、任务时钟、内部切点/声音桥及必要相邻/非相邻/跨集边界。最小配对比较 prompt/MP4 的位置、轨迹、状态、轴线与身份，实际依赖入 inputs，不附全计划哈希；无具体冲突复用 storyboard 判断。缺必要输入 unknown，保留五种 kind，不自动递归重渲染。
 

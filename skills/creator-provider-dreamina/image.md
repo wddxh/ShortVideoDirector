@@ -67,6 +67,10 @@ Before prompt review, Creator resolves the final ordered `job.images` and writes
 
 Filenames, paths, “随附图”, “第一张本地图” and local-only ordinals do not substitute for these bindings. Keep the full target description and each reference's intended role. Submit the reviewed prompt unchanged with that same ordered array; runner/wrapper pass it through, without guessing, appending tokens or rewriting at submission. Missing/wrong bindings return to the prompt owner for correction and current independent review under the existing rules.
 
+Apply the full [global mappings and inline use rules](../_meta/rules/visual-prompt-craft-common.md#全局映射与实际使用处的引用) using Dreamina's `{图片N}` syntax; reference/proxy limits follow [shared reference authority](../_meta/rules/visual-prompt-craft-common.md#粗模控制与外观依据分离).
+
+For example, only when actual ordered inputs are `[lamp-identity.png, lamp-shape.png]` and the approved target calls for this structure: “台灯的身份、材质与配色取自{图片1}；{图片2}仅控制台灯结构。台灯灯罩沿用{图片1}的黄铜表面，按{图片2}呈窄口锥形。转到底座，台灯底座采用{图片2}的圆盘轮廓，表面仍采用{图片1}的黄铜材质。” This illustrates inline dimension binding, not permission to invent geometry or a requirement to segment every feature. Image requests use image tokens only; video timing and tokens belong to the video guide.
+
 ## Ready-Job Batches
 
 For optional `## 本地制作参考`, follow [the shared contract](../_meta/rules/local-reference.md). Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/local-reference.mjs" parse|ready CARD` with one action. Basic refs keep required asset images first, then every declared local PNG once in declaration order as the exact suffix. The reviewed basic prompt must bind those actual inputs and include the narrative's control/placeholder intent; the wrapper does not append it. Sources are actual editable projects/scripts/inputs, not uploaded images. The runner/wrapper validate local readiness/order; same-entity mapping remains Creator's responsibility.

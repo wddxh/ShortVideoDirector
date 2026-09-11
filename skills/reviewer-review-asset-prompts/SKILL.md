@@ -23,15 +23,19 @@ model: opus
 
 独立任务按媒体职责审核提示的身份/外观、风格、画质、材质、可生成性、语言与引用一致性；不将无影响细节或后续视频的相机/布局/运动控制变成基础图必需项，不要求未来视频先存在。具体冲突须说明对剧情、明确要求或本图用途的影响。相干小批纯文本可同任务逐 target 判断；涉及本地 PNG 时每次图片操作另开全新任务、先缩略图、最小比较集，不用文本批量规则放宽视觉隔离。委托附路径、实际配置、参考、指定临时目录和目标 owner/局部检查边界；轮号由 start 分配。无嵌套请主 AI relay，无法隔离则 unknown。
 
-独立就绪目标可并行，由各目标 Reviewer 用 helper 写自己的文件；只串行同一 ep/kind/target 重审。文本批次也逐文件完成轮次。局部检查所需参考由独立 owner 在 delegate 读取前 start/add-input 采集，delegate 返回实际观察、所读路径和限制；新参考先回 owner 采集再交 fresh task 读取，不以后采快照追认。空响应、失败、缺项或无效 payload 为该目标未验收，协议修正交 reviewer。记录保留专业字段 asset_path/issue/prompt_direction，不调度修复。
+无读写/输入依赖冲突的独立就绪目标可并行，由各目标 Reviewer 用 helper 写自己的文件；同一 ep/kind/target 重审串行是输出所有权规则，其他读写/输入依赖仍须排序。文本批次也逐文件完成轮次。局部检查所需参考由独立 owner 在 delegate 读取前 start/add-input 采集，delegate 返回实际观察、所读路径和限制；新参考先按共享规则完成依赖协调，再回 owner 采集并交 fresh task 读取，不以后采快照追认。空响应、失败、缺项或无效 payload 为该目标未验收，协议修正交 reviewer。记录保留专业字段 asset_path/issue/prompt_direction，不调度修复。
 
 ## 证据与落盘
+
+在现有委托/作者计划中明确各目标及消费的共享参考。小批文本首次读共享参考前，先为每个消费目标分别 start/add-input；已知有效项目相对路径前置到各自 extras，不以一个 STATE 覆盖整批或新建账本。局部 delegate 也须满足各消费目标的阅读前采集，返回实际源路径与观察；`/tmp` 报告只作反馈，不复制为项目证据。仅证明 ready 的易变状态/审核文件不加入 inputs，实际依赖的语义审核仍按共享规则采集并协调稳定顺序。
 
 每目标指定临时目录先存在；读取卡片/config 前以显式 SVD_CONFIG 运行 `review-round.mjs start asset-prompt EP TARGET STATE [EXTRA_INPUT...]`，返回 canonical path/round。target 仍是资产卡。新语义参考读取前 `add-input STATE PATH...`。用于选范围的 script/config 由目标 owner 采集后重新读取核对，不追认协调者早先的范围发现。
 
 Reviewer 写指定临时 PAYLOAD.json，顶层 commentary/result，result 显式 status/blockers 和专业字段；`review-round.mjs finish STATE PAYLOAD.json` 复核依赖、注入 target/原快照并验证记录。错误保留，漂移记 unknown；exit 0 仅表示写入。正常完成用 path/round/status/input_count/evidence_issues 与必要意见回传，无需立即重复指纹检查或全文 Read。空请求仅在清单成功解析为空时成立，不创建空 scope 文件。
 
 ## 输出外形
+
+计数与回传采用最终机器 result/finish 摘要；证据降级时原 commentary 可保留旧判断，结合最终状态提示阅读，不采信旧 STATE 或意见中的 pass。真实漂移保留 unknown，后续走独立 scoped 兼容性评估。
 
 轮次标题、evidence 与 footer 由 helper 管理。以下意见结构写入 payload.commentary；结果以实际 finish status 为准：
 

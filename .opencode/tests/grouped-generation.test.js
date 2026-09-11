@@ -99,6 +99,32 @@ test('pending recorded ID blocks capture/payment; confirmed failure may use its 
   assert.equal(record.submit_id, 'group-job');
 });
 
+for (const invalid of ['truncated', 'unexpected-token']) {
+test(`${invalid} unselected manifest reports a safe error before payment or record mutation`, t => {
+  const f = submissionFixture(t);
+  const other = f.input.replace('task01', 'task02');
+  const sentinel = 'SECRET_PROMPT_SENTINEL';
+  const malformed = invalid === 'truncated'
+    ? JSON.stringify({ shots: [4], references: [], prompt: sentinel }).slice(0, -1)
+    : `{"prompt":${sentinel}}`;
+  f.write(other, malformed);
+  const message = `Invalid JSON in ${other}` + (invalid === 'truncated'
+    ? ` at position ${malformed.length} (line 1 column ${malformed.length + 1})` : '');
+  const cwd = process.cwd();
+  process.chdir(f.root);
+  try {
+    assert.throws(() => resolveTaskInputs(f.board, 'task01', 'ep01'), { message });
+  } finally { process.chdir(cwd); }
+  const before = readFileSync(join(f.root, f.tasks));
+  const result = f.run();
+  assert.equal(result.status, 1);
+  assert.ok((result.stdout + result.stderr).includes(message));
+  assert.doesNotMatch(result.stdout + result.stderr, /SECRET|prompt/);
+  assert.equal(existsSync(f.calls), false);
+  assert.deepEqual(readFileSync(join(f.root, f.tasks)), before);
+});
+}
+
 test('manifest, record and grant membership drift reject before payment or retry reservation', t => {
   const f = submissionFixture(t);
   const original = structuredClone(f.task);
