@@ -8,6 +8,7 @@ import { parseAssetInventory } from './episode-assets.mjs';
 import { parseLocalReference, assertLocalReferenceReady } from './local-reference.mjs';
 import { resolveTaskInputs, taskInputPath, readyPath } from './shot-inputs.mjs';
 import { checkShotInputs } from './check-shot-inputs.mjs';
+import { checkVisualException } from './shot-input-visual-exception.mjs';
 
 const kinds = ['script', 'storyboard', 'asset-prompt', 'asset-visual', 'shot-input'];
 const imagePath = (card) => card.replace(/^assets\//, 'assets/images/').replace(/\.md$/, '.png');
@@ -69,7 +70,7 @@ export function fingerprintInputs(paths) {
   }));
 }
 
-function currentInputs(inputs, required) {
+export function currentInputs(inputs, required) {
   if (!Array.isArray(inputs) || !inputs.length ||
       !inputs.every((input) => input && relativePath(input.path) && /^[a-f0-9]{64}$/.test(input.sha256)) ||
       new Set(inputs.map((input) => input.path)).size !== inputs.length ||
@@ -136,6 +137,28 @@ export function checkCoverage(kind, requiredTargets, episode, config = configPat
   const status = results.some((r) => r.status === 'needs_revision') ? 'needs_revision'
     : results.some((r) => r.status !== 'pass') ? 'unknown' : 'pass';
   return { status, results };
+}
+
+// This is eligibility for user acceptance, never an independent visual pass.
+export function visualExceptionQualified(kind, result) {
+  const q = result?.visual_exception_qualification;
+  return kind === 'shot-input' && result?.status === 'unknown' && q &&
+    Object.keys(q).sort().join(',') === 'external_boundaries,non_visual,remaining,visual_blockers' &&
+    q.non_visual === 'pass' && q.external_boundaries === 'pass' &&
+    q.remaining === 'task_visual_evidence_only' &&
+    Array.isArray(result.blockers) && result.blockers.length > 0 &&
+    result.blockers.every(b => typeof b === 'string' && b.trim()) &&
+    JSON.stringify(q.visual_blockers) === JSON.stringify(result.blockers);
+}
+
+export function effectiveAcceptance(kind, target, episode, config = configPath()) {
+  const review = checkTarget(kind, target, episode, config);
+  if (review.status === 'pass') return { ...review, accepted: true, acceptance_basis: 'independent_review' };
+  const exception = kind === 'shot-input' ? checkVisualException(episode,
+    path.posix.basename(target, '.json'), config) : null;
+  return { ...review, accepted: exception?.valid === true,
+    acceptance_basis: exception?.valid ? 'user_visual_exception' : null,
+    ...(exception ? { exception } : {}) };
 }
 
 export function readRounds(text, kind) {
@@ -215,7 +238,15 @@ function checkEpisode(episode, shots, config) {
     const status = coverage.status === 'pass' ? 'ok'
       : coverage.results.every(result => result.missing) ? 'missing' : coverage.status;
     console.log(`${kind}-review:${status}`);
-    blocked ||= coverage.status !== 'pass';
+    if (kind === 'shot-input') {
+      for (const target of required) {
+        const acceptance = effectiveAcceptance(kind, target, episode, config);
+        if (acceptance.acceptance_basis === 'user_visual_exception') {
+          console.log(`shot-input-acceptance:user_visual_exception:${target}:${acceptance.exception.path}`);
+        }
+        blocked ||= !acceptance.accepted;
+      }
+    } else blocked ||= coverage.status !== 'pass';
   }
   return blocked ? 1 : 0;
 }

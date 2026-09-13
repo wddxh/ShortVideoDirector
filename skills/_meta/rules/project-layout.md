@@ -28,6 +28,8 @@ Use `story/decisions/` when durable question/reply provenance is needed. Preserv
 
 ## Working Files
 
+Explicit user visual acceptance has one tool-owned record at `story/decisions/epNN/taskNN.shot-input-visual-exception.json`, governed by [visual exception](shot-input-visual-exception.md). It binds the actual user decision source and current qualified independent review/inputs; it is neither a review record nor a submission grant. Only the explicit recorder creates it, with no overwrite or automatic renewal.
+
 Use `story/work/epNN/<work-unit>/` for transient handoffs, job JSON, results and capability reports; use `story/work/shared/<work-unit>/` for cross-episode work. Choose meaningful work-unit names and reuse the same current work file for revisions unless a distinct record must be preserved. Simple diagnostic or coordination tasks can return text without creating a file. Reference sources belong in `references/`, not in these transient directories; visual helper previews use their separately assigned temporary directory per [visual-context](visual-context.md).
 
 Before dispatch, choose precise output paths and include them with the target, current source paths, scope and ownership in the handoff. Distinguish a transient result from the canonical deliverable; when only text is needed, say so. Parallel workers receive distinct output files, while successive edits to the same current file are coordinated by its owner.

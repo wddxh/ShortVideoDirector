@@ -7,6 +7,7 @@ import { once } from 'node:events';
 import { pathToFileURL } from 'node:url';
 import { startRound, addInput, finishRound } from '../../scripts/review-round.mjs';
 import { checkTarget, fingerprintInputs, readRounds, requiredInputs } from '../../scripts/review-evidence.mjs';
+import { qualification } from './fixtures/visual-exception.js';
 
 const cli = path.resolve('scripts/review-round.mjs');
 const ep = 'story/episodes/ep01', card = 'assets/items/a.md';
@@ -18,6 +19,27 @@ const write = (file, text) => {
 const board = n => `### shot ${n}\n- \u89c6\u9891\u98ce\u683c\uff1aRealistic\n- \u65f6\u957f\uff1a5s\n- \u5f15\u7528\u8d44\u4ea7\uff1a[a](${card})\n**\u753b\u9762\u4e0e\u58f0\u97f3\u63cf\u8ff0\uff1a**\nAction\n`;
 const manifest = shots => JSON.stringify({ shots, prompt: 'Final camera move; hold on the subject.\n', references: [{ kind: 'local', media: 'video',
   path: 'references/motion.mp4', use: 'Camera', sources: ['references/scene.blend'] }] });
+
+test('visual qualification is shot-input only, never valid after capture/discovery errors', () => fixture(f => {
+  startRound('script', 'ep01', `${ep}/script.md`, f.state);
+  assert.throws(() => f.finish(qualification()), /qualification/);
+}));
+
+for (const problem of ['capture', 'discovery']) {
+  test(`${problem} errors remove qualification even when missing inputs return`, () => fixture(f => {
+    const source = 'references/scene.blend';
+    if (problem === 'discovery') fs.unlinkSync(source);
+    const started = startRound('shot-input', 'ep01', task, f.state,
+      problem === 'capture' ? ['references/missing.txt'] : []);
+    assert.ok(started.evidence_issues.length);
+    write(source, source); write('references/missing.txt', 'restored');
+    const finished = f.finish(qualification());
+    assert.equal(finished.status, 'unknown');
+    const result = readRounds(fs.readFileSync(finished.path, 'utf8'), 'shot-input').at(-1).results[0];
+    assert.equal(result.visual_exception_qualification, undefined);
+    assert.ok(result.blockers.length > 1);
+  }));
+}
 
 async function fixture(run) {
   const work = fs.mkdtempSync('/tmp/opencode/review-round-test-');

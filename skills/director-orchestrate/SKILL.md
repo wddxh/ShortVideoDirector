@@ -86,7 +86,9 @@ Director 每次派发前用现有任务句柄、委托上下文和实际结果�
 
 生产主 AI 与 Reviewer 使用不同上下文。通过 Task 的 reviewer 角色委托全新审核任务，提供当前材料、要求与必要参考，不继承制作对话或只传有利总结。每个视觉目标交隔离任务，跨图判断使用最小必要比较集；局部检查 findings 回指定独立目标 owner。Director 同时评估材料整体叙事、视觉和情感连贯性，但不签发独立 pass。
 
-任务视频集成的 shot-input 委托纯文本独立 owner：先 start 再读最终 prompt/timeline/manifest/必要源文本，任何看图前规划相干窗口、关键切点、接触/阅读阶段和必要外部配对。owner 不加载图片、帧、contact sheet 或图像附件；所有实际查看交 fresh Reviewer 小型 helper 缩略图集。单资产视觉叶子仍可在全新有限上下文中直接看图、写自身审核。scope 明确唯一 owner 的 canonical/STATE/payload 写入与各视觉 helper 的临时预览范围；helper 不写同目标记录、不另开轮次、不发 target pass。
+协调 Storyboarder/Creator 按 [任务边界偏好](../_meta/rules/shot-inputs.md#manifest) 默认强烈优先采用有动机、明显不同的机位／视点／景别，降低近似构图独立生成差异的显眼程度。每个相邻接点按源意图判断：同一连续事件保住必要动作进度、持有/接触、空间与声音的相容延续；场/幕或时空跳转判断因果、情绪、信息、主题反差或平行关系与观众定位，不强制同位置、续动作、连续声音或过桥场。源支持的悬念、突兀感与硬切不必顺滑或立即解释；同集底层身份与世界事实一致，有意变化须有源依据。TASK 不等于场景或幕，约束内可含多镜/多场，不强制幕结构。实际需要的匹配构图及关键接触／必须无缝续声例外由 owner 在现有交接说明取舍，范围内不新增许可。此偏好不设每镜变化或角度配额，不保证连续性或豁免违背源意图的身份／状态错误；运动中硬切有效，不要求停稳／重启。源重设计及受保护任务仍遵循原预算、所有权和 grants。
+
+任务视频集成的 shot-input 委托纯文本独立 owner：先 start 再读最终 prompt/timeline/manifest/必要源文本，任何看图前规划相干窗口、关键切点、接触/阅读阶段和外部配对。整集覆盖所有相邻组（含场/幕），局部覆盖必要邻界及实际故事依赖；fresh helper 比较实际选中 clean MP4 的小型相干尾/头窗口与两端最终 prompt。owner 不加载图片、帧、contact sheet 或图像附件；所有实际查看交 fresh Reviewer 小型 helper 缩略图集。单资产视觉叶子仍可在全新有限上下文中直接看图、写自身审核。scope 明确唯一 owner 的 canonical/STATE/payload 写入与各视觉 helper 的临时预览范围；helper 不写同目标记录、不另开轮次、不发 target pass。
 
 owner 阅读前采集 delegate 实际 inputs，新依赖先回未读路径经你协调和 owner 采集再交 fresh task。视觉 helper 只回文本事实、时间/帧、路径/指纹、预览映射和限制，区分所见与源码推断。owner 独立判断全文集成、跨窗口关系及覆盖，缺口另派有界新任务，不汇总局部通过充当整体通过；必要证据缺失 unknown、明确冲突 needs_revision，采样不证明完整运动。深度失败沿用已知限制，派 sibling 后按真实句柄恢复原纯文本 owner 传回事实，绝不恢复视觉 helper。依赖、真实后代与子树占用按上述规则保持至实际完成，有限返回不是审核或制作完成。
 

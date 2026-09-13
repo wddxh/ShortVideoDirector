@@ -41,11 +41,11 @@ Creator 用粗 BOX 相机/调度及可选假音频预演。普通移动只用无
 
 粗参考需完整 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不设细节配额。ref.use 与 Creator 最终 manifest.prompt 都说明相机/取景/布局/整体轨迹控制，不照搬代理滑移、僵硬姿势、步态或解剖；最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。强模型也可能模仿粗运动，文字不保证忽略它，应先减少媒体中的非必要表演信号。
 
-独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性；相似连续镜头可同组。不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
+TASK 是生成单元，不是小电影；参考和最终 prompt 带进入/离开的动作与声相，不因边界默认停步、摆终姿、停顿或下组重启建立镜头。按注意、想法或动作阶段切，硬切可在动作中；跨视角方向、姿态、握持与进度相容，不要求相同帧。不同角度从属剪辑目的，不保证连续性或豁免错接。可行时关键接触/无缝续声同组，保留连续成员、时长、模型最大值与 grants，源重设计交 Director/owner 在原始预算内同步。场/幕关系保留连续、省略、反差或平行，不强制过桥场或叠化。
 
 检查入口为 `scripts/check-shot-inputs.mjs EP [SHOT...]`，配合 review-evidence check。五类 evidence 保留 script/storyboard/asset-prompt/asset-visual/shot-input；最终就绪不含 asset-prompt，新生图另须它。整集源 1..N 且每镜分配一次，任务按首成员排序；局部允许源缺号、目标存在且选完整组。全局检查组重叠/缺失源成员，局部不要求未选媒体或全片计划。未分配/部分组报告完整成员及额外镜头，不静默扩授权。接口不相容交工程。
 
-shot-input target 为 task manifest；审核最终集成/delta、参考时钟、内部切点/声音桥及必要外部边界，无具体冲突复用 storyboard 判断。比较位置、轨迹、状态、轴线与身份，实际依赖入 inputs，不附全计划哈希。源码/记账变化且媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审；看图仍新 task、缩略图优先。缺必要证据 unknown。
+shot-input 纯文本 owner 按 [接点规则](../skills/reviewer-review-shot-inputs/SKILL.md#task-junction-coverage) 验收实际参考与最终 prompt：整集覆盖所有相邻组，局部仅必要邻界及实际故事依赖，不附全计划哈希。fresh helper 比较选中 clean MP4 尾/头窗口和两端 prompt，披露音频实听/仅存在/计划；预采 inputs 且仍适用的独立观察可复用，不强制两端重复视觉 pass 或建账本。必要邻组缺失为受影响 target unknown，不扩生成授权，不授权自动剪辑或审生成视频。源码/记账变化沿用 scoped 兼容性判断，不盲刷哈希或自动全量重审。
 
 short/series 含资产图与本地参考，停在付费视频提交前；后续手动 generate-video 建立真实 initial grant。submitted 按 recorded ID/provider 取回，缺 ID 人工核实并保留状态。None 禁新提交而非取回；保留 fixed settings、pending/receipt、grants、locks 和 inflight。
 

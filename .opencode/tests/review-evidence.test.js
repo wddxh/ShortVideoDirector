@@ -107,7 +107,7 @@ test('asset reference fingerprints stale only the dependent visual target', asyn
   for (const dir of ['assets/buildings', 'assets/locations', 'assets/images/buildings',
     'assets/images/locations']) mkdirSync(dir, { recursive: true });
   writeFileSync(anchor, 'Pale stone hall');
-  writeFileSync(target, `## 基本信息\n- 同实体参考：[hall](${anchor})\n`);
+  writeFileSync(target, `## 基本信息\n- 资产参考：[hall](${anchor})（同建筑整体外观与结构）\n`);
   const prompt = round([target], [pass(api, target, [target, 'config.md', anchor])]);
   evidence(api, target, [prompt]);
   assert.equal(check(api, [target]).status, 'pass');

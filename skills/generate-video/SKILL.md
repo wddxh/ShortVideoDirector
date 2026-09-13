@@ -55,7 +55,7 @@ short 准备写入前核对整集；历史缺少 ratio/resolution 时阻止新�
 
 Creator 在摄影设计后将连续 shots 装组，保留时长、对白及切点。核实模型最大时长 M，以 `ceil(0.7*M)..M` 为语义装组目标而非机械下限；实际 provider 时长边界（含硬上限）用于任务。装组/提交操作中不延长 shot、场景或整集；无法合理装组交 Director 协调 owner，按原始确认集预算修订 canonical script/storyboard、同步受影响下游并取得当前相关审核后返回准备。该修订可在原始边界内净增，不扩大边界或绕过真实 grants、输入一致性及受保护记录。
 
-Materials 将各成员完全相同的单行 `视频风格` 提取一次，仅从成员移除该字段；不一致交 owner。内部源标题、其余字段、对白、空格、续行及 prose 保留并绑定声明引用；仅行首结构 cue 按派生 offset 重基，校验镜内范围且允许合理重叠。Creator 据材料写最终任务时间 prose、统一媒体参考时钟/内部切点/声音衔接；不把内部源标题、shot/task IDs、路径或审核元数据带给模型，保留叙事/动作与对白原词。
+Materials 将各成员完全相同的单行 `视频风格` 提取一次，仅从成员移除该字段；不一致交 owner。内部源标题、其余字段、对白、空格、续行及 prose 保留并绑定声明引用；仅行首结构 cue 按派生 offset 重基，校验镜内范围且允许合理重叠。Creator 据材料写最终任务时间 prose、统一媒体参考时钟/内部切点/声音衔接；仅清理非成片源标题、内部 shot/task IDs、路径和审核元数据，保留叙事/动作、对白及有意上屏的准确原词。按 [转场与片中文字](../_meta/rules/transition-craft.md) 区分正式文字与内部预览标注，clean MP4 可含正式卡片/UI/SUPER，不额外增加装组时长，也不承诺模型文字准确性。
 
 准备使用已审最终 `task-inputs/taskNN.json` 的 `{shots,references,prompt}`，prompt 为 Creator 在审核前据源、所选 provider 的材料工具及实际 refs 编写的非空白语义字符串；`{shots,references}` 草稿仅供该 provider 材料准备，不通过最终审核/就绪。工具/pack/引用语法见所选 provider 文档，Dreamina 见 [video.md](../creator-provider-dreamina/video.md#dreamina-authoring-materials)。task_id 来自文件名且独立于首镜；通用 converter 两入口使用 `--json STORYBOARD TASK_ID EP`，返回 `{task_id,shots,timeline:[{shot,start,end}],prompt,duration,references,assetCards,sources,inputPath}`，prompt 原样来自 manifest，不生成或重写。不维护第二份装组索引或可编辑 offset/duration。Header 身份图按首次使用求并集后接本地 PNG/MP4，每任务至少一个全组时间线 MP4；静态段可用静态 clip。每镜链接须自身 header 声明，sources 不上传。
 
@@ -68,7 +68,7 @@ Creator 在参考视频/装组映射完成后写最终 prompt，自查实际 `--
 1. 整体理解原始请求 `$ARGUMENTS` 和会话中的集数、镜头、文件参考与提交意图。查看配置只 Read 实际配置（SVD_CONFIG 或 config.md），缺失不初始化。写入/付费前确定 canonical ep 与 exact shots；只有明确全范围才选全部，遗漏或歧义先澄清，不默认 latest/all。读取对应 config/storyboard；路径或审核通过不等于付费授权。
 2. 按真实状态区分准备/提交与取回，submitted 缺 ID 或 inflight 未决先人工核实。下述完整就绪检查包含结构检查；只诊断结构时可单独运行 `check-shot-inputs.mjs EP [SHOT...]`。
 3. 以严格 heading `### shot N` 精确匹配所选镜头。整集要求 1..N 且每镜恰好分配一次，任务按首成员排序；局部源允许缺号但递增唯一、目标存在且选择完整组。全局校验声明组重叠和缺失源成员，局部不要求未选媒体或完整全片计划。未分配目标或部分选组报告 task_id、完整成员及需额外选择的镜头，不静默扩大授权。
-4. 确认目标 task manifest 已由 Creator 在授权内组装，最终包已有独立 shot-input 审核。执行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" check "{ep}" {全部所选成员编号}`，非零停止，不自动重生。通过后调用 `storyboard-to-prompt.sh --json "{storyboard}" "{task_id}" "{ep}"`（.mjs 同参数），失败不写半成品；保存 task_id/shots 及原样 prompt/duration/references，不把 resolver 元数据塞入上传数组。
+4. 确认目标 task manifest 已由 Creator 在授权内组装，最终包已有独立 shot-input 审核，或用户明确要求且已依法签录[单任务人工视觉例外](../_meta/rules/shot-input-visual-exception.md)。例外不代替本入口真实生成授权，不自动创建/续期。执行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" check "{ep}" {全部所选成员编号}`，非零停止，不自动重生。例外接受时原独立 unknown 和 `user_visual_exception` 接受依据同时输出，以实际 exit code 判断就绪，不能声称独立 pass。通过后调用 `storyboard-to-prompt.sh --json "{storyboard}" "{task_id}" "{ep}"`（.mjs 同参数），失败不写半成品；保存 task_id/shots 及原样 prompt/duration/references，不把 resolver 元数据塞入上传数组。
 5. 核对本地 reference/sources 路径，每任务至少一个全组 MP4，可辅以 PNG；sources 只作审核输入。最终就绪要求 script/storyboard/asset-visual/shot-input；新生图另须 asset-prompt。独立 reviewer 检查最终集成、内部切点/声音桥和必要外部边界，按实际依赖取指纹；机械就绪不证明穷尽连续性。
 6. 预登记到 `story/episodes/{ep}/videos/tasks.json`：
    - 为请求内首次提交的 prepared pending 按上述格式登记实际请求的 initial_authorization；与 capture 得到的 submission 一起在提交前保存。不得省略 grant 而指望 wrapper 从聊天推断许可，也不为已有 protected 或范围外任务造记录。

@@ -44,6 +44,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/review-image.py" "SOURCE" --output-dir /t
 
 ## 动画与证据
 
+任务接点比较用实际选中 clean MP4 的尾/头相干时间窗口，不只两张端点；将支持接点源意图的两侧证据放在同一次有限 fresh helper 操作，结合最终 prompt 核对：同一事件检查必要动作/空间/声音延续，场幕/时空跳转检查叙事关系与观众定位，不强制续动作/续声。整集覆盖全部相邻组，局部仅必要邻界，按故事另取非相邻/跨集依赖。每个消费 owner 均在读取前采集 inputs、观察仍适用时可共享独立文本事实，无需两端重复看图；各自独立判断目标，不加账本。披露采样及音频实听/仅存在/计划的限制，必要邻界证据缺失为受影响目标 unknown，不扩生成授权。细则见 shot-input 接点审核。
+
 动画 GIF 和其他多帧图片不能静默取首帧冒充缩略图；helper 会拒绝此类输入。需要时在全新任务中用适当工具显式抽取有意义的采样帧到指定临时目录，记录原文件/指纹、帧编号或时间点及抽取方式；各次查看仍按上述新任务和缩略图规则，只带最小必要帧集。披露只看采样帧的时间覆盖与运动/时序判断限制，不能据此证明完整动画连续性。此 helper 不是时序验证器，也不新增最终视频审核权限。
 
 五种 runtime 审核按 review-meta-rules 在读取前由目标 owner 用 review-round start/add-input 采集原材料，finish 复核并注入 `result.inputs` 的原路径与整文件 SHA-256。局部视觉 delegate 所需参考也须 owner 在委托读取前采集；新参考先回传路径，采集后再交全新任务查看。delegate 返回实际观察、所读路径、预览依据和限制，不以后采快照追认前次读取，也不建 import registry。可选 `result.visual_inspection` 保存真实预览 helper JSON；动画帧另保留原动画采样映射与覆盖限制。派生依据不替换或刷新 inputs。

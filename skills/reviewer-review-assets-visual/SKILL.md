@@ -25,7 +25,7 @@ model: opus
 
 嵌套不可用时请主 AI/Director relay 派全新 sibling Reviewer，通过 helper 写指定目标文件并回传实际摘要。局部检查由独立 owner 在 delegate 读取前 start/add-input 采集所需参考，delegate 返回实际观察、所读路径及限制；新参考先回 owner 采集再交 fresh task 读取，不以后采快照追认。复用已确认深度限制，不反复尝试，不恢复 image-heavy task，不增加一次全量审核。
 
-单项只审核一个 TARGET，但可读取其声明的同实体/基础引用所需直接参考卡与 PNG，包括跨类别，不递归或遍历历史。转交参考路径及共享标志物、几何、材质、状态的比较要求；参考仅为 inputs，不自动加入 scope/dirty list/生成目标。目标 owner 用 helper 保留阅读前依据并在 finish 复核；参考变更只令依赖该输入的证据过时，不自动全量重生或清除其他结论。receipt 无参考列表，不能声称证明原始输入。
+单项只审核一个 TARGET，读取其「资产参考」/基础引用所需直接卡、相关图像提示与 PNG，包括跨类别，不递归或遍历历史。转交真实参考路径及关系/用途，核对正确来源与观察面，不照搬构图；仅真实同实体比较共同身份、几何、材质与状态，共享特征不强制同身份。参考仅为 inputs，不自动加入 scope/dirty list/生成目标。目标 owner 用 helper 保留阅读前依据并在 finish 复核；参考变更只令依赖该输入的证据过时，不自动全量重生或清除其他结论。receipt 无参考列表，不能声称证明原始输入。
 
 缺图/缺卡、任务失败或空响应为该目标 unknown，不自动接受或发起修复。单项 Reviewer 在指定临时 PAYLOAD.json 写 commentary/result，显式 status/blockers 和专业字段，再 `review-round.mjs finish STATE PAYLOAD.json`；helper 复核依赖、保留首次哈希并注入 target/inputs，错误保留且证据问题记 unknown。缺显式 status 的 payload 无效，交 owner 修正。用于范围选择的 script/config 由 owner 采集后重新读取核对，不追认协调者早先读取；receipt 在读取前 add-input，历史图片缺 receipt 不单独失败。
 

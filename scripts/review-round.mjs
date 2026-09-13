@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { configPath, reviewPath, requiredInputs, fingerprintInputs, readRounds } from './review-evidence.mjs';
+import { configPath, reviewPath, requiredInputs, fingerprintInputs, readRounds,
+  visualExceptionQualified } from './review-evidence.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const inside = (root, file) => file.startsWith(`${root}${path.sep}`);
@@ -169,7 +170,7 @@ export function addInput(statePath, paths) {
   });
 }
 
-function payloadFrom(file, statePath) {
+function payloadFrom(file, statePath, kind) {
   file = temporary(file);
   if (file === statePath) throw new Error('Payload cannot alias STATE');
   const payload = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -187,6 +188,9 @@ function payloadFrom(file, statePath) {
   if (/## \u7b2c [0-9]+ \u8f6e|<!--\s*\/?(?:svd-review-evidence|round-)/u.test(JSON.stringify(payload))) {
     throw new Error('Reserved review delimiter in payload');
   }
+  if (Object.hasOwn(result, 'visual_exception_qualification') && !visualExceptionQualified(kind, result)) {
+    throw new Error('Invalid shot-input visual exception qualification');
+  }
   return payload;
 }
 
@@ -195,7 +199,7 @@ export function finishRound(statePath, payloadPath) {
   return locked(loaded.state.path, () => {
     const { state } = loadState(loaded.statePath);
     const bytes = currentRound(state);
-    const payload = payloadFrom(payloadPath, loaded.statePath);
+    const payload = payloadFrom(payloadPath, loaded.statePath, state.kind);
     const checked = new Set();
     const verify = file => {
       if (checked.has(file)) return;
@@ -210,6 +214,7 @@ export function finishRound(statePath, payloadPath) {
     discover(state, verify).forEach(verify);
     const result = { ...payload.result, target: state.target, inputs: state.inputs };
     if (state.evidence_issues.length) {
+      delete result.visual_exception_qualification;
       result.status = 'unknown';
       result.blockers = [...new Set([...result.blockers, ...state.evidence_issues])];
     }

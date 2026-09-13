@@ -57,17 +57,17 @@ Dreamina 的 text2image/image2image 使用 `--poll=0`，先持久化 receipt 与
 
 卡片有 `## 本地制作参考` 时必读 [共享契约](../_meta/rules/local-reference.md)，从项目根运行 `local-reference.mjs parse|ready CARD`（脚本位于 `${CLAUDE_PLUGIN_ROOT}/scripts/`）。本地 PNG 和实际可编辑工程/脚本/输入须先就绪并进入当前 prompt 独立审核；该检查不要求普通未来生成 PNG 先存在。缺声明文件不可删引用降成 text2image。
 
-基础 job.images 保留全部同实体/基础资产图，再按声明顺序追加本地 images 各一次，作为精确后缀。Creator 在 prompt review 前按选定 provider 的引用语法，将最终有序 images 中每份实际输入及其用途绑定到完整 prompt，包含 narrative 的控制意图/占位边界；具体语法读取该 provider 的图像契约。提交原样使用已审核 prompt 和对应顺序，runner/wrapper 仅透传，不在提交时猜测、补写或重编号。绑定缺失或错误交 prompt owner 修订并独立复审。Sources 不上传。Runner/wrapper 检查本地声明及真实文件，不替代语义判断。
+基础 job.images 保留全部声明的直接资产参考图与必需基础图，再按声明顺序追加本地 images 各一次，作为精确后缀。Creator 在 prompt review 前按选定 provider 的引用语法，将最终有序 images 中每份实际输入的关系/用途写入完整 prompt 的全局映射与实际使用处，包含 narrative 的控制意图/占位边界；具体语法读取该 provider 的图像契约。提交原样使用已审核 prompt 和对应顺序，runner/wrapper 仅透传，不在提交时猜测、补写或重编号。绑定缺失或错误交 prompt owner 修订并独立复审。Sources 不上传。Runner/wrapper 检查本地声明及真实文件，不替代语义判断。
 
 需要重新制作参考时，Creator 按 local craft 知识和原委托直接编辑 references/、渲染/看图/修订，再由 Director 协调受影响审核，不让 provider runner 变成本地生产脚本。当前 provider wrappers/evidence 是付费执行安全桥梁，不是艺术调度器；本 skill 的 manifest-only 编辑范围不扩张到其他 owner 文件或擅自改审核。
 
-标准卡先读取基本信息可选「同实体参考」，按 canonical 直链声明顺序用 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/asset-to-image-path.sh" "{ref_card}" ...` 映射为有序 `job.images`；只含直接 refs，不递归展开。声明多项须完整保留；无声明/其他必需引用才可空数组，有 refs 的标准卡走 image2image。提示仍自包容，写清参考绑定与当前目标。衍生资产继续提供其基础图，不用同实体视图替代状态衍生规则。
+标准卡先读取基本信息可选「资产参考」及各项 prose 关系/用途，按 canonical 直链声明顺序用 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/asset-to-image-path.sh" "{ref_card}" ...` 映射为有序 `job.images`；只含实际需要的直接 refs，不递归展开或上传无关关联卡。声明多项须完整保留；无声明/其他必需引用才可空数组，有 refs 的标准卡走 image2image。提示仍自包容，绑定外观/结构来源并表达本图位置、朝向、尺度、遮挡与可见部分；仅共享特征不强制同身份，本地 PNG 仅按复杂性/精度需要采用。衍生资产继续提供其基础图，保留状态变化规则。
 
-缺卡、缺图或前置未就绪报告具体 prerequisite blocked，不能丢引用退回 text2image。批内已授权前置图等待完成，批外须就绪；缺前置不自动扩目标、force 或覆盖参考图。基本信息到图片的映射完整性由 Creator 核对，runner 仅按实际 images 强制依赖、状态与有序传参，不推断同实体或验证标准卡声明。
+缺卡、缺图或前置未就绪报告具体 prerequisite blocked，不能丢引用退回 text2image。必需生成依赖无环，批内已授权前置图等待完成，批外须就绪；缺前置不自动扩目标、force 或覆盖参考图。基本信息到图片的映射完整性由 Creator 核对，runner 仅按实际 images 强制依赖、状态与有序传参，不解析资产参考声明或推断语义关系。
 
 Dreamina 批量用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-images-dreamina.mjs" [--force] [--concurrency N] JOBS.json`。每项 `{source,output,prompt,images,settings:{provider,model,ratio,resolution}}` 只含审核提示、解析设置及授权资产。Write/Edit 仅写此临时 manifest，每次不超过 2000 字符，不改卡片/review/pending。
 
-按 [视觉上下文规则](../_meta/rules/visual-context.md)，一个全新 Creator 生成上下文用单一 runner 承接相干、已授权、当前 prompt 门禁通过且就绪的多 job 有限批次，只回文本状态、全部 IDs/路径，不读图或附图。默认最多 5 个 active jobs，不是账号总配额。仅实际 scope、依赖、provider、本地资源或用户约束要求时串行/设 `--concurrency 1` 或调整并发，在现有 handoff 简记依据，不新增报告、schema 或必填配额。images 完整有序；同实体及基础/衍生实际引用形成等待边，批内前置完成后供下游使用，批外须就绪。无关目标不必等待另一目标的视觉验收；同一 review 文件写入串行不等于生图串行，实际待审依赖仍须先满足证据门禁。
+按 [视觉上下文规则](../_meta/rules/visual-context.md)，一个全新 Creator 生成上下文用单一 runner 承接相干、已授权、当前 prompt 门禁通过且就绪的多 job 有限批次，只回文本状态、全部 IDs/路径，不读图或附图。默认最多 5 个 active jobs，不是账号总配额。仅实际 scope、依赖、provider、本地资源或用户约束要求时串行/设 `--concurrency 1` 或调整并发，在现有 handoff 简记依据，不新增报告、schema 或必填配额。images 完整有序；直接资产参考及基础/衍生实际引用形成等待边，批内前置完成后供下游使用，批外须就绪。无关目标不必等待另一目标的视觉验收；同一 review 文件写入串行不等于生图串行，实际待审依赖仍须先满足证据门禁。
 
 单一 runner 管理本批并发，不同时另开 runner 或用 shell 后台并行 raw provider/单图 wrapper 绕过调度。重复相同 output 去重，冲突请求拒绝；命中 target/ref pending 的批次整体阻塞。output claim 内复查 pending/receipt 与非 force completed skip，不凭旧 PNG 推定已完成。force 作用于整次 invocation，按不同 force 授权拆分调用，force 批只传明确替换目标；缺少授权的前置不得借入批覆盖，拆批仍遵守下述停止与恢复边界。
 

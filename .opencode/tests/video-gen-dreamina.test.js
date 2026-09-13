@@ -4,9 +4,87 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { videoProject } from './fixtures/video-project.js';
+import { visualException } from './fixtures/visual-exception.js';
 
 const script = join(process.cwd(), 'scripts/video-gen-dreamina.sh');
 const input = 'story/episodes/ep01/task-inputs/task01.json';
+
+test('user visual acceptance preserves authorization and protected state at gate/reserve', t => {
+  const f = fixture(t), x = visualException(t, f);
+  assert.equal(x.finish().status, 0);
+  assert.equal(x.record().status, 0);
+  const initial = f.task.initial_authorization;
+  const retry = { decision: 'Retry once', episode: 'ep01', task_id: 'task01', shots: [1],
+    constraints: [], max_attempts: 1, attempts: 1 };
+  for (const delta of [
+    { initial_authorization: undefined },
+    { status: 'failed', retry_authorization: undefined },
+    { status: 'failed', retry_authorization: retry },
+    { inflight: { token: 'unresolved' } },
+    { status: 'submitted', submit_id: 'existing' },
+    { status: 'done', submit_id: 'existing' },
+    { shots: [1, 2] }, { initial_authorization: { ...initial, shots: [2] } },
+    { prompt: f.task.prompt + 'changed' },
+  ]) {
+    const base = structuredClone(f.task);
+    Object.assign(f.task, delta); f.save();
+    const before = readFileSync(join(f.root, f.tasks), 'utf8');
+    for (const action of ['gate', 'reserve']) {
+      const r = f.cli('video-task-inputs.mjs', [action, '--references-json',
+        ...f.args().slice(0, 6), 'dreamina', '1080p']);
+      assert.equal(r.status, 1, JSON.stringify(delta));
+    }
+    assert.equal(f.run().status, 1);
+    assert.equal(existsSync(f.calls), false);
+    assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+    for (const key of Object.keys(f.task)) delete f.task[key];
+    Object.assign(f.task, base);
+  }
+});
+
+test('accepted unknown forwards exact prompt/refs only with a grant; drift is zero-call', t => {
+  const f = fixture(t), x = visualException(t, f);
+  assert.equal(x.finish().status, 0);
+  assert.equal(x.record().status, 0);
+  const before = readFileSync(join(f.root, f.tasks), 'utf8');
+  for (const file of [f.video, f.image, input, 'references/scene.blend']) {
+    const old = readFileSync(join(f.root, file), 'utf8');
+    f.write(file, old + '\nchanged');
+    assert.equal(f.run().status, 1);
+    assert.equal(existsSync(f.calls), false);
+    assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+    f.write(file, old);
+  }
+  const result = f.run();
+  assert.equal(result.status, 0, result.stderr);
+  const args = readFileSync(f.calls, 'utf8').split('\0').slice(0, -1);
+  assert.deepEqual(args, ['multimodal2video', ...f.task.references.flatMap(r => [`--${r.media}`, r.path]),
+    `--prompt=${f.task.prompt}`, '--duration=10', '--ratio=16:9', '--video_resolution=1080p',
+    '--model_version=stored-model']);
+  assert.equal(JSON.parse(readFileSync(join(f.root, f.tasks), 'utf8'))[0].submit_id, 'job-1');
+});
+
+test('exception retry rechecks inputs before consuming the persisted attempt', t => {
+  const f = fixture(t), x = visualException(t, f);
+  assert.equal(x.finish().status, 0);
+  assert.equal(x.record().status, 0);
+  f.task.status = 'failed';
+  f.task.retry_authorization = { decision: 'Retry once unchanged', episode: 'ep01',
+    task_id: 'task01', shots: [1], constraints: [], max_attempts: 1, attempts: 0 };
+  f.save();
+  const before = readFileSync(join(f.root, f.tasks), 'utf8');
+  const source = 'references/scene.blend', old = readFileSync(join(f.root, source), 'utf8');
+  f.write(source, old + 'changed');
+  assert.equal(f.run().status, 1);
+  assert.equal(existsSync(f.calls), false);
+  assert.equal(readFileSync(join(f.root, f.tasks), 'utf8'), before);
+  f.write(source, old);
+  const submitted = f.run();
+  assert.equal(submitted.status, 0, submitted.stderr);
+  const task = JSON.parse(readFileSync(join(f.root, f.tasks), 'utf8'))[0];
+  assert.equal(task.retry_authorization.attempts, 1);
+  assert.equal(task.status, 'submitted');
+});
 function writePrompt(f, prompt) {
   const manifest = JSON.parse(readFileSync(join(f.root, input), 'utf8'));
   f.write(input, JSON.stringify({ ...manifest, prompt }));

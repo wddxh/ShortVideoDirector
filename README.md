@@ -70,7 +70,7 @@ Sources 是真实可编辑工程/脚本及所需输入，只作编辑/审核，�
 
 粗参考仍需详细 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不设细节配额。ref.use 与 Creator 最终 manifest.prompt 都说明相机/取景/布局/整体轨迹控制，不照搬代理滑移、僵硬姿势、步态或解剖；最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。强模型也可能模仿粗运动，文字不保证忽略它，应先减少媒体中的非必要表演信号。
 
-独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性；相似连续镜头适合时同组。不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
+TASK 是生成单元，不是小电影；不因边界默认停步、摆终姿、停顿后重启或重新建立空间。切点跟随注意、想法或动作阶段，硬切可发生在动作中；连续、省略、反差和平行关系贯穿镜头、任务与场/幕。不同角度/景别从属剪辑目的，不保证连续性或豁免方向、姿态、握持与进度错接，也不要求相同帧。可行时关键接触/无缝续声同组，保留源时长、连续成员、模型最大值和 grants；源重设计交 Director/owner 在原始预算内同步。详见 [视听剪辑指南](skills/_meta/rules/audiovisual-craft.md#剪辑关系跨越镜头任务与场幕)。
 
 创作材料由所选 provider 的自有工具提供，具体命令、pack、引用 token 计数/绑定与时间重基见该 provider 文档；Dreamina 见 [视频材料工具](skills/creator-provider-dreamina/video.md#dreamina-authoring-materials)。草稿可供材料准备，不表示就绪。Creator 在审核前对照 canonical 源、provider 工具输出及实际 refs 创作语义 prompt。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现材料工具，无需 registry/framework/manifest schema 变更。Header 身份图首次使用求并集后接本地媒体，每镜链接须自身 header 声明。
 
@@ -87,7 +87,7 @@ SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.m
 
 整集源编号 1..N，每镜恰分配一次，任务按首成员排序；局部允许源缺号但递增唯一、目标存在且选完整组。全局检查声明组重叠/缺失源成员，局部不要求未选媒体或完整全片计划。未分配请求/部分选组报告完整成员及额外镜头，不静默扩授权。submitted 按 recorded ID/provider 取回，缺 ID 保留状态待核实。接口不相容交主 AI/general。
 
-独立 shot-input target 为 task manifest，审核最终 prompt/media 集成、变化细节、任务时钟、内部切点/声音桥及故事必要相邻/非相邻/跨集边界；无具体冲突复用 storyboard 判断。比较位置、轨迹、状态、轴线与身份，实际依赖入 inputs，不给每项媒体附全计划哈希。源码/记账变而媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审。缺必要证据 unknown。
+独立 shot-input target 为 task manifest，纯文本 owner 验收最终 prompt/参考媒体集成：整集覆盖所有相邻组接点（含场/幕转换），局部只取必要邻界，按故事补非相邻/跨集依赖。每个接点按 [源意图](skills/_meta/rules/shot-inputs.md#reference-authority) 判断：同一事件检查必要动作/持有/空间/声音延续，场幕/时空跳转检查因果、情绪、信息、主题反差或平行关系及观众定位，不强制同位置、续动作、续声或过桥场；保留源支持的悬念、突兀感与硬切，不必顺滑或立即解释，同集底层身份/世界事实保持源一致。独立任务边界仍默认强烈优先有动机、明显不同的机位/视点/景别，以降低近似独立生成差异的显眼程度。fresh helper 比较实际选中 clean MP4 的尾/头相干窗口及两端最终 prompt，披露音频实听、仅存在或仅计划；J/L-cut 源台词只出现一次，独立生成音频不虚称无缝。每个消费 owner 预采 inputs、观察仍适用时复用独立配对事实，不重复强制两端视觉 pass 或建账本。必要邻组缺失只使受影响 target unknown，不扩生成授权、不附全计划哈希。源码/记账变化沿用 scoped 兼容性评估；验收不是生成视频质量审核或自动剪辑许可。
 
 每次视觉操作（渲染、查看、修订、审核、采样/crop）使用全新 task、helper 缩略图和最小必要图集/配对。只 Read review-image.py 返回 preview，原媒体用于上传与指纹。必要 crop 另开任务，披露 MP4 查看方法、采样时刻与覆盖限制。原图不直接 Read；首尾静帧不证明完整轨迹。见 [visual-context](skills/_meta/rules/visual-context.md)。审核者只写受托 canonical 记录及指定临时 state/payload/预览；生产 Director 不聚合写 pass，无独立上下文则阻塞。
 

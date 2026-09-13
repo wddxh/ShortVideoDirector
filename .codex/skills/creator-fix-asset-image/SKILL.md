@@ -45,13 +45,15 @@ user-invocable: false
 
 创作材料使用所选 provider 自有 material tool，具体命令、pack、token 计数/绑定和重基规则见该 provider 文档；Dreamina 见 `skills/creator-provider-dreamina/video.md`。草稿可供材料解析但不表示就绪。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现工具，无需 registry/framework/manifest schema 变更。共同风格在最终 prompt 表达一次，不同基线交 owner；源事实及对白完整保留。身份图按成员首次使用求并集在前，本地媒体在后，每镜链接须自身 header 声明，sources 不上传。
 
-Creator 在视频参考/装组映射确定后读 materials 和 provider 语法，写完整任务时间 prose 到 manifest.prompt，保留叙事、动作、对白原词、切点、时长及声音，绑定实际 tokens 并解释 BOX/颜色/身体/肢体代理的最终身份、解剖与动作。源局部时间转成明确任务时间；不上传内部 task/shot IDs、源标题、路径或审核元数据，不机械禁用 wide shot 等摄影词。缺源事实交 owner，不编造 use。Creator 自查实际最终 `--json` 后交 fresh shot-input Reviewer 核对源忠实度、完整性和集成；提交不改写。
+Creator 在视频参考/装组映射确定后读 materials 和 provider 语法，写完整任务时间 prose 到 manifest.prompt，保留叙事、动作、对白原词、切点、时长及声音，绑定实际 tokens 并解释 BOX/颜色/身体/肢体代理的最终身份、解剖与动作。源局部时间转成明确任务时间；仅清理非成片源标题、内部 task/shot IDs、路径和审核元数据，保留有意上屏原词与 wide shot 等摄影词。缺源事实交 owner，不编造 use。Creator 自查实际最终 `--json` 后交 fresh shot-input Reviewer 核对源忠实度、完整性和集成；提交不改写。
+
+转场与文字按 `skills/_meta/rules/transition-craft.md`：区分场内 UI、观众 SUPER/时间地点/章节/全屏卡和内部调试预览。clean MP4 无内部污染，可含正式文字与转场图像；预演底栏字幕仍内部非上传。Scriptwriter 拥有原词和时间事实，已有隔日事实可设计卡片，新跳时交 owner；Storyboarder 管阅读窗口/切点，独立卡计镜头数与预算，叠字不重复计时，装组不加秒。Creator 可选本地文字引导，Reviewer 查来源/原词/阅读/对比/注意/揭示，观众文字不套演员阅读面，不因文字或黑底失败。源/输入验收不保证成片模型质量，不笼统禁字或承诺准确性。
 
 tasks.json 保持数组，task_id 唯一并保存 shots/prompt/duration/typed references，输出 `videos/taskNN.mp4`；submission 保留四元组与有序媒体指纹。Grants 为 `{decision,episode,task_id,shots,constraints}` 加真实可选次数；reserve 前当前 manifest 成员等于 record/grant，错误身份、成员/输入漂移或部分选组零调用、不改次数。取回按 recorded ID/provider，保留 grants/inflight/submitted/done/真实状态。统计按生成任务，human_needed 为 `{ep,task_id,shots,reason}`，每 ep/task_id 一条完整成员；monitor 仍 epNN/all。
 
 就绪用 check-shot-inputs.mjs 及 script/storyboard/asset-visual/shot-input；新生图另审 asset-prompt。整集源 1..N 且每镜分配一次，任务按首成员排序；局部允许源缺号、目标存在且选完整组。全局查组重叠/缺失源成员，局部不要求未选媒体或完整全片计划。未分配请求/部分组报告完整成员与额外镜头，不静默扩授权。
 
-shot-input target 为 `task-inputs/taskNN.json`，保留五种 kind；审核最终集成/delta、任务时钟、内部切点/声音桥及必要外部边界，无具体冲突复用 storyboard 判断。按故事选相邻/非相邻/跨集配对，比较位置、轨迹、状态、轴线和身份，实际依赖入 inputs，不附全计划哈希。源码/记账变而媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审。每次视觉操作仍新 task、缩略图与最小配对；缺必要证据 unknown。主 AI/general 负责工程与测试。
+shot-input target 为 `task-inputs/taskNN.json`，纯文本 owner 验收最终参考与 prompt 集成、时钟和接点：整集覆盖所有相邻组（含场/幕），局部只取必要邻界及实际非相邻/跨集依赖，不附全计划哈希。fresh helper 比较实际选中 clean MP4 尾/头相干窗口和两端 prompt，披露音频实听/仅存在/计划；J/L-cut 源原句一次，独立生成音频不虚称无缝。每个消费 owner 预采 inputs 且观察仍适用时复用独立配对事实，不强制两端重复视觉 pass 或建账本。必要邻组缺失只使受影响 target unknown，不扩生成授权。源码/记账变化沿用 scoped 兼容性评估，不盲刷哈希；无具体冲突复用 storyboard 判断。保留五种 kind、fresh task、缩略图及既有 gates，不审生成视频或授权自动剪辑。主 AI/general 负责工程与测试。
 
 通用 storyboard-to-prompt 的 `.sh` 与 `.mjs` 均显式传 `--json STORYBOARD TASK_ID EP`，仅原样返回最终 manifest.prompt，不生成或改写文本。EP 与 canonical storyboard 路径一致；task_id 来自 manifest 文件名，不从首镜推导或与宿主代理任务 ID 混用。最终 `--json` 要求非空白字符串 prompt；草稿不能通过最终审核/就绪，既有 shot-input target 指纹绑定 manifest.prompt。generate-video 把最终原文存入 tasks.json，保留 submission 快照；gate/reserve 比较最终 manifest 的 prompt/duration/references，不比较源拼接文字，不增加 kind/gate/最终提示文件/账本或迁移。
 
@@ -61,7 +63,7 @@ shot-input target 为 `task-inputs/taskNN.json`，保留五种 kind；审核最�
 
 粗参考需详细 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不设细节配额。ref.use 与 Creator 亲写的实际最终 manifest.prompt 都说明相机/取景/布局/整体轨迹控制，不照搬滑移、僵硬姿势、步态或代理解剖；最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。否定措辞不能抵消错误媒体，先省略或修正误导信号，不以 pass 加“prompt 写自然”结案。
 
-独立生成 TASK 边界优先已有、有动机的明显机位/视点/景别切换，减少近似独立生成不一致的显眼程度，不保证连续性；相似连续镜头适合时同组。不要求每切一任务或角度阈值，保留有意重复构图、连续成员、时长、provider 最大值和 grants。源重设计交 Director/owner 在原始预算内同步，不静默重组受保护任务或改切点。
+独立生成 TASK 边界默认强烈优先采用有剪辑动机、明显不同的机位／视点／景别，以降低近似构图独立生成差异的显眼程度。每个相邻接点按源意图判断：同一连续事件保持必要动作进度、持有/接触、空间与声音的相容延续；场/幕或时空跳转判断因果、情绪、信息、主题反差或平行关系与观众定位，不套同一事件标准，不强制同位置、续动作、连续声音或过桥场。源支持的悬念、突兀感与硬切不必顺滑或立即解释；同集底层身份与世界事实一致，有意变化须有源依据。沿已有动机切点装组，相似镜头可同组；实际需要的匹配／重复构图保留，关键接触或必须无缝续声可行时同组，在现有交接说明取舍，不新增许可。此偏好不是每镜变化、每切一任务或角度配额，不保证连续性或豁免违背源意图的错接。TASK 不等于场景或幕，约束内可含多镜/多场，不强制幕结构、停步、终姿、停顿、下组重启或叠化；运动中硬切有效，不要求相同帧。参考与最终 prompt 保留对应接点意图及必要局部事实。保留源时长、连续成员、模型最大值及 grants；源重设计由 Director/owner 在原始预算内同步。
 
 主 AI 完整展示原角色的当前一题正文及全部解释，再用当前模式可用的 `request_user_input` 键盘选择器。questions 恰好一项；id 稳定、header 不超过 12 字符，options 通常 2-3 项，以实际 schema 为准。示例只说明映射，不提供剧情：
 

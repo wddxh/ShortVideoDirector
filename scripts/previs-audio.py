@@ -71,17 +71,11 @@ def add_tone(track, first, last, frequency, cue=False):
         track[first + offset] += envelope * tone
 
 
-def main():
-    parser = Parser(description=__doc__)
-    parser.add_argument("plan")
-    parser.add_argument("--duration", required=True, type=float)
-    parser.add_argument("--output-dir", required=True)
-    args = parser.parse_args()
-    duration = number(args.duration, "--duration")
+def validate_plan(plan, duration):
+    """Validate without I/O; return speaker metadata and sample-timed events."""
+    duration = number(duration, "--duration")
     if duration <= 0 or sample(duration) < 1:
         raise ValueError("--duration must be positive and round to at least one sample")
-    frames = sample(duration)
-    plan = json.loads(Path(args.plan).read_text(encoding="utf-8"))
     if not isinstance(plan, dict):
         raise ValueError("plan must be an object")
     segments, cues = plan.get("segments", []), plan.get("cues", [])
@@ -127,6 +121,21 @@ def main():
         events.append({"cue": index, "track": "cues.wav",
                        "start_sample": first, "end_sample": last})
         cue_labels.append({"cue": index, "label": label})
+
+    return speakers, events, cue_labels, span_count
+
+
+def main():
+    parser = Parser(description=__doc__)
+    parser.add_argument("plan")
+    parser.add_argument("--duration", required=True, type=float)
+    parser.add_argument("--output-dir", required=True)
+    args = parser.parse_args()
+    duration = args.duration
+    plan = json.loads(Path(args.plan).read_text(encoding="utf-8"))
+    speakers, events, cue_labels, span_count = validate_plan(plan, duration)
+    segments, cues = plan.get("segments", []), plan.get("cues", [])
+    frames = sample(duration)
 
     overlaps = []
     for index, left in enumerate(events):
