@@ -1,149 +1,219 @@
 # ShortVideoDirector
 
-以 Claude Code 为主要目标，提供 OpenCode/Codex 适配的短视频创作插件。`skills/` 是唯一人工维护的知识源；OpenCode 转换到 cache，Codex 使用生成 wrappers。源码契约不等于 live-host 验证。
+把一个想法、小说片段或已有剧本，发展成可用于 AI 视频生成的完整制作材料。
 
-## 角色与所有权
+ShortVideoDirector 是面向 **Claude Code、OpenCode 和 Codex** 的多代理短视频创作工作流。它协同完成故事、剧本、分镜、角色与场景资产、可编辑本地参考、生成任务装组和最终提示词，并通过独立审核检查材料质量。支持单集短视频，也支持逐集推进、复用资产的系列创作。
 
-| 角色 | 所有权 |
-| --- | --- |
-| Director（顶层制作主 AI） | 本地加载 director-orchestrate，诊断委托、直接协调创作与用户决策，对材料整体连贯性负责 |
-| Reviewer（独立子代理） | 在全新上下文验收材料，只写受托记录及指定临时 state/payload/预览 |
-| Scriptwriter | 原创/改编可拍剧本、人物动机与语言、本集资产清单 |
-| Storyboarder | 七字段 shot、摄影、动作意图与时长 |
-| Creator | 作品美术、资产身份图、本地参考与 manifest、provider 能力和授权执行 |
-
-制作时主 AI 就是 Director，负责用户沟通、授权和创作协调，可直接编写自己的完整剧情候选与规划。工程时主 AI 作为工程负责人委托工程代理研究、实现、配置与测试。Skill 只加载知识；专家和 Reviewer 的实际委托使用 Task，提供成果、路径、范围、约束与决策余地，不指定固定技能链。
-
-专家/审核协调者在嵌套支持时直接委托；工具不可用或明确深度拒绝后复用已知限制，由主 AI 忠实转交 role/outcome/references/scope/constraints，将实际结果回原专家、审核协调者或 checker 任务。普通失败不代表深度拒绝，不提高宿主深度。后续视觉操作仍全新任务；缺必要角色或独立上下文时阻塞，不冒充或自审。
+**制作入口交付审核就绪的材料，停在付费视频提交前。** 之后由你单独请求生成，再查询、下载或监控已登记的视频任务。
 
 ## 安装
 
+选择你使用的宿主：
+
+### Claude Code
+
+从本地仓库加载插件：
+
 ```bash
-claude --plugin-dir /path/to/ShortVideoDirector
+git clone https://github.com/wddxh/ShortVideoDirector.git
+claude --plugin-dir /absolute/path/to/ShortVideoDirector
 ```
 
-OpenCode 配置 `~/.config/opencode/opencode.json`：
+将绝对路径替换为实际克隆位置，在你的故事项目目录启动 Claude Code。插件入口见 [Claude Code manifest](.claude-plugin/plugin.json)。
+
+### OpenCode
+
+在 `~/.config/opencode/opencode.json` 的 `plugin` 数组中加入：
 
 ```json
-{"$schema":"https://opencode.ai/config.json","plugin":["short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git"]}
+"short-video-director@git+https://github.com/wddxh/ShortVideoDirector.git"
 ```
 
-详见 [OpenCode](.opencode/README.md) 与 [Codex](.codex/INSTALL.md)。源码更新后退出重启宿主，核对实际插件与 cache 路径。需要 Bash、Node.js、Python 3；图像 helper 需要 Pillow，本地 MP4 按方法需要 Blender/FFmpeg；付费生成需要可用 Dreamina CLI。安装/升级仍须实际授权。Claude 模型提示按源 frontmatter；OpenCode inherit，Codex 使用当前活动模型。
-## 使用与授权
+本地加载、重启与发现检查见 [OpenCode 安装说明](.opencode/README.md)。
+
+### Codex
+
+通过 Codex 的插件加载入口加载本仓库的 [.codex-plugin/plugin.json](.codex-plugin/plugin.json)，技能目录为 `.codex/skills/`。宿主适配与使用说明见 [Codex 安装说明](.codex/INSTALL.md)。
+
+基础运行需要 Bash、Node.js、Python 3，以及宿主的子任务与文件工具。图像预览需要 Pillow；本地视频制作按选用路线使用 FFmpeg/ffprobe、字体、SVG 库或 Blender。生成执行需要可用的 Dreamina CLI。具体依赖和检查方法见 [本地制作工具指南](skills/creator-local-reference/tools.md)。
+
+## 快速开始
+
+在故事项目目录打开已加载插件的宿主，直接描述目标：
 
 ```text
-/short-video 一个外卖员送错餐发现客户是自己的前女友
-/series-video story-idea.txt
+帮我做一个 60–66 秒的短视频：夜班便利店店员收到一封来自明天的信。
+温暖、略带悬念，先给我三个完整故事候选。
+```
+
+也可以带上已有材料：
+
+```text
+/short-video 根据 drafts/story.md 制作一集，保留原结局，时长 90–100 秒。
+```
+
+Director 会复用你已经给出的要求，补齐必要的时长、风格和技术选择。你可以指定参数，也可以明确委托 Creator 在本次范围内选择。需要你决定时，会展示完整选项并逐题询问；明确授权范围内的制作、修复和重审会连续推进。想先看大纲再制作，也可以在请求中说明。
+
+只想查看配置：
+
+```text
 /short-video config
-/edit-story ep01 镜头3的动作不清楚，请局部修正
-/repair-story ep03
-/generate-video ep01 镜头3 镜头5
-/check-video ep01
-/auto-video ep01
+/series-video config
 ```
 
-七个入口整体理解自然语言、文件和范围，不是位置参数协议。目标歧义不默认最新/全部。short 固定 ep01；series 每次一集，新系列确认总集数，明确续作才选择下一集。配置查看不初始化、不生成。
+查看配置是只读操作，缺失时会如实报告。制作初始化时才根据实际选择建立项目配置，默认路径为 `config.md`，也可通过 `SVD_CONFIG` 指定项目内路径。字段说明见 [单集配置模板](skills/short-video/config-template.md) 与 [系列配置模板](skills/series-video/config-template.md)。
 
-short/series 请求包含所需新增资产图和本地参考，intake/当前审核满足后连续执行，始终停在付费视频提交前。后续手动 generate-video 的实际请求和条件登记为 initial_authorization，无额外批准握手。仅准备任务不提交；重试需真实 retry_authorization，仅用户指定次数时设上限。不从监控、review pass 或生成意图推断无限重试。
+### 七个入口
 
-用户关键选择尽量前置；Director 自编计划直接呈现并保留完整答复，不做自我 relay。专家给齐完整问题计划、标签、背景与条件分支，主 AI 沿题界完整展示当前题后原生单选，相关原始答复和全部条件批量回原专家任务。已定/继承/明确委托项不重问。范围内修复和独立重审无需逐轮批准；仅缺权限、关键冲突或用户检查点升级。细则见 [决策转交](skills/_meta/rules/user-decision-relay.md)。
+以下示例使用入口短名；也可直接用自然语言表达相同意图。
 
-outline/arc 按用途采用。用户要求预审时，在 canonical config 的 `制作前确认 epNN` 保存材料范围、真实 approval 与指纹；未知类型、缺失、未批准或变化则先停正式制作，不静默过滤或自动批准。独立质量验收不替代用户批准。用户小说、章节和节选按实际路径与采用范围交 Scriptwriter 改编，源文保持原样。缺 script 资产清单请 Scriptwriter 接纳已有剧本补齐，不重做故事。
+| 入口 | 用途 | 示例 |
+| --- | --- | --- |
+| `short-video` | 开始单集，采用想法或已有材料 | `/short-video 一个关于错过末班车的故事，60–66 秒` |
+| `series-video` | 开始系列或继续下一集，每次制作一集 | `/series-video 做一个三集系列，每集 90–100 秒，主题是失物招领` |
+| `edit-story` | 修改故事、剧本、分镜或视觉资产 | `/edit-story ep01 镜头3的动作不清楚，请修正` |
+| `repair-story` | 检查中断现状并补齐制作材料与审核 | `/repair-story 恢复 ep01 的制作` |
+| `generate-video` | 准备或提交已审核的生成任务 | `/generate-video 提交 ep01 整集视频` |
+| `check-video` | 查询登记任务并下载结果 | `/check-video ep01` |
+| `auto-video` | 启动或停止持续监控 | `/auto-video 监控 ep01，每20分钟检查一次` |
 
-## 项目文件
+单集模式使用 `ep01`；系列续作沿用已有设置和资产。请求可混合文件路径、集数、镜头范围和修改意见，目标含糊时先澄清。
 
-按 [项目布局](skills/_meta/rules/project-layout.md) 区分当前材料、决策依据与临时工作：候选在 `story/planning/plot-options.md`，临时交接在 `story/work/epNN/<work-unit>/`，共同美术基线推荐 `references/design/art-direction.md`。委托前指定精确输出路径；简单任务可只回文本。既有单集材料、共享资产、可编辑参考与工具记账路径保持稳定，按需建文件，不批量迁移。可选 `story/README.md` 只导航到真实当前来源，不复制验收、授权或状态账本。
+## Director 与四位专家
 
-## 生成任务输入
+| 角色 | 负责什么 |
+| --- | --- |
+| **Director（主 AI）** | 与你沟通，统筹故事方向、范围、授权、创作协调与整体交付 |
+| **Scriptwriter（编剧）** | 原创、改编或接纳已有剧本，落实对白、可拍动作与制作资产清单 |
+| **Storyboarder（摄影／分镜师）** | 设计机位、取景、调度、镜头时长、切点与完整视听描述 |
+| **Creator（视觉创意总监）** | 统一美术与资产身份，选择本地参考方法，装组并编写最终 prompt，执行获准的生成 |
+| **Reviewer（独立审核者）** | 在全新受托上下文检查当前材料，记录证据、问题与验收结果 |
 
-摄影 shot 保留七字段和正整数秒，按叙事/剪辑设计，不受 provider 最短时长或 70% 目标约束。Creator 在设计后将连续 shots 装组，核实模型最大时长 M，以 `ceil(0.7*M)..M` 为任务语义目标而非机械下限，并校验实际 provider 边界。装组保留当前 canonical 时长、对白和切点；需重设计时由 Director 协调 owner 主动使用用户原始集目标已确认的 ±10% 创作预算、同步 script/storyboard 与受影响下游，无需范围内逐次许可。原始基准不随修订合计滚动，精确要求/严格范围优先。
+Director 直接担任主会话的制作负责人。四位专家通过独立子任务协作；审核任务与制作上下文隔离。
 
-每个生成任务有 `story/episodes/{ep}/task-inputs/taskNN.json`，文件名给稳定 task_id，独立于首成员。以下是仅供材料准备的草稿：
+## 从故事到生成输入
 
-```json
-{"shots":[1,2],"references":[{"kind":"local","media":"video","path":"references/task01/motion.mp4","use":"Control camera, framing, layout and overall trajectories on the task timeline, including the internal cut; proxy sliding, stiff pose, gait and anatomy are placeholders, not final performance","sources":["references/task01/scene.blend"]}]}
-```
+1. **确定意图与范围**：采用已有故事，或发展完整候选；按需要使用单集大纲、系列人物弧与阶段规划。
+2. **形成可拍材料**：编剧完成剧本和资产清单，分镜师将叙事落实为镜头与声音设计。
+3. **建立视觉依据**：Creator 复用或生成角色、道具、场景等资产图，制作可编辑的本地构图、运动与时序参考。
+4. **装组并写最终 prompt**：将连续镜头组成生成任务，交付完整参考媒体，并结合源材料、实际引用和 provider 语法编写任务级提示词。
+5. **独立审核与修订**：检查剧本、分镜、资产及最终输入的忠实度与集成，解决问题后交付就绪材料。
 
-草稿顶层恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，prompt 为 Creator 写入的非空白字符串；草稿不通过最终审核/就绪。成员为按源顺序连续的正安全整数；条目仅 local PNG/MP4，每任务至少一个全组时间线 MP4，可辅以 PNG。静态段可用静态 clip。资产图提供身份，BOX 控制相机/取景/尺度/位置/整体轨迹；动作、姿态、表情与声音保留 prompt。Creator 对齐任务参考时钟、内部切点及声音桥，use 说明控制权限和占位边界。
+这些是成果之间的依赖关系；Director 按当前材料安排工作，就绪且无依赖冲突的任务可并行，修订由对应专家更新受影响内容。
 
-Sources 是真实可编辑工程/脚本及所需输入，只作编辑/审核，不上传；路径限定项目 references/。Creator 默认采用轻量混合参考，按镜头复用合适 PNG、分层图像或视频，SVG 仅为可选平面素材；按需使用 Blender/2D/FFmpeg 与可选假音频。普通移动只用无手腿 BODYBOX；仅既定持有/支撑/接触或具体必要动作/构图证据使用最小代理，保留身体出画时防止手持物悬浮的手/前臂。普通行进中必要肢体相对身体稳定，整套平移/转向，不推导步态、腿部循环或摆臂；受托特殊动作确需时序证据且 Creator 明确选择才关节化。缺解剖不自动补动画，缺必要支撑的实际冲突仍须修正；悬浮/透明屏幕按意图判断。默认无完整 rig、精细手指、脸部动画或 TTS/表演验收。内部标注/假音频默认不上传，不建 DSL。基础/衍生卡可选 PNG，见 [卡片契约](skills/_meta/rules/local-reference.md) 与 [工具知识](skills/creator-local-reference/tools.md)。
+### 镜头、任务与源时钟
 
-不论素材组合，实际交付完整 clean task MP4＋同时间轴完整字幕审阅 MP4，保留源时长与切点；审阅字幕、时间码及内部切点标记不上传。见 [素材渲染、混合组装与完整字幕审阅示例](examples/svg-animatic/README.md)。
+摄影镜头按叙事设计，生成任务则可以包含多个连续镜头，甚至跨场景。Creator 按实际模型时长能力装组，保留源镜头时长、对白原词、动作先后和切点；任务时间从成员镜头推导，局部片段的零点统一映射到完整任务时钟。
 
-粗参考仍需详细 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不设细节配额。实际 ref.use 与 Creator 最终 manifest.prompt 明确相机/取景/布局/节拍/切点/整体轨迹控制及非模仿范围，不照搬代理滑移、僵硬姿势、步态或解剖；最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。合法静帧保持、固定支撑 BODYBOX 平移和有限动画不因假想模仿触发返工或补步态/完整肢体；只为具体源事实冲突或语义判断必要的控制证据缺口修改。真实接触、空间、遮挡揭示顺序和关键动作时序冲突仍须修正，prompt 不能反转矛盾参考事实；职责表达不是模型效果保证。
+最终 `task-inputs/taskNN.json` 保存 `shots`、`references` 和 Creator 编写的 `prompt`。提示词覆盖完整任务时间线、声音与引用身份，并说明粗参考控制什么。转换和提交工具原样传递已审核的 prompt。详细格式见 [生成任务输入契约](skills/_meta/rules/shot-inputs.md)。
 
-TASK 是生成单元，不是小电影；不因边界默认停步、摆终姿、停顿后重启或重新建立空间。切点跟随注意、想法或动作阶段，硬切可发生在动作中；连续、省略、反差和平行关系贯穿镜头、任务与场/幕。不同角度/景别从属剪辑目的，不保证连续性或豁免方向、姿态、握持与进度错接，也不要求相同帧。可行时关键接触/无缝续声同组，保留源时长、连续成员、模型最大值和 grants；源重设计交 Director/owner 在原始预算内同步。详见 [视听剪辑指南](skills/_meta/rules/audiovisual-craft.md#剪辑关系跨越镜头任务与场幕)。
+### 轻量混合参考
 
-创作材料由所选 provider 的自有工具提供，具体命令、pack、引用 token 计数/绑定与时间重基见该 provider 文档；Dreamina 见 [视频材料工具](skills/creator-provider-dreamina/video.md#dreamina-authoring-materials)。草稿可供材料准备，不表示就绪。Creator 在审核前对照 canonical 源、provider 工具输出及实际 refs 创作语义 prompt。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现材料工具，无需 registry/framework/manifest schema 变更。Header 身份图首次使用求并集后接本地媒体，每镜链接须自身 header 声明。
+Creator 根据镜头需要与已验证的工具能力自行选材：复用 PNG、分层图像和视频，使用可编辑 SVG、有限 2D 动画或有界的 3D 投影；复杂旋转、深度遮挡、跟拍或接触关系需要时，再采用最小充分的 Blender 场景。静态空间设计与时间合成可以分别选用合适工具。
 
-Creator 在视频参考/装组映射确定后读材料及 provider 语法，写完整任务时间 prompt，保留叙事/动作、对白原词、切点、时长和声音，绑定实际 tokens 并说明 BOX/身体/肢体代理的最终身份、解剖与动作。去掉内部 task/shot IDs、路径及审核元数据，正常 wide shot 等摄影词可用；缺源事实交 owner，不编造 use。最终 `--json` 要求非空白字符串，返回 `{task_id,shots,timeline:[{shot,start,end}],prompt,duration,references,assetCards,sources,inputPath}`，prompt 原样来自 manifest。Creator 自查该输出后交 fresh shot-input Reviewer 验收忠实度、完整性及集成，提交不重写。无可编辑 offset/duration、装组副索引或单独最终提示文件。见 [精确契约](skills/_meta/rules/shot-inputs.md)。
+资产图提供人物与物件身份；粗块状参考（BOX）表达相机、取景、布局、切点和整体轨迹，详细动作与自然表演由源描述和最终 prompt 表达。参考里的实际持有、接触、揭示顺序与关键时序仍需符合故事。
 
-## 审核与连续性
+每个任务交付两份覆盖**整组完整时间线**的本地视频：
 
-证据 kind 仅 script、storyboard、asset-prompt、asset-visual、shot-input。最终就绪要求 script/storyboard/asset-visual/shot-input；新生图另须当前 asset-prompt。整集覆盖 script 清单全部资产与实际镜头，局部 scope 包含所选 header 资产。使用同一 canonical SVD_CONFIG：
+- **clean MP4**：作为生成参考，无内部调试标注；可保留故事正式使用的 UI、片中文字或转场图像。
+- **caption review MP4**：从对应 clean 视频派生，带对白／旁白、时间码和内部切点标记，方便人工核对节奏，保持相同源时长与切点，仅用于内部审阅。
 
-```bash
-SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" ep01
-SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-evidence.mjs" check ep01
-```
+可编辑工程与真实依赖保存在 `references/`，供后续修订；上传使用选定 PNG／clean MP4。详见 [选材与工具指南](skills/creator-local-reference/tools.md) 和 [SVG 素材、混合组装与完整字幕审阅示例](examples/svg-animatic/README.md)。
 
-整集源编号 1..N，每镜恰分配一次，任务按首成员排序；局部允许源缺号但递增唯一、目标存在且选完整组。全局检查声明组重叠/缺失源成员，局部不要求未选媒体或完整全片计划。未分配请求/部分选组报告完整成员及额外镜头，不静默扩授权。submitted 按 recorded ID/provider 取回，缺 ID 保留状态待核实。接口不相容交主 AI/general。
+### 一次初始化，共享环境依据
 
-独立 shot-input target 为 task manifest，纯文本 owner 验收最终 prompt/参考媒体集成：整集覆盖所有相邻组接点（含场/幕转换），局部只取必要邻界，按故事补非相邻/跨集依赖。每个接点按 [源意图](skills/_meta/rules/shot-inputs.md#reference-authority) 判断：同一事件检查必要动作/持有/空间/声音延续，场幕/时空跳转检查因果、情绪、信息、主题反差或平行关系及观众定位，不强制同位置、续动作、续声或过桥场；保留源支持的悬念、突兀感与硬切，不必顺滑或立即解释，同集底层身份/世界事实保持源一致。独立任务边界仍默认强烈优先有动机、明显不同的机位/视点/景别，以降低近似独立生成差异的显眼程度。fresh helper 比较实际选中 clean MP4 的尾/头相干窗口及两端最终 prompt，披露音频实听、仅存在或仅计划；J/L-cut 源台词只出现一次，独立生成音频不虚称无缝。每个消费 owner 预采 inputs、观察仍适用时复用独立配对事实，不重复强制两端视觉 pass 或建账本。必要邻组缺失只使受影响 target unknown，不扩生成授权、不附全计划哈希。源码/记账变化沿用 scoped 兼容性评估；验收不是生成视频质量审核或自动剪辑许可。
-
-每次视觉操作（渲染、查看、修订、审核、采样/crop）使用全新 task、helper 缩略图和最小必要图集/配对。只 Read review-image.py 返回 preview，原媒体用于上传与指纹。必要 crop 另开任务，披露 MP4 查看方法、采样时刻与覆盖限制。原图不直接 Read；首尾静帧不证明完整轨迹。见 [visual-context](skills/_meta/rules/visual-context.md)。审核者只写受托 canonical 记录及指定临时 state/payload/预览；生产 Director 不聚合写 pass，无独立上下文则阻塞。
-
-审核集中在 `reviews/epNN/`，每个 target/kind 有独立文件。无读写/输入依赖冲突的就绪视觉目标并行审核并直接写各自文件；相干纯文本批次也逐 target 分别落盘。同一 ep/kind/target 写入串行是输出所有权规则，其他读写/输入依赖仍须排序；范围协调只统计覆盖与结果，不另建合并账本或汇总任务。asset-prompt 只覆盖授权新增/重生集合；图片操作仍逐次新任务、缩略图优先。
-
-五种 runtime review 默认用 [review-round](skills/_meta/rules/review-meta-rules.md)。指定 `/tmp/opencode/<task>` 目录先存在，STATE 与 PAYLOAD.json 为其中不同绝对路径；在故事项目根执行：
-
-```bash
-SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/review-round.mjs" start KIND EP TARGET STATE [EXTRA_INPUT...]
-node "${CLAUDE_PLUGIN_ROOT}/scripts/review-round.mjs" add-input STATE PATH...
-node "${CLAUDE_PLUGIN_ROOT}/scripts/review-round.mjs" finish STATE PAYLOAD.json
-```
-
-start 在读取制作材料前绑定显式配置与原始哈希；新语义参考先 add-input 再读。Reviewer 独立撰写 `{commentary,result:{status,blockers,...}}` payload，helper 注入 target/inputs，复核依赖并验证 canonical 记录，不手填哈希 JSON。采集/发现错误保留，漂移保留首次哈希且 finish 记 unknown；缺显式 status 的 payload 无效。STATE/payload 仅在指定临时目录，不建工作区副账本；可选规划 Markdown 不用此 helper。
-
-finish 的 exit 0 仅表示记录写入。实际 path/round/status/input_count/evidence_issues 与必要意见足以回传，正常完成不要求立即重复 fingerprint、check-target 或全文 Read；错误/诊断按需查，下游门禁不变。局部视觉 delegate 由独立目标 owner 在委托读取前采集所需参考，回传实际观察/路径/限制；新参考先采集再交 fresh task，不以后采快照追认，不需 import registry。独立语义判断、逐目标并行及全新视觉任务/缩略图仍必需。
-
-## 配置与执行
-
-配置相关操作先用 `review-evidence.mjs config-path` 规范化 SVD_CONFIG，未设才用 config.md；只支持项目内配置。命令、Task/relay、approval 与指纹使用同一路径。纯 recorded-ID 取回不经过配置/readiness gate。
-
-Creator 只读当前 CLI version/help，核实操作组合和已接入能力，不维护模型表、不付费探测或自动升级。技术选择仅 images/video 的 provider/model/ratio/resolution；固定值绑定，空值/auto 不授予选择权，任务选择不升为默认。用户选定模型后不额外检查账号权益/余额，不为省钱降级；实际失败和用户明确限制仍处理。
-
-Series 从全部 canonical episode tasks 的一致 submission 继承视频四元组；short 共用整集 ratio/resolution。缺项/冲突阻止准备与付费，不阻止取回；不补造快照。系列准备串行，本集锁不保证跨集事务。系列沿用用户初始集时长目标，不按前集实际漂移；单值初次确认 ±10%，严格值/范围优先。
+获准制作初始化时，Director 协调 Creator 检查当前支持的本地路线：Python/Pillow、SVG、Blender 各引擎、FFmpeg/ffprobe、字幕与假音频预演工具。每条路线以真实小样输出或不可用证据记录 `pass`／`unavailable`，连同命令、版本、路径、backend 和限制，写入固定文件：
 
 ```text
-image-gen-dreamina.sh [--force] PROMPT OUTPUT RATIO RESOLUTION MODEL REFS SOURCE
-generate-images-dreamina.mjs [--force] [--concurrency N] JOBS.json
-storyboard-to-prompt.sh --json STORYBOARD TASK_ID EP
-video-gen-dreamina.sh --references-json PROMPT OUTPUT REFERENCES_JSON DURATION RATIO MODEL RESOLUTION
-video-check-dreamina.sh ID OUTPUT
+story/work/shared/environment/environment.md
 ```
 
-接口只供已授权角色调用，不是绕过证据的指令。image2image 实际 API 的 `--images` 仍接收逗号分隔路径。视频 flag 后七参数，使用 typed refs 上传原始有序 PNG/MP4；capture 保存四元组及媒体 SHA-256。重试保留原输入，不静默 resolve/capture。Wrapper reserve 原子持久化 inflight，settle 保存实际结果；未知 intent/锁人工核实，不按年龄删除，submitted/done 不刷新或自动重提。
+后续 Creator 自行读取并跨任务、跨集复用；需要预览工具的 Reviewer 也可查询。只有实际故障、已知环境变化或新增需求尚无能力证据时，才定向补验更新。某路线不可用只影响依赖它的工作；工具可用也由 Creator 判断是否适合当前镜头。
 
-上述通用 converter 的 `.mjs` 与 `.sh` 均使用 `--json STORYBOARD TASK_ID EP`，不生成或改写 prompt；EP 与 canonical storyboard 路径一致。tasks.json 保持数组，task_id 唯一并保存 shots/prompt/duration/references，prompt 是最终 manifest 原文，输出 `videos/taskNN.mp4`；submission 保存四元组和有序媒体指纹。既有 shot-input target 指纹绑定最终 prompt。Initial/retry grants 为 `{decision,episode,task_id,shots,constraints}` 加真实可选重试次数。Gate/reserve 比较最终 manifest 的 prompt/duration/references，不比较源拼接文字；付费前 manifest 成员等于 record/grant，错误身份、成员/输入漂移或部分组选镜零调用、不改次数。已提交/完成及 inflight 继续保护。
+### 独立审核检查什么
 
-## 恢复与监控
+审核覆盖剧本、分镜、资产提示与图像，以及最终任务输入。输入审核同时核对完整 prompt、实际 clean 媒体、任务时钟、内部切点和必要跨任务接点；视觉查看由全新审核任务提供事实，独立负责人判断整体集成。
 
-资产图片批次使用 runner，jobs 含 source/output/prompt/images/settings。默认本地并发 5，由 Creator 按实际接入限制调整；只等待真实引用依赖，不 shell 并行 raw 调用绕过保护。首次失败/pending 停止新启动并排空 active，保留全部成功、IDs 和未启动旧图。Force 只作用于明确授权 target，调用方不预删图。
+结构检查确认路径、覆盖和记录；独立 Reviewer 判断叙事与视觉质量；你指定的制作前确认保留你的决定权。材料就绪表示输入已验收，生成视频的实际效果仍由你观看判断。
 
-Pending/receipt 按已登记 provider/ID/settings 恢复，先 settle 再移除匹配 pending；未知结果或取回失败不重提。普通图片同范围质量修复无默认轮数上限，明确用户限制优先。基础资产提交丢 ID 的有限恢复规则须经过 owner 核实，见 [图像执行](skills/creator-provider-dreamina/image.md)。
+## Provider、视频生成与取回
 
-| 视频查询结果 | 行为 |
+当前图像与视频生成执行接入 **Dreamina**。Creator 读取实际安装 CLI 的版本和相关操作帮助，核实已接入的模型、比例、分辨率、时长与引用组合，再按你的固定设置或明确委托选型。系列视频沿用一致的 provider、model、ratio、resolution；单集各任务共用视频比例与分辨率。能力说明见 [Dreamina 指南](skills/creator-provider-dreamina/capabilities.md)。
+
+`short-video`／`series-video` 制作请求包含所需资产图生成和本地参考。**付费视频提交需要后续单独请求**：
+
+```text
+/generate-video 提交 ep01 整集视频
+/check-video 查询 ep01 并下载已完成的视频
+```
+
+也可明确要求“只准备任务，不提交”。局部生成按完整任务组选择；如果指定镜头只覆盖组内一部分，会说明完整成员与额外镜头，由你确定范围。
+
+查询按登记的 provider 和任务 ID 取回，下载错误继续取回同一任务；重新生成遵守实际重试授权。`done` 表示下载完成。工作流交付各任务的视频，成片观看、剪辑与合成由你安排。
+
+### 持续监控
+
+```text
+/auto-video 监控 ep01，每20分钟检查一次
+/auto-video 停止 ep01 的监控
+```
+
+监控仅在你要求或已有同意的默认设置下启动，按已有提交／重试授权工作，需要新决定时报告待处理项。它依赖宿主实际能力：
+
+| 宿主 | 监控方式与边界 |
 | --- | --- |
-| success / 0 | 同一 ID 下载成功，记 done |
-| querying / 1 | 正常等待，保留 submitted/id |
-| fail:reason / 0 | 记录实际生成失败 |
-| error:reason / 2 | 保留 ID 重试取回，不付费重生 |
+| Claude Code | 使用可用的会话定时工具；关闭会话会停止，最长运行 7 天 |
+| OpenCode | 本地 loop 通过 HTTP 会话接口委托检查，需要带端口的可用会话；见 [监控说明](.opencode/README.md#自动监控) |
+| Codex | 优先使用实际可用的 automation；不可用时说明限制，使用手动检查或获准的外部周期委托 |
 
-Done 仅表示下载，不表示质量通过；已有 MP4 不能证明当前任务完成。监控只在用户要求或已同意默认时启动；首次/周期均保留真实 Creator relay、grants 和 inflight 保护。仅有效、目标匹配的末行 JSON 决定停止；all_complete 可含 human_needed，不代表全部成功。监控不创作修复、自动授权或审片。视频仅提交/查询/下载，由用户判断成片，不自动剪辑合成。
+任务等待与续接同样取决于宿主。缺少自动唤醒能力时会明确报告未完成范围与再次触发方式；监控结束也可能包含需要人工处理的任务。
 
-首次和周期 checker payload 均显式携带 canonical config_path 或 UNRESOLVED，并沿 Creator relay 保留。UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认配置；配置操作显式验证绑定路径并共用 SVD_CONFIG。查询/监控按生成任务计数，human_needed 为 `{ep,task_id,shots,reason}`，每 ep/task_id 一条完整成员；monitor scope 仍 epNN/all。
+## 制作文件在哪里
 
-## 维护与验证
+以下路径相对**故事项目根目录**，按实际需要创建：
 
-源角色在 agents/，知识在 skills/，工程接口在 scripts/。修改后运行 Codex 生成器及 --check，核对 git diff --check；生成层不手改。Mechanical checks 不证明艺术质量、任务隔离或 live-host E2E。当前安装的接口、provider、relay 与监控行为须单独验证；退出重启宿主后确认实际源与 cache。未满足契约的代码问题留给主 AI/general 工程处理，不让创作角色绕过门禁。
+```text
+config.md                            项目配置与实际选择
+story/
+  planning/plot-options.md            当前故事候选
+  arc.md                             可选系列规划
+  episodes/epNN/
+    script.md                        剧本与资产清单
+    storyboard.md                    分镜与完整视听描述
+    task-inputs/taskNN.json           最终任务参考与 prompt
+    videos/tasks.json                视频执行记录
+    videos/taskNN.mp4                下载的视频
+  decisions/                         需要留存的决定依据
+  work/shared/environment/environment.md
+                                     共享本地环境报告
+  work/epNN/                         临时交接与制作工作文件
+assets/
+  <category>/<name>.md                共享资产卡
+  images/<category>/<name>.png        资产身份图
+references/                          可编辑源、依赖、clean／字幕审阅媒体
+reviews/epNN/                        独立审核记录
+```
+
+资产分类包含 characters、items、locations、buildings。已有小说与剧本输入保留在提供的位置；采用范围与当前制作文件明确关联。更完整的导航见 [项目布局](skills/_meta/rules/project-layout.md)。
+
+## 开发与进一步阅读
+
+- [agents/](agents/)：四位专家的角色定义。
+- [skills/](skills/)：人工维护的工作流与专业知识源；OpenCode 转换到 cache，Codex 使用生成的 wrappers。
+- [scripts/](scripts/)：材料解析、结构检查、审核证据、生成执行及本地预演工具。
+- [本地制作工具指南](skills/creator-local-reference/tools.md)：选材、环境验证、Blender／2D、音频预演与字幕审阅。
+- [可运行示例](examples/svg-animatic/README.md)：合成的六秒 SVG 素材与字幕审阅流程，另含 FFmpeg 混合组装模板。SVG 渲染器输出素材片段，混合时间线由合成工具组装。
+
+在仓库根目录运行工程检查：
+
+```bash
+npm test
+python3 .codex/build-codex-skills.py --check
+git diff --check
+```
+
+修改源技能集合、元数据或运行时映射后，先运行 `python3 .codex/build-codex-skills.py` 更新 Codex wrappers，再检查同步。媒体工具测试需要相应本地依赖；机械测试验证代码契约，宿主加载、任务隔离与监控行为在对应宿主中验证。
+
+## 许可
+
+[MIT License](LICENCE)
