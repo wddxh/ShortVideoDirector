@@ -12,7 +12,11 @@
 
 本地开发可将 plugin 值改为 `file:///absolute/path/to/ShortVideoDirector`。在仓库内启动时也可由宿主扫描 `.opencode/plugin/*.js`，但不使插件自动全局可见。卸载移除对应配置，保留故事项目。
 
-需要 Bash、Node.js、Python 3；图像 helper 需 Pillow，本地媒体按方法需 Blender/FFmpeg，付费生成需 Dreamina CLI。安装/升级须授权。
+基础运行需 Bash、Node.js、Python 3；本地制作与预览的支持工具、检查方法和输出限制见 [工具指南](../skills/creator-local-reference/tools.md)，provider 执行按其文档。安装/升级须授权。
+
+项目初始化按 [环境报告与方法选择](../skills/_meta/rules/user-decision-relay.md#local-environment-and-method-choice)，由有界授权的单一 Creator 全面检查并写 `story/work/shared/environment/environment.md`：真实 pass/unavailable、命令及路径、版本、backend、实际输出和限制。后续 Creator/需要预览工具的 Reviewer 自行读取，纯文本角色不强制读；Director 集中维护报告 init/update writer 占用与 stable/等待条件，不逐次传结果/路径。实际失败、环境变化或确切新增需求所需能力未被初始化证据覆盖时，触发受影响项补验与有界单 owner 更新；新增能力只验证该需求的未覆盖部分，不每任务探测、常规扫描版本或无理由重复验证，Reviewer 只读不自修。
+
+报告是常规工具指导依赖，默认不进 manifest.sources 或每份 review 的语义 inputs；确用于验收判断时先 start/add-input。Director 交目标、完整源、完整 clean+caption MP4 交付要求及依赖权限，Creator 按镜头复用素材并选最简充分控制；环境可用不指定批量 `.blend`/CUDA。静态设计与时间合成可分开选法，授权返工可换方式，SVG 可选，既有门禁不变。
 
 源码不是热加载。退出重启 OpenCode 后核对：
 

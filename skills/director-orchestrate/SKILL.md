@@ -34,6 +34,8 @@ Creator 也拥有按需本地制作参考：可编辑 2D/2.5D、Blender 场景�
 
 输出位置遵循 [项目布局](../_meta/rules/project-layout.md)：委托前选定精确输出路径并随 handoff 传递，复用 canonical 材料与当前 work 文件，工具记账保持原位。仅需要落盘时使用 scoped work 目录，简单任务可只回文本；按需保留完整决策依据，不把布局变成必建文件清单或迁移任务。
 
+本地参考 handoff 指定需要成立的视觉成果、源事实/shot/clock 边界、交付路径、依赖稳定性与决策余地，选材由 Creator 根据固定环境报告和当前材料判断。保留用户固定工具或 Creator 已明确选定的局部实现及其依据；其余不预先要求全组 `.blend` 或 CUDA。Creator 在现有 handoff 简短说明可复用什么、还缺什么控制、为何选择能表达它的最简材料，不另设选材表或审批。返工围绕实际冲突，可改用静帧、图层、二维动画、局部 3D 或混合表达；同步受影响 sources/use/prompt 和实际媒体，源镜头重设计仍交对应 owner。
+
 ## 来源与制作前确认
 
 交接时区分用户明确要求、叙事成立所必需的事实，以及 owner 自选、可替换的实现方案，并保留可追溯的原话或材料位置与理由。“可以”不升级为“必须”；自行选择不用配乐不能转述为用户禁止配乐。当前材料中的实现仍须一致消费，但其存在不等于用户锁定。争议先回查来源与实际叙事作用，再由对应 owner 在授权内重设计并同步材料；Reviewer 独立核对争议约束，不因上游转述就认定为硬要求。
@@ -50,11 +52,11 @@ Creator 也拥有按需本地制作参考：可编辑 2D/2.5D、Blender 场景�
 
 ## 项目启动环境检查
 
-short/series 制作启动时，Director 尽早统一协调 Creator 一次，在本地资产/参考工作前确认当前机器的原生工具与实际可用渲染路径，按 [环境检查](../creator-local-reference/tools.md#environment-check) 执行。无依赖的创意 intake、候选与文字创作可并行，不以环境检查阻塞无关 craft；缺可选工具只影响依赖它的工作。纯配置调用不触发此检查、初始化或试渲染，查看仍只读；持续制作或 repair 只针对当前需要核验，不强制重走启动流程。
+short/series 获准制作初始化时，Director 尽早统一协调 Creator 一次，按 [环境检查](../creator-local-reference/tools.md#environment-check) 覆盖当前支持的全部本地路线，将当前能力报告保存到项目相对固定路径 `story/work/shared/environment/environment.md`。覆盖意味着每条路线都有真实 pass/unavailable 结论，不要求全部成功。无依赖的 intake、候选与文字创作可并行；unavailable 只影响依赖它的工作。纯配置调用保持只读，不触发初始化或试渲染。
 
-复用会话/项目 handoff 中仍适用于当前机器的结果并传给后续 Creator/Reviewer，不逐镜、逐审核或逐集重跑；工具解析路径/版本、显示环境、设备改变，重启后有效性不明或实际失败时，只重查受影响路径，新需路径按需补验。另一台机器或来源不明的旧结果不能证明本机可用。结果用现有 handoff 返回命令、版本、实际 backend/device 与试运行证据及限制，仅需落盘时放现有 scoped work 目录；不新增必需机器 manifest、账本、schema 或 review kind。探针及输出只在 `/tmp/opencode` 下，安装、驱动、仓库或系统修改另需明确授权，不自动安装、不打断已有制作任务。
+后续 Creator 自行读取固定报告作为常规 read 依赖，Director 只协调初始化/更新的 writer、读取占用及稳定性，不逐次转交内容或路径。报告缺失由初始化或制作恢复统一补齐，child 不各自全查；实际故障、已知环境变化或新需但尚无验证结论的能力，才协调 writer 定向更新受影响部分。持续制作、续集及新上下文直接复用，不设例行重测、TTL 或版本扫描。报告是自足的 Markdown 当前能力说明，不是 schema、gate 或 registry；不进入 manifest.sources 或默认 review semantic inputs，不按任务复制。探针及输出只在 `/tmp/opencode`，不自动安装、探测账号或付费，不中断已有制作。
 
-计划本地动画时，预检包括所选引擎的微型原生直出 MP4，优先实测可用且适用的 GPU 路径，区分图形上下文与计算设备；不能只凭设备枚举或 CUDA 可用判断。GPU 不可用/不适用时交接原因和已验证 CPU 回退的取舍，不自动启动重型 CPU 制作。正式高成本动画前，Creator 另用实际场景的小型代表性短草稿验证渲染成本与视觉/时序，再扩大制作；机器探针不能替代该检查。默认批量直出视频，按需在全新视觉任务中抽少量帧，不生成全量 PNG 序列；逐镜 MP4 加 FFmpeg 拼接可用，当前时长、切点和审核契约不变。
+初始化覆盖 Python/Pillow/helper、SVG librsvg+Cairo+GLib/GObject 与微 MP4、Blender Workbench/Eevee/Cycles 的适用 graphics/compute 微输出，以及 FFmpeg/ffprobe 合成、编码、抽帧、音频、CJK 字幕/previs-preview 和 previs-audio 微输出。保留命令、版本、backend/device、路径、实际结果与限制；设备枚举不能替代运行证据，覆盖不要求遍历所有 GPU backend/filter 组合。Creator 依据已验证能力自行选材，正式高成本动画前另用实际场景短草稿验证成本与必要视觉/时序；静态空间素材可单帧生成再作时间合成。完整 clean/字幕 MP4 与既有审核契约保持。
 
 ## 集总时长责任
 

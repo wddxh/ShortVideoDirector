@@ -17,7 +17,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 ## 配置与目标
 
-制作启动按 [项目启动环境检查](../director-orchestrate/SKILL.md#项目启动环境检查)，由 Director 尽早协调 Creator 一次，在本地资产/参考工作前确认环境；无依赖的创意 intake 与文字创作可并行，续集复用当前机器的有效 handoff，不逐集重跑，仅按变化/失败定向补验。纯配置调用免检查、不初始化、不试渲染，查看仍只读。
+获准制作初始化按 [项目启动环境检查](../director-orchestrate/SKILL.md#项目启动环境检查)，由 Director 统一协调 Creator 一次覆盖全部当前支持的本地路线，将真实 pass/unavailable 与命令、版本、backend、路径、结果和限制保存为 `story/work/shared/environment/environment.md` 当前 Markdown 报告。续集及后续 Creator 自查此固定 read 依赖，Director 只协调 init/update 占用与稳定性，不逐次转交内容或路径。缺报告在初始化/恢复统一补齐；实际故障、已知环境变化或新需未验证能力才定向更新，无逐集/例行重测、TTL 或版本扫描。无依赖的 intake/文字可并行，unavailable 只影响依赖工作。报告不进 sources 或默认审核语义 inputs、不按任务复制；探针仅在 `/tmp/opencode`，不自动安装或账号/付费探测。纯配置调用仍只读，不初始化或试渲染。
 
 尽早逐题明确可预见的关键选择与委托余地，不合并问卷或追问尚不可知的艺术细节。原请求已授权且相关 intake 充分即开始，无额外“开始吗”。随后按共享规则连续执行，Director 先用现有材料/配置/grants 和专业判断处理问题，范围内修复与独立审核不需逐轮用户批准；仅真实缺权限、关键冲突或用户指定检查点才询问，进度只作陈述。续集不重开已定选择，仍保留每次一集与视频独立入口边界。
 

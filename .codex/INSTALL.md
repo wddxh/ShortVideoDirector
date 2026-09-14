@@ -16,6 +16,14 @@ python3 .codex/build-codex-skills.py --check
 制作主 AI 本地加载内部 `director-orchestrate`，作为 Director 直接负责用户交互、创作协调、范围与授权，不创建 Director 子任务。Task/Agent 按运行时映射建立四个真实专家上下文，读取 `agents/<role>.md`，传成果、路径、范围、约束和决策余地。Scriptwriter 拥有原创/改编剧本与清单，Storyboarder 拥有镜头，Creator 拥有资产、本地参考及 manifest，Reviewer 独立验收。九个 reviewer-review-* 技能归独立 Reviewer。工程主 AI 委托工程代理研究、实现、宿主配置和测试；Skill 不建立角色隔离。
 
 专家/审核协调者在嵌套支持时直接委托；工具不可用或明确深度拒绝后复用结论，由主 AI 忠实转交 role/outcome/references/scope/constraints，恢复原专家、审核协调者或 checker task 并送回实际结果。普通失败不算深度拒绝，不反复探测或调高深度。独立审核使用全新 Reviewer task，不继承生产历史；每次视觉操作均新任务、helper 缩略图和最小比较集，不恢复 image-heavy task。无法隔离则 unknown/阻塞，不自审。模型与 allowed-tools 元数据是提示，实际能力由宿主决定；使用当前活动模型。每次手工写入含 apply_patch 不超过 2000 字符，不限制总长度。
+## 本地环境报告
+
+按 [环境报告与方法选择](../skills/_meta/rules/user-decision-relay.md#local-environment-and-method-choice)，项目初始化由有界授权的单一 Creator 全面检查支持工具并写 `story/work/shared/environment/environment.md` Markdown 报告，记录真实 pass/unavailable、命令及路径、版本、backend、实际输出和限制。工具范围见 [工具指南](../skills/creator-local-reference/tools.md)。
+
+Creator/需要预览工具的 Reviewer 后续自行查询，纯文字角色不强制读；固定报告是常规 read 依赖，Director 集中维护 init/update writer 占用及 stable/等待条件，不逐次传结果/路径。实际失败、环境变化或确切新增需求所需能力未被初始化证据覆盖时，触发受影响项补验与有界单 owner 更新；新增能力只验证该需求的未覆盖部分，不每任务探测、常规扫描版本或无理由重复验证，Reviewer 只读不自修。报告仅作工具指导时默认不进 manifest.sources 或所有 review 语义 inputs；确用于验收判断时先 start/add-input。
+
+Director 交目标、完整源、完整 clean+caption MP4 交付要求及依赖权限，Creator 按镜头复用素材、补必要控制并选最简充分方法。环境可用不指定工具，除用户明确要求或合理已选局部，不预设批量 `.blend`/CUDA。静态设计与时间合成可分别选法，授权返工可换方式，SVG 可选，既有门禁不变。
+
 ## 当前制作契约
 
 摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标约束。Creator 设计后将连续 shots 装组，按核实模型最大 M 以 `ceil(0.7*M)..M` 为语义目标而非机械下限；保留时长、对白和切点，不延长场景/整集。`story/episodes/{ep}/task-inputs/taskNN.json` 使用 [输入契约](../skills/_meta/rules/shot-inputs.md)：草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，prompt 为 Creator 编写的非空白字符串。文件名给稳定 task_id，每任务至少一个全组 MP4。资产图首次使用求并集在前，BOX 控制相机/布局/整体轨迹，静态段可用静态 clip；sources 不上传。

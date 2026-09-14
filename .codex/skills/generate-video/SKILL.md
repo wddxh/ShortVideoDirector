@@ -28,6 +28,14 @@ argument-hint: "自然语言集数、镜头范围与提交要求"
 - 每次 Write/Edit 内容保持 2000 字符以内，包括 JSON/YAML，不限制最终文件长度。普通短编辑可原位进行；JSON 按完整值/条目增量编辑，每次操作后值和整个文档都须完整有效，不在已发布 manifest 的引号内分次拼接不可分割的长字符串。
 - 长值或条目超限时，事先协调读写方、目标/临时路径及发布时机，在授权路径内离开目标分步组装；待发布临时文档须与目标同文件系统。可分步写临时纯文本块，由本地小脚本按序合并并用 JSON 序列化器编码，不猜转义。完整临时文档须通过 JSON 语法解析及所需结构校验，再原子替换目标；失败保留原目标。patch、命令和脚本内容同受工具字符串长度限制，脚本也分步写入，不用巨大 heredoc/脚本载荷绕过限制。
 
+## 本地环境报告与方法
+
+按 `skills/_meta/rules/user-decision-relay.md` 的 Local Environment And Method Choice：项目初始化由有界授权的单一 Creator 全面检查支持工具，写固定 `story/work/shared/environment/environment.md` Markdown 报告，逐项记录真实 `pass`/`unavailable`、命令及路径、版本、backend、实际输出和限制；工具清单见 `skills/creator-local-reference/tools.md`。
+
+后续 Creator/需要预览工具的 Reviewer 自行查询，纯文字角色不强制读，Director 不逐次传结果/路径。固定报告是常规 read 依赖，Director 仍集中维护 init/update writer 占用与 stable/等待条件，不假永久稳定。更新需有界授权单 owner；Reviewer 只读不自修。实际失败、环境变化或确切新增需求所需能力未被初始化证据覆盖时，补验更新受影响项；新增能力只验证该需求的未覆盖部分，不每任务探测、常规扫描版本或无理由重复验证。报告仅工具指导时默认不进 manifest.sources 或所有 review 语义 inputs；确用于验收判断时，owner 在该语义读取前 start/add-input，包括交给 helper 读取。
+
+环境可用不指定工具。Director 交目标、完整源、完整 clean+caption MP4 交付要求及依赖权限；Creator 按镜头复用素材、补必要控制并选最简充分手段。除用户明确要求或合理已选局部，不预设批量 `.blend`/CUDA。静态设计与时间合成分别选法，授权返工可换方法；SVG 可选，既有交付与审核契约不新增流程 gate。
+
 ## Skill 调用
 
 - `使用 Skill tool 调用 <skill-name> skill` 表示在当前上下文加载对应 Codex 适配层。浏览 description 后选择所需知识，不因加载 skill 创建子代理。

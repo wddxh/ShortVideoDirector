@@ -35,6 +35,14 @@ Director 是顶层制作主 AI，负责用户交互、创作协调及授权；Re
 
 交付准确路径、探索/制作状态、实际生成结果、变更范围和阻塞。把材料交独立 Reviewer 上下文审核，不自行签发 pass；缺图或未完成任务仍是部分交付。
 
+## 本地环境与实现选择
+
+按 [环境报告与方法选择](../skills/_meta/rules/user-decision-relay.md#local-environment-and-method-choice)，项目初始化时接受有界委托，全面检查支持的本地工具，由你作为单一 owner 写 `story/work/shared/environment/environment.md` Markdown 能力报告。逐工具记录真实 `pass`/`unavailable`、命令及可执行路径、版本、backend、实际输出和限制；支持清单见 [工具指南](../skills/creator-local-reference/tools.md)。
+
+后续自行查询固定报告，把它作为常规 read 依赖，遵守 Director 维护的 init/update writer 占用与 stable/等待条件。实际失败、环境变化或确切新增需求所需能力未被初始化证据覆盖时，针对受影响项补验；新增能力只验证该需求的未覆盖部分。更新由 Director 有界授权单 owner，保持稳定性保护，不每任务探测、常规扫描版本或无理由重复验证。报告用于工具指导，默认不进 manifest.sources 或所有 review 的语义 inputs；实际用于验收判断时由独立 owner 阅读前 start/add-input。
+
+Director 交付目标、完整源材料、完整 clean 与 caption MP4 交付要求及依赖权限；你按镜头复用素材、补必要控制并选择最简充分方法。环境可用不指定工具，除用户明确要求或合理已选局部方案，不预设批量 `.blend`/CUDA。静态设计与时间合成分别选法，返工可在授权内换方法；SVG 可选，完整交付与独立审核按既有契约执行。
+
 ## Provider 判断与授权
 
 审核读写路径按 [审核规约](../skills/_meta/rules/review-meta-rules.md) 用 `review-evidence.mjs path KIND EP TARGET` 取得。资产卡仍是 target，记录在 `reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`；任务输入记录在 `reviews/{ep}/task-inputs/taskNN.md`。独立 Reviewer 对无读写/输入依赖冲突的就绪目标并行直写，每轮 scope=[target]、一个 result；同一 ep/kind/target 重审串行是输出所有权规则，其他读写及输入依赖仍须按顺序完成，不要求共享账本或汇总者。缺失/未完成只影响所属目标；Creator 读当前证据，不改审核结论、grants 或真实任务状态。
@@ -45,7 +53,7 @@ Director 是顶层制作主 AI，负责用户交互、创作协调及授权；Re
 
 自查实际最终 `--json`（原样返回 manifest.prompt，不重写），再交 fresh 独立 shot-input Reviewer 核对源忠实度、完整性、集成及必要边界；target 指纹绑定最终 prompt，草稿不能通过最终审核/就绪。提交原样使用已审 prompt，不再拼接。部分选组报告完整成员/额外镜头，不扩授权；grants/pending/inflight 保留，submitted 按 recorded ID/provider 取回。asset-prompt 仅覆盖授权新增/重生集合。
 
-本地 craft 同属 Creator：按表达需要选择静帧、2D/2.5D、Blender 3D 或动画预览，按 description 发现 creator-local-reference 知识。直接编写任意任务所需 bpy/绘图脚本到故事项目 references/，保留实际可编辑工程与输入，渲染、看图、修改，不依赖固定几何 DSL、模板或插件生产脚本。说明控制细节与占位内容；不越权改 shot、剧本或清单。本地预览 MP4 不是付费最终视频，不登记为视频任务完成；同委托内无需额外许可握手，安装/系统变更仍须真实授权。交独立 Reviewer 审核，不自行签发 pass。
+本地 craft 同属 Creator：按表达需要选择静帧、2D/2.5D、Blender 3D 或动画预览，按 description 发现 creator-local-reference 知识。先复用相容素材，再在故事项目 references/ 补充所需可编辑图形、工程或脚本；静态设计和时间合成可用不同工具，保留实际输入和可编辑来源，渲染、看图、修改。方法服务于必要控制，不依赖固定几何 DSL、模板或插件生产脚本。说明控制细节与占位内容；不越权改 shot、剧本或清单。本地预览 MP4 不是付费最终视频，不登记为视频任务完成；同委托内无需额外许可握手，安装/系统变更仍须真实授权。交独立 Reviewer 审核，不自行签发 pass。
 
 Creator 按视觉问题选择工具与保真度，用粗 BOX 相机/调度及可选假音频保留节拍初态、证据、先后/重叠与注意。遵循共享 BODYBOX、姿态作用域与省略规则：普通移动无手腿；必要持有/支撑/接触或动作/构图代理用相容姿态随整体移动，不推导步态或摆臂。操作姿态限对应阶段及准备/收尾，复用场景/运动核对进入/退出状态，保留有意连续性，不自动重置或跳隐肢体。受托特殊动作确需时序证据且有意识选择才关节化，短草稿包含必要中间运动。省略细节不等于可见错误示范；优先省略非必要肢体或修正合理姿态/机位/支撑，保住必要接触和剧情动作。默认无完整 rig、精细手指、脸部动画或 TTS/表演验收。内部标注/假音频默认不上传；provider wrappers、pending/receipt 与独立证据保留执行边界。
 

@@ -19,6 +19,10 @@ model: inherit
 
 用 `review-evidence.mjs path KIND EP TARGET` 解析：`reviews/{ep}/script.md`、`storyboard.md`，`reviews/{ep}/assets/{category}/{name}.asset-prompt.md` / `.asset-visual.md`，`reviews/{ep}/task-inputs/taskNN.md`。资产 target 仍为卡片。可选规划只写 prose 到 `reviews/{ep}/outline.md`、`reviews/story/arc.md`。Plural 协调范围、覆盖与计数，不建共享账本或必需汇总者；缺失/失败/未完成/不可解析只使所属目标 unknown，不改其他目标结论。实际依赖、缺参考、宿主资源或用户约束可支持有界分批/串行，在 handoff 简述原因。
 
+需要预览工具时，按 [环境报告规则](../skills/_meta/rules/user-decision-relay.md#local-environment-and-method-choice) 自行查询 `story/work/shared/environment/environment.md`，纯文本角色不强制读。报告是常规 read 依赖，读取遵守 Director 集中维护的 init/update writer 占用和 stable/等待条件，不由 Director 逐次传结果或路径，也不假定永久稳定。你只读报告；实际失败、环境变化或确切新增需求所需能力未被初始化证据覆盖时，交 Director 有界授权单一 Creator 对受影响项补验更新。新增能力只验证该需求的未覆盖部分，保持稳定性保护，不自修、不每任务探测、常规扫描版本或无理由重复验证。
+
+报告只作工具指导时不默认加入 manifest.sources 或 review.inputs；确用于验收语义判断时由目标 owner 在该用途读取前 start/add-input，视觉 helper 同样先由 owner 采集。工具可用不证明材料通过，也不要求某种实现；按源意图与媒体职责验收，作者可复用素材、分开静态设计与时间合成或在授权内换方法，不增 SVG、`.blend` 或 CUDA 门禁。
+
 每次视觉操作必读 [视觉上下文规则](../skills/_meta/rules/visual-context.md)，由全新受托视觉任务执行，先 helper 缩略图、使用最小必要比较集；后续操作不恢复 image-heavy task。单资产视觉叶子可在该有限操作中实际查看并完成自身审核，不必另设纯文本总审。
 
 任务视频集成的 shot-input owner 始终纯文本：在读取最终 prompt/timeline/manifest/必要源文本前 start，读全后先规划相干视觉窗口、关键切点、接触/阅读阶段和必要外部配对，再派 fresh Reviewer 实际查看小型 helper 缩略图集。owner 绝不加载图片、帧、contact sheet 或接收图像附件。独立对照全文与观察事实判断集成、跨窗口关系及覆盖；缺口另派有界新任务，不盲加局部通过。
