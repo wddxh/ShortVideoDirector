@@ -6,7 +6,11 @@ Storyboarder 负责镜头时间线与镜头语言；Creator 负责资产、本�
 
 ## 镜头设计方法
 
+提示表达按 [任务提示组织](../_meta/rules/visual-prompt-craft-video.md#任务提示组织)，官方建议 1–4/7 与建议 5 转场在其范围内优先，建议 6/extend 排除。源 shot 写完整动作、关键情绪与叙事意图；Creator 可按素材用途/时窗、概述、时间剧情与可选全局重申组织每 task 亲写稿，不将公式变成固定标题或篇幅。源七字段及镜内 clock 保持，最终组织不改源切点和预算。
+
 转场、片中文字与内部标注按 [共享 craft](../_meta/rules/transition-craft.md) 区分。必要全屏卡/转场图像可正式设计，沿用七字段和预算；观众 SUPER 不需要场内阅读面。成片原词与时间事实归 Scriptwriter，分镜落实显露/阅读/退出窗口及切点，Creator 不在装组时加秒。源标题若同时是有意上屏的文字，保留其成片表达，只将非成片结构标题留在元数据。
+
+转场按 [过程表达](../_meta/rules/transition-craft.md#转场过程表达) 写切前末态、触发、过程与切后初态，明确必要方向、景别、声音及源内窗口。硬切瞬时换画面；淡黑后显现为先后，交叉叠化为同窗消长。示例时长不成为统一预算，动作中硬切与有意突兀均可成立。
 
 先核对剧本给出的必要背景、线索含义、关键原字、行动结果与反应；镜头负责让它们在正确知情时点可读，而非补造动机或世界规则。书页/屏幕上的必要内容不能简化为“重要信息”，也不能只凭物件入画声称选择已有依据。缺少源事实交 Scriptwriter/Director；已有事实的取景、人物视野、切点与阅读窗口由 Storyboarder 设计，交 Creator 在参考及最终 prompt 保留。
 
@@ -55,15 +59,15 @@ Creator 装组保留各 shot 时长、对白、动作意图和内部切点，统
 
 `引用资产` 仅含 location / item / building；character 仅放在 `出场人物`。链接必须对应真实资产。不得在 storyboard 中写下游生成的图片槽位。
 
-Creator 提供作品美术基线，Storyboarder 在各源 shot 的单行 `视频风格` 表达一次。同组字段须精确相同，Creator 在最终 prompt 表达一次；材料提取遵循所选 provider 自有工具。不同基线交 owner 协调，不模糊去重。相容局部变化与详细动作、表情、对白、音效留视听正文；reference use 仅管控制用途和占位边界。
+Creator 提供作品美术基线，Storyboarder 在各源 shot 的单行 `视频风格` 表达一次。同组字段须精确相同，materials 提取单一源风格一次；Creator 在最终 prompt 表达统一基线，可结尾重申必要全局要求。材料提取遵循所选 provider 自有工具。不同基线交 owner 协调，不模糊去重。相容局部变化与详细动作、情绪意图、对白、音效留视听正文；reference use 说明实际控制用途、适用区间和占位边界。
 
-摄影源保留七字段，源 cues 用镜内时间。所选 provider 自有材料工具定义 pack、引用绑定和重基，具体规则见其视频指南。Creator 对照源、工具输出及实际 refs，据派生 timeline 将完整源意图写成任务时间 manifest.prompt，保留对白原词，去掉内部 IDs/路径/元数据；缺源事实返回 owner。[输入包](../_meta/rules/shot-inputs.md) 身份图按首次使用求并集在前，本地媒体在后，每任务至少一个全组 BOX MP4，静态段可用 clip。各镜 prose links 须自身 header 声明。Creator 统一媒体时钟/切点/声音桥，自查最终 `--json` 后由 fresh Reviewer 审核忠实度、完整性、集成/delta 和必要边界，无冲突复用 storyboard 判断。
+摄影源保留七字段，源 cues 用镜内时间。所选 provider 自有材料工具定义 pack、引用绑定和重基，具体规则见其视频指南。Creator 对照源、工具输出及实际 refs，据派生 timeline 将完整源意图写成任务时间 manifest.prompt，保留对白与正式片中文字原词，去掉内部 IDs/路径/元数据；缺源事实返回 owner。[输入包](../_meta/rules/shot-inputs.md) 身份图按首次使用求并集在前，本地媒体在后，每任务至少一个全组 MP4，静态段可用 clip。各镜 prose links 须自身 header 声明。Creator 统一媒体时钟/切点/声音桥，自查最终 `--json` 后由 fresh Reviewer 审核忠实度、完整性、集成/delta 和必要边界，无冲突复用 storyboard 判断。
 
 shot heading 后的下一个 ATX heading、独立 `---`、行首 HTML comment 或 EOF 为结构边界。场景标题/预算置于 shot 外；制作说明另起 heading 或分隔线，prose 内只放当前视听内容。Materials 仅做上述显式结构变换，保留其他内部文字，不识别制作备注或补全语义；Creator 编写最终语义 prompt，Reviewer 独立核对，最终 converter 原样返回 manifest.prompt。
 
 ## 固定约束
 
-本地视频遵循 [BODYBOX 与最终 Prompt](camera-language.md#本地-box-与最终-prompt)：普通移动不加手腿，必要持有/支撑/接触或具体动作/构图代理在行进中相对身体稳定，整套平移/转向；不推导步态、腿部循环或摆臂。受托特殊动作确需时序证据且 Creator 明确选择才做最小关节变化，保留身体出画时必要手/前臂支撑。Shot prose 写清谁做什么、必要朝向/姿态、左右、归属、握持/接触和初中末变化，不设细节配额。ref.use 与最终 manifest.prompt 都声明相机/取景/布局/整体轨迹控制，不照搬代理滑移、僵硬姿势、步态或解剖；源动作所需自然姿态、重心和迈步由最终文字表达，不自动加手势。
+本地视频按 [参考用途与精细度](../_meta/rules/visual-prompt-craft-common.md#参考用途与精细度) 声明控制。粗白模普通移动优先无肢/翼 BODYBOX，必要持有/支撑/接触代理随整体移动，不推导步态或摆臂；受托特殊动作确需时序证据且 Creator 明确选择才做最小关节变化。细模可采用已有结构/材质，也可只借空间、不抄动作，不要求扩建精细 rig。Shot prose 写清谁做什么、必要朝向/姿态、左右、归属、接触和初中末变化；带肢/翼参考的相关完整动作序列由最终 prompt 表达。use 与最终 prompt 同步实际区间、用途和代理映射，不将抽象滑移当成片表演，不自动加手势。上传参考清除内部轨迹、坐标、camera cone 与调试标注，正式片中文字保留。
 
 拧动、换手等选用让必要区域、过程与结果可读的景别/角度，不强制特写或 POV。书页、屏幕、照片、仪表按 [交互与视点关系](camera-language.md#视线与动作接点) 写清阅读/操作或展示对象、有效面、角色视野与机位，保住关键中间阶段。按上述姿态作用域核对操作准备/收尾及跨镜进入/退出状态，保留有意连续性；与 Creator 协调构图/遮挡，避免代理跳隐或以省略抹去必要接触/剧情动作。缺细节与可见错误示范按共享规则区别，不要求完整 rig 或逐指证明。悬浮、透明屏幕按意图判断。环境/道具与静态形状保留声明几何；按 [通用视觉表达](../_meta/rules/visual-prompt-craft-common.md) 保持统一风格与实际资产身份。
 

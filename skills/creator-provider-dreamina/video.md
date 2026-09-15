@@ -22,9 +22,13 @@ The model sees final prompt and uploads. Draft manifests are exactly `{shots,ref
 
 The source shot ends at the next ATX heading, standalone `---`, line-start HTML comment or EOF. Authors keep scene budgets and production notes outside those boundaries; materials preserve internal text and headers, extract common style and rebase leading cues. Creator interprets local time in the final task clock without changing facts or dialogue. Final `--json` requires a nonblank string and returns manifest.prompt exactly. Entry preparation stores that string in tasks.json; gate/reserve compare final-manifest prompt/duration/references, not source-generated text. Submitted/done/inflight and submission snapshots stay protected.
 
-For each task, Creator applies [independent semantic authorship](../_meta/rules/visual-prompt-craft-common.md#每任务独立语义写作) to its actual shots, refs, events, dialogue and clock, personally writing the complete prompt and each reference's locally applicable use. Keep uses synchronized with prompt revisions. Express the shared artistic baseline once per final prompt and preserve all source facts; accurately shared facts may recur across tasks. Materials are authoring inputs, not COMMON headers/footers, template slots or a bundle of conditional rules to distribute to every group. Scripts may extract/present, number, protect/validate, safely serialize independently authored drafts in a batch and read exact text; they do not compose task semantics.
+For each task, Creator applies [independent semantic authorship](../_meta/rules/visual-prompt-craft-common.md#每任务独立语义写作) to actual shots, refs, events, dialogue and clock, personally writing the complete prompt and every locally applicable `ref.use`. Synchronize uses with prompt revisions. Express the shared baseline; meaningful closing global restatement and accurate common facts across tasks are valid. Materials still extract identical source style once. A formula may organize writing, but COMMON finished headers/footers, script fill/template slots and indiscriminate conditional rules cannot replace semantic authorship. Scripts may extract/present, number, protect/validate, batch-serialize independently authored complete drafts and read exact text; they do not compose task semantics.
 
 ## Dreamina Authoring Materials
+
+Apply the [official guide scope](../_meta/rules/visual-prompt-craft-common.md#官方指南适用范围): recommendations 1–4/7 and only transitions from 5 take precedence within scope; 6 and extend operations are excluded. Under [task prompt organization](../_meta/rules/visual-prompt-craft-video.md#任务提示组织), introduce actual numbered materials/purposes, give a one-sentence overview of this task's subjects, setting, core event, genre/style and designed special camera movement, then unfold its task-time story. Pair physical action with source-supported key emotion, subtext or intent, preserving exact dialogue, film words, cuts and audio. Non-character passages describe visual change and narrative purpose. An optional closing passage may restate necessary global style/identity/constraints without globalizing local action. The formula sets no fixed headings, length or detail quota.
+
+For chosen transitions, write A end state -> trigger -> process -> B start state using actual views/subjects, with necessary direction, scale, timing and sound. Hard cuts switch instantly; sequential fade-black/appearance and overlapping cross-dissolve have distinct clocks. Keep the selected source transition and its budget; concrete conflicts go to owners, not arbitrary replacement or added seconds. Preserve valid abruptness and source-supported sound relations without promising seamless independently generated audio.
 
 Apply [transition and film-text craft](../_meta/rules/transition-craft.md): source-intended UI, SUPERs/cards and transition images are valid clean-reference content; internal debug titles and rehearsal captions are not. Optional local text guides use the existing media and binding contract. Judge current model/operation support concretely rather than banning text based on a weak-model assumption. Correct source/local typography and accepted inputs do not guarantee generated wording, glyphs or timing; disclose supported postproduction needs without claiming completion or extra authority.
 
@@ -57,17 +61,22 @@ Dreamina materials extract the identical parsed single-line `视频风格` into 
 
 ### Inline Use In Task-Time Prose
 
+In both `ref.use` and final prompt, map each actual token/purpose and video-local interval to its task-use interval and adopted dimensions. Declare a same-clock full-group mapping directly; static images have applicable task intervals, not playback clocks. Local action references govern only their stated phases, not a full-task loop. Use actual `{图片N}` / `{视频N}` slots when authoring; official guide notation is not a script replacement rule or submission-time rewrite.
+
+Assign authority by actual purpose, not all-video BOX assumptions. Coarse white models can supply a dynamic skeleton for trajectories, camera, staging, lighting and cuts; prefer limbless/wingless BODYBOX for ordinary movement and map proxy colors/shapes to assets. With necessary limb/wing references, final prose gives the relevant complete action sequence and phase roles, without a local detailed rig. Suitable detailed models may supply existing structure/materials or only spatial relationships without copied action. Write each entry's actual adopted controls and local limits; remove internal trajectory lines, coordinates, camera cones and debug labels from uploads while retaining intended film text. See [proxy authority](../_meta/rules/visual-prompt-craft-common.md#粗模控制与外观依据分离).
+
 Apply the full [global mappings and inline use rules](../_meta/rules/visual-prompt-craft-common.md#全局映射与实际使用处的引用) with `{图片N}` / `{视频N}` in task-time prose, following [source performance integration](../_meta/rules/audiovisual-craft.md#从触发到人物反应) and [reference/proxy authority](../_meta/rules/visual-prompt-craft-common.md#粗模控制与外观依据分离).
 
-Illustrative excerpt only: assume actual image slots 1/2 are 阿岚/小舟 and video slot 1 shows their cyan/orange BODYBOX proxies with the stated staging and a cut at task second 3. The canonical source already contains the quoted line and response; use actual source times, words and references in production:
+Illustrative excerpt only, not a complete production prompt: assume actual image slots 1/2 are 阿岚/小舟 and video slot 1 contains a five-second cyan/orange BODYBOX staging reference with a cut at second 3. The source already establishes an indoor meeting, the quoted line and response. Production uses its own full source facts, style, sound, times and references:
 
 ```text
-阿岚的身份外观用{图片1}，小舟用{图片2}；{视频1}中青色代理对应阿岚、橙色代理对应小舟，仅控制相机、布局、整体轨迹及时序，人物表演按下文。
+本任务0–5秒，阿岚的身份外观用{图片1}，小舟用{图片2}；{视频1}的0–5秒对应本任务0–5秒，青色代理对应阿岚、橙色代理对应小舟，仅采用相机、布局、整体轨迹与切点，人物表演按下文。
+室内会面中，阿岚给出承诺，小舟得到期待的回应，带着欣喜靠近阿岚。
 [0s-3s] 按{视频1}此段固定双人中景，阿岚在画面左侧、小舟在右侧。阿岚{图片1}对小舟{图片2}说：“我答应你。”小舟听到“答应”后，注意留在阿岚身上，原先等待确认的态度转为欣喜，笑出来。
 [3s-5s] 按{视频1}在3秒切到小舟的中近景并保持该段前移轨迹。小舟{图片2}带着刚获回应的欣喜向画外左侧的阿岚{图片1}靠近；小舟迈步时重心随步伐前移，笑意延续，依照文字表演而非复制盒体滑移。
 ```
 
-The example demonstrates binding at actual use and through a cut, not required smiling, approach, face coverage or added contact. Source owners determine facts and camera design; absent support returns to them rather than being supplied by the example.
+The excerpt demonstrates interval/dimension mapping, story intent and binding through a cut, not required smiling, approach, face coverage or added contact. It is not a reusable COMMON passage; Creator independently authors each task's complete prompt and uses. Source owners determine facts and camera design; absent support returns to them rather than being supplied by the example.
 
 ## Series And Episode Profiles
 

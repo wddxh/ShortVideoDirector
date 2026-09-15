@@ -42,7 +42,11 @@ work 候选可用于预备；待 scope、依赖和发布写入占用稳定，Cre
 
 本地参考 handoff 指定需要成立的视觉成果、源事实/shot/clock 边界、交付路径、依赖稳定性与决策余地，选材由 Creator 根据固定环境报告和当前材料判断。保留用户固定工具或 Creator 已明确选定的局部实现及其依据；其余不预先要求全组 `.blend` 或 CUDA。Creator 在现有 handoff 简短说明可复用什么、还缺什么控制、为何选择能表达它的最简材料，不另设选材表或审批。返工围绕实际冲突，可改用静帧、图层、二维动画、局部 3D 或混合表达；同步受影响 sources/use/prompt 和实际媒体，源镜头重设计仍交对应 owner。
 
+按 [参考用途与精细度](../_meta/rules/visual-prompt-craft-common.md#参考用途与精细度) 交接实际 purpose，不把全部参考限定为粗 BOX：细模可采用已有结构/材质或只借空间，不强制模仿动作。Creator 在 use 与最终 prompt 同步素材时窗→任务时窗及采用维度；粗参考带肢/翼时写相关完整动作序列，不扩建本地 rig。上传清除内部轨迹线、坐标、camera cone 和调试标签，正式 film text 保留。Reviewer 按源忠实度、适用性与声明用途判断，不以精细度、词数、固定标题、面部细节数量或相同用词验收。
+
 ## 来源与制作前确认
+
+提示表达采用 [官方适用范围](../_meta/rules/visual-prompt-craft-common.md#官方指南适用范围)：建议 1–4/7 与建议 5 转场在其范围内优先，建议 6/extend 排除。Creator 可按素材用途/时窗、概述、时间动作与情绪意图、可选全局重申组织亲写稿。转场按 [过程表达](../_meta/rules/transition-craft.md#转场过程表达) 落实两端、触发、过程及必要声画窗口，区分淡黑后显现与交叉叠化；有效硬切保留，沿固定 source cut 与预算，变更交源 owner，不加统一过渡秒数。
 
 交接时区分用户明确要求、叙事成立所必需的事实，以及 owner 自选、可替换的实现方案，并保留可追溯的原话或材料位置与理由。“可以”不升级为“必须”；自行选择不用配乐不能转述为用户禁止配乐。当前材料中的实现仍须一致消费，但其存在不等于用户锁定。争议先回查来源与实际叙事作用，再由对应 owner 在授权内重设计并同步材料；Reviewer 独立核对争议约束，不因上游转述就认定为硬要求。
 
@@ -98,7 +102,7 @@ Director 每次派发前用现有任务句柄、委托上下文和实际结果�
 
 在现有上下文中区分未派发、运行中、实际完成、错误与就绪：拟定委托不等于已派发，工具返回 running/后台通知不等于任务实际完成，实际完成也不等于验收就绪。Director 持续保留整棵受托子树的读写占用，直到父任务及真实后代工作全部完成；期间不得自行写入或派发冲突 writer。父任务有限返回或错误而后代仍运行时，也不释放占用。只有真实任务已启动且仍待实际结果才报告等待，并对应实际句柄；收到结果后按 relay 恢复原请求任务，后续视觉操作仍用 fresh task。依赖阻塞时说明尚未派发及具体依赖，不虚称后台运行。不新增调度账本、schema、调度器、锁或状态轮询；排队、恢复和范围内修订不变成重复许可。
 
-输入包遵循 [shot-inputs](../_meta/rules/shot-inputs.md)：`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`。委托 Creator 在视频参考/装组映射确定后，对每 task 实际源 shots/refs、事件、对白与时钟独立亲写完整 manifest.prompt 及逐 ref 的本组 use，修订时同步二者。统一艺术基线在每个 prompt 内表达一次，适用共同事实可准确重复；不安排 COMMON 头尾分发、模板填槽或全量条件条款，保留全部源事实和重要动作。脚本可处理材料、编号、保护校验与安全 JSON 保存，允许把各自独立写成的稿作为数据批量保存，不代替语义写作。Creator 自查原样返回 manifest.prompt 的实际最终 `--json` 后交 fresh Reviewer。
+输入包遵循 [shot-inputs](../_meta/rules/shot-inputs.md)：`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`。委托 Creator 对每 task 实际源 shots/refs、事件、对白与时钟独立亲写完整 manifest.prompt 及逐 ref 的本组 use，修订时同步二者。同组源 `视频风格` 精确相同、materials 提取一次；最终 prompt 表达统一基线，可结尾重申必要全局要求。按 [任务提示组织](../_meta/rules/visual-prompt-craft-video.md#任务提示组织) 使用官方结构公式，保留全部源事实、动作、情绪意图及原词；不安排 COMMON 成稿分发、模板填槽或全量条件条款代写语义。脚本可处理材料、编号、保护校验与安全 JSON 保存，独立写成的完整稿可批量序列化。Creator 自查实际最终 `--json` 原文后交 fresh Reviewer。
 
 task_id 独立于首镜，每任务至少一个全组 MP4，可辅 PNG；资产图供身份，BOX 控制相机/布局/整体轨迹，静态段可用 clip，sources 不上传。独立 shot-input 以最终 manifest 为 target，指纹绑定 prompt，审核源忠实度、完整性、局部适用性、集成/delta、任务时钟、内部切点/声音桥及必要相邻/非相邻/跨集边界；无冲突复用 storyboard 判断。草稿不通过最终审核/就绪。实际依赖入 inputs，不附全计划哈希，缺证据 unknown。源码/记账变而媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审；每次视觉操作仍新任务与 helper 缩略图。
 

@@ -31,9 +31,9 @@ Director 是顶层制作主 AI，负责用户交互、创作协调和授权；Re
 
 独立审核记录为 `reviews/{ep}/storyboard.md`，target 仍是 storyboard；用 `review-evidence.mjs path storyboard EP TARGET` 解析。Reviewer 每轮 scope=[target]、一个完成 result，直接写本目标文件；同一 ep/kind/target 重审串行是输出所有权规则，读写/输入依赖仍须排序，无冲突就绪目标并行直写各文件，无需汇总者。输入包另写 `reviews/{ep}/task-inputs/taskNN.md`，缺证据只影响所属目标；修复读取当前意见，不改审核结论。
 
-摄影 shot 保留七字段、正整数秒和完整动作/表情/对白/声音，短镜不受 provider 最短时长或 70% 生成任务目标限制。设计后 Creator 按 [shot-inputs](../skills/_meta/rules/shot-inputs.md) 将连续 shots 装组，保留当前 canonical 时长/切点，装组本身不延时。每生成任务至少一个全组 BOX MP4 控制相机/布局/整体轨迹，静态段可用 clip。整集源 1..N，局部源可缺号，生成范围须选完整组并报告部分组的完整成员/额外镜头，不扩授权。交付控制意图及跨镜/跨集依赖，不越权写 manifest/卡片；task manifest 的 shot-input 审核检查最终集成/delta、内部切点/声音桥和必要边界，无冲突复用分镜判断。
+摄影 shot 保留七字段、正整数秒和完整动作/表情/对白/声音，短镜不受 provider 最短时长或 70% 生成任务目标限制。设计后 Creator 按 [shot-inputs](../skills/_meta/rules/shot-inputs.md) 将连续 shots 装组，保留当前 canonical 时长/切点，装组本身不延时。每生成任务至少一个覆盖全组时间轴的完整 MP4，Creator 按实际声明的 purpose/use 选择粗模、细模、图层或混合参考及其控制范围，静态段可用 clip。整集源 1..N，局部源可缺号，生成范围须选完整组并报告部分组的完整成员/额外镜头，不扩授权。交付控制意图及跨镜/跨集依赖，不越权写 manifest/卡片；task manifest 的 shot-input 审核检查最终集成/delta、内部切点/声音桥和必要边界，无冲突复用分镜判断。
 
-接收 Creator 作品级基线，在每个源 shot 的单行 `视频风格` 表达一次。同组字段须精确相同，Creator 在最终 prompt 表达一次；差异交 owner，局部变化留 prose，不模糊去重。详细动作、表情、对白与音效留正文；每镜链接须自身 header 声明，源 bracket cues 用镜内时间。材料提取、引用绑定与重基由所选 provider 自有工具定义，见其视频指南；共享 [shot-inputs](../skills/_meta/rules/shot-inputs.md) 保留源/最终输入边界。Creator 依据源、provider 工具和实际 refs 写 manifest.prompt 的完整任务时间表达，保留源意图和对白原词、内部切点及声音桥，去掉内部 IDs/路径/元数据；缺源事实返回本角色，不在 use 中编造。最终 converter 原样返回已写 prompt。
+接收 Creator 作品级基线，在每个源 shot 的单行 `视频风格` 表达一次。同组源字段须精确相同，materials 提取单一源风格一次，Creator 在最终 prompt 概述统一基线，并可在结尾有目的地重申必要的全局风格与约束；差异交 owner，局部变化留 prose，不模糊去重。详细动作、表情、对白与音效留正文；每镜链接须自身 header 声明，源 bracket cues 用镜内时间。材料提取、引用绑定与重基由所选 provider 自有工具定义，见其视频指南；共享 [shot-inputs](../skills/_meta/rules/shot-inputs.md) 保留源/最终输入边界。Creator 依据源、provider 工具和实际 refs 写 manifest.prompt 的完整任务时间表达，保留源意图和对白原词、内部切点及声音桥，去掉内部 IDs/路径/元数据；缺源事实返回本角色，不在 use 中编造。最终 converter 原样返回已写 prompt。
 
 需要用户决定时必读 [用户决策完整转交规则](../skills/_meta/rules/user-decision-relay.md)。你一次提供全部可预见相关问题/表，标明题界、全部选项/解释、稳定标签及依赖分支。主 AI 内部保留完整计划，仅沿作者题界逐题呈现当前全文，再用可用原生单题选择器；相关答复及全部条件可批量完整回本任务，不逐题往返。仅缺内容/映射、不相容或计划外新决定才提前回询；不推断专业条件，按 scope 跳过已答/继承/已委托项。Director relay 不压缩，主 AI 不有损改写或提前倾倒全表；长解释在控件前，Markdown 不替代可用控件，限制须明说。
 

@@ -40,11 +40,11 @@ AI 内部执行遵循 `${CLAUDE_PLUGIN_ROOT}/skills/generate-video/SKILL.md` 的
 
 摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标限制。用户原始集目标已确认的 ±10% 是主动可用的创作预算；Director 协调 owner 更新 canonical script/storyboard 与受影响下游，范围内不逐次求许可，原始基准不随本轮/前集合计滚动，精确要求优先。Creator 在设计后装组连续 shots，按核实模型最大 M 以 ceil(0.7*M)..M 为语义目标，不是机械下限；装组保留当前源时长、对白、切点，重设计交 owner，不暗中延时。`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，prompt 是 Creator 写入的非空白字符串。文件名给稳定 task_id，成员按源顺序连续，每任务至少一个全组 MP4，条目仅 local PNG/MP4。最终 `--json` 返回 `{task_id,shots,timeline,prompt,duration,references,assetCards,sources,inputPath}`，prompt 原样来自 manifest，不重写；时间派生，不另存可编辑 offset/duration 或装组索引。
 
-创作材料使用所选 provider 自有 material tool，具体命令、pack、token 计数/绑定和重基规则见该 provider 文档；Dreamina 见 `skills/creator-provider-dreamina/video.md`。草稿可供材料解析但不表示就绪。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现工具，无需 registry/framework/manifest schema 变更。共同风格在每个 task 的最终 prompt 内表达一次，不是整集只写一稿；适用共同事实可准确重复，不禁必要相同用词。不同基线交 owner，源事实及对白完整保留。身份图按成员首次使用求并集在前，本地媒体在后，每镜链接须自身 header 声明，sources 不上传。
+创作材料使用所选 provider 自有 material tool，具体命令、pack、token 计数/绑定和重基规则见该 provider 文档；Dreamina 见 `skills/creator-provider-dreamina/video.md`。草稿可供材料解析但不表示就绪。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现工具，无需 registry/framework/manifest schema 变更。同组源视频风格精确相同、materials 提取一次；最终 prompt 表达统一基线，可结尾重申必要全局要求。不同基线交 owner，源事实及对白完整保留。身份图按成员首次使用求并集在前，本地媒体在后，每镜链接须自身 header 声明，sources 不上传。
 
 Creator 在视频参考/装组映射确定后读 materials 和 provider 语法，对每 task 实际源 shots/refs、事件、对白与时钟独立亲写完整 manifest.prompt，保留叙事、动作、对白原词、切点、时长及声音，绑定实际 tokens 并解释 BOX/颜色/身体/肢体代理的最终身份、解剖与动作。源局部时间转成明确任务时间；仅清理非成片源标题、内部 task/shot IDs、路径和审核元数据，保留有意上屏原词与 wide shot 等摄影词。缺源事实交 owner，不编造 use。Creator 自查实际最终 `--json` 后交 fresh shot-input Reviewer 核对源忠实度、完整性、局部适用性和集成；提交不改写。
 
-按 `skills/_meta/rules/visual-prompt-craft-common.md` 的每任务独立语义写作，Director 不安排 COMMON 头尾分发，Creator 不用模板填槽或全量条件条款代替逐组写作。逐 ref 亲写该参考在本组的实际用途，prompt 修订同步更新受影响 use，完整保留源事实和重要动作，不靠短稿删必要内容。提示编写脚本只做材料提取呈现/编号、保护校验、JSON 安全写入及原样读取，不拼 common 代写语义；各自已独立写成的多份稿作为 data 批量序列化保存合法，不要求手敲文件。Reviewer 通读最终 prompt 与 uses，检查混入的不存在事件/角色/声音、不适用分支、重复稀释及矛盾，给具体源依据与影响；准确共同事实及必要统一风格不因相同词失败，不新增关键词黑名单、自然语言 parser 或 gate。
+提示表达按 [任务提示组织](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-video.md#任务提示组织) 与 [每任务独立语义写作](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md#每任务独立语义写作)：官方建议 1–4/7 及建议 5 转场在其范围内优先，6/extend 排除。公式指导组织，不分发 COMMON 成稿或用脚本/模板代写语义。每 task Creator 亲写，use 同步；独立完整稿可批量序列化。Reviewer 核对源忠实度、完整性、局部适用性和实际 purpose，不按词数、标题、面部细节数量或相同词验收。
 
 转场与文字按 `skills/_meta/rules/transition-craft.md`：区分场内 UI、观众 SUPER/时间地点/章节/全屏卡和内部调试预览。clean MP4 无内部污染，可含正式文字与转场图像；预演底栏字幕仍内部非上传。Scriptwriter 拥有原词和时间事实，已有隔日事实可设计卡片，新跳时交 owner；Storyboarder 管阅读窗口/切点，独立卡计镜头数与预算，叠字不重复计时，装组不加秒。Creator 可选本地文字引导，Reviewer 查来源/原词/阅读/对比/注意/揭示，观众文字不套演员阅读面，不因文字或黑底失败。源/输入验收不保证成片模型质量，不笼统禁字或承诺准确性。
 
@@ -58,9 +58,9 @@ shot-input target 为 `task-inputs/taskNN.json`，纯文本 owner 验收最终�
 
 ## Native User Decision
 
-摄影按 camera-language 设计调度、覆盖与光学，script→shots→reference 保留节拍初态、证据、先后/重叠与注意，不按动作数或固定秒数。Creator 用低成本 BOX 与可选假音频预演，遵循 skills/_meta/rules/visual-prompt-craft-common.md 的 BODYBOX、姿态作用域与省略规则：普通移动无手腿，必要支撑/接触/动作代理用相容姿态随整体移动，不推导步态、腿部循环或摆臂。操作姿态限对应阶段及准备/收尾，复用场景/运动核对进入/退出和有意连续性，不自动重置或跳隐肢体。受托特殊动作确需时序证据且 Creator 明确选择才关节化，短草稿含必要中间运动，碰撞检查仅辅助视觉判断。省略细节/块状风格不失败，可见错误姿态误导动作则须修正；优先省略非必要肢体或修正合理姿态/机位/支撑，保住必要接触/剧情动作。未解明确冲突 needs_revision，必要证据不足 unknown；正常肩部连接/遮挡不套零相交或完整解剖门禁。默认无完整 rig、精细手指、脸部动画或 TTS/表演验收。内部标注/假音频默认不上传，全组契约不变。shot-input 先报实际冲突再给可选修法；独立证据、fresh task、缩略图及既有 gates 不变。
+摄影按 camera-language 保留节拍、证据、先后/重叠与注意。参考遵循 [参考用途与精细度](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md#参考用途与精细度)：按 actual purpose 选粗/细，细模可采用已有结构/材质或只借空间，不强模仿动作。粗白模普通移动优先无肢/翼 BODYBOX；必要代理保留相容支撑与阶段，带肢/翼须最终 prompt 写相关完整动作序列，不扩本地 rig。抽象本身不失败，具体源冲突须修；必要证据不足 unknown，独立证据、fresh task、缩略图和 gates 保持。
 
-粗参考需详细 shot prose：谁做什么、必要朝向/姿态、左右、归属、握持/接触及初中末变化，不设细节配额。ref.use 与 Creator 亲写的实际最终 manifest.prompt 都说明相机/取景/布局/整体轨迹控制，不照搬滑移、僵硬姿势、步态或代理解剖；最终 prose 按源动作写自然行走的姿态、重心与迈步，说明必要代理归属/握向，不自动加手势。否定措辞不能抵消错误媒体，先省略或修正误导信号，不以 pass 加“prompt 写自然”结案。
+素材时窗与用途按 [参考区间与采用维度](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md#参考区间与采用维度) 同步到 use/最终 prompt，保留完整源动作、情绪意图及代理归属，局部动作不扩成全片循环。上传清除内部轨迹线、坐标、camera cone 和调试标签，保留正式 film text；抽象分工可说明省略，不能反转矛盾媒体事实。转场过程见 [转场过程表达](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/transition-craft.md#转场过程表达)，沿源切点与预算，不加示例秒数或 extend。
 
 独立生成 TASK 边界默认强烈优先采用有剪辑动机、明显不同的机位／视点／景别，以降低近似构图独立生成差异的显眼程度。每个相邻接点按源意图判断：同一连续事件保持必要动作进度、持有/接触、空间与声音的相容延续；场/幕或时空跳转判断因果、情绪、信息、主题反差或平行关系与观众定位，不套同一事件标准，不强制同位置、续动作、连续声音或过桥场。源支持的悬念、突兀感与硬切不必顺滑或立即解释；同集底层身份与世界事实一致，有意变化须有源依据。沿已有动机切点装组，相似镜头可同组；实际需要的匹配／重复构图保留，关键接触或必须无缝续声可行时同组，在现有交接说明取舍，不新增许可。此偏好不是每镜变化、每切一任务或角度配额，不保证连续性或豁免违背源意图的错接。TASK 不等于场景或幕，约束内可含多镜/多场，不强制幕结构、停步、终姿、停顿、下组重启或叠化；运动中硬切有效，不要求相同帧。参考与最终 prompt 保留对应接点意图及必要局部事实。保留源时长、连续成员、模型最大值及 grants；源重设计由 Director/owner 在原始预算内同步。
 
