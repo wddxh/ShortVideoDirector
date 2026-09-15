@@ -71,6 +71,8 @@ Director 与专家按 descriptions 自选知识，委托说明成果而非技能
 
 ## 交付与失败
 
-整集交付用 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" ep01` 及同配置 `review-evidence.mjs check ep01` 核验；非零报告未就绪或运行阻塞。缺媒体、审核未决或资源不足是部分交付；重试次数不产生 pass。部分交付/进度不结束原授权委托：仍有可执行、可恢复或待返回工作时，按 Director 的等待/恢复契约继续，补齐资产、本地参考、装组与独立审核，不再问“继续吗”。正常终点是本集制作材料完整且当前审核就绪、尚未付费视频提交，不是资产图像已提交。真实决策/权限缺口、不可恢复错误或必要工具不可用仅暂停受影响工作并说明阻塞；先查存活材料与任务，避免重复提交；取消即停止。
+整集交付用 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" ep01` 及同配置 `review-evidence.mjs check ep01` 核验；非零报告未就绪或运行阻塞。缺媒体、审核未决或资源不足是部分交付；重试次数不产生 pass。部分交付/进度不结束原授权委托：仍有可执行、可恢复或待返回工作时，按 Director 的等待/恢复契约继续，补齐资产、本地参考、装组与独立审核，不再问“继续吗”。正常终点是本集制作材料完整、当前审核就绪且下述整集字幕预演已交付，尚未付费视频提交，不是资产图像已提交。真实决策/权限缺口、不可恢复错误或必要工具不可用仅暂停受影响工作并说明阻塞；先查存活材料与任务，避免重复提交；取消即停止。
+
+ep01 全部材料、每 task 完整 clean + caption MP4 及现有独立审核 ready、依赖 stable 后，Director 按 [整集字幕预演交付](../director-orchestrate/SKILL.md#整集字幕预演交付) 自动授权单一 Creator 汇总，另交 `references/ep01/episode-previs/review.mp4`；临时映射为 `story/work/ep01/episode-previs/parts.json`。先拼显式选中的完整 clean，再按 canonical 累计时长重基全部字幕窗口，逐镜显示全片起止区间（含 task 间边界），全片时间码从零开始。保留原 task 交付，局部范围不扩全片；无需额外许可或新 gate，不写原 reviews/manifest/grants，Director 不自签 pass。报告实际输出、总时长、顺序与限制；工具失败或未完成汇总仍为部分交付。按 [工具接口](../creator-local-reference/tools.md#episode-caption-review-mp4) 输出新文件；正式更新由 Creator 验证新文件后在原授权内安全替换，无 overwrite 参数。本地参考汇总不属于 generated video 剪辑。
 
 素材创作不授权付费视频。用户可后续以自然语言明确要求提交 ep01、查询下载或持续监控，AI 按实际请求本地加载内部 `generate-video`、`check-video` 或 `auto-video`。查询/监控只取回已登记任务或在有效 grants 内续交、重试；监控仅在用户要求或已有同意默认时启动。成片质量由用户判断，不自动审片或合成。遵循 config 语言和角色版权规避规则。

@@ -108,9 +108,17 @@ Reviewer 只写受托 canonical review 记录及指定 `/tmp/opencode/<task>` �
 
 交付剧本、分镜、基础资产卡/图、生成 task manifest/完整 shots 与媒体，报告范围、证据及未决项。使用 check-shot-inputs.mjs 和 script/storyboard/asset-visual/shot-input evidence；asset-prompt 仅覆盖授权新增/重生集合。整集源 1..N 且每镜分配一次；局部允许源缺号、目标存在且选完整组。部分组报告完整成员/额外镜头，不静默扩授权；局部不要求未选媒体或全片计划。缺输入、权限或证据保持部分交付。submitted 按 recorded ID/provider 取回，保护状态/grants/inflight。成片质量由用户判断，不自动审片、剪辑或合成。
 
-部分交付、进度报告或子任务的有限返回不结束父委托。short/series 的正常终点是授权本集的资产、本地参考、装组输入与制作材料完整且当前独立审核就绪，停在付费视频提交前，而非资产图像提交后。仍有可执行、可恢复或待返回工作时保留完整未完成范围，继续原权限内工作，不再问“继续吗”。图像 runner 排空返回后，协调按 recorded ID/provider 取回、成功图独立审核，待停止原因及依赖恢复后续做余项，不以新批绕过 pending，不重复提交或盲目无限重试。真实决策/权限缺口、不可恢复错误或必要工具不可用只暂停受影响工作，报告具体原因和恢复条件；用户取消则停止。
+部分交付、进度报告或子任务的有限返回不结束父委托。short/series 的正常终点是授权本集的资产、本地参考、装组输入与制作材料完整、当前独立审核就绪，并完成下述整集字幕预演交付，停在付费视频提交前，而非资产图像提交后。仍有可执行、可恢复或待返回工作时保留完整未完成范围，继续原权限内工作，不再问“继续吗”。图像 runner 排空返回后，协调按 recorded ID/provider 取回、成功图独立审核，待停止原因及依赖恢复后续做余项，不以新批绕过 pending，不重复提交或盲目无限重试。真实决策/权限缺口、不可恢复错误或必要工具不可用只暂停受影响工作，报告具体原因和恢复条件；用户取消则停止。
 
 Task 若异步返回后台通知/等待指示，先做无依赖工作，再按宿主协议让出回合并接收原任务结果；这是等待进度，不是最终验收或父委托完成。不要轮询代理状态、用 sleep 等代理或重复启动同一任务；收到结果后在原授权内继续。Provider 按已登记 ID 查询/下载是独立的恢复操作，仍可按现有契约有界轮询，不把代理等待限制套到 provider。宿主确实不能自动唤醒/续接时，如实说明未完成范围、现有任务和需外部再次触发的实际限制，不承诺后台自主循环，也不把再次触发包装成重新授权；不新增 daemon、timer 或状态账本。
+
+## 整集字幕预演交付
+
+short/series 当前 ep 的全部制作材料、完整 task clean + caption MP4 和现有独立审核均就绪，且所需依赖 stable 后，Director 在原制作授权内自动委托单一 Creator 汇总一次整集本地参考。handoff 明确 canonical config/ep、script/storyboard、按源顺序的全部最终 manifests、显式选中的完整 clean 与对应 PLAN、有界读取依赖及精确写入路径；沿用 active reader/writer 与子树占用规则，不另问“开始汇总吗”。系列每完成一集交该集，不等待或合成 all-series；局部制作/修复不自动扩成全片汇总。
+
+保留每组完整 clean/字幕版及 PLAN，另交 `references/epNN/episode-previs/review.mp4`。Creator 在 `story/work/epNN/episode-previs/parts.json` 写仅供本次调用的显式 video/plan 映射，路径相对故事项目根；仅含 segments 的整理用 PLAN 放 `references/epNN/episode-previs/`，保留原 PLAN。按 [整集工具契约](../creator-local-reference/tools.md#episode-caption-review-mp4) 先拼 clean，再以 canonical 累计时长重基全部字幕窗口。每镜整个区间显示 `SHOT: 编号 [全片起点s-终点s]`，覆盖 task 间边界；全片 HH:MM:SS 从零逐秒更新。真实 shot 内 cut/额外注释由 Creator 语义整理，工具不自动解析 prose；不能拼接已烧录字幕的任务视频。CLI 无 overwrite 参数，拒绝已有输出；正式更新由 Creator 先生成新文件并验证，再在既有授权范围和稳定依赖下安全替换。
+
+这是本地参考交付，不是 generated video 剪辑、付费提交或任务完成记账。保留五种审核 kind 与现有 gates；不为汇总新增正式审核或写原 reviews、manifest、grants，Director 不自签 pass。查看仍用 fresh scoped 视觉任务和预览规则。Creator 回报实际输出路径、全片总时长、task/shot 顺序、时钟核对及音频/兼容性/观察限制；以当前输出为据，不抄历史日志。工具失败或汇总缺失仍是部分交付，报告具体恢复条件，不把过程成功当正常完成。正式更新在既有授权 scope 内安全替换，依赖变化先协调 owner。
 
 ## 全局规则
 

@@ -275,20 +275,35 @@ test('existing outputs, source aliases and dangling symlinks are preserved', t =
 
 test('encoding failure cleans temporary files and preserves unrelated output neighbors', t => {
   const f = fixture(t);
-  const before = readdirSync('/tmp/opencode').filter(x => x.startsWith('previs-preview-')).sort();
+  const created = join(f.root, 'created-directories.jsonl');
+  const neighbor = join(f.root, 'neighbor.mp4');
+  writeFileSync(neighbor, 'keep neighbor');
+  const source = readFileSync(f.video);
   // Real FFmpeg fails when writing the MP4 under a bounded file-size limit.
+  // Observe this process's real tempfile calls; concurrent renderers share the
+  // explicit /tmp/opencode directory, so TMPDIR/global snapshots cannot isolate it.
   const result = spawnSync('python3', ['-c', `
-import resource, runpy, signal, sys
+import json, resource, runpy, signal, sys
+log = sys.argv[1]
+def audit(event, args):
+    if event == "tempfile.mkdtemp":
+        with open(log, "a") as stream:
+            stream.write(json.dumps(args[0]) + "\\n")
+sys.addaudithook(audit)
 signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
 _, hard = resource.getrlimit(resource.RLIMIT_FSIZE)
 resource.setrlimit(resource.RLIMIT_FSIZE, (4096, hard))
-sys.argv = sys.argv[1:]
+sys.argv = sys.argv[2:]
 runpy.run_path(sys.argv[0], run_name="__main__")
-`, script, f.video, f.plan, '--output', f.output], { encoding: 'utf8' });
+`, created, script, f.video, f.plan, '--output', f.output], { encoding: 'utf8' });
   failure(result);
   assert.equal(existsSync(f.output), false);
   assert.equal(readFileSync(f.plan, 'utf8'), '{}');
-  assert.deepEqual(readdirSync('/tmp/opencode').filter(x => x.startsWith('previs-preview-')).sort(), before);
+  const directories = readFileSync(created, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.ok(directories.some(dir => dir.startsWith('/tmp/opencode/previs-preview-')));
+  for (const dir of directories) assert.equal(existsSync(dir), false, `leaked ${dir}`);
+  assert.deepEqual(readFileSync(f.video), source);
+  assert.equal(readFileSync(neighbor, 'utf8'), 'keep neighbor');
   success(cli(f));
 });
 

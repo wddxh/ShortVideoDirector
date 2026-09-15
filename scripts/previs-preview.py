@@ -88,8 +88,8 @@ def cfr_timing(path, streams):
     except (KeyError, TypeError, ValueError, ZeroDivisionError) as error:
         raise ValueError(message) from error
     except subprocess.TimeoutExpired as error:
-        raise ValueError("CFR frame-timing inspection exceeded 120 seconds; "
-                         "use a shorter native animation MP4") from error
+        raise ValueError("CFR frame-timing inspection exceeded its 120-second execution "
+                         "timeout (not a video duration limit)") from error
     return len(frames), timebase, rate, float(duration)
 
 

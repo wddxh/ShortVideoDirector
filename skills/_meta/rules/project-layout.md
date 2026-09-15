@@ -14,6 +14,7 @@ Paths below are relative to the story project root, not the plugin checkout. Cho
 | `assets/<category>/<name>.md` | Shared cards; retain characters/items/locations/buildings categories. |
 | `assets/images/<category>/<name>.png` | Shared identity images. |
 | `references/` | Stable local reference media, editable sources and their actual dependencies. |
+| `references/epNN/episode-previs/review.mp4` | Complete episode captioned local-reference preview, assembled from selected task clean MP4s after episode materials/reviews are ready and dependencies stable. |
 | `story/planning/plot-options.md` | Canonical current candidate set, updated in place within scope. |
 
 Retain applicable `story/arc.md` and `story/outline.md` contracts. The latest accepted story may live at `story/planning/story.md` with explicitly linked adopted amendments; follow that complete set until actual consolidation is authorized. A newer filename or modification time does not establish adoption. Identify accepted material separately from unselected candidates without copying it into every handoff.
@@ -34,7 +35,11 @@ Use `story/work/epNN/<work-unit>/` for transient handoffs, job JSON and results;
 
 Before dispatch, choose precise output paths and include them with the target, current source paths, scope and ownership in the handoff. Distinguish a transient result from the canonical deliverable; when only text is needed, say so. Parallel workers receive distinct output files, while successive edits to the same current file are coordinated by its owner.
 
+`story/work/epNN/episode-previs/parts.json` is temporary invocation input: `{video,plan}` entries in canonical task order, one explicit complete manifest-declared clean MP4 and actual PLAN per group. Paths resolve from the story project root, not this file's directory. Preserve task clean/caption outputs and original PLANs; assembly PLANs with only `segments` belong under `references/epNN/episode-previs/`. See [episode assembly](../../creator-local-reference/tools.md#episode-caption-review-mp4) for the interface. This mapping is not a ledger, manifest field or second timing authority; delivery creates no review kind/gate or writes to original reviews, manifests or grants.
+
 The local environment report has one fixed project-relative path: `story/work/shared/environment/environment.md`. Authorized production initialization covers all currently supported local routes once under [Environment Check](../../creator-local-reference/tools.md#environment-check), recording actual pass/unavailable evidence in self-contained current Markdown. Keep commands, versions, backend/device, resolved paths, results and limitations here; probe code/logs/outputs stay in `/tmp/opencode`. Creator reads this shared file directly as a normal dependency. Director coordinates initialization/update writer ownership and stable reads; missing reports are completed once during initialization/recovery, and actual faults, known environment changes or uncovered capability needs receive targeted updates. Reuse without routine retests, TTL or version scans. Keep this report out of manifest.sources and default review semantic inputs; it is not a schema, gate, registry or per-task copy.
+
+The episode preview uses canonical cumulative durations for captions, shot start/end range labels and elapsed timecode, and stays internal, outside uploads and final `videos/`. Director assigns one Creator per completed episode, not all-series; local scope does not expand. The CLI requires a new output and has no overwrite flag. Creator verifies a new candidate before safely replacing the formal file within existing scope and stable dependencies.
 
 ## Review Records
 
