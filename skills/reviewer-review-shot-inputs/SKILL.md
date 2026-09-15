@@ -49,6 +49,22 @@ As part of the existing integration review, consult the selected provider's vide
 
 Read and apply the full [global and inline binding rules](../_meta/rules/visual-prompt-craft-common.md#全局映射与实际使用处的引用). Across the entire final prompt, do actual tokens, stable entity names, proxies and purposes remain consistent with the ordered inputs? Report concrete drift or cross-use.
 
+## Saved Spec And Actual Media
+
+Within the existing shot-input round, capture canonical config and the explicit selected complete clean MP4 with start/add-input before reading or probing them. Read `## 本地参考 epNN` and the exact qualified keys `epNN 本地参考宽度`, `epNN 本地参考高度`, `epNN 本地参考fps`. Check their final-video-settings basis or explicit user local override, and the single source-compatible episode CFR fps; an unset fps is not 30. Provider pixel mappings require evidence, not a universal 720p short-edge assumption.
+
+Run the measured check on one explicitly selected manifest-declared full-group clean video:
+
+```bash
+SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/local-reference-media-check.mjs" EP TASK_ID --video PATH
+```
+
+Compare actual width/height, CFR fps and duration with saved spec and canonical group clock. Low-resolution drafts are allowed; formal selected clean must comply. Supplementary short videos need not all span the group. Check caption picture width/height, fps and duration against clean, with total height adding the band. Capture relied-upon caption media before inspection. Tool diagnostics establish measured properties, not semantic pass; visual viewing still belongs to fresh helpers.
+
+Reuse matching media; report concrete mismatches for scoped Creator export/conversion repair preserving camera/ratio/clock, not automatic remaking or metadata-only compliance. Missing saved spec goes through Director to the bounded config owner, separately from environment-report recovery; no new initialization probe or historical migration. Config changes affecting prior review fingerprints use scoped compatibility assessment, not blind refresh. Keep the existing kind, manifest schema and review round; add no automatic gate or extra review stage.
+
+Saved width/height must be positive even pixels and the media layer requires width >= 64. Positive integer/decimal/fraction fps is reduced exactly; canonical task duration × fps must be an integer matching the measured frame count. Probe failure leaves `actual:null`. The inherited CFR probe's 120-second execution timeout is not a video-duration cap. Config evidence binds the entire file, including episode specs; preserve authorized writer coordination and stable capture.
+
 ## Text Owner And Bounded Visual Handoffs
 
 After start/add-input, read the complete selected final prompt, derived timeline, manifest and necessary source texts as text. Before any images are viewed, plan coherent visual windows around the actual story risks: key cuts/seams, contact/support transitions, reading/use windows, trigger/reaction and relevant external pairs. Keep necessary before/during/after relations together, including intermediate states where needed; do not split every frame into a task or put the whole task's frame history in one helper. Choose coverage by the question, without a frame quota, new artifact, schema or gate.

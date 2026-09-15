@@ -5,6 +5,7 @@ Plans contain dialogue/narration/body only. Creator removes obsolete task clocks
 and cut labels semantically before invocation; this tool never rewrites text.
 """
 import json
+from fractions import Fraction
 import os
 from pathlib import Path
 import runpy
@@ -15,6 +16,7 @@ import tempfile
 preview_path = Path(__file__).with_name('previs-preview.py')
 preview = runpy.run_path(str(preview_path))
 run, probe = preview['run'], preview['probe']
+check_media = runpy.run_path(str(Path(__file__).with_name('local-reference-media-check.py')))['check_media']
 
 
 def context(part, operation):
@@ -24,21 +26,17 @@ def context(part, operation):
         raise ValueError(f"part {part['part']} / {part['task_id']}: {error}") from error
 
 
-def read_part(part):
+def read_part(part, expected):
     plan = json.loads(Path(part['plan']).read_text(encoding='utf-8'))
     if not isinstance(plan, dict) or set(plan) != {'segments'}:
         raise ValueError('plan requires only segments (dialogue/narration/body; no old clocks/cuts)')
     preview['audio_plan']['validate_plan'](plan, part['duration'])
-    streams = probe(part['video'])
-    width, height, _ = preview['video_info'](streams)
-    frames, _, rate, _ = preview['cfr_timing'](part['video'], streams)
-    expected = part['duration'] * rate
-    if expected.denominator != 1:
-        raise ValueError(f"canonical duration {part['duration']}s is not representable at {rate} fps")
-    if frames != expected:
-        raise ValueError(f"duration mismatch: {frames} frames at {rate} fps, expected {expected}")
+    actual, streams, errors = check_media(expected, part['video'], part['duration'])
+    if errors:
+        raise ValueError('; '.join(errors))
     return {**part, 'segments': plan['segments'], 'streams': streams,
-            'width': width, 'height': height, 'rate': rate, 'frames': frames}
+            'width': actual['width'], 'height': actual['height'],
+            'rate': Fraction(actual['fps']), 'frames': actual['frames']}
 
 
 def episode_plan(parts):
@@ -54,13 +52,12 @@ def episode_plan(parts):
     return {'segments': segments}
 
 
-def concatenate(parts, width, height, rate, audio, output):
+def concatenate(parts, rate, audio, output):
     args = ['ffmpeg', '-v', 'error', '-nostdin', '-n', '-copyts']
     filters, inputs = [], []
     for index, part in enumerate(parts):
         args += ['-noautorotate', '-i', part['video']]
-        filters.append(f'[{index}:v:0]setpts=PTS-STARTPTS,'
-                       f'pad={width}:{height}:trunc((ow-iw)/4)*2:trunc((oh-ih)/4)*2[v{index}]')
+        filters.append(f'[{index}:v:0]setpts=PTS-STARTPTS[v{index}]')
         inputs.append(f'[v{index}]')
         if audio:
             if any(s['codec_type'] == 'audio' for s in part['streams']):
@@ -114,13 +111,10 @@ def main():
         raise ValueError('--output must be a new .mp4 in an existing directory')
     if not Path('/tmp/opencode').is_dir():
         raise ValueError('/tmp/opencode must be an existing temporary directory')
-    parts = [context(p, lambda p=p: read_part(p)) for p in payload['mapping']]
-    rate = parts[0]['rate']
-    for part in parts:
-        if part['rate'] != rate:
-            raise ValueError(f"part {part['part']} / {part['task_id']}: mixed fps {part['rate']} vs {rate}")
-    width = max(p['width'] for p in parts)
-    height = max(p['height'] for p in parts)
+    expected = payload['expected']
+    parts = [context(p, lambda p=p: read_part(p, expected)) for p in payload['mapping']]
+    rate = Fraction(expected['fps'])
+    width, height = expected['width'], expected['height']
     audio = any(s['codec_type'] == 'audio' for p in parts for s in p['streams'])
     plan = episode_plan(parts)
     # Fail missing fonts before encoding the clean concatenation.
@@ -130,7 +124,7 @@ def main():
         directory = Path(temp)
         clean = directory / 'clean.mp4'
         try:
-            concatenate(parts, width, height, rate, audio, clean)
+            concatenate(parts, rate, audio, clean)
             check_clock(clean, payload['duration'], rate)
         except ValueError as error:
             names = ', '.join(f"part {p['part']} / {p['task_id']}" for p in parts)
@@ -146,11 +140,10 @@ def main():
         check_clock(rendered, payload['duration'], rate)
         publish(rendered, output)
     mapping = [{**original, 'dimensions': {'width': part['width'], 'height': part['height']},
-                'padding': {'left': (width - part['width']) // 4 * 2,
-                            'top': (height - part['height']) // 4 * 2},
                 'audio': any(s['codec_type'] == 'audio' for s in part['streams'])}
                for original, part in zip(payload['mapping'], parts)]
     print(json.dumps({'output': str(output), 'ep': payload['ep'],
+                      'config': payload['config'], 'expected': expected,
                       'tasks': [p['task_id'] for p in parts],
                       'shots': [s for p in parts for s in p['shots']],
                       'duration': payload['duration'], 'fps': str(rate), 'audio': audio,

@@ -58,6 +58,16 @@ short/series 获准制作初始化时，Director 尽早统一协调 Creator 一�
 
 初始化覆盖 Python/Pillow/helper、SVG librsvg+Cairo+GLib/GObject 与微 MP4、Blender Workbench/Eevee/Cycles 的适用 graphics/compute 微输出，以及 FFmpeg/ffprobe 合成、编码、抽帧、音频、CJK 字幕/previs-preview 和 previs-audio 微输出。保留命令、版本、backend/device、路径、实际结果与限制；设备枚举不能替代运行证据，覆盖不要求遍历所有 GPU backend/filter 组合。Creator 依据已验证能力自行选材，正式高成本动画前另用实际场景短草稿验证成本与必要视觉/时序；静态空间素材可单帧生成再作时间合成。完整 clean/字幕 MP4 与既有审核契约保持。
 
+## 本集本地参考规格
+
+正式 selected clean 默认对齐已选视频 ratio/resolution，用户明确 local override 优先并记录本地适用范围。Creator 核实实际像素依据；16:9 + 720p 的 1280×720 只是常见例，其他比例或未知 provider 档位需核实，不能猜短边。每集统一 CFR fps，用户已指定则采用，否则 Creator 为本集选择一次与 canonical 源时钟兼容的值；未选择不默认 30。
+
+最迟在本集最早正式参考制作前，由你协调有界单一配置 owner 将 Creator 的实际规格存入 canonical SVD_CONFIG：`## 本地参考 epNN` 下使用 `epNN 本地参考宽度`、`epNN 本地参考高度`、`epNN 本地参考fps` 三个完整键，注明来源 final settings 或用户 explicit local override 及像素/fps 依据。具体格式见 short/series 配置模板；不用裸 width/height/fps，示例值不是默认。后续源码及导出直接读取已存值，草稿可低清，正式选中 clean 按存值交付。
+
+配置同文件 writer/reader 串行与稳定依赖规则照常适用；审核绑定整份 config 指纹，因此已知规格尽早由获准的配置 owner 落盘，再交稳定依赖。已有审核采集 config 时，配置变化走 scoped 兼容性评估，不盲刷指纹或自动全量重审。缺规格由有界配置 owner 补齐；环境报告是另一依赖，缺规格不新增初始化探针，也不自动迁移历史材料。先核实际复用媒体，再由 Creator 局部补导出/转换不符项，维持 camera/ratio/clock，不能只改 metadata 冒充匹配。
+
+交接包含完整 clean 与同源字幕版，picture 宽高、fps、时长一致，字幕 total height 另加 band。Creator 交付前运行 [selected-media 检查](../creator-local-reference/tools.md#saved-spec-and-selected-media-check)；Reviewer 先采集 config/selected media 再核实际参数，诊断不代替语义验收。保留既有 kind/schema/轮次与 gates，不增加自动门禁。
+
 ## 集总时长责任
 
 估时随材料成熟：粗剧情与原始预算先帮助判断叙事容量，再形成暂定场景分配；完整对白、关键行动/结果/反应写出后由专家试读/估时，分镜落实实际调度与切点，按需本地预演把冲突回交 owner 更新。可从成熟剧本或关键场景切入，不强制 outline；初始场景秒数不是不可变承诺，不均分切片、套百分比或补无作用内容凑时长。
@@ -119,6 +129,8 @@ short/series 当前 ep 的全部制作材料、完整 task clean + caption MP4 �
 保留每组完整 clean/字幕版及 PLAN，另交 `references/epNN/episode-previs/review.mp4`。Creator 在 `story/work/epNN/episode-previs/parts.json` 写仅供本次调用的显式 video/plan 映射，路径相对故事项目根；仅含 segments 的整理用 PLAN 放 `references/epNN/episode-previs/`，保留原 PLAN。按 [整集工具契约](../creator-local-reference/tools.md#episode-caption-review-mp4) 先拼 clean，再以 canonical 累计时长重基全部字幕窗口。每镜整个区间显示 `SHOT: 编号 [全片起点s-终点s]`，覆盖 task 间边界；全片 HH:MM:SS 从零逐秒更新。真实 shot 内 cut/额外注释由 Creator 语义整理，工具不自动解析 prose；不能拼接已烧录字幕的任务视频。CLI 无 overwrite 参数，拒绝已有输出；正式更新由 Creator 先生成新文件并验证，再在既有授权范围和稳定依赖下安全替换。
 
 这是本地参考交付，不是 generated video 剪辑、付费提交或任务完成记账。保留五种审核 kind 与现有 gates；不为汇总新增正式审核或写原 reviews、manifest、grants，Director 不自签 pass。查看仍用 fresh scoped 视觉任务和预览规则。Creator 回报实际输出路径、全片总时长、task/shot 顺序、时钟核对及音频/兼容性/观察限制；以当前输出为据，不抄历史日志。工具失败或汇总缺失仍是部分交付，报告具体恢复条件，不把过程成功当正常完成。正式更新在既有授权 scope 内安全替换，依赖变化先协调 owner。
+
+整集工具读取同一已存本地规格，每个 PARTS 选中的完整 clean 必须匹配本集宽高/fps 与各自 canonical 时长，不能自动取最大画布补边掩盖不符。Creator 在范围内先修不符输入，保持相机/比例/源时钟，再组装；字幕 picture 仍为已存宽高，总高加底栏。核实际全片 CFR、时长及 canonical 累计时钟；保留已有音轨，混合有声/无声部分按对应时长补静音，全无声保持无音轨，不承诺独立生成声音无缝。
 
 ## 全局规则
 

@@ -27,6 +27,7 @@ function fixture(t, { duration = 2, rate = '10', audio = true } = {}) {
   const base = 'story/episodes/ep01';
   const board = `${base}/storyboard.md`;
   const manifest = id => `${base}/task-inputs/${id}.json`;
+  write('fixture-config.md', `- ep01 本地参考宽度: 320\n- ep01 本地参考高度: 180\n- ep01 本地参考fps: ${rate}\n`);
   write(board, [1, 2, 3].map(n => `### shot ${n}\n- 视频风格：写实\n- 时长：${n === 3 ? duration : 1}s\n- 引用资产：无\n\n**画面与声音描述：**\nAction ${n}.\n`).join('\n'));
   write('references/source.txt', 'isolated fixture');
   const parts = ['task09', 'task02'].map((id, index) => {
@@ -39,8 +40,7 @@ function fixture(t, { duration = 2, rate = '10', audio = true } = {}) {
     return { video, plan };
   });
   const media = (index, seconds = index ? duration : 2, fps = rate,
-    withAudio = audio && index === 1, audioDuration = seconds, timing = []) => {
-    const size = index ? '320x180' : '256x144';
+    withAudio = audio && index === 1, audioDuration = seconds, timing = [], size = '320x180') => {
     const args = ['-f', 'lavfi', '-i', `color=c=${index ? 'blue' : 'red'}:s=${size}:r=${fps}:d=${seconds}`];
     if (withAudio) args.push('-f', 'lavfi', '-i', `sine=frequency=660:duration=${audioDuration}`);
     ffmpeg([...args, ...timing, '-c:v', 'libx264', '-threads', '1', '-pix_fmt', 'yuv420p', join(root, parts[index].video)]);
@@ -50,7 +50,7 @@ function fixture(t, { duration = 2, rate = '10', audio = true } = {}) {
   const output = join(root, 'episode.mp4');
   const cli = (extra = [], env = {}) => spawnSync('node', [join(scripts, 'episode-previs.mjs'), 'ep01',
     '--parts', 'parts.json', '--output', 'episode.mp4', '--font', font, ...extra],
-  { cwd: root, encoding: 'utf8', env: { ...process.env, SVD_CONFIG: 'fixture-config.md', ...env } });
+  { cwd: root, encoding: 'utf8', env: { ...process.env, SVD_CONFIG: join(root, 'fixture-config.md'), ...env } });
   return { root, write, board, manifest, parts, media, output, cli };
 }
 function success(r) {
@@ -75,7 +75,7 @@ function samples(file) {
 }
 const energy = data => data.reduce((s, x) => s + x * x, 0) / data.length;
 
-test('real episode: source order, rebased spans/cuts, padding, mixed audio and immutable inputs', t => {
+test('real episode: source order, rebased spans/cuts, picture size, mixed audio and immutable inputs', t => {
   const f = fixture(t);
   const files = f.parts.flatMap(p => [p.video, p.plan]);
   const before = files.map(p => readFileSync(join(f.root, p)));
@@ -85,7 +85,12 @@ test('real episode: source order, rebased spans/cuts, padding, mixed audio and i
   assert.equal(info.duration, 4);
   assert.equal(info.fps, '10');
   assert.deepEqual(info.mapping.map(p => [p.start, p.end]), [[0, 2], [2, 4]]);
-  assert.deepEqual(info.mapping[0].padding, { left: 32, top: 18 });
+  assert.deepEqual(info.mapping.map(p => p.dimensions), [
+    { width: 320, height: 180 }, { width: 320, height: 180 }]);
+  assert.equal(info.config, 'fixture-config.md');
+  assert.equal(info.dimensions.width, 320);
+  assert.equal(info.dimensions.picture_height, 180);
+  assert.equal(info.dimensions.height, 180 + info.dimensions.band_height);
   const payload = info.mapping.map(p => ({ ...p,
     segments: JSON.parse(readFileSync(join(f.root, f.parts[p.part - 1].plan))).segments }));
   const plan = JSON.parse(command('python3', ['-c',
@@ -134,6 +139,10 @@ test('whole-episode declarations and explicit parts fail before any encoding', t
     assert.equal(existsSync(called), false);
     assert.equal(existsSync(f.output), false);
   };
+  const config = readFileSync(join(f.root, 'fixture-config.md'), 'utf8');
+  f.write('fixture-config.md', '- ep01 本地参考宽度: 320\n- ep01 本地参考高度: 180\n');
+  reject(/fixture-config.md: ep01 本地参考fps: missing saved value/);
+  f.write('fixture-config.md', config);
   f.write('parts.json', f.parts.slice(1));
   reject(/requires 2 entries/);
   f.write('parts.json', [...f.parts].reverse());
@@ -166,7 +175,9 @@ test('whole-episode declarations and explicit parts fail before any encoding', t
   f.media(1, 3);
   reject(/part 2 \/ task02.*duration mismatch/);
   f.media(1, 2, '12');
-  reject(/part 2 \/ task02.*mixed fps/);
+  reject(/part 2 \/ task02.*fps mismatch/);
+  f.media(1, 2, '10', false, 2, [], '256x144');
+  reject(/part 2 \/ task02.*dimensions mismatch/);
   f.media(1, 2, '10', false, 2, ['-vf', 'settb=1/1000,setpts=100*N+13*mod(N\\,3)',
     '-vsync', '0', '-enc_time_base', '1/1000']);
   reject(/part 2 \/ task02.*VFR/);
@@ -186,7 +197,10 @@ test('124-second silent episode preserves representable rational CFR (120 is exe
   assert.notDeepEqual(frame(f.output, 120.4, crop), frame(f.output, 121.6, crop));
   f.media(1, 122, '24000/1001', false);
   rmSync(f.output);
-  failure(f, /part 2 \/ task02.*not representable/);
+  failure(f, /part 2 \/ task02.*fps mismatch/);
+  f.write('fixture-config.md', '- ep01 本地参考宽度: 320\n- ep01 本地参考高度: 180\n- ep01 本地参考fps: 24000/1001\n');
+  f.media(0, 2, '24000/1001', false);
+  failure(f, /part 1 \/ task09.*not representable/);
 });
 
 test('late renderer failure leaves no output; publication race preserves competing output', t => {

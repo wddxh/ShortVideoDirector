@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { readTaskPlan, selectTaskGroups, resolveTaskInputs } from './shot-inputs.mjs';
+import { readLocalReferenceSpec } from './local-reference-spec.mjs';
 
 const usage = 'Usage: episode-previs.mjs EP --parts PARTS.json --output OUTPUT.mp4 [--font FONT]';
 
@@ -18,6 +19,7 @@ try {
     options[key] = path.resolve(args[i + 1]);
   }
   if (!ep || !options['--parts'] || !options['--output']) throw new Error(usage);
+  const spec = readLocalReferenceSpec(ep);
   const storyboard = `story/episodes/${ep}/storyboard.md`;
   const groups = selectTaskGroups(readTaskPlan(storyboard, ep));
   const parts = JSON.parse(fs.readFileSync(options['--parts'], 'utf8'));
@@ -48,7 +50,7 @@ try {
   });
   const renderer = fileURLToPath(new URL('./episode-previs.py', import.meta.url));
   const result = spawnSync('python3', [renderer], { encoding: 'utf8',
-    input: JSON.stringify({ ep, mapping, duration, output: options['--output'],
+    input: JSON.stringify({ ep, ...spec, mapping, duration, output: options['--output'],
       font: options['--font'] }), maxBuffer: 16 * 1024 * 1024 });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(result.stderr.trim() || `renderer exited ${result.status}`);

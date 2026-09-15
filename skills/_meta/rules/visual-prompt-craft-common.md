@@ -62,6 +62,10 @@ Creator 依据实际参考的检查证据、源意图与各 ref 的职责，识�
 
 本地视频参考默认采用轻量 animatic／混合参考。完整性要求是最终 task MP4 时间轴，不是所有画面都用 SVG；Creator 按镜头选择已有资产 PNG、分层图像、二维动画、必要 3D 或已有视频片段。SVG 是可优先选择的可编辑平面素材之一，工具是素材生成组件，不强制每镜 SVG 或单一生产路线，不重做已合适的素材，不以工具纯度验收。保留源取景、布局、节拍、切点、必要整体轨迹及动作关键关系，复用背景/对象、局部修订减少耦合，不做细 rig。
 
+正式 selected clean 默认对齐已选视频比例/分辨率，用户明确本地 override 优先。Creator 核实实际像素依据，16:9 + 720p 常见的 1280×720 不是所有比例/provider 档位映射，未知档位不猜短边。每集统一 CFR fps：用户指定优先，否则 Creator 为本集选择一次源时钟兼容值，未选不默认 30。最迟在最早正式参考制作前，Director 协调有界配置 owner 在 canonical config 的 `## 本地参考 epNN` 存 `epNN 本地参考宽度`、`epNN 本地参考高度`、`epNN 本地参考fps`，注明 final settings 或 explicit local override 来源及依据；源码/导出读实际存值，不抄示例。
+
+低分辨率草稿可用于迭代，正式选中 clean 按已存规格核实际媒体。复用先查尺寸/fps/时长，合适则保留；不符只局部补导出/转换并保持相机、比例与 canonical 时钟，metadata 改名不能代替匹配。配置缺规格由有界 owner 补齐，与环境报告分开，不新增初始化探针或自动迁移历史。配置变化对既有审核作 scoped 兼容性评估，不盲刷指纹。Creator 交付前运行 [selected-media 检查](../../creator-local-reference/tools.md#saved-spec-and-selected-media-check)，Reviewer 先采集 config/selected media 再核实；工具诊断不是语义 pass，不新增 kind/schema/自动 gate 或额外轮次。
+
 静帧保持、刚体平移和离散姿态可表达构图/节拍，不自动等于源人物停止或动作错误；按实际素材声明的控制及最终 prompt 判断是否保住必要接触、揭示顺序和关键动作时序，自然成片表演由 Creator 的实际最终 prompt 引导，不以素材或动画形式一刀切。
 
 Creator 将静态空间素材与时间合成分开：固定构图可只制作一帧 SVG/PNG 或 Blender 静帧，再按源区间 timed hold、叠加 UI/可见性状态层。必要运镜、整体轨迹、接触变化或揭示仍以适当的最简动画表达，静帧不能替代必要运动证据，合成保留当前 shot、对白、切点和 task clock。最终仍交完整 clean MP4 及同源完整字幕审阅 MP4。
@@ -80,7 +84,9 @@ Creator 自读固定项目报告 `story/work/shared/environment/environment.md`�
 
 轻量 animatic／混合参考均实际交付完整 clean MP4＋由同一 clean 派生的完整字幕审阅 MP4，供用户核对时间，不受素材组合或工具选择限制。按 [字幕审阅工具](../../creator-local-reference/tools.md#caption-review-mp4) 使用现有 `previs-preview.py --timecode` 与 PLAN：`segments` 的 `speaker/text/spans` 保留源所有对白、旁白原词及对应任务时间窗；完整性指所有原句/窗口覆盖，不是全程挂满字幕。跨切延续、重叠和停顿按源意图，未精确指定的窗口以源内估时交接，不改 canonical 时间。无需 TTS 或假音频。
 
-字幕版与 clean 保持完整时长、帧率、画面切点一致，字幕在新增底栏。完整审阅版必须用现有 PLAN 的内部标记 segments 标明每个实际内部切点及其 task 时间；窗口可用小数秒，标记原文写准确切点时间，`--timecode` 仍仅整秒 HH:MM:SS，不虚称自动识别或帧/毫秒时码。单镜无内切则不编造标记，交接据实说明。内部标记不进入 clean 或 final prompt，审阅字幕/时间码不上传，正式上屏字保留 clean。交回两版实际路径及 PLAN，工具能力不足报 Director/main；不新增 schema、gate 或强制审核轮，原独立 owner/helper 流程保持。
+字幕版 picture 宽高、fps、完整时长和切点与 clean 一致，总高度为 picture 高度加新增底栏。核实际输出，不缩放或裁切 picture 来腾字幕空间。完整审阅版用现有 PLAN 的内部标记 segments 标明每个实际内部切点及其 task 时间；窗口可用小数秒，标记原文写准确时间，`--timecode` 仍仅整秒 HH:MM:SS，不虚称自动识别或帧/毫秒时码。单镜无内切则据实说明。内部标记不进入 clean/final prompt，审阅字幕/时间码不上传，正式上屏字保留 clean。交回两版实际路径及 PLAN，工具不足报 Director/main；不新增 schema、gate 或强制审核轮，原独立 owner/helper 流程保持。
+
+整集预演消费同一已存规格，逐 PARTS 核对完整 clean 的宽高/fps 与 canonical 组时长，不能以自动最大画布补边掩盖不符。先局部修兼容性再拼 clean 和加字幕，保持 canonical 全片累计时钟及已有音频；有声/无声混合时为无声段补等时静音，全无声保持无音轨。补充小视频按其声明用途判断，不要求每条都覆盖全组时长。
 
 每条图像或视频 prompt 的可用上下文只有本次最终请求文本与实际随请求提供的参考图。创作者从剧本、其他卡片、场景和镜头取得设计依据，再把生成所需事实写入当前文本，或显式绑定本次确实提供的参考图；模型可消费性审核也以这个边界判断。项目内存在某卡、审核者读过原剧本或上一任务生成过图片，都不等于本次模型获得了它。
 
