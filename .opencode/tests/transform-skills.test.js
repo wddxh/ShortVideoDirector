@@ -7,7 +7,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdtemp, readFile as readFileAsync, rm, readdir, mkdir, writeFile } from 'fs/promises';
 import os from 'os';
-import { NATIVE_QUESTION_GUIDANCE, USER_INVOCABLE_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
+import { NATIVE_QUESTION_GUIDANCE, INTERNAL_ENTRY_WORKFLOWS, USER_INVOCABLE_ENTRY_WORKFLOWS,
+  ENTRY_WORKFLOW_DISPATCH_DISCIPLINE } from '../lib/tool-mapping.js';
 import {
   parseSkillFile,
   rewriteFrontmatter,
@@ -179,12 +180,13 @@ describe('rewriteSkillCalls', () => {
 });
 
 describe('injectDispatchDiscipline', () => {
-  test('injects for user-invocable entry workflow', () => {
-    for (const name of ['short-video', 'series-video']) {
+  test('injects full guidance for public creation and hidden edit/repair workflows', () => {
+    for (const name of INTERNAL_ENTRY_WORKFLOWS) {
       const body = `# ${name}\n\nBody`;
-      const out = injectDispatchDiscipline(body, { name, userInvocable: true });
-      assert.ok(out.includes(NATIVE_QUESTION_GUIDANCE), name);
-      assert.ok(out.endsWith(body));
+      const out = injectDispatchDiscipline(body, {
+        name, userInvocable: USER_INVOCABLE_ENTRY_WORKFLOWS.has(name),
+      });
+      assert.equal(out, ENTRY_WORKFLOW_DISPATCH_DISCIPLINE + '\n\n' + body, name);
     }
   });
 
@@ -232,7 +234,7 @@ describe('transformAllSkills (integration)', () => {
     }
   });
 
-  test('produces one SKILL.md for every source skill', async () => {
+  test('keeps all 34 skills discoverable with two public entries and workflow guidance', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const skillNames = async (root) => {
       const entries = await readdir(root, { withFileTypes: true });
@@ -245,10 +247,21 @@ describe('transformAllSkills (integration)', () => {
       }
       return names.sort();
     };
-    assert.deepEqual(
-      await skillNames(tmpDir),
-      await skillNames(path.join(PROJECT_ROOT, 'skills')),
-    );
+    const names = await skillNames(path.join(PROJECT_ROOT, 'skills'));
+    assert.equal(names.length, 34);
+    assert.deepEqual(await skillNames(tmpDir), names);
+    for (const name of names) {
+      const file = path.join(tmpDir, name, 'SKILL.md');
+      const { frontmatter, body } = await parseSkillFile(file);
+      assert.equal(frontmatter.name, name);
+      assert.ok(frontmatter.description?.trim(), name);
+      assert.equal(frontmatter['disable-model-invocation'], undefined, name);
+      const header = (await readFileAsync(file, 'utf8')).split('\n---')[0];
+      assert.ok(header.includes(
+        `svd-user-invocable: "${USER_INVOCABLE_ENTRY_WORKFLOWS.has(name)}"`), name);
+      assert.equal(body.startsWith(ENTRY_WORKFLOW_DISPATCH_DISCIPLINE.trim()),
+        INTERNAL_ENTRY_WORKFLOWS.has(name), name);
+    }
   });
 
   test('provider package retains sibling guides and retires old entries', async () => {
@@ -273,7 +286,7 @@ describe('transformAllSkills (integration)', () => {
 
   test('planning, orchestration and entry caches have no agent or fork metadata', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
-    for (const name of ['director-arc', 'director-orchestrate', ...USER_INVOCABLE_ENTRY_WORKFLOWS]) {
+    for (const name of ['director-arc', 'director-orchestrate', ...INTERNAL_ENTRY_WORKFLOWS]) {
       const { frontmatter } = await parseSkillFile(path.join(tmpDir, name, 'SKILL.md'));
       assert.equal(frontmatter.name, name);
       assert.equal(frontmatter.agent, undefined);

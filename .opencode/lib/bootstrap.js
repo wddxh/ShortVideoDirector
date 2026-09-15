@@ -20,18 +20,19 @@ export function generateBootstrap(pluginRoot, agents) {
 
 ${agentList}
 
-## 入口工作流（${USER_INVOCABLE_ENTRY_WORKFLOWS.size} 个 user-invocable skills）
+## 公开创作入口（${USER_INVOCABLE_ENTRY_WORKFLOWS.size} 个 user-invocable skills）
 
 ${workflowList}
 
 ## 如何启动
 
-用户用 \`/skill-name 自然语言请求\` 触发入口工作流；OC command 用原生 \`$ARGUMENTS\` 原样传输请求，加载 skill 不再构造位置参数。
+用户可用 \`/short-video\` 或 \`/series-video\` 加自然语言请求启动创作，也可直接描述目标、材料和范围。AI 结合当前会话与 skills 的 description 选择并加载所需知识；所有技能仍可由模型发现和内部加载。
 
 - 写入或付费前解析明确目标与授权；歧义不默认全部或最新。查看配置只读，不强制初始化。
 - 创作委托由顶层主 AI 担任 Director，本地加载内部 \`director-orchestrate\` skill；主入口与编排不创建 agent/fork。工程委托使用独立工程 agents。
-- 也可用自然语言（"帮我做一个新的短视频，主题是 XXX"）触发，LLM 会自行决定调用对应 skill
-- 视频提交、查询/下载和监控可用自然语言委托 AI，AI 按需本地加载内部 \`generate-video\`、\`check-video\`、\`auto-video\` 知识；公开斜杠入口为上列四个工作流。
+- 例如“帮我做一个新的短视频，主题是 XXX”“继续制作下一集”“修改 ep01 的结局”“检查并恢复 ep01”或“查看当前短视频配置”。
+- 修改与恢复使用自然语言委托，AI 按需本地加载内部 \`edit-story\`、\`repair-story\`。
+- 视频提交、查询/下载和监控也用自然语言委托 AI，AI 按需本地加载内部 \`generate-video\`、\`check-video\`、\`auto-video\` 知识。
 
 ## 关键执行规则
 

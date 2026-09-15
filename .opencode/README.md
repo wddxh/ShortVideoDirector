@@ -25,11 +25,13 @@ opencode agent list
 opencode debug skill
 ```
 
-应发现 creator/reviewer/scriptwriter/storyboarder 四个专家、内部 director-orchestrate、creator-local-reference 和 reviewer-review-shot-inputs。公开 commands 为四个入口：series-video、short-video、edit-story、repair-story。generate-video、check-video、auto-video 保留为 AI 可加载的内部知识与运行工具。九个 reviewer-review-* 技能由独立 Reviewer 使用；director-* 规划知识由制作主 AI 本地使用。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
+应发现 creator/reviewer/scriptwriter/storyboarder 四个专家、内部 director-orchestrate、creator-local-reference 和 reviewer-review-shot-inputs。插件公开 commands 仅两个入口：short-video、series-video；在命令列表中核对这两个名称。edit-story、repair-story、generate-video、check-video、auto-video 仍应在技能发现中可见，由 AI 按请求加载内部知识与运行工具。内部技能的 `user-invocable: false` 控制公开入口可见性，不等于 `disable-model-invocation`，模型仍可发现和加载。九个 reviewer-review-* 技能由独立 Reviewer 使用；director-* 规划知识由制作主 AI 本地使用。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
 
-Commands 原样传 `$ARGUMENTS`，不拆位置参数。入口整体理解目标、路径和范围；歧义不默认 latest/all。配置查看只读，缺失不初始化。
+两个公开入口均支持斜杠命令和自然语言。Commands 原样传 `$ARGUMENTS`，不拆位置参数。入口整体理解目标、路径和范围；歧义不默认 latest/all。查看配置可用 `/short-video config`、`/series-video config`，或说“查看这个项目的单集／系列配置”；操作只读，缺失不初始化。
 
-提交与取回直接用自然语言：“帮我提交ep01已审核任务”“查询ep01生成进度并下载”。AI 按请求加载内部知识并执行；手动操作见 [任务准备知识](../skills/generate-video/SKILL.md) 的 prepare 流程与 [provider guarded wrapper](../skills/creator-provider-dreamina/video.md)。Prepared 任务仍检查当前引用、审核、grants 与输入一致性，沿用状态保护。
+修改、恢复与视频操作直接用自然语言：“修改 ep01 镜头 3 的拿信动作”“恢复 ep01 中断的制作”“提交本地 ep01 的 task03”“查询 ep01 的 task03 并下载完成的视频”“持续监控 ep01 已登记任务”或“停止 ep01 监控”。AI 按实际请求加载内部知识并执行，用户只需说明目标与范围。制作包含必要资产图和本地参考，停在付费视频提交前；付费提交须有明确请求，持续监控不默认开启。更多使用示例见 [主 README](../README.md#你可以这样说)。
+
+内部执行按 [任务准备知识](../skills/generate-video/SKILL.md) 的 prepare 流程与 [provider guarded wrapper](../skills/creator-provider-dreamina/video.md) 处理。Prepared 任务仍检查当前引用、审核、grants 与输入一致性，沿用状态保护。
 
 故事文件按 [项目布局](../skills/_meta/rules/project-layout.md) 选择路径：保留 canonical 单集材料、共享资产、references 与工具记账；候选用 `story/planning/plot-options.md`，临时交接用 scoped `story/work/`。委托前指定精确输出路径，简单任务可只回文本；按需建文件，不迁移现有项目或复制状态账本。
 

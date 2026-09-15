@@ -2,7 +2,7 @@
 name: edit-story
 description: 在用户要求修改已有故事、剧本、分镜或视觉资产，并需评估实际影响时使用。
 argument-hint: "[自然语言修改意见]"
-user-invocable: true
+user-invocable: false
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, Skill
 model: opus
 ---
@@ -25,7 +25,7 @@ model: opus
 
 所有 Task/relay 传 config_path；配置相关 Bash 显式用 `SVD_CONFIG="{config_path}"`。detect-mode 与 read-config 的配置参数用同一路径；fingerprint 仅用 canonical config_path 与材料路径。videoProfile 和 evidence 共用配置，不依赖跨工具环境持久化。
 
-主 AI 整体理解原始请求 `$ARGUMENTS` 与会话，可混合文件参考、集/镜头范围和修改意见。查看只读 config_path，缺失不初始化；配置修改转配置入口。制作修改读取该配置并运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh" "{config_path}"`，失败停止。解析 canonical ep 和 scope；series 缺目标或歧义先澄清，short 仅 ep01，冲突不能忽略。目标不存在或定位不清先问，不选 latest/all 或另开集。跨多集/arc 交 Director 说明范围需求，不扩大执行。
+主 AI 整体理解当前上下文中的用户原始自然语言请求与会话，可混合文件参考、集/镜头范围和修改意见。查看只读 config_path，缺失不初始化；配置修改转配置入口。制作修改读取该配置并运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh" "{config_path}"`，失败停止。解析 canonical ep 和 scope；series 缺目标或歧义先澄清，short 仅 ep01，冲突不能忽略。目标不存在或定位不清先问，不选 latest/all 或另开集。跨多集/arc 交 Director 说明范围需求，不扩大执行。
 
 目标集目录用 Bash `test -d "story/episodes/{ep}"` 检查，不用文件 Glob。主 AI 确认目标、用户意图与授权，依据材料诊断创作源头，不凭关键词路由。长材料用路径引用。
 

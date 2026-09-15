@@ -1,7 +1,7 @@
 ---
 name: edit-story
 description: 在用户要求修改已有故事、剧本、分镜或视觉资产，并需评估实际影响时使用。
-user-invocable: true
+user-invocable: false
 argument-hint: "[自然语言修改意见]"
 ---
 
@@ -38,7 +38,8 @@ argument-hint: "[自然语言修改意见]"
 
 ## Skill 调用
 
-- 用户公开入口仅 series-video、short-video、edit-story、repair-story。generate-video、check-video、auto-video 是 AI 可加载的内部知识，提交、查询下载和持续监控工具仍按其契约运行。用户可直接说“帮我提交ep01已审核任务”“查询ep01生成进度并下载”，由 AI 按实际目标与授权调用。
+- 用户公开入口仅 short-video、series-video，支持斜杠入口和自然语言。edit-story、repair-story、generate-video、check-video、auto-video 是 AI 可发现、加载的内部知识，修改、恢复、提交、查询下载和持续监控工具仍按其契约运行。用户可直接说“修改 ep01 镜头 3 的动作”“恢复 ep01 中断的制作”“提交本地 ep01 的 task03”“查询 ep01 的 task03 并下载”“持续监控 ep01 已登记任务”或“停止 ep01 监控”，由 AI 按实际目标与授权加载并执行。
+- 查看配置可用 `/short-video config`、`/series-video config` 或自然语言；只读报告当前配置，缺失不初始化。内部技能保持模型可调用；`user-invocable: false` 控制公开入口可见性，不设置 `disable-model-invocation` 来阻止内部知识加载。
 - `使用 Skill tool 调用 <skill-name> skill` 表示在当前上下文加载对应 Codex 适配层。浏览 description 后选择所需知识，不因加载 skill 创建子代理。
 - 如果不能直接调用 skill，则读取 `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/SKILL.md`，按当前委托加载知识。
 - 入口原始请求仅由宿主原生 `$ARGUMENTS` 传输，整体保留，不拆位置或构造索引。内部 skill 消费当前成果、材料、范围和约束，不编造调用参数串。
@@ -50,7 +51,7 @@ argument-hint: "[自然语言修改意见]"
 
 生成意图以实际请求为准，不另问许可。short/series 包含所需资产图与本地参考，intake/审核后执行，始终停在付费视频提交前。后续明确提交请求由内部 generate-video 知识按原文与范围登记 initial_authorization，不追加握手。check/auto 仅在当前契约内延续登记 grants 或取回，不补新许可或无限重试。
 
-手动执行遵循内部 `${CLAUDE_PLUGIN_ROOT}/skills/generate-video/SKILL.md` 的 prepare 流程与 `${CLAUDE_PLUGIN_ROOT}/skills/creator-provider-dreamina/video.md` 的 guarded wrapper 文档。Prepared 任务仍须校验当前引用、审核、grants 与输入一致性，保留 submission、inflight 及既有状态保护。
+AI 内部执行遵循 `${CLAUDE_PLUGIN_ROOT}/skills/generate-video/SKILL.md` 的 prepare 流程与 `${CLAUDE_PLUGIN_ROOT}/skills/creator-provider-dreamina/video.md` 的 guarded wrapper 文档。用户通过自然语言说明目标与范围；AI 维护所需授权记录。Prepared 任务仍须校验当前引用、审核、grants 与输入一致性，保留 submission、inflight 及既有状态保护。
 
 摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标限制。用户原始集目标已确认的 ±10% 是主动可用的创作预算；Director 协调 owner 更新 canonical script/storyboard 与受影响下游，范围内不逐次求许可，原始基准不随本轮/前集合计滚动，精确要求优先。Creator 在设计后装组连续 shots，按核实模型最大 M 以 ceil(0.7*M)..M 为语义目标，不是机械下限；装组保留当前源时长、对白、切点，重设计交 owner，不暗中延时。`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，prompt 是 Creator 写入的非空白字符串。文件名给稳定 task_id，成员按源顺序连续，每任务至少一个全组 MP4，条目仅 local PNG/MP4。最终 `--json` 返回 `{task_id,shots,timeline,prompt,duration,references,assetCards,sources,inputPath}`，prompt 原样来自 manifest，不重写；时间派生，不另存可编辑 offset/duration 或装组索引。
 

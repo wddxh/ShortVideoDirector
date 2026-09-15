@@ -1,5 +1,11 @@
 // Shared OpenCode role handoffs and write discipline. No scheduling engine.
+// Public command registration is independent of internal workflow guidance.
 export const USER_INVOCABLE_ENTRY_WORKFLOWS = new Set([
+  'series-video',
+  'short-video',
+]);
+
+export const INTERNAL_ENTRY_WORKFLOWS = new Set([
   'series-video',
   'short-video',
   'edit-story',

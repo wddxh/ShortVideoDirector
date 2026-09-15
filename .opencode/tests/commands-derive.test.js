@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
-import { USER_INVOCABLE_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
+import { INTERNAL_ENTRY_WORKFLOWS, USER_INVOCABLE_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
 import { buildCommandTemplate, deriveCommands } from '../lib/commands-derive.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -31,30 +31,9 @@ async function runConfigHook(initialConfig = {}) {
   return initialConfig;
 }
 
-test('commands derive: plugin registers exactly four public commands', async () => {
+test('commands derive: plugin registers exactly two creation commands', async () => {
   const config = await runConfigHook();
-  assert.deepEqual(Object.keys(config.command).sort(),
-    ['edit-story', 'repair-story', 'series-video', 'short-video']);
-  for (const name of ['generate-video', 'check-video', 'auto-video']) {
-    assert.equal(Object.hasOwn(config.command, name), false, name);
-  }
-  assert.ok(config.command, 'config.command 应存在');
-  for (const name of USER_INVOCABLE_ENTRY_WORKFLOWS) {
-    assert.ok(config.command[name], `应注册 /${name}`);
-  }
-  assert.equal(
-    Object.keys(config.command).length,
-    USER_INVOCABLE_ENTRY_WORKFLOWS.size,
-    'commands 数量应与 USER_INVOCABLE_ENTRY_WORKFLOWS 一致'
-  );
-});
-
-test('commands derive: 每个 command 含 template + description 必填字段', async () => {
-  const config = await runConfigHook();
-  for (const [name, cmd] of Object.entries(config.command)) {
-    assert.ok(typeof cmd.template === 'string' && cmd.template.length > 0, `${name} template 非空`);
-    assert.ok(typeof cmd.description === 'string' && cmd.description.length > 0, `${name} description 非空`);
-  }
+  assert.deepEqual(Object.keys(config.command).sort(), ['series-video', 'short-video']);
 });
 
 test('commands derive: template 含 skill name 反引号包裹', () => {
@@ -67,7 +46,7 @@ test('commands derive: template 含 $ARGUMENTS 完整串占位符', () => {
   assert.ok(template.includes('$ARGUMENTS'), 'template 应含 $ARGUMENTS');
 });
 
-test('commands transport one raw request without positional interpolation', () => {
+test('command template helper transports one raw request without positional interpolation', () => {
   const request = '监控 ep01，每五分钟；不要重试 "shot 2"';
   for (const name of USER_INVOCABLE_ENTRY_WORKFLOWS) {
     const template = buildCommandTemplate(name);
@@ -76,10 +55,12 @@ test('commands transport one raw request without positional interpolation', () =
   }
 });
 
-test('entry commands stay in the main context without a director command', () => {
-  const commands = deriveCommands({});
-  assert.deepEqual(Object.keys(commands).sort(), [...USER_INVOCABLE_ENTRY_WORKFLOWS].sort());
+test('creation commands retain templates and stay in the main context', () => {
+  const commands = deriveCommands();
+  assert.deepEqual(Object.keys(commands).sort(), ['series-video', 'short-video']);
+  assert.deepEqual(deriveCommands({}), commands);
   for (const command of Object.values(commands)) {
+    assert.ok(command.description && command.template);
     assert.equal(command.agent, undefined);
     assert.equal(command.subtask, undefined);
   }
@@ -97,12 +78,10 @@ test('commands derive: 用户已配置同名 command 时跳过（不覆盖）', 
     description: 'USER OVERRIDE',
     template: 'USER TEMPLATE',
   };
-  const result = deriveCommands({ 'edit-story': userCustom });
+  const result = deriveCommands({ 'short-video': userCustom });
   // 用户自定义应被保留
-  assert.equal(result['edit-story'].description, 'USER OVERRIDE');
-  assert.equal(result['edit-story'].template, 'USER TEMPLATE');
-  // 其他 skill 仍由 plugin 注册
-  assert.ok(result['short-video'].template.includes('Skill tool'));
+  assert.strictEqual(result['short-video'], userCustom);
+  assert.deepEqual(Object.keys(result).sort(), ['series-video', 'short-video']);
 });
 
 test('commands derive: 与用户已有的非冲突 command 共存', () => {
@@ -110,19 +89,17 @@ test('commands derive: 与用户已有的非冲突 command 共存', () => {
   const result = deriveCommands({ 'my-test': userCustom });
   // 用户的保留
   assert.equal(result['my-test'].description, 'user');
-  // plugin 的全部 derive command + 用户的 1 个
-  const totalCount = Object.keys(result).length;
-  assert.equal(totalCount, USER_INVOCABLE_ENTRY_WORKFLOWS.size + 1,
-    '应为所有 derive command + 1 个用户自定义');
+  assert.deepEqual(Object.keys(result).sort(), ['my-test', 'series-video', 'short-video']);
 });
 
 test('config hook preserves user commands named after internal workflows', async () => {
-  const custom = Object.fromEntries(['generate-video', 'check-video', 'auto-video']
+  const custom = Object.fromEntries([...INTERNAL_ENTRY_WORKFLOWS,
+    'generate-video', 'check-video', 'auto-video', 'my-test']
     .map(name => [name, { description: `User ${name}`, template: `Custom ${name}` }]));
   const config = await runConfigHook({ command: custom });
   for (const [name, command] of Object.entries(custom)) {
     assert.strictEqual(config.command[name], command, name);
   }
   assert.deepEqual(Object.keys(config.command).sort(),
-    [...USER_INVOCABLE_ENTRY_WORKFLOWS, ...Object.keys(custom)].sort());
+    Object.keys(custom).sort());
 });

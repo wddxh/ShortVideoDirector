@@ -1,6 +1,6 @@
 ---
 name: series-video
-description: 在开始多集系列、续作下一集或用 /series-video config 查看配置时使用。
+description: 在用户要求开始多集系列、续作下一集或查看系列配置时使用。
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, Skill
 model: opus
@@ -29,7 +29,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 所有配置与 approval 写入只用 config_path。Task/relay 传此路径；每次配置相关 Bash 显式 `SVD_CONFIG="{config_path}"`，detect-mode 传该路径，read-config 在键名后传该路径。fingerprint、videoProfile 和 evidence 共用 canonical config_path，不依赖工具间环境持久化。
 
-整体理解原始请求 `$ARGUMENTS` 与会话，不按首 token 判断配置意图。查看只 Read 实际配置（SVD_CONFIG 或 config.md），缺失也只报告，不补 mode、不强制初始化。修改须明确范围；获准初始化才参考 [config-template.md](config-template.md) 确认并保存 mode=series 和实际选择。已有冲突先澄清。
+整体理解当前上下文中的用户原始自然语言请求与会话，不按首 token 判断配置意图。查看只 Read 实际配置（SVD_CONFIG 或 config.md），缺失也只报告，不补 mode、不强制初始化。修改须明确范围；获准初始化才参考 [config-template.md](config-template.md) 确认并保存 mode=series 和实际选择。已有冲突先澄清。
 
 制作前用 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh" "{config_path}"` 验证模式；失败停止，不根据 arc 猜测。先确认 canonical episode、材料、范围和授权，再写入或生成。明确目标不能被自动下一集逻辑覆盖；含糊请求不默认最新或全部。
 仅当用户明确请求新系列或下一集时，用 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/latest-episode.sh"` 解析目标；分别保留 stdout/stderr/exit。不用 Glob 推断目录存在。exit 0 对下一集取十进制编号加一（至少两位），mode=`continue-series`；exit 1 且请求新建时选 ep01、mode=`new-series`；其他错误停止。将解析出的目标与请求核对后委托；不覆盖已有集，修复已有集另走 repair-story。

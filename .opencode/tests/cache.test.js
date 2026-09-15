@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdtemp, rm, mkdir, writeFile, readdir, stat, cp, readFile } from 'fs/promises';
 import os from 'os';
-import { ROLE_HANDOFF_GUIDANCE, USER_INVOCABLE_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
+import { ROLE_HANDOFF_GUIDANCE, INTERNAL_ENTRY_WORKFLOWS } from '../lib/tool-mapping.js';
 // Cache integration must never prune or rebuild the developer's installed cache.
 const originalHome = process.env.HOME;
 const testHome = await mkdtemp(path.join(os.tmpdir(), 'svd-cache-home-'));
@@ -35,7 +35,7 @@ describe('loadAndTransform integration', () => {
     const { cacheSkillsDir, agents } = await loadAndTransform(PROJECT_ROOT);
     const cachedRule = path.join(cacheSkillsDir, '_meta/rules/user-decision-relay.md');
     assert.equal(await readFile(cachedRule, 'utf8'), sourceRule);
-    for (const name of USER_INVOCABLE_ENTRY_WORKFLOWS) {
+    for (const name of INTERNAL_ENTRY_WORKFLOWS) {
       const source = await readFile(path.join(PROJECT_ROOT, 'skills', name, 'SKILL.md'), 'utf8');
       assert.ok(source.includes('${CLAUDE_PLUGIN_ROOT}/' + rule), name);
       const cached = await readFile(path.join(cacheSkillsDir, name, 'SKILL.md'), 'utf8');

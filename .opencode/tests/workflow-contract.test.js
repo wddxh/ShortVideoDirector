@@ -78,12 +78,21 @@ test('reviewers retain Bash and Task skills have Task-enabled owners', () => {
   }
 });
 
-test('exactly four public entries retain local orchestration metadata', () => {
-  const entries = readdirSync('skills').filter(n => existsSync(`skills/${n}/SKILL.md`))
-    .map(n => frontmatter(read(`skills/${n}/SKILL.md`)))
-    .filter(fm => fm['user-invocable'] === 'true').map(fm => fm.name).sort();
-  assert.deepEqual(entries, ['edit-story', 'repair-story', 'series-video', 'short-video']);
-  for (const name of entries) {
+test('all 34 source skills are discoverable with only two public creation entries', () => {
+  const names = readdirSync('skills').filter(n => existsSync(`skills/${n}/SKILL.md`));
+  assert.equal(names.length, 34);
+  for (const name of names) {
+    const fm = frontmatter(read(`skills/${name}/SKILL.md`));
+    assert.equal(fm.name, name);
+    assert.ok(fm.description?.trim(), name);
+    assert.equal(fm['user-invocable'],
+      ['short-video', 'series-video'].includes(name) ? 'true' : 'false', name);
+    assert.equal(fm['disable-model-invocation'], undefined, name);
+  }
+});
+
+test('internal main workflows retain local orchestration metadata', () => {
+  for (const name of ['edit-story', 'repair-story', 'series-video', 'short-video']) {
     const fm = frontmatter(read(`skills/${name}/SKILL.md`));
     assert.equal(fm.agent, undefined, name);
     assert.equal(fm.context, undefined);

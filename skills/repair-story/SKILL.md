@@ -2,7 +2,7 @@
 name: repair-story
 description: 在单集制作中断、材料或审核缺失，需要检查现状并恢复时使用。
 argument-hint: "自然语言恢复目标、材料与范围"
-user-invocable: true
+user-invocable: false
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, Skill
 model: opus
 ---
@@ -11,7 +11,7 @@ model: opus
 
 主 AI 在当前上下文用 Skill 加载 `director-orchestrate`，作为生产 Director 直接诊断恢复、协调专家、处理用户决策并对交付负责。独立验收委托全新 Reviewer。
 
-实际制作恢复请求包含其范围内所需图片补齐，不另问通用生图授权；纯检查/取回仍止于诊断或恢复已有 job。替换意图不清、超范围覆盖、固定参数冲突或 protected jobs 仍须处理，不借缺图重复提交。视频仍留给用户后续手动 generate-video，不因本次恢复完成自动提交。
+实际制作恢复请求包含其范围内所需图片补齐，不另问通用生图授权；纯检查/取回仍止于诊断或恢复已有 job。替换意图不清、超范围覆盖、固定参数冲突或 protected jobs 仍须处理，不借缺图重复提交。用户后续以自然语言明确要求提交视频时，AI 本地加载内部 `generate-video`；不因本次恢复完成自动提交。
 
 按共享 intake 规则复用已有需求、材料和授权，不重新问卷。先只读诊断；恢复中需新创作时，相关需求须已知或用户明确委托责任角色决定（记录角色/范围/约束），否则仅问必要缺口，不先编候选、设计、提示或聊天预览。准备材料同样先 intake，后续用户批准另行处理；意外问题仅暂停受影响工作，已有任务取回可继续。
 
@@ -23,7 +23,7 @@ model: opus
 
 配置相关 Bash 显式传 `SVD_CONFIG="{config_path}"`，Task/relay 同样传该路径。detect-mode 配置参数、read-config 键名后参数也用该路径；fingerprint、videoProfile 与 evidence 共用 canonical config_path，不依赖跨工具环境。纯取回不需要配置有效或当前审核，按 recorded provider/receipt 处理。
 
-整体理解原始请求 `$ARGUMENTS` 与会话中的恢复目标、路径和范围。查看只读 config_path，缺失不初始化；配置修改转配置入口。制作恢复读取该配置并运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh" "{config_path}"`，失败停止。写入/生成前确定 canonical ep 和 scope；series 缺目标先问，只有明确“最新一集”才用 latest-episode 并检查退出码。short 仅 ep01，冲突不能忽略。歧义不默认 latest/all。用 Bash `test -d "story/episodes/{ep}"` 检查目录；不存在报告，不自动新建。
+整体理解当前上下文中的用户原始自然语言请求与会话中的恢复目标、路径和范围。查看只读 config_path，缺失不初始化；配置修改转配置入口。制作恢复读取该配置并运行 `SVD_CONFIG="{config_path}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-mode.sh" "{config_path}"`，失败停止。写入/生成前确定 canonical ep 和 scope；series 缺目标先问，只有明确“最新一集”才用 latest-episode 并检查退出码。short 仅 ep01，冲突不能忽略。歧义不默认 latest/all。用 Bash `test -d "story/episodes/{ep}"` 检查目录；不存在报告，不自动新建。
 
 按请求范围运行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" "{ep}" [SHOT...]` 和同配置 `review-evidence.mjs check "{ep}" [SHOT...]`，保留 stdout/stderr/exit。整集省略选镜；局部须覆盖完整组，部分组报告完整成员/额外镜头，不扩授权，也不要求未选媒体或完整全片计划。非零用于诊断缺口，不规定恢复顺序。
 

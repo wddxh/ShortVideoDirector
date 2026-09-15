@@ -1,6 +1,6 @@
 ---
 name: short-video
-description: 在开始单集短视频、提供现有故事材料或用 /short-video config 查看配置时使用。
+description: 在用户要求开始单集短视频、提供现有故事材料或查看短视频配置时使用。
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, Skill
 model: opus
@@ -29,7 +29,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 后文所有配置/批准记录仅用 config_path。Task/relay 传同一路径；每次配置相关 Bash 显式设置 `SVD_CONFIG="{config_path}"`，detect-mode 传该路径，read-config 在键名后传该路径。fingerprint、videoProfile 与 evidence 共用 canonical config_path，不依赖跨工具环境持久化。
 
-整体理解原始请求 `$ARGUMENTS` 和会话：区分查看/修改配置、内联故事、文件参考与制作意图，不按首 token 或文件后缀解析整句。文件和意见可混合；路径不清或读取失败先澄清，不能当内联故事继续。
+整体理解当前上下文中的用户原始自然语言请求和会话：区分查看/修改配置、内联故事、文件参考与制作意图，不按首 token 或文件后缀解析整句。文件和意见可混合；路径不清或读取失败先澄清，不能当内联故事继续。
 
 查看配置只 Read 实际配置（SVD_CONFIG 或 config.md）并展示；缺失就报告，不补 mode、建文件或强制设置。修改配置需要明确范围。制作前确认 short/ep01；其他集数或冲突请求先澄清，不能忽略。已有材料交 Director 判断复用，不默认覆盖。
 

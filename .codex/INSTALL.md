@@ -9,9 +9,11 @@ python3 .codex/build-codex-skills.py
 python3 .codex/build-codex-skills.py --check
 ```
 
-生成器按当前源集合重建 wrappers。四个公开入口为 series-video、short-video、edit-story、repair-story。generate-video、check-video、auto-video 保留为 AI 可加载的内部知识与运行工具。宿主原样传 `$ARGUMENTS`；整体理解自然语言，不拆位置参数。缺目标不默认最新/全部，配置查看只读。
+生成器按当前源集合重建 wrappers。公开入口仅两个：short-video、series-video，支持斜杠入口，也支持自然语言。edit-story、repair-story、generate-video、check-video、auto-video 保留为 AI 可发现、加载的内部知识与运行工具。宿主原样传 `$ARGUMENTS`；整体理解自然语言，不拆位置参数。缺目标不默认最新/全部。查看配置可用 `/short-video config`、`/series-video config`，或说“查看这个项目的单集／系列配置”；操作只读，缺失不初始化。
 
-提交与取回可直接说“帮我提交ep01已审核任务”“查询ep01生成进度并下载”，由 AI 按实际请求调用内部能力。手动操作使用 [任务准备知识](../skills/generate-video/SKILL.md) 的 prepare 流程，再按 [provider 文档](../skills/creator-provider-dreamina/video.md) 执行 guarded wrapper；prepared 任务继续检查当前引用、审核、grants 与输入一致性，并遵循同一套状态保护。
+修改、恢复与视频操作均用自然语言，例如“修改 ep01 镜头 3 的拿信动作”“恢复 ep01 中断的制作”“提交本地 ep01 的 task03”“查询 ep01 的 task03 并下载完成的视频”“持续监控 ep01 已登记任务”或“停止 ep01 监控”。AI 按实际目标与授权加载内部能力，用户只需说明目标与范围。制作包含必要资产图和本地参考，停在付费视频提交前；付费提交须有明确请求，持续监控不默认开启。更多示例见 [主 README](../README.md#你可以这样说)。
+
+内部执行使用 [任务准备知识](../skills/generate-video/SKILL.md) 的 prepare 流程，再按 [provider 文档](../skills/creator-provider-dreamina/video.md) 执行 guarded wrapper；prepared 任务继续检查当前引用、审核、grants 与输入一致性，并遵循同一套状态保护。
 
 ## 角色与工具
 

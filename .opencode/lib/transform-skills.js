@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, readdir, copyFile, stat } from 'fs/promises';
 import path from 'path';
 import { parseAgentFile as parseFrontmatterFile } from './load-agents.js';
-import { ENTRY_WORKFLOW_DISPATCH_DISCIPLINE, USER_INVOCABLE_ENTRY_WORKFLOWS } from './tool-mapping.js';
+import { ENTRY_WORKFLOW_DISPATCH_DISCIPLINE, INTERNAL_ENTRY_WORKFLOWS } from './tool-mapping.js';
 
 // parseSkillFile 与 parseAgentFile 行为一致；alias 出来让代码语义更清晰
 export const parseSkillFile = parseFrontmatterFile;
@@ -68,8 +68,7 @@ export function rewriteSkillCalls(text, skillMeta) {
 }
 
 export function injectDispatchDiscipline(body, meta) {
-  if (!meta.userInvocable) return body;
-  if (!USER_INVOCABLE_ENTRY_WORKFLOWS.has(meta.name)) return body;
+  if (!INTERNAL_ENTRY_WORKFLOWS.has(meta.name)) return body;
   return ENTRY_WORKFLOW_DISPATCH_DISCIPLINE + '\n\n' + body;
 }
 

@@ -2,8 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as mapping from '../lib/tool-mapping.js';
 
-test('keeps exactly four public entry workflows', () => {
+test('separates two public creation commands from four workflow guidance targets', () => {
   assert.deepEqual(mapping.USER_INVOCABLE_ENTRY_WORKFLOWS, new Set([
+    'series-video', 'short-video',
+  ]));
+  assert.deepEqual(mapping.INTERNAL_ENTRY_WORKFLOWS, new Set([
     'series-video', 'short-video', 'edit-story', 'repair-story',
   ]));
 });
