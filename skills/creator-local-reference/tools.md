@@ -2,6 +2,10 @@
 
 Choose tools for the visual question, not a predefined production script. Examples are command shapes, not mandatory templates. Run from the story project root; verify parent directories before creating outputs. Keep production code and editable inputs under `references/`; environment probes belong under `/tmp/opencode`.
 
+New work follows [project layout](../_meta/rules/project-layout.md#task-reference-versions): shared asset sources at `references/assets/<category>/<asset-name>/`; task sources at `references/epNN/tasks/taskNN/v001/source/`, with sibling `clean.mp4`, `caption.mp4` and `PLAN.json`. Start at `v001`; later versions are siblings, selected explicitly by the canonical manifest, never by max version or mtime. Keep existing declared paths supported. Director coordinates exact paths and active occupancy; unpublished/unbound versions without readers may change in place, while changes to adopted/review-bound/submission-bound versions use a new sibling. Preserve their actual dependencies without duplicating all shared assets.
+
+Use matching `story/work/epNN/tasks/taskNN/v001/` for needed handoff, optional `candidate-input.json`, invocation files, logs, diagnostics and results. Retain code, fonts and partial clips required to rebuild under references, not solely in work. The examples below use one illustrative `ep01/task01/v001`; substitute the commissioned paths and saved settings. Tool overwrite support does not override version protection. No empty scaffold, path registry or directory alias is required.
+
 Creator assembles a complete task timeline from suitable existing asset PNGs, layered images, 2D animation, necessary 3D or existing video clips, choosing per shot and reusing compatible materials. SVG is an optional preferred planar material; its tools create components, not the exclusive full-group route. No per-shot SVG requirement or tool-purity acceptance applies. Preserve source facts/timing/cuts and actual material use, then deliver complete clean and same-timeline caption review MP4s.
 
 Keep material choice reasoning short in the existing handoff: identify reusable material, the missing control, and the simplest verified route that supplies it. Preserve fixed user choices and source boundaries. On repair, choose the expression again when useful; a static layer, 2D animation or local 3D replacement may resolve the conflict with less coupled work. Synchronize actual sources, selected media, use and prompt, with owner coordination for source redesign.
@@ -65,7 +69,7 @@ Read the fixed report's verified Blender path/version and engine/device; route m
 Reuse suitable existing materials first. Add minimal native Blender/3D when necessary complex rotation, camera tracking, depth occlusion or contact remains unresolved by those materials and lightweight 2D. Preserve source intent; tool convenience does not authorize camera/action redesign. Agent-authored `bpy` can create/load, animate, save and render the needed component; do not build a custom NumPy/Pillow triangle renderer or depth buffer for 3D. For example:
 
 ```bash
-blender --background --python-exit-code 1 --python references/shot/scene.py
+blender --background --python-exit-code 1 --python references/ep01/tasks/task01/v001/source/scene.py
 ```
 
 The script controls outputs; no plugin scene generator or geometry DSL is involved. Bounded scene-specific SVG camera/perspective projection with explicit layer reuse is valid; disclose its actual geometry/occlusion scope. SVG is optional, and minimal Blender remains available for unresolved complex spatial needs. For Blender prefer a proven appropriate GPU path: Workbench for shape/layout, Eevee for lighting/material cues, or Cycles when warranted. If unavailable/unsuitable, explain evidence and tradeoffs before a tiny-tested CPU fallback (`scene.cycles.device = 'CPU'`). Do not automatically launch heavy CPU animation or expand bounded projection into a general triangle renderer, depth buffer or arbitrary-occlusion framework to bypass tool failure. Choose samples/resolution/denoising for communicative detail and check early before scaling up. Preview settings do not change final provider settings; consult the installed API/help.
@@ -162,7 +166,7 @@ Pixel measurements establish sampled size/contrast or visibility; timestamp chec
 
 ## Fake Audio Timing
 
-Use optional `scripts/previs-audio.py PLAN --duration N --output-dir DIR` for local timing rehearsal, not TTS. Creator supplies explicit decimal-second intervals from expert estimates of the original dialogue, listening and reactions. The helper renders stable distinguishable speaker tones in first-use order and a separate cue tone; labels do not select cue sounds. It does not infer meanings, speaking rates or canonical offsets. Keep PLAN and outputs in a scoped `references/` directory. These are rehearsal inputs, not another editable timing authority or required production schema.
+Use optional `scripts/previs-audio.py PLAN --duration N --output-dir DIR` for local timing rehearsal, not TTS. Creator supplies explicit decimal-second intervals from expert estimates of the original dialogue, listening and reactions. The helper renders stable distinguishable speaker tones in first-use order and a separate cue tone; labels do not select cue sounds. It does not infer meanings, speaking rates or canonical offsets. Keep trial invocation PLANs, outputs and summaries in the version's work directory. Retain any PLAN/audio actually needed to rebuild a delivered reference under its `source/`; the delivered caption `PLAN.json` remains at the reference version root. These are rehearsal inputs, not another timing authority or required schema.
 
 Example PLAN (illustrative timings, not default pace):
 
@@ -177,7 +181,7 @@ Example PLAN (illustrative timings, not default pace):
 ```
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/previs-audio.py" references/task01/rehearsal/plan.json --duration 6.0 --output-dir references/task01/rehearsal/audio
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/previs-audio.py" story/work/ep01/tasks/task01/v001/rehearsal/plan.json --duration 6.0 --output-dir story/work/ep01/tasks/task01/v001/rehearsal/audio
 ```
 
 The gap in A's spans represents an estimated pause while the reveal is attended to; B overlaps A's ending only if the source interaction supports interruption. Time after speech may still carry listening/reaction. `text` retains the line as a label, not a source for automatic syllable timing; a cue marks an event, not its semantic success. Relate this local preview clock to current shots explicitly in the handoff; rebuild estimates after source changes, never copy them back as canonical offsets.
@@ -198,7 +202,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/previs-preview.py" VIDEO PLAN --output NE
 
 The helper verifies the CFR grid using `ffprobe` frame timestamps/durations and stream duration, allowing at most one source timebase tick of quantization, not cumulative drift. It preserves the source's rational frame rate (including `30000/1001`) and frame count. Verify caption picture width/height, duration, frame rate and cut positions against clean; do not retime the source for subtitles. VFR/unverifiable timing is rejected; the frame probe has a 120-second execution timeout, not a video-duration cap. Report limitations to Director/main; a shortened preview cannot fulfill complete-task delivery. The helper does not automatically normalize or change source rate.
 
-Bracketed flags are optional. Keep two versions in scoped `references/`: the clean input stays unchanged; the new MP4 adds a black bottom band without cropping or scaling the picture (H.264 re-encoding is not lossless). No Blender re-render is needed. The helper creates only unique cue-band PNGs and a concat manifest in a temporary `/tmp/opencode/previs-preview-*` directory, then removes that directory; it does not emit a full-frame image sequence.
+Bracketed flags are optional. Keep `clean.mp4`, its derived `caption.mp4` and the actual `PLAN.json` together in the commissioned task-reference version. These are two deliverables in one version: clean stays unchanged; caption adds a black bottom band without cropping or scaling the picture (H.264 re-encoding is not lossless). No Blender re-render is needed. The helper creates only unique cue-band PNGs and a concat manifest in a temporary `/tmp/opencode/previs-preview-*` directory, then removes that directory; it does not emit a full-frame image sequence.
 
 Each segment's whole `speaker: text` appears during every half-open `spans` interval, rounded to 16 kHz samples; there is no word timing. Concurrent distinct segments occupy separate lines in plan order, wrapping as needed; overlapping spans of the same segment display it once. Pauses have no dialogue text. `--timecode` adds elapsed `HH:MM:SS`, updated once per second, including pauses; it is not frame timecode. `cues` are validated but their labels are not captioned. All plan intervals must fit the video's duration.
 
@@ -249,16 +253,16 @@ Preserve source cuts and editorial purpose. Apply the [grouped-task boundary pre
 Blender animation uses its native FFmpeg movie output above. Use external FFmpeg for clip concatenation, needed transcoding, audio mixing/muxing and subsequent selective frame extraction, not Blender VSE merely to encode. Read the fixed report's verified `ffmpeg`/`ffprobe` and encoder/filter evidence; coordinate [targeted updates](#environment-check) only for actual faults, known changes or uncovered capability needs. For compatible shot clips, an authorized new full-group output can use:
 
 ```bash
-ffmpeg -n -f concat -safe 1 -i references/task01/clips.txt -c copy references/task01/preview.mp4
-ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration references/task01/preview.mp4
+ffmpeg -n -f concat -safe 0 -i story/work/ep01/tasks/task01/v001/clips.txt -c copy references/ep01/tasks/task01/v001/clean.mp4
+ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration references/ep01/tasks/task01/v001/clean.mp4
 ```
 
-`clips.txt` lists relative clip paths in canonical order, for example `file 'shot01.mp4'`. Stream copy requires matching layouts, codec parameters and time bases. Otherwise use scoped re-export/conversion with a verified encoder, preserving camera/framing, ratio, durations and cuts. Formal clean output matches saved episode dimensions/fps; choose compatible source composition instead of automatic padding that conceals a wrong canvas. `-n` avoids accidental replacement; actual overwrite authority still binds. Probe and decode the assembled MP4, not only its components.
+`clips.txt` is temporary invocation input. List trusted, explicitly authorized local clips in canonical order using quoted absolute paths because relative concat entries resolve from the list's directory. Retained rebuild clips live in the version's `source/` or explicit shared references. `-safe 0` permits these absolute entries. Stream copy requires matching layouts, codec parameters and time bases; otherwise re-export/convert in scope, preserving camera/framing, ratio, durations and cuts. Formal clean matches saved dimensions/fps; do not conceal a wrong canvas with padding. `-n` prevents accidental replacement; version and overwrite authority still bind. Probe and decode the complete assembly.
 
 After the MP4 exists, extract only frames needed for a specific question in a fresh visual task's designated temporary directory, then run each through `review-image.py` and read only its returned preview. For example, after verifying the output directory:
 
 ```bash
-ffmpeg -n -i references/task01/preview.mp4 -ss 1.2 -frames:v 1 /tmp/opencode/local-reference-TASK/at-1.2.png
+ffmpeg -n -i references/ep01/tasks/task01/v001/clean.mp4 -ss 1.2 -frames:v 1 /tmp/opencode/local-reference-TASK/at-1.2.png
 ```
 
 Choose actual meaningful times, including needed motion transitions and both sides of cuts; 1.2 is illustrative. Record source MP4/fingerprint and sample times. Do not extract every frame or create a global frame-output tree. Inspect playback where supported; disclose sampled-only coverage and temporal limits. Few stills, endpoints, a process exit or ffprobe do not prove continuous motion; missing necessary temporal evidence remains unknown under existing review rules.

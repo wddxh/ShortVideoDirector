@@ -55,9 +55,11 @@ AI 内部执行遵循 `${CLAUDE_PLUGIN_ROOT}/skills/generate-video/SKILL.md` 的
 
 摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标限制。用户原始集目标已确认的 ±10% 是主动可用的创作预算；Director 协调 owner 更新 canonical script/storyboard 与受影响下游，范围内不逐次求许可，原始基准不随本轮/前集合计滚动，精确要求优先。Creator 在设计后装组连续 shots，按核实模型最大 M 以 ceil(0.7*M)..M 为语义目标，不是机械下限；装组保留当前源时长、对白、切点，重设计交 owner，不暗中延时。`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，prompt 是 Creator 写入的非空白字符串。文件名给稳定 task_id，成员按源顺序连续，每任务至少一个全组 MP4，条目仅 local PNG/MP4。最终 `--json` 返回 `{task_id,shots,timeline,prompt,duration,references,assetCards,sources,inputPath}`，prompt 原样来自 manifest，不重写；时间派生，不另存可编辑 offset/duration 或装组索引。
 
-创作材料使用所选 provider 自有 material tool，具体命令、pack、token 计数/绑定和重基规则见该 provider 文档；Dreamina 见 `skills/creator-provider-dreamina/video.md`。草稿可供材料解析但不表示就绪。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现工具，无需 registry/framework/manifest schema 变更。共同风格在最终 prompt 表达一次，不同基线交 owner；源事实及对白完整保留。身份图按成员首次使用求并集在前，本地媒体在后，每镜链接须自身 header 声明，sources 不上传。
+创作材料使用所选 provider 自有 material tool，具体命令、pack、token 计数/绑定和重基规则见该 provider 文档；Dreamina 见 `skills/creator-provider-dreamina/video.md`。草稿可供材料解析但不表示就绪。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现工具，无需 registry/framework/manifest schema 变更。共同风格在每个 task 的最终 prompt 内表达一次，不是整集只写一稿；适用共同事实可准确重复，不禁必要相同用词。不同基线交 owner，源事实及对白完整保留。身份图按成员首次使用求并集在前，本地媒体在后，每镜链接须自身 header 声明，sources 不上传。
 
-Creator 在视频参考/装组映射确定后读 materials 和 provider 语法，写完整任务时间 prose 到 manifest.prompt，保留叙事、动作、对白原词、切点、时长及声音，绑定实际 tokens 并解释 BOX/颜色/身体/肢体代理的最终身份、解剖与动作。源局部时间转成明确任务时间；仅清理非成片源标题、内部 task/shot IDs、路径和审核元数据，保留有意上屏原词与 wide shot 等摄影词。缺源事实交 owner，不编造 use。Creator 自查实际最终 `--json` 后交 fresh shot-input Reviewer 核对源忠实度、完整性和集成；提交不改写。
+Creator 在视频参考/装组映射确定后读 materials 和 provider 语法，对每 task 实际源 shots/refs、事件、对白与时钟独立亲写完整 manifest.prompt，保留叙事、动作、对白原词、切点、时长及声音，绑定实际 tokens 并解释 BOX/颜色/身体/肢体代理的最终身份、解剖与动作。源局部时间转成明确任务时间；仅清理非成片源标题、内部 task/shot IDs、路径和审核元数据，保留有意上屏原词与 wide shot 等摄影词。缺源事实交 owner，不编造 use。Creator 自查实际最终 `--json` 后交 fresh shot-input Reviewer 核对源忠实度、完整性、局部适用性和集成；提交不改写。
+
+按 `skills/_meta/rules/visual-prompt-craft-common.md` 的每任务独立语义写作，Director 不安排 COMMON 头尾分发，Creator 不用模板填槽或全量条件条款代替逐组写作。逐 ref 亲写该参考在本组的实际用途，prompt 修订同步更新受影响 use，完整保留源事实和重要动作，不靠短稿删必要内容。提示编写脚本只做材料提取呈现/编号、保护校验、JSON 安全写入及原样读取，不拼 common 代写语义；各自已独立写成的多份稿作为 data 批量序列化保存合法，不要求手敲文件。Reviewer 通读最终 prompt 与 uses，检查混入的不存在事件/角色/声音、不适用分支、重复稀释及矛盾，给具体源依据与影响；准确共同事实及必要统一风格不因相同词失败，不新增关键词黑名单、自然语言 parser 或 gate。
 
 转场与文字按 `skills/_meta/rules/transition-craft.md`：区分场内 UI、观众 SUPER/时间地点/章节/全屏卡和内部调试预览。clean MP4 无内部污染，可含正式文字与转场图像；预演底栏字幕仍内部非上传。Scriptwriter 拥有原词和时间事实，已有隔日事实可设计卡片，新跳时交 owner；Storyboarder 管阅读窗口/切点，独立卡计镜头数与预算，叠字不重复计时，装组不加秒。Creator 可选本地文字引导，Reviewer 查来源/原词/阅读/对比/注意/揭示，观众文字不套演员阅读面，不因文字或黑底失败。源/输入验收不保证成片模型质量，不笼统禁字或承诺准确性。
 

@@ -14,12 +14,24 @@ Paths below are relative to the story project root, not the plugin checkout. Cho
 | `assets/<category>/<name>.md` | Shared cards; retain characters/items/locations/buildings categories. |
 | `assets/images/<category>/<name>.png` | Shared identity images. |
 | `references/` | Stable local reference media, editable sources and their actual dependencies. |
+| `references/assets/<category>/<asset-name>/` | Shared reusable local asset sources and previsuals; canonical identity PNGs remain in `assets/images/`. |
+| `references/epNN/tasks/taskNN/v001/` | First task-reference version: `source/`, complete `clean.mp4`, same-timeline `caption.mp4` and `PLAN.json`. |
 | `references/epNN/episode-previs/review.mp4` | Complete episode captioned local-reference preview, assembled from selected task clean MP4s after episode materials/reviews are ready and dependencies stable. |
 | `story/planning/plot-options.md` | Canonical current candidate set, updated in place within scope. |
 
 Retain applicable `story/arc.md` and `story/outline.md` contracts. The latest accepted story may live at `story/planning/story.md` with explicitly linked adopted amendments; follow that complete set until actual consolidation is authorized. A newer filename or modification time does not establish adoption. Identify accepted material separately from unselected candidates without copying it into every handoff.
 
 Final model-facing prose lives in the existing task manifest's `prompt`, not a separate prompt file or ledger. Draft manifests support materials preparation but not final review/readiness. The existing shot-input target fingerprint binds the final manifest including prompt; preparation copies its exact text into tool-owned `tasks.json` without moving the canonical source.
+
+## Task Reference Versions
+
+For new task-reference work, start at `v001`; subsequent versions (`v002`, etc.) are siblings under the same `references/epNN/tasks/taskNN/`. Keep consistent names within each version, without root-level `current`/`archive` reference trees or nested `finalfix` directories. The canonical task manifest explicitly selects the current media and sources; the largest version number or newest mtime does not establish selection. Existing declared paths remain supported; this convention does not migrate existing projects such as Story3.
+
+Keep task-specific code, editable scenes/layers, fonts, imported inputs and retained partial video rebuild dependencies in that version's `source/`. Reuse shared asset sources at their explicit paths instead of copying the entire shared asset tree into each version. Preserve dependencies needed to rebuild adopted or bound versions; a shared-source change must also preserve the old dependency and coordinate affected consumers. This is source retention, not relocation of canonical asset cards or identity images.
+
+An unpublished, unbound version with no active reader may be revised in place within scope. Changes to an adopted version or one bound by review evidence or submission use a new sibling version, preserving the bound files and dependencies. A version is not required for every authoring micro-fix. Director chooses exact version/write paths and coordinates concurrent writer name conflicts through existing handoffs and active occupancy, without a version index, registry or lock mechanism.
+
+An optional `story/work/epNN/tasks/taskNN/v001/candidate-input.json` stages the existing draft/final manifest shape. After scope and dependencies are stable, Creator validates and promotes the selected complete package to `story/episodes/epNN/task-inputs/taskNN.json` under authorized publication rules, then self-checks final input and hands that canonical final target to a fresh independent Reviewer. A work candidate is never the review target; candidate checks do not replace current evidence or change gates. The manifest selects references, not a directory alias or extra status field.
 
 ## Design And Decisions
 
@@ -31,7 +43,17 @@ Use `story/decisions/` when durable question/reply provenance is needed. Preserv
 
 Explicit user visual acceptance has one tool-owned record at `story/decisions/epNN/taskNN.shot-input-visual-exception.json`, governed by [visual exception](shot-input-visual-exception.md). It binds the actual user decision source and current qualified independent review/inputs; it is neither a review record nor a submission grant. Only the explicit recorder creates it, with no overwrite or automatic renewal.
 
-Use `story/work/epNN/<work-unit>/` for transient handoffs, job JSON and results; use `story/work/shared/<work-unit>/` for cross-episode work. Choose meaningful work-unit names and reuse the same current work file for revisions unless a distinct record must be preserved. Simple diagnostic or coordination tasks can return text without creating a file. Reference sources belong in `references/`, not in these transient directories; visual helper previews use their separately assigned temporary directory per [visual-context](visual-context.md).
+Use these scoped paths for needed transient handoffs, job requests, invocation inputs, diagnostics and results:
+
+| Path | Working scope |
+| --- | --- |
+| `story/work/epNN/tasks/taskNN/v001/` | Work for the matching reference version; `handoff.md` and `candidate-input.json` only when needed. |
+| `story/work/epNN/assets/<category>/<name>/` | Asset work; `jobs.json` and `handoff.md` as needed. |
+| Existing script/storyboard work directories | Keep each owner's current text-work location. |
+| `story/work/epNN/episode-previs/` | Existing `parts.json` invocation input and optional `handoff.md`. |
+| `story/work/shared/<work-unit>/` | Cross-episode work; environment uses the fixed path below. |
+
+Reuse current transient files when no distinct record needs preservation. Simple diagnostics or coordination may return text; create no empty placeholder files. Long-term rebuild inputs belong in `references/`, even when they are code, fonts or partial video; work files are not their sole source. Visual helper previews use their separately assigned temporary directory per [visual-context](visual-context.md).
 
 Before dispatch, choose precise output paths and include them with the target, current source paths, scope and ownership in the handoff. Distinguish a transient result from the canonical deliverable; when only text is needed, say so. Parallel workers receive distinct output files, while successive edits to the same current file are coordinated by its owner.
 

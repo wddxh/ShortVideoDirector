@@ -6,6 +6,43 @@ ShortVideoDirector 是面向 **Claude Code、OpenCode 和 Codex** 的多代理�
 
 **制作入口交付审核就绪的材料，停在付费视频提交前。** 交付后，直接告诉 AI 要提交、查询或下载哪个 task（一次视频生成单元，详见[镜头、任务与源时钟](#镜头任务与源时钟)），AI 会读取本地任务记录处理；也可以使用交付的提示词与参考素材，在 provider 界面手动提交。两种用法见[视频生成与取回](#视频生成与取回)。
 
+## 环境前提
+
+最快的准备方式是把本 README 交给正在使用的 AI，让它检查当前环境并协助安装缺失依赖。可直接复制：
+
+```text
+请阅读这份 README，检查我的环境，帮我安装缺失的必需依赖；可选工具先说明用途，再由我决定是否安装。
+我还需要使用当前的图像／视频生成，请一并检查并协助安装 Dreamina CLI。
+```
+
+请 AI 优先复用已有工具，并按当前操作系统选择安装方式；涉及管理员权限或账户登录的步骤由你在本机完成，AI 不索要密钥。这里是你主动委托的环境准备；制作初始化只检查可用性，不自动安装依赖。
+
+### 必需：完整制作与交付
+
+完整制作包含资产检查、本地参考视频和字幕审阅版交付，请准备以下环境，并确保宿主能调用这些工具。
+
+| 组件 | 用途与要求 |
+| --- | --- |
+| Claude Code、OpenCode 或 Codex | 任选一个宿主，支持文件读写、Shell 执行与独立子任务协作。 |
+| Bash、Node.js、Python 3 | 运行工作流脚本与本地制作工具。 |
+| FFmpeg 与配套 ffprobe | 视频合成、转码、抽帧及媒体检查；FFmpeg 需支持 `libx264`（H.264 编码），保留或加入音频时还需支持 `aac` 编码。 |
+| Pillow | 安装在实际运行工具的 Python 环境中，用于图像检查预览和字幕绘制。 |
+| 覆盖所用语言的字体 | 字幕工具需要中文/CJK 字体，并覆盖实际字幕与标注用字；可用 Noto Sans CJK 等 TTF／OTF／TTC 字体。 |
+
+**使用当前图像／视频生成执行时，Dreamina CLI 必需。** `short-video`／`series-video` 包含所需资产图生成，因此需要新生成资产图时也需要它；付费视频提交仍由你另行请求。详见 [Dreamina 指南](skills/creator-provider-dreamina/capabilities.md)。
+
+已有可复用资产时，可暂不调用图像生成；仅做文字规划时，可暂不调用媒体与生成工具。进入资产检查、本地参考与字幕交付阶段时，仍需准备相应媒体依赖。
+
+### 可选：按本地制作路径选用
+
+| 组件 | 何时需要 |
+| --- | --- |
+| Blender | 选择 3D 场景、空间投影或动画路径时需要。 |
+| librsvg ≥ 2.46 及其 Cairo／GLib／GObject 依赖 | 选择内置 SVG 渲染路径时整套需要；该路径还使用上表的 Python 3 与 FFmpeg。 |
+| 兼容的 GPU 与渲染后端 | 用于适用的 3D 渲染加速；SVG 路径无需 GPU。 |
+
+制作初始化会检查工具的实际可用性，**不会自动安装依赖**，并把结果写入项目内固定报告 `story/work/shared/environment/environment.md`，供后续任务和集数复用。可选路径不可用不影响其他可用路径；实际故障、环境变化或新增需求才触发定向补验。详见 [本地制作工具指南](skills/creator-local-reference/tools.md)。
+
 ## 安装
 
 选择你使用的宿主：
@@ -34,8 +71,6 @@ claude --plugin-dir /absolute/path/to/ShortVideoDirector
 ### Codex
 
 通过 Codex 的插件加载入口加载本仓库的 [.codex-plugin/plugin.json](.codex-plugin/plugin.json)，技能目录为 `.codex/skills/`。宿主适配与使用说明见 [Codex 安装说明](.codex/INSTALL.md)。
-
-基础运行需要 Bash、Node.js、Python 3，以及宿主的子任务与文件工具。图像预览需要 Pillow；本地视频制作按选用路线使用 FFmpeg/ffprobe、字体、SVG 库或 Blender。生成执行需要可用的 Dreamina CLI。具体依赖和检查方法见 [本地制作工具指南](skills/creator-local-reference/tools.md)。
 
 ## 快速开始
 

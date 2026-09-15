@@ -67,6 +67,8 @@ Dreamina 的 text2image/image2image 使用 `--poll=0`，先持久化 receipt 与
 
 Dreamina 批量用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-images-dreamina.mjs" [--force] [--concurrency N] JOBS.json`。每项 `{source,output,prompt,images,settings:{provider,model,ratio,resolution}}` 只含审核提示、解析设置及授权资产。Write/Edit 仅写此临时 manifest，每次不超过 2000 字符，不改卡片/review/pending。
 
+新工作的 JOBS 放在 Director 事先指定的 `story/work/epNN/assets/<category>/<name>/jobs.json`，需要文件交接时同目录使用 `handoff.md`；临时调用、诊断和结果也归受托 work。一个相干多资产批次可由 Director 选定批内一个资产的 work 路径承载完整 JOBS，并在交接写清全部目标；不为目录归属拆成逐资产 runner，也不复制多份批次状态。遵守该文件 active reader/writer 占用，不强建空文件或迁移已有 jobs。长期重建源码、字体和本地参考留在 [项目布局](../_meta/rules/project-layout.md) 的 references 路径；canonical 图片输出、provider IDs、pending/receipts 及其它工具执行记录仍在既定位置，jobs 路径不改变其协议。
+
 按 [视觉上下文规则](../_meta/rules/visual-context.md)，一个全新 Creator 生成上下文用单一 runner 承接相干、已授权、当前 prompt 门禁通过且就绪的多 job 有限批次，只回文本状态、全部 IDs/路径，不读图或附图。默认最多 5 个 active jobs，不是账号总配额。仅实际 scope、依赖、provider、本地资源或用户约束要求时串行/设 `--concurrency 1` 或调整并发，在现有 handoff 简记依据，不新增报告、schema 或必填配额。images 完整有序；直接资产参考及基础/衍生实际引用形成等待边，批内前置完成后供下游使用，批外须就绪。无关目标不必等待另一目标的视觉验收；同一 review 文件写入串行不等于生图串行，实际待审依赖仍须先满足证据门禁。
 
 单一 runner 管理本批并发，不同时另开 runner 或用 shell 后台并行 raw provider/单图 wrapper 绕过调度。重复相同 output 去重，冲突请求拒绝；命中 target/ref pending 的批次整体阻塞。output claim 内复查 pending/receipt 与非 force completed skip，不凭旧 PNG 推定已完成。force 作用于整次 invocation，按不同 force 授权拆分调用，force 批只传明确替换目标；缺少授权的前置不得借入批覆盖，拆批仍遵守下述停止与恢复边界。

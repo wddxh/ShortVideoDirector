@@ -13,6 +13,14 @@ This is tool knowledge for Creator, not a new entry workflow, production script 
 
 Creator owns local visual design, editable scenes, drawings, renders and previews. Storyboarder still owns shots, camera/action intent and timing; Scriptwriter owns script and inventory; Director coordinates cross-owner changes and independent acceptance. A render revealing an impossible action is evidence for that owner, not authority to rewrite the shot. Preserve existing visual identity and untouched project materials.
 
+## Output Paths And Publication
+
+Follow [project layout](../_meta/rules/project-layout.md#task-reference-versions) for new work. Shared asset sources use `references/assets/<category>/<asset-name>/`; canonical cards and `assets/images/` identity PNGs keep their paths. Task references start at `references/epNN/tasks/taskNN/v001/`, containing needed editable/rebuild dependencies in `source/` and the complete `clean.mp4`, `caption.mp4`, `PLAN.json` delivery. Later versions are sibling `v002`, etc.; use no root `current`/`archive` or nested `finalfix` tree. Existing explicit paths remain supported without migration.
+
+Keep task handoff and optional candidate manifest at `story/work/epNN/tasks/taskNN/v001/{handoff.md,candidate-input.json}`, matching the reference version. Jobs, temporary invocation inputs, diagnostics and results belong in scoped work; code, fonts and retained partial video needed for rebuilding belong in references. Create only needed files. Reuse shared dependencies explicitly, preserve bound versions' dependencies and avoid copying all shared assets per task.
+
+Director supplies exact write paths and active reader/writer boundaries; material selection remains Creator's. Revise unpublished, unbound versions in place only without active readers. Changes to adopted, review-bound or submission-bound versions use a new sibling version. Coordinate version-name conflicts and new paths with Director through existing handoffs, without locks or an index. The canonical manifest selects current references explicitly; version maximum and mtime never select them.
+
 ## Choose The Medium
 
 - Still or 2D drawing: silhouette, color grouping, typography, a layout or one decisive pose.
@@ -108,7 +116,7 @@ Write a draft `story/episodes/{ep}/task-inputs/taskNN.json` with exactly `{shots
 
 Use one coherent task reference clock for all member intervals, internal cuts, positions, trajectories and sound bridges. Static intervals may use static clips. Header identity assets form a first-use union before local media; sources do not upload. Obtain authoring materials through the selected provider's own tool, following its video guide (Dreamina: [video.md](../creator-provider-dreamina/video.md#dreamina-authoring-materials)). Generic converter CLIs use `--json STORYBOARD TASK_ID EP` for the finalized package, without generating text. Inspect task_id/shots/timeline and report continuity dependencies. Partial selected-shot scope reports full membership and additional members rather than silently expanding authority. Assembly does not authorize tasks.json preparation or submission.
 
-Follow [publication and selection rules](../_meta/rules/shot-inputs.md): keep published JSON valid after each bounded edit; stage and validate a complete temporary document before an authorized atomic replacement when needed. Promote the chosen candidate into the current manifest with matching prompt, uses, source dependencies, media and actual source timings. Candidate success is not final readiness; the exact selected package needs independent review. Preserve existing draft/final shapes and protected submitted records.
+Follow [publication and selection rules](../_meta/rules/shot-inputs.md): keep published JSON valid after each bounded edit; optionally stage the existing draft/final shape in the version's work `candidate-input.json`, validating the complete document before authorized atomic replacement. Once Director has established stable scope/dependencies and canonical write ownership, promote the chosen package to `story/episodes/epNN/task-inputs/taskNN.json` with matching prompt, uses, sources, media and actual source timings. Self-check that published final input, then hand the canonical manifest to a fresh independent Reviewer. Work candidates are not review targets and their checks do not establish final readiness. Preserve existing shapes, gates and protected submitted records.
 
 ## Authority And Delivery
 
@@ -126,7 +134,11 @@ Apply the shared [detailed shot prose and proxy authority rules](../_meta/rules/
 
 Read and apply [global mappings and inline use](../_meta/rules/visual-prompt-craft-common.md#全局映射与实际使用处的引用) while writing the final task-time passages; bind the real inputs to the source performance integrated above.
 
-Supply the exact common single-line `视频风格` baseline to Storyboarder and express it once in the final prompt. Reconcile differing baselines with owners. Follow provider-specific extraction and timing behavior; preserve complete source meaning/dialogue and interpret local elapsed times in task-time prose. Group media and sound bridges follow derived intervals. Asset prompts retain appearance and actual bindings; internal notes alone do not reach the model.
+Apply [per-task semantic authorship](../_meta/rules/visual-prompt-craft-common.md#每任务独立语义写作): Creator personally writes each complete final `manifest.prompt` independently from that group's actual source shots, refs, events, dialogue and clock. Express its lighting, sound, performance and cuts where they apply. Do not distribute COMMON headers/footers, fill a prose template or pack every conditional rule into every group. Preserve all source facts and important actions rather than shortening away necessary detail.
+
+Personally write each `ref.use` for that reference's actual role in this group, including relevant proxy identities, controls, phases and placeholder limits. When prompt or reference selection changes, revise affected uses together; retain no stale event, actor or sound guidance. Scripts in prompt preparation serve extraction/presentation, numbering, protection/validation, safe JSON writing and exact reading, not common/template semantic composition. Batch-saving multiple complete, independently authored drafts as data with JSON serialization is valid; manual file typing is not required.
+
+Supply the exact common single-line `视频风格` baseline to Storyboarder and express it once inside each task's final prompt, not once for the episode. Shared art direction and applicable common facts may be accurately expressed in every task, including necessary identical wording. Reconcile differing baselines with owners. Follow provider-specific extraction and timing behavior; preserve complete source meaning/dialogue and interpret local elapsed times in task-time prose. Group media and sound bridges follow derived intervals. Asset prompts retain appearance and actual bindings; internal notes alone do not reach the model.
 
 For engineering, main delegates repository code, host configuration and tests to engineering agents. In production, main is Director; Creator owns commissioned visual materials and fresh independent Reviewer contexts accept them.
 

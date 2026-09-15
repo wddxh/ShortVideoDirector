@@ -49,6 +49,12 @@ As part of the existing integration review, consult the selected provider's vide
 
 Read and apply the full [global and inline binding rules](../_meta/rules/visual-prompt-craft-common.md#全局映射与实际使用处的引用). Across the entire final prompt, do actual tokens, stable entity names, proxies and purposes remain consistent with the ordered inputs? Report concrete drift or cross-use.
 
+### Completeness And Local Applicability
+
+Apply [per-task semantic authorship](../_meta/rules/visual-prompt-craft-common.md#每任务独立语义写作) to the entire selected `manifest.prompt` and every `ref.use`. Compare each passage with this group's actual source shots, refs, events, dialogue and task clock: does it retain all required facts while describing only applicable roles, actions, light, sound and controls? Identify imported events/characters/sounds absent from this group, irrelevant conditional branches, repetition that dilutes necessary instructions, and contradictions between general passages, timed prose and uses. Report the specific passage, source basis and impact; a new prompt with stale use text is still an integration problem.
+
+The shared artistic baseline belongs once within each task's prompt. Accurate common facts and necessary identical wording across tasks are valid; lexical repetition alone is not failure. Judge the completed task-specific meaning, not typing method: scripts may extract/present materials, number, protect/validate, serialize independently authored drafts in a batch and read exact strings. They do not replace Creator's semantic authorship with common/template composition. Preserve important source actions and dialogue when requesting removal of irrelevant text. Use existing semantic review/statuses, without keyword blacklists, a natural-language parser, similarity thresholds or another gate.
+
 ## Saved Spec And Actual Media
 
 Within the existing shot-input round, capture canonical config and the explicit selected complete clean MP4 with start/add-input before reading or probing them. Read `## 本地参考 epNN` and the exact qualified keys `epNN 本地参考宽度`, `epNN 本地参考高度`, `epNN 本地参考fps`. Check their final-video-settings basis or explicit user local override, and the single source-compatible episode CFR fps; an unset fps is not 30. Provider pixel mappings require evidence, not a universal 720p short-edge assumption.

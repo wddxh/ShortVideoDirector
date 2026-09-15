@@ -34,6 +34,12 @@ Creator 也拥有按需本地制作参考：可编辑 2D/2.5D、Blender 场景�
 
 输出位置遵循 [项目布局](../_meta/rules/project-layout.md)：委托前选定精确输出路径并随 handoff 传递，复用 canonical 材料与当前 work 文件，工具记账保持原位。仅需要落盘时使用 scoped work 目录，简单任务可只回文本；按需保留完整决策依据，不把布局变成必建文件清单或迁移任务。
 
+新工作共享资产源码放 `references/assets/<category>/<asset-name>/`，canonical 卡片与 `assets/images/` 不迁移。任务参考首版使用 `references/epNN/tasks/taskNN/v001/{source/,clean.mp4,caption.mp4,PLAN.json}`，后续 `v002` 等平级；对应 work 为 `story/work/epNN/tasks/taskNN/v001/`，按需写 `handoff.md`、`candidate-input.json`。长期重建所需代码、字体、局部视频留 references，jobs、临时调用、诊断和结果放 work；资产 work 为 `story/work/epNN/assets/<category>/<name>/`，按需 jobs/handoff。script/storyboard work 各沿现目录，episode-previs 沿现 parts/handoff，共用环境报告保持固定路径。已有项目及显式 legacy 引用继续支持，不迁移 Story3。
+
+事先协调精确版本路径与 active 占用，Creator 仍决定选材。未发布、未绑定且无 active reader 的版本可原位微修；改动已采用、review 证据或提交绑定的版本时另建平级版本，保留原依赖，复用共享资产而非每版全量复制。同名并发 writer 冲突由你集中协调，不建锁或索引，不设根 current/archive 或嵌套 finalfix。current 由 canonical manifest 显式选材，不按最大版本号/mtime 推断。
+
+work 候选可用于预备；待 scope、依赖和发布写入占用稳定，Creator 将完整候选发布到 canonical `story/episodes/epNN/task-inputs/taskNN.json` 并自查最终输入，再交 fresh 独立审核。review target 始终是该 canonical final input，不能拿候选验收替代发布后的审核或改门禁。provider IDs、receipts、tasks 和 reviews 仍用既定位置，无新 schema、registry 或迁移。
+
 本地参考 handoff 指定需要成立的视觉成果、源事实/shot/clock 边界、交付路径、依赖稳定性与决策余地，选材由 Creator 根据固定环境报告和当前材料判断。保留用户固定工具或 Creator 已明确选定的局部实现及其依据；其余不预先要求全组 `.blend` 或 CUDA。Creator 在现有 handoff 简短说明可复用什么、还缺什么控制、为何选择能表达它的最简材料，不另设选材表或审批。返工围绕实际冲突，可改用静帧、图层、二维动画、局部 3D 或混合表达；同步受影响 sources/use/prompt 和实际媒体，源镜头重设计仍交对应 owner。
 
 ## 来源与制作前确认
@@ -92,7 +98,9 @@ Director 每次派发前用现有任务句柄、委托上下文和实际结果�
 
 在现有上下文中区分未派发、运行中、实际完成、错误与就绪：拟定委托不等于已派发，工具返回 running/后台通知不等于任务实际完成，实际完成也不等于验收就绪。Director 持续保留整棵受托子树的读写占用，直到父任务及真实后代工作全部完成；期间不得自行写入或派发冲突 writer。父任务有限返回或错误而后代仍运行时，也不释放占用。只有真实任务已启动且仍待实际结果才报告等待，并对应实际句柄；收到结果后按 relay 恢复原请求任务，后续视觉操作仍用 fresh task。依赖阻塞时说明尚未派发及具体依赖，不虚称后台运行。不新增调度账本、schema、调度器、锁或状态轮询；排队、恢复和范围内修订不变成重复许可。
 
-输入包遵循 [shot-inputs](../_meta/rules/shot-inputs.md)：`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`。Creator 在视频参考/装组映射确定后据 materials 写完整语义 prompt，自查实际最终 `--json` 后交 fresh Reviewer。task_id 独立于首镜，每任务至少一个全组 MP4，可辅 PNG；资产图供身份，BOX 控制相机/布局/整体轨迹，静态段可用 clip，sources 不上传。独立 shot-input 以最终 manifest 为 target，指纹绑定 prompt，审核源忠实度、完整性、集成/delta、任务时钟、内部切点/声音桥及必要相邻/非相邻/跨集边界；无冲突复用 storyboard 判断。草稿不通过最终审核/就绪。实际依赖入 inputs，不附全计划哈希，缺证据 unknown。源码/记账变而媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审；每次视觉操作仍新任务与 helper 缩略图。
+输入包遵循 [shot-inputs](../_meta/rules/shot-inputs.md)：`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`。委托 Creator 在视频参考/装组映射确定后，对每 task 实际源 shots/refs、事件、对白与时钟独立亲写完整 manifest.prompt 及逐 ref 的本组 use，修订时同步二者。统一艺术基线在每个 prompt 内表达一次，适用共同事实可准确重复；不安排 COMMON 头尾分发、模板填槽或全量条件条款，保留全部源事实和重要动作。脚本可处理材料、编号、保护校验与安全 JSON 保存，允许把各自独立写成的稿作为数据批量保存，不代替语义写作。Creator 自查原样返回 manifest.prompt 的实际最终 `--json` 后交 fresh Reviewer。
+
+task_id 独立于首镜，每任务至少一个全组 MP4，可辅 PNG；资产图供身份，BOX 控制相机/布局/整体轨迹，静态段可用 clip，sources 不上传。独立 shot-input 以最终 manifest 为 target，指纹绑定 prompt，审核源忠实度、完整性、局部适用性、集成/delta、任务时钟、内部切点/声音桥及必要相邻/非相邻/跨集边界；无冲突复用 storyboard 判断。草稿不通过最终审核/就绪。实际依赖入 inputs，不附全计划哈希，缺证据 unknown。源码/记账变而媒体未变可独立 scoped 兼容性评估，有依据续签，不盲刷哈希或自动全量重审；每次视觉操作仍新任务与 helper 缩略图。
 
 每次图片读取或操作均遵循 [图像上下文与预览规则](../_meta/rules/visual-context.md)：全新 task、最小必要图集、先缩略图，原图不直接 Read；协调上下文只接收文本/文件结果，不恢复 image-heavy task。一个全新 Creator 生成上下文可将相干、已授权、当前 prompt 门禁通过且就绪的多个 jobs 作为一次有限操作交单一 runner，默认并发 5；不逐图片调用拆任务，也不同时启动多个 runner。生成只回文本状态、IDs/路径，查看另派新任务；执行边界见 [依赖与并发](../creator-generate-images/SKILL.md#依赖与并发)。
 
