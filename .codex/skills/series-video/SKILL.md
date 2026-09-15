@@ -38,6 +38,7 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 ## Skill 调用
 
+- 用户公开入口仅 series-video、short-video、edit-story、repair-story。generate-video、check-video、auto-video 是 AI 可加载的内部知识，提交、查询下载和持续监控工具仍按其契约运行。用户可直接说“帮我提交ep01已审核任务”“查询ep01生成进度并下载”，由 AI 按实际目标与授权调用。
 - `使用 Skill tool 调用 <skill-name> skill` 表示在当前上下文加载对应 Codex 适配层。浏览 description 后选择所需知识，不因加载 skill 创建子代理。
 - 如果不能直接调用 skill，则读取 `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/SKILL.md`，按当前委托加载知识。
 - 入口原始请求仅由宿主原生 `$ARGUMENTS` 传输，整体保留，不拆位置或构造索引。内部 skill 消费当前成果、材料、范围和约束，不编造调用参数串。
@@ -47,7 +48,9 @@ argument-hint: "自然语言目标、材料或配置请求"
 
 决策尽量前置：可预见关键选择已满足或明确委托后，在原授权内连续执行，不要求未知艺术细节、额外“开始吗”或逐轮 review/fix 批准。新问题先查配置、材料、grants 并由 Director/专家在权限内判断；仅用户指定检查点、缺必要权限或无法内部解决的关键冲突才需完整决策包。进度不是确认请求，持续许可内动作不重复求同意，固定参数、初始集时长和操作授权边界不变。
 
-生成意图以实际请求为准，不另问许可。short/series 包含所需资产图与本地参考，intake/审核后执行，始终停在付费视频提交前。后续手动 generate-video 请求由入口按原文与范围登记 initial_authorization，不追加握手。check/auto 仅在当前契约内延续登记 grants 或取回，不补新许可或无限重试。
+生成意图以实际请求为准，不另问许可。short/series 包含所需资产图与本地参考，intake/审核后执行，始终停在付费视频提交前。后续明确提交请求由内部 generate-video 知识按原文与范围登记 initial_authorization，不追加握手。check/auto 仅在当前契约内延续登记 grants 或取回，不补新许可或无限重试。
+
+手动执行遵循内部 `${CLAUDE_PLUGIN_ROOT}/skills/generate-video/SKILL.md` 的 prepare 流程与 `${CLAUDE_PLUGIN_ROOT}/skills/creator-provider-dreamina/video.md` 的 guarded wrapper 文档。Prepared 任务仍须校验当前引用、审核、grants 与输入一致性，保留 submission、inflight 及既有状态保护。
 
 摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标限制。用户原始集目标已确认的 ±10% 是主动可用的创作预算；Director 协调 owner 更新 canonical script/storyboard 与受影响下游，范围内不逐次求许可，原始基准不随本轮/前集合计滚动，精确要求优先。Creator 在设计后装组连续 shots，按核实模型最大 M 以 ceil(0.7*M)..M 为语义目标，不是机械下限；装组保留当前源时长、对白、切点，重设计交 owner，不暗中延时。`task-inputs/taskNN.json` 草稿恰为 `{shots,references}`，最终恰为 `{shots,references,prompt}`，prompt 是 Creator 写入的非空白字符串。文件名给稳定 task_id，成员按源顺序连续，每任务至少一个全组 MP4，条目仅 local PNG/MP4。最终 `--json` 返回 `{task_id,shots,timeline,prompt,duration,references,assetCards,sources,inputPath}`，prompt 原样来自 manifest，不重写；时间派生，不另存可编辑 offset/duration 或装组索引。
 
@@ -121,8 +124,8 @@ shot-input target 为 `task-inputs/taskNN.json`，纯文本 owner 验收最终�
 ## 定时任务和自动化
 
 - Claude `CronCreate`、`CronList` 和 `CronDelete` 不是 Codex 中的字面工具名。
-- 对于 `/auto-video`，优先使用 Codex automation 能力。
-- 仅用户要求监控或已同意默认才启动；无 automation 时说明限制，获准后可外部周期性委托 check-video，传明确 target 和 unattended 意图，不要求用户 flags。
+- 用户明确请求持续监控时，AI 加载内部 auto-video 知识，优先使用实际可用的 Codex automation 能力。
+- 日常使用以单次自然语言提交、查询和下载为主，持续监控由明确请求触发。无 automation 时说明限制，获准后可外部周期性委托内部 check-video 知识，传明确 target 和 unattended 意图，不要求用户 flags。
 - 首次与周期 checker payload 均显式传 canonical config_path 或 UNRESOLVED，并沿 Creator relay 保留。UNRESOLVED 只允许取回并报告 human_needed，空值是传输错误，不选择默认；配置操作显式验证绑定路径并共用 SVD_CONFIG。只按有效末行 JSON 且 target 匹配决定停止，缺失/无效/跨目标结果不从 prose 推断。
 - 不得绕过 check-video 和 Creator/provider 的 grants、inflight、当前审核与恢复边界。
 

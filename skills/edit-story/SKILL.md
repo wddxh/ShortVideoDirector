@@ -13,7 +13,7 @@ model: opus
 
 按 [shot-inputs](../_meta/rules/shot-inputs.md) 评估 `task-inputs/taskNN.json` 的最终 `{shots,references,prompt}`、媒体、sources 与证据；草稿 `{shots,references}` 仅供 materials、不就绪。Creator 据当前材料更新语义 prompt 并自查最终 `--json`，每任务至少一个全组 MP4。摄影修改范围与生成组成员分开：部分选组报告 task_id、完整成员/额外镜头，不扩创作或付费授权。装组保留当前 canonical 时长/对白/切点；重设计交 Director/owner 在原始确认预算内更新源及下游，范围内不逐次求许可，精确要求优先，基准不滚动。fresh Reviewer 以最终 manifest 为 target，指纹绑定 prompt，核对源忠实度、完整性、可见性/注意/时序变化、内部切点/声音桥及必要边界，无冲突复用 storyboard 判断。源码/记账变而媒体未变可独立 scoped 兼容性评估，不自动全量重审或盲刷哈希；看图仍新任务/缩略图。改输入不刷新登记视频或 grants；submitted 按 recorded ID/provider 取回。
 
-实际修改/重生请求本身建立其目标操作意图，所需图片生成不另问通用授权；Director 依据请求和当前材料确定受影响范围。纯诊断不生成，未涵盖的覆盖或受保护任务仍阻塞；本入口不提交视频，后续由用户手动 generate-video 请求建立首次视频提交。
+实际修改/重生请求本身建立其目标操作意图，所需图片生成不另问通用授权；Director 依据请求和当前材料确定受影响范围。纯诊断不生成，未涵盖的覆盖或受保护任务仍阻塞；本入口不提交视频。用户后续以自然语言明确要求提交时，AI 本地加载内部 `generate-video`，按实际请求原文与范围登记授权，由真实 Creator 在 grants 和 gate/reserve 约束内提交。
 
 按共享 intake 规则先复用已有意图、材料和授权；缺口只读诊断，询问必要需求或让用户明确委托责任角色决定（记录角色/范围/约束）。相关需求不足时不编候选、场景、设计或提示，聊天预览也不例外。预览材料先 intake 后创作，再单独请用户批准。意外问题仅暂停受影响工作。
 
@@ -47,7 +47,7 @@ Director 与专家从 descriptions 自选方法。专家/审核协调者在嵌�
 
 返回实际改动、保留理由、当前证据、任务/pending 和未决决策。局部完成不等于整集就绪；整集运行 `SVD_CONFIG="{config_path}" node "${CLAUDE_PLUGIN_ROOT}/scripts/check-shot-inputs.mjs" "{ep}"` 及同配置 `review-evidence.mjs check "{ep}"`。非零保持阻塞；none 或资源耗尽不豁免必需材料。
 
-技术失败先检查存活材料与任务，避免重复执行；不可恢复则报告原因，用户取消即停止。submitted/done 视频记录保持保护，不自动重提；付费视频另由用户 `/generate-video {ep}` 授权，`/check-video`、`/auto-video` 只用于后续跟踪。成片质量由用户判断，不自动审片或合成。
+技术失败先检查存活材料与任务，避免重复执行；不可恢复则报告原因，用户取消即停止。submitted/done 视频记录保持保护，不自动重提。用户可后续以自然语言明确要求提交指定集与镜头范围、查询下载或持续监控，AI 按实际请求本地加载内部 `generate-video`、`check-video` 或 `auto-video`。查询/监控只取回已登记任务或在有效 grants 内续交、重试；监控仅在用户要求或已有同意默认时启动。成片质量由用户判断，不自动审片或合成。
 
 ## 诊断与确认
 

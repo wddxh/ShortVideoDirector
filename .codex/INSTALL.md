@@ -9,7 +9,9 @@ python3 .codex/build-codex-skills.py
 python3 .codex/build-codex-skills.py --check
 ```
 
-生成器按当前源集合重建 wrappers。七个入口为 series-video、short-video、edit-story、repair-story、generate-video、check-video、auto-video。宿主原样传 `$ARGUMENTS`；整体理解自然语言，不拆位置参数。缺目标不默认最新/全部，配置查看只读。
+生成器按当前源集合重建 wrappers。四个公开入口为 series-video、short-video、edit-story、repair-story。generate-video、check-video、auto-video 保留为 AI 可加载的内部知识与运行工具。宿主原样传 `$ARGUMENTS`；整体理解自然语言，不拆位置参数。缺目标不默认最新/全部，配置查看只读。
+
+提交与取回可直接说“帮我提交ep01已审核任务”“查询ep01生成进度并下载”，由 AI 按实际请求调用内部能力。手动操作使用 [任务准备知识](../skills/generate-video/SKILL.md) 的 prepare 流程，再按 [provider 文档](../skills/creator-provider-dreamina/video.md) 执行 guarded wrapper；prepared 任务继续检查当前引用、审核、grants 与输入一致性，并遵循同一套状态保护。
 
 ## 角色与工具
 
@@ -38,7 +40,7 @@ Director 交目标、完整源、完整 clean+caption MP4 交付要求及依赖�
 
 整集源编号 1..N 且每镜分配一次，任务按首成员排序；局部允许源缺号、目标存在且选完整组。全局检查组重叠/缺失源成员，局部不要求未选媒体或完整全片计划。未分配/部分组报告完整成员及额外镜头，不静默扩授权。
 
-short/series 包含必要资产图与本地参考，并停在付费视频提交前。后续手动 generate-video 实际请求登记 initial grant。新提交/重试使用实际输入及真实 grants；已提交任务按记录的 ID/provider 查询下载。pending/receipt、次数、locks、inflight 与 submitted/done 保护贯穿执行。
+short/series 包含必要资产图与本地参考，并停在付费视频提交前。后续明确提交请求由内部 generate-video 知识按原文与范围登记 initial grant。新提交/重试使用实际输入及真实 grants；已提交任务按记录的 ID/provider 查询下载。pending/receipt、次数、locks、inflight 与 submitted/done 保护贯穿执行。
 
 tasks.json 保持数组，task_id 唯一并保存 shots/prompt/duration/references，输出 videos/taskNN.mp4；grant 为 `{decision,episode,task_id,shots,constraints}` 加真实可选次数。Reserve 前 manifest/record/grant 成员一致，错误身份、漂移或部分选组零调用、不改次数。视频 wrapper 为 `--references-json PROMPT OUTPUT REFERENCES_JSON DURATION RATIO MODEL RESOLUTION`，flag 后七参数；capture 保留 `{provider,model,ratio,resolution,references:[{media,path,sha256}]}`。模型能力用当前 help 核实。
 
@@ -64,7 +66,7 @@ finish exit 0 仅表示记录写入；实际 path/round/status/input_count/evide
 
 Codex 插件进程提供 CLAUDE_PLUGIN_ROOT。Shell 展开该变量；文件工具需先取得实际绝对路径，不能读取字面变量。源 skill 的相对指南按源目录解析，故事文件相对工作区。配置用 `review-evidence.mjs config-path` 规范化实际 SVD_CONFIG，相关命令/委托/指纹共用该路径；纯 recorded-ID 取回绕过配置门禁。
 
-auto-video 按运行时映射优先使用 Codex automation，只有用户要求或已同意默认才启动。不可用时说明限制，可手动或按真实授权外部周期委托 checker，不自行编造宿主能力。首次/周期调用都保留 Creator relay 和当前输入契约。仅有效、target 匹配的末行 JSON 决定停止；all_complete 可含 human_needed，不表示全成功。
+用户明确请求持续监控时，AI 可加载内部 auto-video 知识，按运行时映射优先使用实际可用的 Codex automation。日常使用以单次自然语言提交、查询和下载为主，持续监控由明确请求触发。Automation 不可用时说明限制，可手动检查或按真实授权外部周期委托 checker。首次/周期调用都保留 Creator relay 和当前输入契约。仅有效、target 匹配的末行 JSON 决定停止；all_complete 可含 human_needed，不表示全成功。
 
 Querying/1 是等待；error/2 保留 submitted/id 并重试同一 ID 取回，不付费重生下载失败。Done 仅表示下载；成片由用户判断，不自动审片/合成。具体安全与恢复接口见 [主 README](../README.md)。
 

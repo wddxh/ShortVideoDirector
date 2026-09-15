@@ -1,7 +1,7 @@
 ---
 name: auto-video
 description: 在用户要求持续监控已登记视频任务、下载结果或停止已有监控时使用。
-user-invocable: true
+user-invocable: false
 allowed-tools: Read, Write, Glob, Bash, CronCreate, CronDelete, CronList, Task, Skill
 argument-hint: "自然语言监控目标与间隔"
 model: opus
@@ -9,9 +9,11 @@ model: opus
 
 ## 范围与许可
 
+本 skill 是 AI 可按用户自然语言监控、下载或停止监控请求在当前上下文本地加载的内部知识。
+
 付费续交/重试使用 typed references，每任务至少一个全组本地 MP4，最终 `task-inputs/taskNN.json` 为 `{shots,references,prompt}`，条目仅 local PNG/MP4。Creator 的非空白 prompt 已经独立 shot-input 审核且 target 指纹绑定；草稿仅供 materials、不就绪。tasks.json 原样存 prompt，gate/reserve 比较最终 manifest 的 prompt/duration/references，提交不重写。记录/授权以 task_id 和完整 shots 绑定，输出 `videos/taskNN.mp4`。成员匹配 manifest/record/grant，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 则 human_needed，保留状态。首次与周期 checker 均携带该契约、真实 grants 和 inflight 边界。
 
-本入口调用表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。缺首次 grant 的新生成交用户后续手动 generate-video；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
+监控请求表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。用户后续明确要求新生成时，由 AI 本地加载 generate-video 登记实际请求；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
 
 按共享 intake 规则复用监控目标与持久授权，不重新问创作偏好；无人值守缺决定仅报 human_needed，不先编候选、场景、设计或提示。意外问题仅暂停受影响工作，其他已授权任务可继续。新创作留给后续交互取得相关需求或明确角色/范围/约束委托。
 

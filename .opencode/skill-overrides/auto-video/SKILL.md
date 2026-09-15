@@ -1,7 +1,7 @@
 ---
 name: auto-video
 description: 在用户要求持续监控已登记视频任务、下载结果或停止已有监控时使用。
-user-invocable: true
+user-invocable: false
 allowed-tools: Read, Write, Glob, Bash, Skill, Task
 argument-hint: "自然语言监控目标与间隔"
 model: opus
@@ -9,9 +9,11 @@ model: opus
 
 ## 范围与职责
 
+本 skill 是 AI 可按用户自然语言监控、下载或停止监控请求在当前上下文本地加载的内部知识。
+
 付费续交/重试使用 typed references，每任务至少一个全组本地 MP4，最终 `task-inputs/taskNN.json` 为 `{shots,references,prompt}`，条目仅 local PNG/MP4。Creator 的非空白 prompt 已经 fresh shot-input 审核，target 指纹绑定其全文；草稿 `{shots,references}` 仅供 materials，不就绪。tasks.json 原样存 prompt，gate/reserve 比较最终 manifest 的 prompt/duration/references，提交不重写。任务和 grant 绑定 task_id/完整 shots，输出 videos/taskNN.mp4；manifest/record/grant 成员一致才 reserve，漂移或部分选组零调用、不改次数。按 recorded ID/provider 取回 submitted，缺 ID 则 human_needed，保留状态。首次与周期 checker 均携带该契约、真实 grants 和 inflight 边界。
 
-本入口调用表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。缺首次 grant 的新生成交用户后续手动 generate-video；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
+监控请求表示监控/取回，不表示新生成。只延续 tasks 中已登记的实际 initial/retry grants，不重问有效范围的生成许可、不补造通用 consent 或无限重试。用户后续明确要求新生成时，由 AI 本地加载 generate-video 登记实际请求；short/series 即使就绪也不自动进入视频提交。首次提交不以预先询问重试许可为条件。
 
 目标、间隔与许可已明确就启动或继续，无额外“开始吗”。周期检查只核对已有 grants，不重问相同 provider、限制或重试选择。新问题先查当前记录并交责任角色在权限内判断；无人值守无法解决才报 human_needed，不把进度或内部审核状态当作用户决策，也不新增创作修复权限。
 
@@ -32,9 +34,9 @@ model: opus
 需要审核证据时用 `review-evidence.mjs path KIND EP TARGET` 解析各目标 canonical 文件，按共享 review-meta-rules 检查当前轮。无读写/输入依赖冲突的就绪目标由 Reviewer 并行直写各自文件，每轮 scope=[target]、一个完成 result；同一 ep/kind/target 重审串行是输出所有权规则，其他读写/输入依赖仍须排序。plural 只协调范围和计数，不要求共享账本或汇总者。缺失/未完成/不可解析只影响所属目标；纯取回不新增审核门禁，grants/inflight/真实状态保持原契约。
 
 ```
-/auto-video ep01              # 监控 ep01，默认每 20 分钟检查
-/auto-video ep01 300          # 监控 ep01，每 5 分钟检查
-/auto-video all               # 监控所有集，默认每 20 分钟检查
+帮我监控 ep01，每 20 分钟检查一次
+帮我监控 ep01，每 5 分钟检查一次
+帮我监控所有集，每 20 分钟检查一次
 ```
 
 ## 约束
@@ -72,7 +74,7 @@ opencode --port 4096 -s YOUR_SESSION_ID
 当前 loop target 仅 epNN/all；仅部分镜头的请求先说明限制并确认范围，不静默扩大为整集。无确认不写文件或启动 loop。
 
 1. 确认目标 tasks.json 存在（若为 `all`，至少有一个 `story/episodes/*/videos/tasks.json`）
-2. 若不存在 → 提示"未找到视频生成任务，请先使用 `/generate-video` 提交任务"，结束
+2. 若不存在 → 提示"未找到已登记视频任务；可告诉 AI 需要提交的集数和镜头范围"，结束
 3. **OC context 解析（OC 专属）**：用 bash 一次性提取 PORT 和 SID，二者缺一不可：
    ```bash
    if [ -z "$OPENCODE_PID" ]; then
@@ -162,7 +164,7 @@ opencode --port 4096 -s YOUR_SESSION_ID
 只解析 checker 最后一非空行 JSON，验证 check-video 完整摘要且 target 严格等于 {目标}。缺失/无效/目标不符是可恢复协议错误，保持未完成，不从 prose 推断 all_complete/recoverable，也不清理监控。
 
 3. 仅对有效且同目标 JSON 决定：
-    - **`all_complete == true`** → 输出最终摘要与 human_needed 详情，区分已下载和需人工处理 + 提示"可用 `/check-video {目标}` 手动处理"，**跳过阶段 5**（不装 loop），整个 skill 结束
+    - **`all_complete == true`** → 输出最终摘要与 human_needed 详情，区分已下载和需人工处理 + 提示"可告诉 AI 需要查询或处理 {目标} 的哪些未决事项"，**跳过阶段 5**（不装 loop），整个 skill 结束
    - **含 `error` 且 `recoverable == false`** → 报错输出 `error` 内容 + 建议用户检查配置，**跳过阶段 5**（不装 loop）
    - **其他情况** → 输出简短进度 "完成 X / 排队 Y / 失败 Z"，继续进入阶段 5
 

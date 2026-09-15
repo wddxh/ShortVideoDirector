@@ -1,7 +1,7 @@
 ---
 name: check-video
 description: 查询已登记视频任务、下载完成视频，或处理需要授权重试与创作修正的失败。
-user-invocable: true
+user-invocable: false
 allowed-tools: Read, Write, Edit, Glob, Bash, Skill, Task
 argument-hint: "自然语言查询目标、镜头范围或无人值守检查委托"
 model: opus
@@ -9,7 +9,9 @@ model: opus
 
 ## 范围与持久记录
 
-check/auto 本身不是新视频生成请求，只取回已登记任务或延续有效 initial/retry grants。generate-video 已将用户实际生成请求登记为 initial grant 时，首次续交不再询问生成许可；缺 grant 不从“使用本系统”或监控意图补造。交互中用户另行要求新生成则交 generate-video 入口，按该实际请求登记，不另设批准握手；重试仍按真实 retry grant，不推断无限次数。
+本 skill 是 AI 可按用户自然语言查询、下载或失败处理请求在当前上下文本地加载的内部知识，也供受托 checker 使用。
+
+check/auto 本身不是新视频生成请求，只取回已登记任务或延续有效 initial/retry grants。generate-video 已将用户实际生成请求登记为 initial grant 时，首次续交不再询问生成许可；缺 grant 不从“使用本系统”或监控意图补造。交互中用户另行要求新生成则由 AI 本地加载 generate-video，按该实际请求登记，不另设批准握手；重试仍按真实 retry grant，不推断无限次数。
 
 付费续交/重试使用当前 typed references，每任务至少一个全组本地 MP4，最终 `task-inputs/taskNN.json` 顶层恰为 shots/references/prompt，prompt 为 Creator 编写并审核的非空白字符串，条目仅 local PNG/MP4。草稿 shots/references 仅供 materials，不就绪；tasks.json 中 prompt 与最终 manifest 原文一致，gate/reserve 核对该原文及 duration/references，不在提交时重写。按已登记 ID/provider 查询下载 submitted 任务；缺可核实 ID 则 human_needed，保留记录和媒体等待核实。
 

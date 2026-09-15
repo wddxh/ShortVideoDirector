@@ -4,9 +4,6 @@ export const USER_INVOCABLE_ENTRY_WORKFLOWS = new Set([
   'short-video',
   'edit-story',
   'repair-story',
-  'generate-video',
-  'check-video',
-  'auto-video',
 ]);
 
 export const NATIVE_QUESTION_GUIDANCE = `
@@ -21,7 +18,7 @@ export const ROLE_HANDOFF_GUIDANCE = `
 ${NATIVE_QUESTION_GUIDANCE}
 本地环境按 skills/_meta/rules/user-decision-relay.md 的 Local Environment And Method Choice：项目初始化由有界授权的单一 Creator 全面检查支持工具，写固定 story/work/shared/environment/environment.md Markdown 报告，逐项记录真实 pass/unavailable、命令及路径、版本、backend、实际输出和限制；工具清单见 creator-local-reference/tools.md。后续 Creator/需要预览工具的 Reviewer 自行查询，纯文字角色不强制读，Director 不逐次传结果/路径。固定报告是常规 read 依赖，Director 仍集中维护 init/update writer 占用和 stable/等待条件，不假永久稳定；更新需有界授权单 owner，Reviewer 只读不自修。实际失败、环境变化或确切新增需求所需能力未被初始化证据覆盖时，补验更新受影响项；新增能力只验证该需求的未覆盖部分，不每任务探测、常规扫描版本或无理由重复验证。报告仅工具指导时默认不进 manifest.sources 或所有 review 语义 inputs；确用于验收语义判断时 owner 在读取前 start/add-input。
 环境可用不指定工具。Director 交目标、完整源、完整 clean+caption MP4 交付要求及依赖权限，Creator 按镜头复用素材、补必要控制并选最简充分手段；除用户明确要求或合理已选局部，不预设批量 .blend/CUDA。静态设计与时间合成分别选法，授权返工可换方法，SVG 可选，既有交付与审核契约不新增流程 gate。
-生成意图以实际请求为准，不另问许可：short/series 包含所需资产图和本地参考，intake/审核后执行，始终停在付费视频提交前。后续手动 generate-video 请求由入口按原文和范围登记 initial_authorization；check/auto 仅在当前契约内延续登记 grants 或取回，不补新许可或无限重试，不强制首次提交前问重试。
+生成意图以实际请求为准，不另问许可：short/series 包含所需资产图和本地参考，intake/审核后执行，始终停在付费视频提交前。用户后续明确要求提交视频时，AI 本地加载内部 generate-video，按请求原文和范围登记 initial_authorization；内部 check/auto 仅在当前契约内延续登记 grants 或取回，不补新许可或无限重试，不强制首次提交前问重试。
 摄影 shot 保留七字段及正整数秒，不受 provider 最短/70% 目标限制。用户原始集目标已确认的 ±10% 是主动可用的创作预算；Director 协调 owner 更新 canonical script/storyboard 与受影响下游，范围内不逐次求许可，基准不随本轮/前集合计滚动，精确要求优先。Creator 在设计后装组连续 shots，以核实模型最大 M 的 ceil(0.7*M)..M 为语义目标，不是机械下限；保留当前源时长、对白、切点，重设计交 owner，不在装组中偷加秒。task-inputs/taskNN.json 草稿恰为 {shots,references}，最终恰为 {shots,references,prompt}，prompt 是 Creator 写入的非空白字符串。文件名给稳定 task_id，成员按源顺序连续，每任务至少一个全组 MP4，条目仅 local PNG/MP4。最终 --json 返回 task_id/shots/timeline/prompt/duration/references/assetCards/sources/inputPath，prompt 原样来自 manifest，不重写；时间派生，不另存可编辑 offset/duration 或装组索引。
 创作材料使用所选 provider 自有 material tool，具体命令、pack、token 计数/绑定和重基规则见该 provider 文档；Dreamina 见 skills/creator-provider-dreamina/video.md。草稿可供材料解析但不表示就绪。共享 assembler 仅提供无 provider token 的内部数据，不是公开通用 adapter；未来 provider 自行实现工具，无需 registry/framework/manifest schema 变更。共同风格在最终 prompt 表达一次，不同基线交 owner；源事实及对白完整保留。资产图按成员首次使用求并集在前，本地媒体在后，每镜链接须自身 header 声明，sources 不上传。
 Creator 在视频参考/装组映射确定后读 materials 和 provider 语法，写完整任务时间 prose 到 manifest.prompt，保留叙事、动作、对白原词、切点、时长及声音，绑定实际 tokens 并解释 BOX/颜色/身体/肢体代理的最终身份、解剖与动作。源局部时间转成明确任务时间；仅清理非成片源标题、内部 task/shot IDs、路径和审核元数据，保留有意上屏原词与 wide shot 等摄影词。缺源事实交 owner，不编造 use。Creator 自查实际最终 --json 后交 fresh shot-input Reviewer 核对源忠实度、完整性和集成；提交不改写。

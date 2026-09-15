@@ -31,6 +31,7 @@ ${workflowList}
 - 写入或付费前解析明确目标与授权；歧义不默认全部或最新。查看配置只读，不强制初始化。
 - 创作委托由顶层主 AI 担任 Director，本地加载内部 \`director-orchestrate\` skill；主入口与编排不创建 agent/fork。工程委托使用独立工程 agents。
 - 也可用自然语言（"帮我做一个新的短视频，主题是 XXX"）触发，LLM 会自行决定调用对应 skill
+- 视频提交、查询/下载和监控可用自然语言委托 AI，AI 按需本地加载内部 \`generate-video\`、\`check-video\`、\`auto-video\` 知识；公开斜杠入口为上列四个工作流。
 
 ## 关键执行规则
 
@@ -38,9 +39,9 @@ ${ROLE_HANDOFF_GUIDANCE}
 
 需要用户决定时由主 AI 询问；制作前确认与独立审核不能互相替代。每次 Write/Edit 保持 2000 字符上限，不限制文件最终长度。
 
-## auto-video 安全提示
+## 内部监控安全提示
 
-\`auto-video\` 仅在用户要求或已同意默认时通过 \`nohup\` 启动本地 loop，以 OpenCode HTTP session/prompt 委托 checker。新提交/重试需真实 Creator，depth1 由主 AI 派 sibling 后恢复同一 checker。只按有效且 target 匹配的 JSON 摘要停止，不从 prose 推断；skill 负责 PID、日志和运行错误上限。
+内部 \`auto-video\` 仅在用户要求或已同意默认时通过 \`nohup\` 启动本地 loop，以 OpenCode HTTP session/prompt 委托 checker。新提交/重试需真实 Creator，depth1 由主 AI 派 sibling 后恢复同一 checker。只按有效且 target 匹配的 JSON 摘要停止，不从 prose 推断；skill 负责 PID、日志和运行错误上限。
 
 ## 子代理与 skill 间的关系
 

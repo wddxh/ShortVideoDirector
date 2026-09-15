@@ -26,11 +26,15 @@ describe('generateBootstrap', () => {
       ['reviewer', 'scriptwriter', 'storyboarder', 'creator']);
   });
 
-  test('lists user-invocable entry workflows', () => {
+  test('lists exactly four public workflows and keeps internal skills available', () => {
     const out = generateBootstrap('/fake/root', sampleAgents);
-    assert.ok(out.includes('series-video'));
-    assert.ok(out.includes('short-video'));
-    assert.ok(out.includes('auto-video'));
+    const section = out.split('## 入口工作流（')[1].split('## 如何启动')[0];
+    assert.ok(section.startsWith('4 个 user-invocable skills）'));
+    assert.deepEqual([...section.matchAll(/^- `([^`]+)`$/gm)].map(m => m[1]),
+      ['series-video', 'short-video', 'edit-story', 'repair-story']);
+    for (const name of ['generate-video', 'check-video', 'auto-video']) {
+      assert.ok(out.includes(`\`${name}\``));
+    }
   });
 
   test('wraps in EXTREMELY_IMPORTANT', () => {

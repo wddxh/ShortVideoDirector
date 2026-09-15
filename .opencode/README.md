@@ -25,9 +25,11 @@ opencode agent list
 opencode debug skill
 ```
 
-应发现 creator/reviewer/scriptwriter/storyboarder 四个专家、内部 director-orchestrate、creator-local-reference 和 reviewer-review-shot-inputs，以及七个入口 series-video、short-video、edit-story、repair-story、generate-video、check-video、auto-video。九个 reviewer-review-* 技能由独立 Reviewer 使用；director-* 规划知识由制作主 AI 本地使用。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
+应发现 creator/reviewer/scriptwriter/storyboarder 四个专家、内部 director-orchestrate、creator-local-reference 和 reviewer-review-shot-inputs。公开 commands 为四个入口：series-video、short-video、edit-story、repair-story。generate-video、check-video、auto-video 保留为 AI 可加载的内部知识与运行工具。九个 reviewer-review-* 技能由独立 Reviewer 使用；director-* 规划知识由制作主 AI 本地使用。列表应与当前源集合一致。发现名称不证明嵌套、知识加载或审核隔离实际可用。
 
 Commands 原样传 `$ARGUMENTS`，不拆位置参数。入口整体理解目标、路径和范围；歧义不默认 latest/all。配置查看只读，缺失不初始化。
+
+提交与取回直接用自然语言：“帮我提交ep01已审核任务”“查询ep01生成进度并下载”。AI 按请求加载内部知识并执行；手动操作见 [任务准备知识](../skills/generate-video/SKILL.md) 的 prepare 流程与 [provider guarded wrapper](../skills/creator-provider-dreamina/video.md)。Prepared 任务仍检查当前引用、审核、grants 与输入一致性，沿用状态保护。
 
 故事文件按 [项目布局](../skills/_meta/rules/project-layout.md) 选择路径：保留 canonical 单集材料、共享资产、references 与工具记账；候选用 `story/planning/plot-options.md`，临时交接用 scoped `story/work/`。委托前指定精确输出路径，简单任务可只回文本；按需建文件，不迁移现有项目或复制状态账本。
 
@@ -51,7 +53,7 @@ TASK 是生成单元，不是小电影；参考和最终 prompt 带进入/离开
 
 shot-input 纯文本 owner 按 [接点规则](../skills/reviewer-review-shot-inputs/SKILL.md#task-junction-coverage) 验收实际参考与最终 prompt：整集覆盖所有相邻组，局部仅必要邻界及实际故事依赖，不附全计划哈希。fresh helper 比较选中 clean MP4 尾/头窗口和两端 prompt，披露音频实听/仅存在/计划；预采 inputs 且仍适用的独立观察可复用，不强制两端重复视觉 pass 或建账本。必要邻组缺失为受影响 target unknown，不扩生成授权，不授权自动剪辑或审生成视频。源码/记账变化沿用 scoped 兼容性判断，不盲刷哈希或自动全量重审。
 
-short/series 含资产图与本地参考，停在付费视频提交前；后续手动 generate-video 建立真实 initial grant。submitted 按 recorded ID/provider 取回，缺 ID 人工核实并保留状态。None 禁新提交而非取回；保留 fixed settings、pending/receipt、grants、locks 和 inflight。
+short/series 含资产图与本地参考，停在付费视频提交前；后续明确提交请求由内部 generate-video 知识按原文与范围登记真实 initial grant。submitted 按 recorded ID/provider 取回，缺 ID 人工核实并保留状态。None 禁新提交而非取回；保留 fixed settings、pending/receipt、grants、locks 和 inflight。
 
 通用 storyboard-to-prompt 的 `.sh` 与 `.mjs` 均使用 `--json STORYBOARD TASK_ID EP`，要求非空白字符串 manifest.prompt，原样返回而不生成或改写文本。显式 EP 与 storyboard 路径一致，生成 task_id 独立于首镜和宿主代理任务 ID。
 
@@ -84,9 +86,9 @@ start 在阅读制作材料前绑定显式配置和首次哈希；新语义参�
 
 finish exit 0 仅表示记录写入；返回实际 path/round/status/input_count/evidence_issues 和必要意见即可，正常完成不要求立即重复 fingerprint、check-target 或全文 Read，错误/诊断按需查，下游 gates 不变。局部视觉 delegate 由独立 owner 在委托读取前采集必要参考，返回实际观察/路径/限制；新参考先采集再交 fresh task，不以后采快照追认，不需 import registry。独立语义判断、逐 target 并行、全新视觉上下文及缩略图保持不变。
 
-## 自动监控
+## 内部持续监控
 
-[auto-video override](skill-overrides/auto-video/SKILL.md) 仅在用户要求或已同意默认时启动 nohup loop，通过 OpenCode HTTP session/prompt_async 委托 checker。需要带 --port 的 session：
+用户明确请求持续监控时，AI 使用内部 [auto-video override](skill-overrides/auto-video/SKILL.md) 启动 nohup loop，通过 OpenCode HTTP session/prompt_async 委托 checker。公开使用以单次自然语言提交、查询和下载为主；持续监控由明确请求触发。需要带 --port 的 session：
 
 ```bash
 opencode --port 4096 -s YOUR_SESSION_ID

@@ -283,6 +283,30 @@ describe('transformAllSkills (integration)', () => {
     }
   });
 
+  test('internal video workflows remain loadable with false metadata and resources', async () => {
+    await transformAllSkills(PROJECT_ROOT, tmpDir);
+    for (const name of ['generate-video', 'check-video', 'auto-video']) {
+      const file = path.join(tmpDir, name, 'SKILL.md');
+      const { frontmatter, body } = await parseSkillFile(file);
+      assert.equal(frontmatter.name, name);
+      assert.ok(frontmatter.description);
+      const content = await readFileAsync(file, 'utf8');
+      assert.match(content.split('\n---')[0], /svd-user-invocable: "false"/);
+      assert.doesNotMatch(content.split('\n---')[0], /svd-(agent|context):/);
+      assert.equal(body.includes(NATIVE_QUESTION_GUIDANCE), false, name);
+    }
+    for (const relative of ['check-video/failure-classification.md',
+      'auto-video/loop.sh', 'auto-video/cron-prompt.txt']) {
+      const root = relative.startsWith('auto-video/') ? '.opencode/skill-overrides' : 'skills';
+      const source = await readFileAsync(path.join(PROJECT_ROOT, root, relative), 'utf8');
+      const cached = await readFileAsync(path.join(tmpDir, relative), 'utf8');
+      const expected = relative.endsWith('.md') ? source
+        .replaceAll('${CLAUDE_PLUGIN_ROOT}/skills/', `${tmpDir}/`)
+        .replaceAll('${CLAUDE_PLUGIN_ROOT}', PROJECT_ROOT) : source;
+      assert.equal(cached, expected, relative);
+    }
+  });
+
   test('auto-video cache uses OC override (no CronCreate, no crontab)', async () => {
     await transformAllSkills(PROJECT_ROOT, tmpDir);
     const content = await readFileAsync(
@@ -420,7 +444,7 @@ describe('transformAllSkills (integration)', () => {
 });
 
 describe('monitor adapter metadata', () => {
-  test('both hosts retain the public monitor ID and task capability', async () => {
+  test('both hosts retain the internal monitor ID and task capability', async () => {
     const ccPath = path.join(PROJECT_ROOT, 'skills/auto-video/SKILL.md');
     const ocPath = path.join(
       PROJECT_ROOT, '.opencode/skill-overrides/auto-video/SKILL.md'
@@ -428,7 +452,7 @@ describe('monitor adapter metadata', () => {
     for (const file of [ccPath, ocPath]) {
       const { frontmatter } = await parseSkillFile(file);
       assert.equal(frontmatter.name, 'auto-video');
-      assert.equal(String(frontmatter['user-invocable']), 'true');
+      assert.equal(String(frontmatter['user-invocable']), 'false');
       assert.ok(frontmatter['allowed-tools'].split(', ').includes('Task'));
     }
 

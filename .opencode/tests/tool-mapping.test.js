@@ -2,10 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as mapping from '../lib/tool-mapping.js';
 
-test('keeps exactly seven entry workflows', () => {
+test('keeps exactly four public entry workflows', () => {
   assert.deepEqual(mapping.USER_INVOCABLE_ENTRY_WORKFLOWS, new Set([
     'series-video', 'short-video', 'edit-story', 'repair-story',
-    'generate-video', 'check-video', 'auto-video',
   ]));
 });
 

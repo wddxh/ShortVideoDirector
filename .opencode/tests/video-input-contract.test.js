@@ -16,11 +16,11 @@ test('documented persisted retry grant is consumable by an isolated checker', ()
     assert.ok(read(file).includes('retry_authorization'), file);
   }
 });
-test('video entries retain entry metadata and execution helpers', () => {
+test('internal video skills retain metadata and execution helpers', () => {
   for (const name of ['generate-video', 'check-video', 'auto-video']) {
     const text = read(`skills/${name}/SKILL.md`);
     assert.match(text, new RegExp(`^name: ${name}$`, 'm'));
-    assert.match(text, /^user-invocable: true$/m);
+    assert.match(text, /^user-invocable: false$/m);
   }
   for (const name of ['generate-video', 'check-video']) {
     assert.ok(read(`skills/${name}/SKILL.md`).includes('video-task-inputs.mjs'), name);

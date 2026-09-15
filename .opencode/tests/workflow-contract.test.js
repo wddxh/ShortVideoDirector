@@ -78,18 +78,30 @@ test('reviewers retain Bash and Task skills have Task-enabled owners', () => {
   }
 });
 
-test('all seven public entries retain local orchestration metadata', () => {
+test('exactly four public entries retain local orchestration metadata', () => {
   const entries = readdirSync('skills').filter(n => existsSync(`skills/${n}/SKILL.md`))
     .map(n => frontmatter(read(`skills/${n}/SKILL.md`)))
     .filter(fm => fm['user-invocable'] === 'true').map(fm => fm.name).sort();
-  assert.deepEqual(entries, ['auto-video', 'check-video', 'edit-story',
-    'generate-video', 'repair-story', 'series-video', 'short-video']);
+  assert.deepEqual(entries, ['edit-story', 'repair-story', 'series-video', 'short-video']);
   for (const name of entries) {
     const fm = frontmatter(read(`skills/${name}/SKILL.md`));
     assert.equal(fm.agent, undefined, name);
     assert.equal(fm.context, undefined);
     assert.ok(fm['allowed-tools'].split(', ').includes('Task'));
     assert.ok(fm['argument-hint']);
+  }
+});
+
+test('internal video workflows retain local loading and execution tools', () => {
+  for (const name of ['generate-video', 'check-video', 'auto-video']) {
+    const fm = frontmatter(read(`skills/${name}/SKILL.md`));
+    assert.equal(fm.name, name);
+    assert.equal(fm['user-invocable'], 'false', name);
+    assert.equal(fm.agent, undefined, name);
+    assert.equal(fm.context, undefined, name);
+    for (const tool of ['Read', 'Write', 'Glob', 'Bash', 'Skill', 'Task']) {
+      assert.ok(fm['allowed-tools'].split(', ').includes(tool), `${name}: ${tool}`);
+    }
   }
 });
 

@@ -1,7 +1,7 @@
 ---
 name: generate-video
 description: 在用户要求提交已审核镜头、准备视频任务或询问视频生成配置时使用。
-user-invocable: true
+user-invocable: false
 allowed-tools: Read, Write, Edit, Glob, Bash, Skill, Task
 argument-hint: "自然语言集数、镜头范围与提交要求"
 model: opus
@@ -9,7 +9,9 @@ model: opus
 
 ## 约束
 
-用户后续手动调用本入口要求生成视频，即表达已解析范围的首次提交意图，不再询问“是否授权生成”或“开始吗”。先核对目标和实际模型/参数并保存原请求，不把 scope 核对变成重复批准。仅查看配置或准备任务的请求不提交；short/series 不自动调用本入口。首次提交不以询问自动重试/监控许可为前提，无 retry grant 不重试。新问题先查配置、材料和 grants，由 Creator/Director 在权限内处理，仅真实范围/固定设置冲突、缺必要权限或指定检查点才提问。
+本 skill 是 AI 可按用户自然语言提交、准备或配置请求在当前上下文本地加载的内部知识。
+
+用户后续明确要求生成视频，即表达已解析范围的首次提交意图，不再询问“是否授权生成”或“开始吗”。先核对目标和实际模型/参数并保存原请求，不把 scope 核对变成重复批准。仅查看配置或准备任务的请求不提交；short/series 不自动调用本入口。首次提交不以询问自动重试/监控许可为前提，无 retry grant 不重试。新问题先查配置、材料和 grants，由 Creator/Director 在权限内处理，仅真实范围/固定设置冲突、缺必要权限或指定检查点才提问。
 
 按共享 intake 规则复用当前已审核材料和真实授权；只读能力查询可先做。准备中若需要新设计/提示，先由 Director 确保相关需求已知或有明确角色/范围/约束委托，不由入口临时编造。仅问当前必要缺口，意外问题仅暂停受影响工作。
 
@@ -24,7 +26,7 @@ model: opus
 - 新提交由真实 Creator Task 使用已接入 scripts 执行；加载 provider skill 不转移角色。禁止测试性付费调用。
 - tasks.json 保持数组，由用户交互上下文维护准备和授权，按 task_id 唯一并保存完整 shots。提交状态仅由 wrapper 的 reserve/settle 写入，LLM 不重复写回。不得与提交脚本并发编辑 tasks；发现 `.submit-lock` 或 inflight 先停止准备并核实，不删除绕过。
 - 预登记后 creator 不改 prompt/references/duration/submission；submitted/done 及 inflight 保护。
-- 用户本次 generate-video 生成请求就是该范围首次提交依据，不需要另一条同意消息；材料就绪或 review pass 本身不是视频请求。failed 状态不产生重试或修改授权。
+- 用户本次实际视频生成请求就是该范围首次提交依据，不需要另一条同意消息；材料就绪或 review pass 本身不是视频请求。failed 状态不产生重试或修改授权。
 - 对请求范围内首次提交的 prepared pending，持久化 `initial_authorization:{decision,episode,task_id,shots,constraints}`：decision 保留实际生成请求原文及澄清；episode/task_id/shots 精确绑定整个任务，constraints 保留真实条件，无额外条件可为 []。当前 manifest 成员必须等于 record 和 grant；错误身份、成员/输入漂移或部分选组在 reserve/付费前阻塞，零调用且不改次数。无生成请求不造 grant，初始 grant 不允许失败重提，retry grant 不能替代它。
 - 不在首次提交前例行询问重试许可；仅用户要求自动重试，或实际失败阻塞且需用户决定时处理。按 check-video 的格式保存真实 `retry_authorization`、decision/scope/constraints；仅用户给出次数时写 max_attempts/attempts，不从生成请求推断无限重试。拒绝/无 grant 不重试，不阻止首次提交。监控同样仅用户要求或已有同意默认才启动。
 - 重跑准备不得重置已有 grant 的次数；输入/范围变化时不自动继承旧 grant，先核对真实授权是否明确覆盖该变化及重准备/重提，未覆盖才取得新决定。原输入重试许可不授权改输入。符合授权时按当前目标保留真实决定与剩余限制，不伪造新许可。submitted/done 保持保护，撤销授权可单独清除 grant，不改输入或状态。
