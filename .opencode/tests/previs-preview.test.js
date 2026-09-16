@@ -324,6 +324,36 @@ test('fractional cue boundaries do not snap early; identical distinct utterances
   durationCheck(f.output);
 });
 
+test('episode titles wrap within narrow picture widths before real export', t => {
+  for (const width of [96, 64]) {
+    const f = fixture(t, { duration: '1', audio: true, filter: `scale=${width}:64,setsar=1` });
+    const plan = { layout: 'episode', segments: [
+      { section: 'context', speaker: '场', text: '门', spans: [[0, 1]] },
+      { section: 'dialogue', speaker: '甲', text: '走', spans: [[0, 1]] },
+    ] };
+    writeFileSync(f.plan, JSON.stringify(plan));
+    const layout = JSON.parse(command('python3', ['-c', `
+import json, runpy, sys
+m = runpy.run_path(sys.argv[1]); p = json.loads(sys.argv[2]); width = int(sys.argv[3])
+font = m['load_font'](sys.argv[4], 16, '【说明】【对白/旁白】')
+lines = m['band_layouts'](p, [(0, 1, (0, 1), 0)], font, width)[((0, 1), 0)]
+ink = lambda text: font.getbbox(text)[2] - font.getbbox(text)[0]
+print(json.dumps({'widths': [ink(line) for line in lines],
+                  'unwrapped': ink('【对白/旁白】')}))
+`, script, JSON.stringify(plan), String(width), font]));
+    assert.ok(layout.unwrapped > width - 16);
+    assert.ok(layout.widths.every(size => size <= width - 16), JSON.stringify(layout));
+    const info = success(cli(f, ['--timecode', '--font', font]));
+    const streams = durationCheck(f.output, 1);
+    assert.equal(streams[0].width, width);
+    assert.equal(streams[0].height, 64 + info.band_height);
+    assert.equal(streams[0].nb_frames, '10');
+    assert.equal(streams.length, 2);
+    assert.ok(energy(samples(f.output).slice(1600, 12000)) > 10000);
+    assert.ok(bright(frame(f.output, 0.5, `${width}:${info.band_height}:0:64`)) > 100);
+  }
+});
+
 test('failed final publication removes only its reserved file', t => {
   const f = fixture(t);
   const result = command('python3', ['-c', `

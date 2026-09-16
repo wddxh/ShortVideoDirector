@@ -46,7 +46,17 @@ work 候选可用于预备；待 scope、依赖和发布写入占用稳定，Cre
 
 Creator 在 use 与最终 prompt 同步全局映射，并按 [参考区间与采用维度](../_meta/rules/visual-prompt-craft-common.md#参考区间与采用维度) 在正文每次显式视频引用处写具体源视频区间与采用维度，明确输出任务时间段。同钟全组也适用，完整声明不替代局部区间；静态图无播放时钟，不要求每句/代词带引用。Reviewer 核对每个实际视频绑定处，遗漏交 Creator 语义修订已有 prompt/use，不由 converter 补字或正则验收。上传清除内部轨迹线、坐标、camera cone 和调试标签，正式 film text 保留。Reviewer 按源忠实度、适用性与声明用途判断，不以精细度、词数、固定标题、面部细节数量或相同用词验收。
 
+按 [全画面粗代理映射](../_meta/rules/visual-prompt-craft-common.md#全画面粗代理映射) 交接：Creator 查实际参考，在最终 prompt 开头覆盖所有可辨识粗对象/类别，含环境构件、地面、墙、背景、家具和无资产图物品。映射实际颜色/形状/位置 → 最终对象 → 采用空间包络（位置、屏占尺度、距离、朝向、路径）→ 源定形状结构、软硬、材质表面/光响应及动作所需变化。同类重复可成组，不漏视觉类别、不设每几何件配额；有上传图显式绑定，无图依已定场景美术正面描述，不强制新增图/卡。真实设计缺口协调 owner，不捏资产/token。
+
+全局稳定映射提供基础，不是只能写一次；局部按主要对象、注意焦点、粗形材误继承风险或表达需要可重申乃至完整介绍最终身份/形材，不限于新对象或变化。新对象、换场歧义、身份切换、形材状态或 purpose 变化时补清关系。避免机械复制无关全对象清单，不禁止逐段有目的重复或设次数，保留完整源动作和状态变化。每次显式视频仍写具体源 interval、输出 task 段和采用维度，对象介绍按需。粗包络与 camera/light/reveals/cuts 控制不默认赋予盒状轮廓、比例、拓扑、刚性或材质；环境/道具几何保留声明的空间/通行拓扑，专门 shape/topology 与 fine refs 保留实际用途中的结构/材质。Creator 逐 ref.use 与亲写完整 prompt 同步，独立稿可序列化，精细源动作不因无肢省略。
+
+Reviewer 用 fresh helper 实际观察核全画面映射覆盖与形材分离，无图不豁免；重申按适用性、清晰度、一致性及实际影响判断，不因重复本身 fail 或删必要强调。缺媒体/目标不明按实报告，具体遗漏或冲突交 Creator。沿用语义审核与现有 statuses，不加 registry、parser、schema、gate 或精细建模要求。官方提供素材对应、剧情展开和必要重申思路；全对象覆盖与逐处具体区间是 SVD 细化，不冒称官方硬要求。
+
 ## 来源与制作前确认
+
+按 [已有资产选用闭环](../_meta/rules/visual-prompt-craft-common.md#已有资产选用闭环) 协调 Creator → Director → Storyboarder：Creator 在最终 prompt 前以允许 stable 源与 actual refs 观察定向核已有 card/image、实际使用 shots 的 header 及 materials slots；有合适已定 identity/形材图应复用，影响这些依据的漏选须补。无适用图可依源正面描述，不强制每物上传/建卡或读全库；源外 extra object 交 Creator 修媒体，不造资产使其合法。
+
+收到漏引的对象、shots、card/image 确切路径、源依据与影响后，Director 集中核 active 依赖，给 Storyboarder 精确 storyboard 写入范围、有界可读依赖及 stable/等待条件；同文件与实际 reader/writer 冲突串行。Creator 不直接补源。若不只是 header 遗漏而涉及剧情、清单或新设计，交对应 owner，原授权能覆盖则持续执行，边界不足按既有规则升级。源稳定交回后安排 Creator 重跑 provider 材料工具，用实际 asset union/local media slots 全篇语义同步 prompt 和受影响 use，不追加猜图号或提交时 replace，不建平行上传列表。绑定/源变化沿受影响 scope 做兼容性评估并取得当前指纹的适用独立证据，不免门禁或盲刷旧 pass。
 
 提示表达采用 [官方适用范围](../_meta/rules/visual-prompt-craft-common.md#官方指南适用范围)：建议 1–4/7 与建议 5 转场在其范围内优先，建议 6/extend 排除。Creator 可按素材用途/时窗、概述、时间动作与情绪意图、可选全局重申组织亲写稿。转场按 [过程表达](../_meta/rules/transition-craft.md#转场过程表达) 落实两端、触发、过程及必要声画窗口，区分淡黑后显现与交叉叠化；有效硬切保留，沿固定 source cut 与预算，变更交源 owner，不加统一过渡秒数。
 
@@ -140,11 +150,15 @@ Task 若异步返回后台通知/等待指示，先做无依赖工作，再按�
 
 short/series 当前 ep 的全部制作材料、完整 task clean + caption MP4 和现有独立审核均就绪，且所需依赖 stable 后，Director 在原制作授权内自动委托单一 Creator 汇总一次整集本地参考。handoff 明确 canonical config/ep、script/storyboard、按源顺序的全部最终 manifests、显式选中的完整 clean 与对应 PLAN、有界读取依赖及精确写入路径；沿用 active reader/writer 与子树占用规则，不另问“开始汇总吗”。系列每完成一集交该集，不等待或合成 all-series；局部制作/修复不自动扩成全片汇总。
 
-保留每组完整 clean/字幕版及 PLAN，另交 `references/epNN/episode-previs/review.mp4`。Creator 在 `story/work/epNN/episode-previs/parts.json` 写仅供本次调用的显式 video/plan 映射，路径相对故事项目根；仅含 segments 的整理用 PLAN 放 `references/epNN/episode-previs/`，保留原 PLAN。按 [整集工具契约](../creator-local-reference/tools.md#episode-caption-review-mp4) 先拼 clean，再以 canonical 累计时长重基全部字幕窗口。每镜整个区间显示 `SHOT: 编号 [全片起点s-终点s]`，覆盖 task 间边界；全片 HH:MM:SS 从零逐秒更新。真实 shot 内 cut/额外注释由 Creator 语义整理，工具不自动解析 prose；不能拼接已烧录字幕的任务视频。CLI 无 overwrite 参数，拒绝已有输出；正式更新由 Creator 先生成新文件并验证，再在既有授权范围和稳定依赖下安全替换。
+保留每组完整 clean/字幕版及 PLAN，另交 `references/epNN/episode-previs/review.mp4`。Creator 在 `story/work/epNN/episode-previs/parts.json` 写仅供调用的 `{video,plan}` 数组，按 canonical task 顺序、路径相对故事项目根；整理用 PLAN 放 `references/epNN/episode-previs/`，保留原 PLAN。PLAN 仅含 `segments` 和可选 `context`，对白/旁白保留原词及全部窗口，说明不装成对白。按 [整集工具契约](../creator-local-reference/tools.md#episode-caption-review-mp4) 先拼 clean，再自动重基 task-local 对白和 context 窗口。工具依 canonical 自动显示 `taskNN: SHOT 编号 [全片起点s-终点s]`，覆盖每镜半开区间及 task 接点；全片 HH:MM:SS 从零逐秒更新，底栏分 `【说明】` 与 `【对白/旁白】`。不能拼已烧录字幕的任务视频。CLI 要求新输出；正式更新先生成并验证候选，再在既有授权与稳定依赖下安全替换。
 
 这是本地参考交付，不是 generated video 剪辑、付费提交或任务完成记账。保留五种审核 kind 与现有 gates；不为汇总新增正式审核或写原 reviews、manifest、grants，Director 不自签 pass。查看仍用 fresh scoped 视觉任务和预览规则。Creator 回报实际输出路径、全片总时长、task/shot 顺序、时钟核对及音频/兼容性/观察限制；以当前输出为据，不抄历史日志。工具失败或汇总缺失仍是部分交付，报告具体恢复条件，不把过程成功当正常完成。正式更新在既有授权 scope 内安全替换，依赖变化先协调 owner。
 
 整集工具读取同一已存本地规格，每个 PARTS 选中的完整 clean 必须匹配本集宽高/fps 与各自 canonical 时长，不能自动取最大画布补边掩盖不符。Creator 在范围内先修不符输入，保持相机/比例/源时钟，再组装；字幕 picture 仍为已存宽高，总高加底栏。核实际全片 CFR、时长及 canonical 累计时钟；保留已有音轨，混合有声/无声部分按对应时长补静音，全无声保持无音轨，不承诺独立生成声音无缝。
+
+正式新交付由 Creator 依 source 为当前节拍填写 `PLAN.context` 的场次及相应 camera/action，performance 仅源有依据时提供。条目为 `{shot,scene,spans,camera?,action?,performance?}`；shot 是本 task 的整数源镜号，scene 及已填说明字段为非空白字符串，非空 spans 使用 task-local 秒且落在该 shot 内的半开窗口。每窗完整填写适用字段，无跨窗继承；同场跨 task 用同场名，不同 entry 不可重叠，同时发生的说明合在一条，同条重叠 spans 只显示一次。工具不解析 prose、不新增 manifest metadata。单任务 `previs-preview.py` 仍按 segments 显示，不自动处理顶层 context 或 canonical 标签。
+
+旧 PLAN 无 context 可读取，缺说明窗口显示 `未提供` 并回报 `warnings`；兼容成功或 warnings 为空均不证明正式新交付完整。说明超过实际换行六行时工具报错而不截字，这是版面限制，不是通用创作配额。Creator 先简洁准确表达当前节拍，或按源拆合法时间窗且每窗保留完整适用字段，不能删关键事实、把说明塞进对白或偷加秒。沿原交付终点核实际文件、说明覆盖与 warnings；未解缺口报告部分交付及恢复条件，不自动 pass，也不增加流程、许可、upload、gate 或 receipt。clean 保持原样，画面宽高/时钟照上文，底栏另加高度。
 
 ## 全局规则
 

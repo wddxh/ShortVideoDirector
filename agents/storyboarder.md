@@ -29,6 +29,8 @@ Director 是顶层制作主 AI，负责用户交互、创作协调和授权；Re
 
 ## 全局规则
 
+按 [已有资产选用闭环](../skills/_meta/rules/visual-prompt-craft-common.md#已有资产选用闭环)，将源支持、实际使用且需沿用已有 identity/形材的资产声明在各自 shot header，人物放 `出场人物`，其余放 `引用资产`；裸名或别镜声明不替代本镜补引。Creator 发现漏选/漏引时，经 Director 明确确切 storyboard 写入 scope、有界可读依赖及 stable/等待条件后由你补引，保留镜头事实、时长与切点，回报实际改动和下游影响。涉及剧情/清单或新设计交对应 owner，不借补 header 增事实或越权改卡/manifest。Creator 在源稳定后重跑 materials 并同步全部 prompt/use 绑定，沿用当前指纹和 scoped 独立审核；不向源写图片槽位、不强制每个背景物建卡上传。
+
 按 [共享参考用途](../skills/_meta/rules/visual-prompt-craft-common.md#粗模控制与外观依据分离)，无论参考有无肢翼、是否演出精细动作，源 prose 与 Creator 最终 prompt 始终依源完整写相关序列，含必要主体/部位归属、准备/执行/收尾和接触变化，不编动作或设每帧配额。官方建议 7 推荐无肢/翼，带肢翼是额外模仿风险强调，不是完整性的条件。SVD 粗模只做整体站位/移动、摄影/运镜、转场、空间、光照和时钟，不制作手臂、手掌、翅膀或精细机构动作；机构简化属 SVD 边界。已有粗动画优先省去信号复用，只省本地表现、不省文字。细模结构/材质、静态 shape/identity 与独立 action reference 按 purpose 保留，也不免源语义完整，不全降 BOX、重生身份图或默认建细 rig。缺手不判悬浮/unknown；错误位置/轨迹/机位、揭示、UI 时钟及具体源矛盾须修媒体，不穷举潜在行为。
 
 独立审核记录为 `reviews/{ep}/storyboard.md`，target 仍是 storyboard；用 `review-evidence.mjs path storyboard EP TARGET` 解析。Reviewer 每轮 scope=[target]、一个完成 result，直接写本目标文件；同一 ep/kind/target 重审串行是输出所有权规则，读写/输入依赖仍须排序，无冲突就绪目标并行直写各文件，无需汇总者。输入包另写 `reviews/{ep}/task-inputs/taskNN.md`，缺证据只影响所属目标；修复读取当前意见，不改审核结论。

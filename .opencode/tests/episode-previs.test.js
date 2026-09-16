@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync,
-  readdirSync } from 'node:fs';
+  readdirSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -96,13 +96,15 @@ test('real episode: source order, rebased spans/cuts, picture size, mixed audio 
   const plan = JSON.parse(command('python3', ['-c',
     'import runpy,json,sys; m=runpy.run_path(sys.argv[1]); print(json.dumps(m["episode_plan"](json.loads(sys.argv[2]))))',
     join(scripts, 'episode-previs.py'), JSON.stringify(payload)]));
-  assert.deepEqual(plan.segments.map(s => s.spans), [
+  assert.deepEqual(plan.segments.filter(s => s.section !== 'context').map(s => s.spans), [
     [[0.2, 0.6], [0.8, 1.2]], [[0, 1]], [[1, 2]],
     [[2.2, 2.6], [2.8, 3.2]], [[2, 4]],
   ]);
-  assert.deepEqual(plan.segments.filter(s => s.speaker === 'SHOT').map(s => s.text),
-    ['1 [0s-1s]', '2 [1s-2s]', '3 [2s-4s]']);
-  assert.equal(plan.segments[3].text, '等3秒，正文保持。');
+  assert.deepEqual(plan.segments.filter(s => s.section === 'header').map(s => [s.speaker, s.text]),
+    [['task09', 'SHOT 1 [0s-1s]'], ['task09', 'SHOT 2 [1s-2s]'], ['task02', 'SHOT 3 [2s-4s]']]);
+  assert.equal(plan.segments.filter(s => s.section === 'dialogue')[1].text, '等3秒，正文保持。');
+  assert.ok(plan.segments.filter(s => s.section === 'context').every(s => s.missing));
+  assert.equal(info.warnings.length, 1);
   const streams = probe(f.output);
   for (const stream of streams) {
     assert.equal(Number(stream.start_time), 0);
@@ -171,6 +173,26 @@ test('whole-episode declarations and explicit parts fail before any encoding', t
   reject(/part 2 \/ task02.*only segments/);
   f.write(f.parts[1].plan, { segments: [{ speaker: '甲', text: '保留', spans: [[0, 3]] }] });
   reject(/part 2 \/ task02.*duration/);
+  const context = { shot: 3, scene: '同一候车厅', action: '停步', spans: [[0, 2]] };
+  for (const [entries, pattern] of [
+    [null, /context must be an array/],
+    [[{ ...context, shot: 2 }], /shot must belong/],
+    [[{ ...context, spans: [[0, 3]] }], /duration/],
+    [[{ ...context, spans: [] }], /nonempty array/],
+    [[{ ...context, spans: [[true, 1]] }], /finite number/],
+    [[{ ...context, scene: ' ' }], /scene.*nonempty/],
+    [[{ ...context, camera: 1 }], /camera.*string/],
+    [[{ ...context, duration: 2 }], /requires shot/],
+    [[context, { ...context, spans: [[1, 2]] }], /overlapping context/],
+    [[{ ...context, camera: '推'.repeat(150) }], /exceeds 6 wrapped lines/],
+  ]) {
+    f.write(f.parts[1].plan, { segments: [], context: entries });
+    reject(pattern);
+  }
+  f.write(f.parts[1].plan, { segments: [] });
+  f.write(f.parts[0].plan, { segments: [], context: [{ ...context, shot: 1, spans: [[0.5, 1.5]] }] });
+  reject(/part 1 \/ task09.*within shot 1/);
+  f.write(f.parts[0].plan, { segments: [] });
   f.write(f.parts[1].plan, { segments: [] });
   f.media(1, 3);
   reject(/part 2 \/ task02.*duration mismatch/);
@@ -227,6 +249,60 @@ exec "${realFFmpeg}" "$@"
   assert.match(raced.stderr, /File exists/);
   assert.equal(readFileSync(f.output, 'utf8'), 'other publisher');
   assert.equal(readdirSync(f.root).some(p => p.startsWith('.episode-previs-')), false);
+});
+
+test('context windows rebase across tasks with same scene and separate intact overlapping dialogue', t => {
+  const f = fixture(t);
+  f.write('fixture-config.md', '- ep01 本地参考宽度: 640\n- ep01 本地参考高度: 360\n- ep01 本地参考fps: 10\n');
+  for (const i of [0, 1]) f.media(i, 2, '10', false, 2, [], '640x360');
+  const scene = '车站候车厅';
+  const plans = [
+    { segments: [{ speaker: '甲', text: '等3秒，正文保持。', spans: [[0, 2]] }], context: [
+      { shot: 1, scene, camera: '缓推近', action: '甲走向门口', spans: [[0, 0.5], [0.2, 0.5]] },
+      { shot: 1, scene, camera: '停止推进', action: '甲停步', performance: '犹豫回望', spans: [[0.5, 1]] },
+      { shot: 2, scene, camera: '侧面固定', action: '乙举起车票', spans: [[1, 2]] },
+    ] },
+    { segments: [
+      { speaker: '甲', text: '别走，等我！', spans: [[0, 2]] },
+      { speaker: '乙', text: '车马上开。', spans: [[0.2, 1.8]] },
+    ], context: [{ shot: 3, scene, camera: '横移跟随', action: '两人向右走', spans: [[0, 2]] }] },
+  ];
+  plans.forEach((p, i) => f.write(f.parts[i].plan, p));
+  const info = success(f.cli());
+  assert.deepEqual(info.warnings, []);
+  assert.equal(probe(f.output)[0].nb_frames, '40');
+  const payload = info.mapping.map((p, i) => ({ ...p, ...plans[i] }));
+  const result = JSON.parse(command('python3', ['-c', `
+import json, runpy, sys
+m = runpy.run_path(sys.argv[1]); p = m['episode_plan'](json.loads(sys.argv[2]))
+v = m['preview']; _, events, _, _ = v['audio_plan']['validate_plan'](p, 4)
+intervals = v['cue_intervals'](events, 4, True)
+font = v['load_font'](sys.argv[3], 16, ''.join(s['text'] for s in p['segments']))
+layouts = v['band_layouts'](p, intervals, font, 640)
+print(json.dumps({'plan': p, 'lines': [layouts[(active, second)] for _, _, active, second in intervals]}))
+`, join(scripts, 'episode-previs.py'), JSON.stringify(payload), font]));
+  const notes = result.plan.segments.filter(s => s.section === 'context');
+  assert.deepEqual(notes.map(s => s.spans), [[[0, 0.2]], [[0.2, 0.5]], [[0.5, 1]], [[1, 2]], [[2, 4]]]);
+  assert.ok(notes.every(s => s.text.startsWith(scene)));
+  assert.ok(result.lines.some(lines => lines.includes('甲: 别走，等我！') && lines.includes('乙: 车马上开。')));
+  assert.equal(new Set(result.lines.map(lines => lines.indexOf('【对白/旁白】'))).size, 1);
+  const crop = `640:${info.dimensions.band_height}:0:360`;
+  assert.notDeepEqual(frame(f.output, 0.3, crop), frame(f.output, 0.7, crop));
+  assert.notDeepEqual(frame(f.output, 1.7, crop), frame(f.output, 2.7, crop));
+  // Optional retained, reproducible engineering sample; never production paths.
+  const sample = process.env.EPISODE_PREVIS_SAMPLE_DIR;
+  if (sample) {
+    assert.ok(sample.startsWith('/tmp/opencode/'));
+    copyFileSync(f.output, join(sample, 'episode-context.mp4'));
+    writeFileSync(join(sample, 'plans.json'), JSON.stringify(plans, null, 2));
+    writeFileSync(join(sample, 'info.json'), JSON.stringify(info, null, 2));
+    for (const time of [0.3, 0.7, 1.7, 2.7]) {
+      ffmpeg(['-ss', String(time), '-i', f.output, '-frames:v', '1', '-threads', '1',
+        join(sample, `frame-${time}.png`)]);
+      ffmpeg(['-ss', String(time), '-i', f.output, '-vf', `crop=${crop}`,
+        '-frames:v', '1', '-threads', '1', join(sample, `caption-${time}.png`)]);
+    }
+  }
 });
 
 test('source audio is padded/trimmed per canonical part before concatenation', t => {

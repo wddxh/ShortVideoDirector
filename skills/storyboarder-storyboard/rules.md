@@ -59,6 +59,10 @@ Creator 装组保留各 shot 时长、对白、动作意图和内部切点，统
 
 `引用资产` 仅含 location / item / building；character 仅放在 `出场人物`。链接必须对应真实资产。不得在 storyboard 中写下游生成的图片槽位。
 
+按 [已有资产选用闭环](../_meta/rules/visual-prompt-craft-common.md#已有资产选用闭环)，从本镜源事实核对实际使用对象与已有对应资产；需要沿用既定 identity/形材且有合适图时，每个实际使用 shot 的 header 声明真实 card 链接。正文裸名、其他镜 header 或存在图片文件都不替代本镜声明。允许同类背景成组与无适用图的源定外观描述，不要求每个可见物建卡/上传，不全库扫描或加入不出场资产。
+
+Creator 的漏引报告经 Director 给出精确 storyboard 写入 scope、有界 stable 依赖及等待条件后，由 Storyboarder 补 header；同文件串行。只补源已支持、实际使用的资产，保留对白、动作、时长与切点。若需改变剧情、剧本清单或设计，先交对应 owner 协调，不能反造资产使额外对象合法。回报具体 shots/链接与影响、稳定交回后，Creator 重跑 provider materials，以真实新 slots 核改完整 prompt 与受影响 use；保留 header → asset union → local media 接口和 scoped 兼容性/当前指纹审核，不越权改 manifest 或机械替换下游 token。
+
 Creator 提供作品美术基线，Storyboarder 在各源 shot 的单行 `视频风格` 表达一次。同组字段须精确相同，materials 提取单一源风格一次；Creator 在最终 prompt 表达统一基线，可结尾重申必要全局要求。材料提取遵循所选 provider 自有工具。不同基线交 owner 协调，不模糊去重。相容局部变化与详细动作、情绪意图、对白、音效留视听正文；reference use 说明实际控制用途、适用区间和占位边界。
 
 摄影源保留七字段，源 cues 用镜内时间。所选 provider 自有材料工具定义 pack、引用绑定和重基，具体规则见其视频指南。Creator 对照源、工具输出及实际 refs，据派生 timeline 将完整源意图写成任务时间 manifest.prompt，保留对白与正式片中文字原词，去掉内部 IDs/路径/元数据；缺源事实返回 owner。[输入包](../_meta/rules/shot-inputs.md) 身份图按首次使用求并集在前，本地媒体在后，每任务至少一个全组 MP4，静态段可用 clip。各镜 prose links 须自身 header 声明。Creator 统一媒体时钟/切点/声音桥，自查最终 `--json` 后由 fresh Reviewer 审核忠实度、完整性、集成/delta 和必要边界，无冲突复用 storyboard 判断。

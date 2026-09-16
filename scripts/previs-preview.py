@@ -169,12 +169,21 @@ def cue_intervals(events, duration, timecode):
     return result
 
 
-def render_bands(directory, plan, intervals, font, width):
-    from PIL import Image, ImageDraw
+def band_layouts(plan, intervals, font, width):
     margin = max(8, width // 80)
     wrapped = [wrap(s["speaker"] + ": " + s["text"], font, width - 2 * margin)
                for s in plan.get("segments", [])]
     layouts = {}
+    episode = plan.get('layout') == 'episode'
+    sections = [s.get('section', 'dialogue') for s in plan.get('segments', [])]
+    context_height = 0
+    if episode:
+        for first, _, active, _ in intervals:
+            count = sum(len(wrapped[i]) for i in active if sections[i] == 'context')
+            if count > 6:
+                raise ValueError(f'context at {first:g}s exceeds 6 wrapped lines; '
+                                 'Creator must shorten the current beat or split its spans; no text truncated')
+            context_height = max(context_height, count)
     for _, _, active, second in intervals:
         key = (active, second)
         if key in layouts:
@@ -183,8 +192,24 @@ def render_bands(directory, plan, intervals, font, width):
         if second is not None:
             clock = f"{second // 3600:02d}:{second // 60 % 60:02d}:{second % 60:02d}"
             lines.extend(wrap(clock, font, width - 2 * margin))
-        lines.extend(line for index in active for line in wrapped[index])
+        if episode:
+            header = [line for i in active if sections[i] == 'header' for line in wrapped[i]]
+            notes = [line for i in active if sections[i] == 'context' for line in wrapped[i]]
+            lines.extend(header)
+            lines.extend(wrap('【说明】', font, width - 2 * margin))
+            lines.extend(notes + [''] * (context_height - len(notes)))
+            lines.extend(wrap('【对白/旁白】', font, width - 2 * margin))
+            lines.extend(line for i in active if sections[i] == 'dialogue' for line in wrapped[i])
+        else:
+            lines.extend(line for index in active for line in wrapped[index])
         layouts[key] = lines
+    return layouts
+
+
+def render_bands(directory, plan, intervals, font, width):
+    from PIL import Image, ImageDraw
+    margin = max(8, width // 80)
+    layouts = band_layouts(plan, intervals, font, width)
     ascent, descent = font.getmetrics()
     line_height = max([ascent + descent] + [font.getbbox(line)[3] - font.getbbox(line)[1]
                        for lines in layouts.values() for line in lines]) + 4
