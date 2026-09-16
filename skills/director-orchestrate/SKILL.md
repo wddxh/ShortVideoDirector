@@ -42,7 +42,7 @@ work 候选可用于预备；待 scope、依赖和发布写入占用稳定，Cre
 
 本地参考 handoff 指定需要成立的视觉成果、源事实/shot/clock 边界、交付路径、依赖稳定性与决策余地，选材由 Creator 根据固定环境报告和当前材料判断。保留用户固定工具或 Creator 已明确选定的局部实现及其依据；其余不预先要求全组 `.blend` 或 CUDA。Creator 在现有 handoff 简短说明可复用什么、还缺什么控制、为何选择能表达它的最简材料，不另设选材表或审批。返工围绕实际冲突，可改用静帧、图层、二维动画、局部 3D 或混合表达；同步受影响 sources/use/prompt 和实际媒体，源镜头重设计仍交对应 owner。
 
-按 [参考用途与精细度](../_meta/rules/visual-prompt-craft-common.md#参考用途与精细度) 交接实际 purpose，不把全部参考限定为粗 BOX：细模可采用已有结构/材质或只借空间，不强制模仿动作。Creator 在 use 与最终 prompt 同步素材时窗→任务时窗及采用维度；粗参考带肢/翼时写相关完整动作序列，不扩建本地 rig。上传清除内部轨迹线、坐标、camera cone 和调试标签，正式 film text 保留。Reviewer 按源忠实度、适用性与声明用途判断，不以精细度、词数、固定标题、面部细节数量或相同用词验收。
+按 [参考用途与精细度](../_meta/rules/visual-prompt-craft-common.md#参考用途与精细度) 交接实际 purpose，不把全部参考限定为粗 BOX：细模可采用已有结构/材质或只借空间，不强制模仿动作。Creator 在 use 与最终 prompt 同步全局映射，并按 [参考区间与采用维度](../_meta/rules/visual-prompt-craft-common.md#参考区间与采用维度) 在正文每次显式视频引用处写具体源视频区间与采用维度，明确输出任务时间段。同钟全组也适用，完整声明不替代局部区间；静态图无播放时钟，不要求每句/代词带引用。Reviewer 核对每个实际视频绑定处，遗漏交 Creator 语义修订已有 prompt/use，不由 converter 补字或正则验收。粗参考带肢/翼时写相关完整动作序列，不扩建本地 rig。上传清除内部轨迹线、坐标、camera cone 和调试标签，正式 film text 保留。Reviewer 按源忠实度、适用性与声明用途判断，不以精细度、词数、固定标题、面部细节数量或相同用词验收。
 
 ## 来源与制作前确认
 

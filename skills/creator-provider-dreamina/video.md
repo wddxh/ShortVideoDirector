@@ -61,7 +61,7 @@ Dreamina materials extract the identical parsed single-line `视频风格` into 
 
 ### Inline Use In Task-Time Prose
 
-In both `ref.use` and final prompt, map each actual token/purpose and video-local interval to its task-use interval and adopted dimensions. Declare a same-clock full-group mapping directly; static images have applicable task intervals, not playback clocks. Local action references govern only their stated phases, not a full-task loop. Use actual `{图片N}` / `{视频N}` slots when authoring; official guide notation is not a script replacement rule or submission-time rewrite.
+In both `ref.use` and final prompt, retain the global mapping of actual token/purpose and video-local interval to output task interval with adopted dimensions. EVERY explicit video reference in final prose locally states its concrete source-video interval and adopted dimensions, with the output task interval clear. The clocks may match; a same-clock full-group mapping does not replace these local details, nor does an output passage label or “this/corresponding segment”. References are not required in every sentence or on every pronoun. Static images have task applicability, not playback clocks. Local action references govern only stated phases, not a full-task loop. Use actual `{图片N}` / `{视频N}` slots. Creator semantically revises existing prompt and affected uses together before review; converters and submission preserve exact text without adding interval wording.
 
 Assign authority by actual purpose, not all-video BOX assumptions. Coarse white models can supply a dynamic skeleton for trajectories, camera, staging, lighting and cuts; prefer limbless/wingless BODYBOX for ordinary movement and map proxy colors/shapes to assets. With necessary limb/wing references, final prose gives the relevant complete action sequence and phase roles, without a local detailed rig. Suitable detailed models may supply existing structure/materials or only spatial relationships without copied action. Write each entry's actual adopted controls and local limits; remove internal trajectory lines, coordinates, camera cones and debug labels from uploads while retaining intended film text. See [proxy authority](../_meta/rules/visual-prompt-craft-common.md#粗模控制与外观依据分离).
 
@@ -72,8 +72,8 @@ Illustrative excerpt only, not a complete production prompt: assume actual image
 ```text
 本任务0–5秒，阿岚的身份外观用{图片1}，小舟用{图片2}；{视频1}的0–5秒对应本任务0–5秒，青色代理对应阿岚、橙色代理对应小舟，仅采用相机、布局、整体轨迹与切点，人物表演按下文。
 室内会面中，阿岚给出承诺，小舟得到期待的回应，带着欣喜靠近阿岚。
-[0s-3s] 按{视频1}此段固定双人中景，阿岚在画面左侧、小舟在右侧。阿岚{图片1}对小舟{图片2}说：“我答应你。”小舟听到“答应”后，注意留在阿岚身上，原先等待确认的态度转为欣喜，笑出来。
-[3s-5s] 按{视频1}在3秒切到小舟的中近景并保持该段前移轨迹。小舟{图片2}带着刚获回应的欣喜向画外左侧的阿岚{图片1}靠近；小舟迈步时重心随步伐前移，笑意延续，依照文字表演而非复制盒体滑移。
+[输出任务0s-3s] 参考{视频1}的0–3秒，仅采用固定双人中景构图与站位：阿岚在画面左侧、小舟在右侧。阿岚{图片1}对小舟{图片2}说：“我答应你。”小舟听到“答应”后，注意留在阿岚身上，原先等待确认的态度转为欣喜，笑出来。
+[输出任务3s-5s] 参考{视频1}的3–5秒，仅采用源视频3秒处的切点、小舟的中近景与整体前移轨迹；输出任务在3秒处硬切。小舟{图片2}带着刚获回应的欣喜向画外左侧的阿岚{图片1}靠近；小舟迈步时重心随步伐前移，笑意延续，依照文字表演而非复制盒体滑移。
 ```
 
 The excerpt demonstrates interval/dimension mapping, story intent and binding through a cut, not required smiling, approach, face coverage or added contact. It is not a reusable COMMON passage; Creator independently authors each task's complete prompt and uses. Source owners determine facts and camera design; absent support returns to them rather than being supplied by the example.

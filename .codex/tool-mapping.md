@@ -60,7 +60,7 @@ shot-input target 为 `task-inputs/taskNN.json`，纯文本 owner 验收最终�
 
 摄影按 camera-language 保留节拍、证据、先后/重叠与注意。参考遵循 [参考用途与精细度](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md#参考用途与精细度)：按 actual purpose 选粗/细，细模可采用已有结构/材质或只借空间，不强模仿动作。粗白模普通移动优先无肢/翼 BODYBOX；必要代理保留相容支撑与阶段，带肢/翼须最终 prompt 写相关完整动作序列，不扩本地 rig。抽象本身不失败，具体源冲突须修；必要证据不足 unknown，独立证据、fresh task、缩略图和 gates 保持。
 
-素材时窗与用途按 [参考区间与采用维度](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md#参考区间与采用维度) 同步到 use/最终 prompt，保留完整源动作、情绪意图及代理归属，局部动作不扩成全片循环。上传清除内部轨迹线、坐标、camera cone 和调试标签，保留正式 film text；抽象分工可说明省略，不能反转矛盾媒体事实。转场过程见 [转场过程表达](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/transition-craft.md#转场过程表达)，沿源切点与预算，不加示例秒数或 extend。
+素材时窗与用途按 [参考区间与采用维度](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/visual-prompt-craft-common.md#参考区间与采用维度) 同步到 use/最终 prompt，保留全局映射。正文每次显式引用视频须就地写具体源视频区间与采用维度，并明确输出任务时间段；两钟可相同，同钟全组完整声明或任务段标记不能替代局部源区间，不以“此段／对应片段”省略。不要求每句引用或每代词加 token，静态图无播放时钟。Reviewer 核对正文每个视频绑定处，遗漏交 Creator 语义修订已有 prompt 并同步 use，不按 token 数/正则验收，不由提交时 converter 补字，不新 parser/gate。保留完整源动作、情绪意图、代理归属与 source clock，自然表演按源意图独立表达，局部动作不扩成全片循环。上传清除内部轨迹线、坐标、camera cone 和调试标签，保留正式 film text；抽象分工可说明省略，不能反转矛盾媒体事实。转场过程见 [转场过程表达](${CLAUDE_PLUGIN_ROOT}/skills/_meta/rules/transition-craft.md#转场过程表达)，沿源切点与预算，不加示例秒数或 extend。
 
 独立生成 TASK 边界默认强烈优先采用有剪辑动机、明显不同的机位／视点／景别，以降低近似构图独立生成差异的显眼程度。每个相邻接点按源意图判断：同一连续事件保持必要动作进度、持有/接触、空间与声音的相容延续；场/幕或时空跳转判断因果、情绪、信息、主题反差或平行关系与观众定位，不套同一事件标准，不强制同位置、续动作、连续声音或过桥场。源支持的悬念、突兀感与硬切不必顺滑或立即解释；同集底层身份与世界事实一致，有意变化须有源依据。沿已有动机切点装组，相似镜头可同组；实际需要的匹配／重复构图保留，关键接触或必须无缝续声可行时同组，在现有交接说明取舍，不新增许可。此偏好不是每镜变化、每切一任务或角度配额，不保证连续性或豁免违背源意图的错接。TASK 不等于场景或幕，约束内可含多镜/多场，不强制幕结构、停步、终姿、停顿、下组重启或叠化；运动中硬切有效，不要求相同帧。参考与最终 prompt 保留对应接点意图及必要局部事实。保留源时长、连续成员、模型最大值及 grants；源重设计由 Director/owner 在原始预算内同步。
 

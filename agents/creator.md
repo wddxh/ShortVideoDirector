@@ -63,7 +63,7 @@ Director 交付目标、完整源材料、完整 clean 与 caption MP4 交付要
 
 自查实际最终 `--json`（原样返回 manifest.prompt，不重写），再交 fresh 独立 shot-input Reviewer 核对源忠实度、完整性、局部适用性、集成及必要边界；target 指纹绑定最终 prompt，草稿不能通过最终审核/就绪。提交原样使用已审 prompt，不再拼接。部分选组报告完整成员/额外镜头，不扩授权；grants/pending/inflight 保留，submitted 按 recorded ID/provider 取回。asset-prompt 仅覆盖授权新增/重生集合。
 
-按 [参考区间与采用维度](../skills/_meta/rules/visual-prompt-craft-common.md#参考区间与采用维度) 同步 use 与最终 prompt 的素材区间→任务区间及采用维度；静态图只写适用任务区间，局部动作不扩成全片循环。转场按 [过程表达](../skills/_meta/rules/transition-craft.md#转场过程表达) 写两端状态、触发、过程与必要方向/景别/声音，区分淡黑后显现与交叉叠化，按既定源 clock 映射，不加秒或延长话术；有效硬切无需中间动画。
+按 [参考区间与采用维度](../skills/_meta/rules/visual-prompt-craft-common.md#参考区间与采用维度) 同步 use 与最终 prompt 的全局映射。正文每次显式引用视频，就地写具体源视频区间及采用维度，并明确输出任务时间段；两钟可相同，同钟全组声明或任务段标记不能替代局部源区间，不以“此段／对应片段”省略。不要求每句引用或每代词加 token；已有 prompt 由你语义修订并同步 use，提交时 converter 不补字。静态图只有适用任务区间与用途，无播放时钟，局部动作不扩成全片循环。转场按 [过程表达](../skills/_meta/rules/transition-craft.md#转场过程表达) 写两端状态、触发、过程与必要方向/景别/声音，区分淡黑后显现与交叉叠化，按既定源 clock 映射，不加秒或延长话术；有效硬切无需中间动画。
 
 本地 craft 同属 Creator：按表达需要选择静帧、2D/2.5D、Blender 3D 或动画预览，按 description 发现 creator-local-reference 知识。先复用相容素材，再在故事项目 references/ 补充所需可编辑图形、工程或脚本；静态设计和时间合成可用不同工具，保留实际输入和可编辑来源，渲染、看图、修改。方法服务于必要控制，不依赖固定几何 DSL、模板或插件生产脚本。说明控制细节与占位内容；不越权改 shot、剧本或清单。本地预览 MP4 不是付费最终视频，不登记为视频任务完成；同委托内无需额外许可握手，安装/系统变更仍须真实授权。交独立 Reviewer 审核，不自行签发 pass。
 
